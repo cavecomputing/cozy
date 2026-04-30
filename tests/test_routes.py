@@ -92,6 +92,55 @@ class TestSystemPrompts:
         r = client.post('/api/system-prompts', json={'content': 'No name'})
         assert r.status_code == 400
 
+    def test_export_prompt_round_trips_through_import(self, client):
+        import io, json as _json
+        created = client.post('/api/system-prompts', json={
+            'name': 'Roundtrip', 'content': 'You are {{char}}. End.'
+        }).get_json()
+
+        # Export
+        r = client.get(f'/api/system-prompts/{created["id"]}/export')
+        assert r.status_code == 200
+        assert r.headers['Content-Type'].startswith('application/json')
+        assert 'attachment' in r.headers['Content-Disposition']
+        body = _json.loads(r.data.decode('utf-8'))
+        assert body == {'name': 'Roundtrip', 'content': 'You are {{char}}. End.'}
+
+        # Re-import the same payload — name collision should suffix " (2)"
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (io.BytesIO(r.data), 'roundtrip.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        imported = r.get_json()
+        assert imported['name'] == 'Roundtrip (2)'
+        assert imported['content'] == 'You are {{char}}. End.'
+        assert imported['id'] != created['id']
+
+    def test_import_prompt_rejects_non_json(self, client):
+        import io
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (io.BytesIO(b'not json at all'), 'bad.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 400
+
+    def test_import_prompt_uses_imported_prompt_when_name_missing(self, client):
+        import io
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (io.BytesIO(b'{"content":"hi"}'), 'noname.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        assert r.get_json()['name'] == 'Imported Prompt'
+
+    def test_export_missing_prompt_returns_404(self, client):
+        r = client.get('/api/system-prompts/99999/export')
+        assert r.status_code == 404
+
     def test_default_template_endpoint(self, client):
         r = client.get('/api/system-prompts/default-template')
         assert r.status_code == 200
