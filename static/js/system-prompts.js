@@ -131,6 +131,43 @@ export async function resetSystemPromptToDefault() {
     showToast('Reset to default', 'success');
 }
 
+// ── Import / export ───────────────────────────────────────────────────────
+
+export function importSystemPrompt() {
+    el.syspromptImportFile?.click();
+}
+
+export async function handleSystemPromptImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/system-prompts/import', { method: 'POST', body: fd });
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || 'Import failed');
+        }
+        const created = await res.json();
+        await loadSystemPrompts();
+        await selectSystemPrompt(created.id);
+        if (el.syspromptSelect) el.syspromptSelect.value = created.id;
+        showToast('Prompt imported', 'success');
+    } catch (err) {
+        showToast('Import failed: ' + err.message);
+    }
+}
+
+export function exportSystemPrompt() {
+    if (!state.activeSystemPromptId) {
+        showToast('No prompt selected');
+        return;
+    }
+    // Server emits the file with a Content-Disposition header.
+    window.location.href = `/api/system-prompts/${state.activeSystemPromptId}/export`;
+}
+
 export function previewSystemPrompt() {
     // Reflect any unsaved textarea edits into the in-memory active prompt so
     // the preview matches what the user is currently looking at.

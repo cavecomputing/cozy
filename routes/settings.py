@@ -1,6 +1,8 @@
 """Settings and system prompt routes."""
 
-from flask import Blueprint, request, jsonify
+import json
+
+from flask import Blueprint, request, jsonify, Response
 
 from shared import get_db, DEFAULT_PROMPT_TEMPLATE
 
@@ -120,6 +122,80 @@ def delete_system_prompt(prompt_id):
     with get_db() as conn:
         conn.execute('DELETE FROM system_prompts WHERE id = ?', (prompt_id,))
         return jsonify({'ok': True})
+
+
+# ── System prompt import / export ─────────────────────────────────────────
+
+def _safe_filename(name, fallback='prompt'):
+    safe = ''.join(c for c in (name or '') if c.isalnum() or c in (' ', '-', '_')).strip()
+    return safe or fallback
+
+
+def _unique_prompt_name(conn, base):
+    """Append " (n)" until the name is free."""
+    base = (base or '').strip() or 'Imported Prompt'
+    candidate = base
+    n = 2
+    while conn.execute(
+        'SELECT 1 FROM system_prompts WHERE name = ?', (candidate,)
+    ).fetchone():
+        candidate = f'{base} ({n})'
+        n += 1
+    return candidate
+
+
+@settings_bp.route('/api/system-prompts/import', methods=['POST'])
+def import_system_prompt():
+    """Create a new system prompt from an uploaded JSON file.
+
+    Expects multipart upload with a ``file`` field whose contents parse as
+    ``{"name": str, "content": str}``. Name collisions get a " (n)" suffix
+    appended so import never overwrites an existing prompt.
+    """
+    if not request.files or 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    try:
+        payload = json.loads(request.files['file'].read().decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        return jsonify({'error': f'Invalid JSON: {e}'}), 400
+    if not isinstance(payload, dict):
+        return jsonify({'error': 'Expected a JSON object'}), 400
+
+    content = payload.get('content', '')
+    if not isinstance(content, str):
+        return jsonify({'error': '"content" must be a string'}), 400
+    raw_name = payload.get('name')
+    base_name = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else 'Imported Prompt'
+
+    with get_db() as conn:
+        name = _unique_prompt_name(conn, base_name)
+        cur = conn.execute(
+            'INSERT INTO system_prompts (name, content) VALUES (?, ?)',
+            (name, content)
+        )
+        row = conn.execute(
+            'SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)
+        ).fetchone()
+        return jsonify(dict(row)), 201
+
+
+@settings_bp.route('/api/system-prompts/<int:prompt_id>/export', methods=['GET'])
+def export_system_prompt(prompt_id):
+    """Download a system prompt as a {name, content} JSON file."""
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT name, content FROM system_prompts WHERE id = ?', (prompt_id,)
+        ).fetchone()
+        if not row:
+            return jsonify({'error': 'Not found'}), 404
+
+    body = {'name': row['name'], 'content': row['content']}
+    filename = f"{_safe_filename(row['name'])}.json"
+    return Response(
+        json.dumps(body, indent=2, ensure_ascii=False),
+        mimetype='application/json; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
 
 
 # ── API Presets CRUD ──────────────────────────────────────────────────────
