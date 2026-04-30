@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cozy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link id="theme-stylesheet" rel="stylesheet" href="/themes/everforest-dark.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link id="favicon" rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+</head>
+<body>
+    <!-- Loading screen — hidden once all assets are ready -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Loading&hellip;</p>
+        </div>
+    </div>
+
+    <!-- ================================================================
+         SIDEBAR
+    ================================================================ -->
+    <div id="mobile-backdrop"></div>
+    <aside id="sidebar">
+        <div class="sidebar-header panel-header">
+            <button id="sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2 class="section-label panel-title hide-on-collapse">Characters</h2>
+            <button id="new-char-btn" class="icon-btn hide-on-collapse" title="New Character" aria-label="New Character">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="panel-divider hide-on-collapse"></div>
+
+        <div class="sidebar-scrollable">
+            <!-- Character list — populated by JS from API -->
+            <ul class="char-list" id="char-list"></ul>
+
+        </div>
+
+        <div id="user-profile-container">
+            <!-- Dropup Menu -->
+            <div id="persona-dropup" class="dropup-content" role="menu" aria-hidden="true">
+                <div class="panel-header panel-header--xs">
+                    <span class="section-label panel-title">Switch Persona</span>
+                </div>
+                <div class="panel-divider"></div>
+                <div id="persona-list"></div>
+
+                <button id="persona-create-btn" class="persona-option persona-create" role="menuitem" aria-label="New Persona">
+                    <div class="avatar small persona-create-avatar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </div>
+                    <span>New Persona</span>
+                </button>
+
+                <!-- Inline create/edit form (hidden by default) -->
+                <div id="persona-inline-form" class="persona-inline-form" hidden>
+                    <div class="pf-row">
+                        <label class="pf-avatar-wrap" title="Upload avatar">
+                            <div class="avatar small user-avatar" id="pf-avatar-preview">?</div>
+                            <input type="file" id="pf-avatar-input" accept="image/*" hidden>
+                        </label>
+                        <input type="text" id="pf-name" class="form-input" placeholder="Name">
+                    </div>
+                    <input type="text" id="pf-tagline" class="form-input" placeholder="Tagline (shown below name)">
+                    <textarea id="pf-description" class="form-textarea pf-textarea" rows="2" placeholder="Description (sent to LLM)"></textarea>
+                    <div class="pf-buttons">
+                        <button id="pf-cancel" class="btn btn-secondary btn-sm">Cancel</button>
+                        <button id="pf-save" class="btn btn-primary btn-sm">Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Profile Area (clicking opens persona switcher) -->
+            <div id="user-profile">
+                <div class="avatar user-avatar">ME</div>
+                <div class="user-info hide-on-collapse">
+                    <div class="user-name">Default User</div>
+                    <div class="user-tagline">The brave adventurer</div>
+                </div>
+            </div>
+            <!-- Settings gear — visible only when sidebar is collapsed -->
+            <button id="collapsed-settings-btn" title="Settings" aria-label="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+            <!-- Settings button — visually separate row -->
+            <div class="profile-settings-row hide-on-collapse">
+                <button id="settings-btn" class="profile-settings-btn" title="Settings" aria-label="Settings">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span class="section-label">Settings</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings flyout — slides out from sidebar right edge -->
+        <div id="settings-flyout" class="modal-overlay" hidden>
+            <div class="modal settings-modal">
+                <div class="modal-header panel-header">
+                    <button id="settings-back-btn" class="icon-btn settings-back-btn" aria-label="Back to settings list" hidden>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <h2 class="section-label panel-title panel-title--left">Settings</h2>
+                    <button id="settings-close-btn" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="panel-divider"></div>
+                <div class="modal-body settings-body">
+                    <div class="settings-shell" id="settings-shell">
+                        <nav class="settings-nav" id="settings-nav" role="tablist" aria-label="Settings sections">
+                            <button class="settings-nav-item active" data-section="appearance" role="tab" aria-selected="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                <span>Appearance</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="api" role="tab" aria-selected="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"></path><circle cx="12" cy="15" r="2"></circle></svg>
+                                <span>API</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="prompt" role="tab" aria-selected="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <span>Prompt Builder</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="lorebooks" role="tab" aria-selected="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                                <span>Lorebooks</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="sampler" role="tab" aria-selected="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                                <span>Samplers</span>
+                            </button>
+                        </nav>
+                        <div class="settings-pane" id="settings-pane">
+                    <div class="settings-section" data-section="appearance">
+                        <header class="settings-page-header">
+                            <h3>Appearance</h3>
+                            <p>Choose how Cozy looks on this device.</p>
+                        </header>
+                        <div class="settings-section-body">
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Theme</h4>
+                                    <p>Switch between built-in and custom color themes.</p>
+                                </header>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-theme-select">Theme</label>
+                                    <select id="settings-theme-select" class="form-input settings-select"></select>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                    <div class="settings-section" data-section="api" hidden>
+                        <header class="settings-page-header">
+                            <h3>API</h3>
+                            <p>Connect Cozy to an OpenAI-compatible endpoint and choose how much context to send.</p>
+                        </header>
+                        <div class="settings-section-body settings-section-stack">
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Preset</h4>
+                                    <p>Save and switch reusable endpoint, key, model, and context combinations.</p>
+                                </header>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-api-preset">Preset</label>
+                                    <div class="settings-model-row">
+                                        <select id="settings-api-preset" class="form-input settings-select"></select>
+                                        <button id="settings-preset-new" class="icon-btn" title="New preset" aria-label="New preset">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        </button>
+                                        <button id="settings-preset-save" class="icon-btn" title="Save changes to selected preset" aria-label="Save preset">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                        </button>
+                                        <button id="settings-preset-delete" class="icon-btn" title="Delete selected preset" aria-label="Delete preset">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Connection</h4>
+                                    <p>Endpoint and credentials are stored locally and masked in API responses.</p>
+                                </header>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-api-endpoint">Endpoint</label>
+                                    <span class="settings-row-hint">OpenAI-Compatible Endpoint</span>
+                                    <input type="text" id="settings-api-endpoint" class="form-input" placeholder="https://api.openai.com/v1">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-api-key">API Key</label>
+                                    <input type="password" id="settings-api-key" class="form-input" placeholder="sk-...">
+                                </div>
+                                <div class="settings-row settings-row-actions">
+                                    <button id="settings-test-api" class="btn btn-secondary btn-sm">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        Test Connection
+                                    </button>
+                                    <span id="settings-test-result" class="settings-test-result"></span>
+                                </div>
+                            </section>
+                            <section class="settings-card settings-card-grid">
+                                <header class="settings-card-header">
+                                    <h4>Model and context</h4>
+                                    <p>Choose the model and limit how many recent messages are included in requests.</p>
+                                </header>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-model">Model</label>
+                                    <div class="settings-model-row model-picker-row">
+                                        <input type="text" id="settings-model" class="form-input" placeholder="model-name" autocomplete="off" spellcheck="false">
+                                        <button id="settings-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div id="model-picker-menu" class="model-picker-menu" hidden role="listbox"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-context-size">Max Context Messages</label>
+                                    <input type="number" id="settings-context-size" class="form-input"
+                                           min="0" max="9999" value="0" placeholder="0 = all">
+                                </div>
+                                <p class="settings-hint">Recent messages sent to the LLM. 0 = all.</p>
+                                <span id="context-size-warning" class="settings-warning" hidden></span>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-send-thinking">Send thinking in context</label>
+                                    <input type="checkbox" id="settings-send-thinking">
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                    <div class="settings-section" data-section="prompt" hidden>
+                        <header class="settings-page-header">
+                            <h3>Prompt Builder</h3>
+                            <p>Edit the template Cozy uses to assemble character, persona, lorebook, and chat context.</p>
+                        </header>
+                        <div class="settings-section-body prompt-section-body">
+                            <div class="prompt-section-left">
+                                <div class="prompt-section-controls settings-card">
+                                    <header class="settings-card-header">
+                                        <h4>Prompt</h4>
+                                        <p>Select, save, preview, or reset a prompt template.</p>
+                                    </header>
+                                    <label class="settings-row-label" for="settings-sysprompt-select">Prompt</label>
+                                    <select id="settings-sysprompt-select" class="form-input settings-select"></select>
+                                    <div class="prompt-section-actions" aria-label="Prompt template actions">
+                                        <div class="prompt-action-group">
+                                            <button id="settings-sysprompt-new" class="icon-btn" title="New prompt" aria-label="New prompt">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            </button>
+                                            <button id="settings-sysprompt-save" class="icon-btn" title="Save changes to selected prompt" aria-label="Save prompt">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                            </button>
+                                            <button id="settings-sysprompt-delete" class="icon-btn" title="Delete prompt" aria-label="Delete prompt">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
+                                        </div>
+                                        <div class="prompt-action-group">
+                                            <button id="settings-sysprompt-preview" class="icon-btn" title="Preview rendered prompt" aria-label="Preview prompt">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            </button>
+                                            <button id="settings-sysprompt-reset" class="icon-btn" title="Reset to default template" aria-label="Reset to default">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-4.5"></path></svg>
+                                            </button>
+                                            <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help" aria-label="Template syntax help">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="prompt-vars-panel">
+                                    <div class="prompt-vars-title">Available variables</div>
+                                    <dl class="settings-help-vars">
+                                        <dt><code>&#123;&#123;system_prompt&#125;&#125;</code></dt><dd>Per-character instructions (from the card's system_prompt field).</dd>
+                                        <dt><code>&#123;&#123;description&#125;&#125;</code></dt><dd>Character description.</dd>
+                                        <dt><code>&#123;&#123;personality&#125;&#125;</code></dt><dd>Character personality.</dd>
+                                        <dt><code>&#123;&#123;scenario&#125;&#125;</code></dt><dd>Scenario from the card.</dd>
+                                        <dt><code>&#123;&#123;persona&#125;&#125;</code></dt><dd>Active persona's description.</dd>
+                                        <dt><code>&#123;&#123;mesExamples&#125;&#125;</code></dt><dd>Example dialogue from the card.</dd>
+                                        <dt><code>&#123;&#123;lorebook&#125;&#125;</code></dt><dd>Matched world-info entries (joined with separators).</dd>
+                                        <dt><code>&#123;&#123;user&#125;&#125;</code> / <code>&#123;&#123;char&#125;&#125;</code></dt><dd>Active persona name / character name.</dd>
+                                        <dt><code>&#123;&#123;time&#125;&#125;</code> / <code>&#123;&#123;date&#125;&#125;</code></dt><dd>Current local time / date.</dd>
+                                        <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options.</dd>
+                                        <dt><code>&#123;&#123;#var&#125;&#125;…&#123;&#123;/var&#125;&#125;</code></dt><dd>Conditional block — content is dropped when the variable is empty.</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                            <div class="prompt-section-right settings-card">
+                                <textarea id="settings-sysprompt-content" class="form-textarea" placeholder="Enter prompt template…"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-section" data-section="lorebooks" hidden>
+                        <header class="settings-page-header">
+                            <h3>Lorebooks</h3>
+                            <p>Manage standalone and character-embedded world info, then choose which book each chat uses.</p>
+                        </header>
+                        <div class="settings-section-body lorebook-section-body">
+                            <details class="lorebook-card lorebook-card--global settings-disclosure">
+                                <summary>Global lorebook settings</summary>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-lorebook-scan-override">
+                                        Scan depth override
+                                        <span class="help-tip" tabindex="0" aria-label="Scan depth override help" data-tip="Replaces every book's scan depth for this install. Scan depth is how many recent messages are checked for keyword hits. &lt;code&gt;0&lt;/code&gt; = use each book's own value.">?</span>
+                                    </label>
+                                    <input type="number" id="settings-lorebook-scan-override" class="form-input" step="1" min="0" max="500" value="0">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-lorebook-always-inject-all">
+                                        Always inject all entries
+                                        <span class="help-tip" tabindex="0" aria-label="Always inject all entries help" data-tip="Skip keyword scanning and inject every enabled entry from the active lorebook on every turn. Useful for dense, story-critical lore where you want everything always available. Still respects insertion order and max_entries.">?</span>
+                                    </label>
+                                    <input type="checkbox" id="settings-lorebook-always-inject-all">
+                                </div>
+                            </details>
+
+                            <div class="lorebook-card lorebook-card--workspace">
+                                <header class="settings-card-header settings-card-header--workspace">
+                                    <h4>Lorebook workspace</h4>
+                                    <p>Select a book, edit its metadata, and manage entries in one place.</p>
+                                </header>
+                                <div class="lorebook-workspace-grid">
+                                    <header class="lorebook-col-header">
+                                        <h4 class="lorebook-card-title">Lorebooks</h4>
+                                        <div class="lorebook-side-actions">
+                                            <button id="settings-lorebook-import" class="icon-btn" title="Import lorebook from JSON" aria-label="Import lorebook">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                            </button>
+                                            <button id="settings-lorebook-new" class="icon-btn" title="New lorebook" aria-label="New lorebook">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            </button>
+                                        </div>
+                                    </header>
+                                    <header class="lorebook-col-header">
+                                        <h4 class="lorebook-card-title">Selected lorebook</h4>
+                                    </header>
+                                    <header class="lorebook-col-header">
+                                        <h4 class="lorebook-card-title">Entries <span id="settings-lorebook-entries-count" class="lorebook-entries-count"></span></h4>
+                                        <button id="settings-lorebook-add-entry" class="btn btn-secondary btn-sm" hidden>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            Add entry
+                                        </button>
+                                    </header>
+
+                                    <ul id="settings-lorebook-list" class="lorebook-list"></ul>
+                                    <input type="file" id="settings-lorebook-import-file" accept="application/json,.json" hidden>
+
+                                    <div id="settings-lorebook-empty-meta" class="lorebook-empty-panel">
+                                        <strong>Select a lorebook</strong>
+                                        <span>Choose a book from the list to edit its name, destination, and scan settings.</span>
+                                    </div>
+                                    <div id="settings-lorebook-meta" class="lorebook-meta" hidden>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-lorebook-name">Name</label>
+                                            <input type="text" id="settings-lorebook-name" class="form-input" placeholder="Lorebook name…">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-lorebook-description">Description</label>
+                                            <textarea id="settings-lorebook-description" class="form-textarea" rows="2" placeholder="Optional notes — not sent to the model"></textarea>
+                                        </div>
+                                        <div class="lorebook-meta-row">
+                                            <label class="lorebook-entry-field lorebook-entry-field-narrow">
+                                                <span>
+                                                    Scan depth
+                                                    <span class="help-tip" tabindex="0" aria-label="Scan depth help" data-tip="How many of the most recent messages this book scans for keyword matches. Higher = more chances to fire, more tokens scanned.">?</span>
+                                                </span>
+                                                <input type="number" id="settings-lorebook-scan-depth" class="form-input" step="1" min="1" max="500" value="20">
+                                            </label>
+                                            <label class="lorebook-entry-field lorebook-entry-field-narrow">
+                                                <span>
+                                                    Max entries
+                                                    <span class="help-tip" tabindex="0" aria-label="Max entries help" data-tip="Caps how many matched entries from this book get added to the prompt at once.">?</span>
+                                                </span>
+                                                <input type="number" id="settings-lorebook-max-entries" class="form-input" step="1" min="1" max="500" value="20">
+                                            </label>
+                                        </div>
+                                        <div class="lorebook-footer">
+                                            <div class="settings-row">
+                                                <label class="settings-row-label" for="settings-lorebook-destination">
+                                                    Save destination
+                                                    <span class="help-tip" tabindex="0" aria-label="Save destination help" data-tip="Switching destination on save moves the book between standalone storage and a character card.">?</span>
+                                                </label>
+                                                <select id="settings-lorebook-destination" class="form-input settings-select"></select>
+                                            </div>
+                                            <div class="lorebook-footer-actions">
+                                                <button id="settings-lorebook-save" class="btn btn-primary btn-sm">Save</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="settings-lorebook-empty-entries" class="lorebook-empty-panel">
+                                        <strong>No entry selected</strong>
+                                        <span>Entries for the selected lorebook will appear here.</span>
+                                    </div>
+                                    <div id="settings-lorebook-entries" class="lorebook-entries" hidden></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-section" data-section="sampler" hidden>
+                        <header class="settings-page-header settings-page-header--with-action">
+                            <div class="settings-page-title">
+                                <h3>Samplers</h3>
+                                <p>Tune generation behavior. Keep common controls visible and enable only the advanced samplers you use.</p>
+                            </div>
+                            <div class="sampler-toolbar">
+                                <button id="sampler-configure-btn" class="sampler-configure-btn" title="Configure active samplers" aria-label="Configure active samplers" aria-haspopup="true" aria-expanded="false">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                    <span>Active samplers</span>
+                                </button>
+                                <div id="sampler-popover" class="sampler-popover" hidden></div>
+                            </div>
+                        </header>
+                        <div class="settings-section-body sampler-section-body">
+                            <section class="settings-card sampler-common-card">
+                                <header class="settings-card-header">
+                                    <h4>Core generation</h4>
+                                    <p>These are the controls most likely to affect day-to-day output quality.</p>
+                                </header>
+                            <p id="sampler-core-empty" class="sampler-empty-state" hidden>No core samplers active. Use Active samplers to add day-to-day controls here.</p>
+                            <!-- Temperature -->
+                            <div class="settings-row" data-sampler="temperature">
+                                <label class="settings-row-label" for="settings-sampler-temperature">Temperature</label>
+                                <input type="number" id="settings-sampler-temperature" class="form-input" step="0.01" min="0" max="5" value="1.0">
+                            </div>
+                            <!-- Dynamic Temperature -->
+                            <div class="sampler-group" data-sampler="dynatemp">
+                                <div class="sampler-group-header">Dynamic Temperature</div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-dynatemp-range">Range</label>
+                                    <input type="number" id="settings-sampler-dynatemp-range" class="form-input" step="0.01" min="0" max="5" value="0">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-dynatemp-exponent">Exponent</label>
+                                    <input type="number" id="settings-sampler-dynatemp-exponent" class="form-input" step="0.01" min="0" max="10" value="1.0">
+                                </div>
+                            </div>
+                            <!-- Top-P -->
+                            <div class="settings-row" data-sampler="top_p">
+                                <label class="settings-row-label" for="settings-sampler-top-p">Top-P</label>
+                                <input type="number" id="settings-sampler-top-p" class="form-input" step="0.01" min="0" max="1" value="1.0">
+                            </div>
+                            <!-- Top-K -->
+                            <div class="settings-row" data-sampler="top_k">
+                                <label class="settings-row-label" for="settings-sampler-top-k">Top-K</label>
+                                <input type="number" id="settings-sampler-top-k" class="form-input" step="1" min="0" max="500" value="0">
+                            </div>
+                            <!-- Min-P -->
+                            <div class="settings-row" data-sampler="min_p">
+                                <label class="settings-row-label" for="settings-sampler-min-p">Min-P</label>
+                                <input type="number" id="settings-sampler-min-p" class="form-input" step="0.01" min="0" max="1" value="0">
+                            </div>
+                            <!-- Repetition Penalty -->
+                            <div class="sampler-group" data-sampler="repetition_penalty">
+                                <div class="sampler-group-header">Repetition Penalty</div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-rep-penalty">Penalty</label>
+                                    <input type="number" id="settings-sampler-rep-penalty" class="form-input" step="0.01" min="0" max="3" value="1.0">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-repeat-last-n">Last N Tokens</label>
+                                    <input type="number" id="settings-sampler-repeat-last-n" class="form-input" step="1" min="-1" max="4096" value="64">
+                                </div>
+                            </div>
+                            <!-- Max Tokens -->
+                            <div class="settings-row" data-sampler="max_tokens">
+                                <label class="settings-row-label" for="settings-sampler-max-tokens">Max Tokens</label>
+                                <input type="number" id="settings-sampler-max-tokens" class="form-input" step="1" min="1" max="32768" value="512">
+                            </div>
+                            </section>
+                            <details class="settings-disclosure settings-card sampler-advanced-card">
+                                <summary>Advanced sampler controls</summary>
+                            <p id="sampler-advanced-empty" class="sampler-empty-state" hidden>No advanced samplers active. Enable one from Active samplers to show controls here.</p>
+                            <!-- Typical-P -->
+                            <div class="settings-row" data-sampler="typical_p">
+                                <label class="settings-row-label" for="settings-sampler-typical-p">Typical-P</label>
+                                <input type="number" id="settings-sampler-typical-p" class="form-input" step="0.01" min="0" max="1" value="1.0">
+                            </div>
+                            <!-- Top-N Sigma -->
+                            <div class="settings-row" data-sampler="top_n_sigma">
+                                <label class="settings-row-label" for="settings-sampler-top-n-sigma">Top-N Sigma</label>
+                                <input type="number" id="settings-sampler-top-n-sigma" class="form-input" step="0.1" min="-1" max="10" value="-1">
+                            </div>
+                            <!-- TFS-Z -->
+                            <div class="settings-row" data-sampler="tfs_z">
+                                <label class="settings-row-label" for="settings-sampler-tfs-z">TFS-Z</label>
+                                <input type="number" id="settings-sampler-tfs-z" class="form-input" step="0.01" min="0" max="1" value="1.0">
+                            </div>
+                            <!-- Presence Penalty -->
+                            <div class="settings-row" data-sampler="presence_penalty">
+                                <label class="settings-row-label" for="settings-sampler-presence-penalty">Presence Penalty</label>
+                                <input type="number" id="settings-sampler-presence-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
+                            </div>
+                            <!-- Frequency Penalty -->
+                            <div class="settings-row" data-sampler="frequency_penalty">
+                                <label class="settings-row-label" for="settings-sampler-frequency-penalty">Frequency Penalty</label>
+                                <input type="number" id="settings-sampler-frequency-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
+                            </div>
+                            <!-- DRY -->
+                            <div class="sampler-group" data-sampler="dry">
+                                <div class="sampler-group-header">DRY (Don't Repeat Yourself)</div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-dry-multiplier">Multiplier</label>
+                                    <input type="number" id="settings-sampler-dry-multiplier" class="form-input" step="0.01" min="0" max="5" value="0">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-dry-base">Base</label>
+                                    <input type="number" id="settings-sampler-dry-base" class="form-input" step="0.01" min="0" max="5" value="1.75">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-dry-allowed-length">Allowed Length</label>
+                                    <input type="number" id="settings-sampler-dry-allowed-length" class="form-input" step="1" min="0" max="100" value="2">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-dry-penalty-last-n">Penalty Last N</label>
+                                    <input type="number" id="settings-sampler-dry-penalty-last-n" class="form-input" step="1" min="-1" max="4096" value="-1">
+                                </div>
+                            </div>
+                            <!-- Mirostat -->
+                            <div class="sampler-group" data-sampler="mirostat">
+                                <div class="sampler-group-header">Mirostat</div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-mirostat">Mode</label>
+                                    <select id="settings-sampler-mirostat" class="form-input settings-select">
+                                        <option value="0">0 — Disabled</option>
+                                        <option value="1">1 — Mirostat</option>
+                                        <option value="2">2 — Mirostat 2.0</option>
+                                    </select>
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-mirostat-tau">Tau</label>
+                                    <input type="number" id="settings-sampler-mirostat-tau" class="form-input" step="0.1" min="0" max="20" value="5.0">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-mirostat-eta">Eta</label>
+                                    <input type="number" id="settings-sampler-mirostat-eta" class="form-input" step="0.01" min="0" max="1" value="0.1">
+                                </div>
+                            </div>
+                            <!-- XTC -->
+                            <div class="sampler-group" data-sampler="xtc">
+                                <div class="sampler-group-header">XTC (eXclude Top Choices)</div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-xtc-probability">Probability</label>
+                                    <input type="number" id="settings-sampler-xtc-probability" class="form-input" step="0.01" min="0" max="1" value="0">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-xtc-threshold">Threshold</label>
+                                    <input type="number" id="settings-sampler-xtc-threshold" class="form-input" step="0.01" min="0" max="1" value="0.1">
+                                </div>
+                            </div>
+                            <!-- Seed -->
+                            <div class="settings-row" data-sampler="seed">
+                                <label class="settings-row-label" for="settings-sampler-seed">Seed</label>
+                                <input type="number" id="settings-sampler-seed" class="form-input" step="1" min="-1" max="999999999" value="-1">
+                            </div>
+                            </details>
+                        </div>
+                    </div>
+                        </div><!-- /.settings-pane -->
+                    </div><!-- /.settings-shell -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Character editor — slides out from sidebar right edge -->
+        <div id="char-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+            <div class="modal">
+                <div class="modal-header panel-header">
+                    <h2 id="modal-title" class="section-label panel-title panel-title--left">New Character</h2>
+                    <div class="modal-header-actions">
+                        <div class="export-dropdown" id="export-dropdown-wrap" hidden>
+                            <button id="export-card-btn" class="btn btn-secondary btn-sm export-trigger-btn" aria-haspopup="true" aria-expanded="false">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Export
+                                <svg class="export-trigger-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            <ul class="export-menu" id="export-menu" hidden role="menu">
+                                <li><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
+                                <li><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
+                            </ul>
+                        </div>
+                        <label class="btn btn-secondary btn-sm" title="Import character card (.json or .png)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            Import
+                            <input type="file" id="import-file-input" accept=".json,.png" hidden>
+                        </label>
+                        <button id="modal-close-btn" class="icon-btn" aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-divider"></div>
+                <div class="modal-identity">
+                    <div class="modal-avatar-wrap">
+                        <div class="avatar modal-avatar" id="modal-avatar-preview">?</div>
+                        <label class="avatar-change-label" title="Upload avatar">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <input type="file" id="avatar-file-input" accept="image/*" hidden>
+                        </label>
+                        <span id="modal-avatar-required" class="modal-avatar-required" hidden>Required</span>
+                    </div>
+                    <div class="modal-name-wrap">
+                        <label class="form-label" for="cf-name">Name <span class="required">*</span></label>
+                        <input type="text" id="cf-name" class="form-input" placeholder="Character name…" autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-tabs" role="tablist">
+                    <button class="tab-btn active" data-tab="basic" role="tab" aria-selected="true">Basic</button>
+                    <button class="tab-btn" data-tab="messages" role="tab" aria-selected="false">Messages</button>
+                    <button class="tab-btn" data-tab="advanced" role="tab" aria-selected="false">Advanced</button>
+                </div>
+                <div class="modal-body">
+                    <div class="tab-panel active" id="tab-basic" role="tabpanel">
+                        <div class="form-group">
+                            <label class="form-label" for="cf-description">Description</label>
+                            <textarea id="cf-description" class="form-textarea" rows="5" placeholder="Describe the character — appearance, background, personality traits…"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cf-personality">Personality</label>
+                            <textarea id="cf-personality" class="form-textarea" rows="3" placeholder="A short summary of personality (e.g. curious, sarcastic, warm)…"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cf-scenario">Scenario</label>
+                            <textarea id="cf-scenario" class="form-textarea" rows="3" placeholder="The current situation or setting where the story takes place…"></textarea>
+                        </div>
+                    </div>
+                    <div class="tab-panel" id="tab-messages" role="tabpanel" hidden>
+                        <div class="form-group">
+                            <label class="form-label" for="cf-first-mes">First Message (Greeting)</label>
+                            <textarea id="cf-first-mes" class="form-textarea" rows="5" placeholder="The character's opening message when a new chat starts…"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Alternate Greetings</label>
+                            <div id="alt-greetings-list" class="alt-greetings-list"></div>
+                            <button type="button" id="add-greeting-btn" class="btn btn-secondary btn-sm add-btn">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                Add Greeting
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cf-mes-example">Example Messages</label>
+                            <textarea id="cf-mes-example" class="form-textarea" rows="6" placeholder="{% raw %}&lt;START&gt;&#10;{{user}}: &quot;Tell me about yourself.&quot;&#10;{{char}}: *smiles warmly* &quot;Not much to tell, really.&quot;&#10;&lt;START&gt;&#10;{{user}}: &quot;What do you like to do?&quot;&#10;{{char}}: &quot;Reading, mostly. The quiet kind of evening you can lose yourself in.&quot;{% endraw %}"></textarea>
+                        </div>
+                    </div>
+                    <div class="tab-panel" id="tab-advanced" role="tabpanel" hidden>
+                        <div class="form-group">
+                            <label class="form-label" for="cf-system-prompt">System Prompt</label>
+                            <textarea id="cf-system-prompt" class="form-textarea" rows="4" placeholder="Overrides the global system prompt when this character is active…"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cf-post-history">Post History Instructions</label>
+                            <textarea id="cf-post-history" class="form-textarea" rows="3" placeholder="Instructions injected after the chat history…"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cf-creator-notes">Creator Notes</label>
+                            <textarea id="cf-creator-notes" class="form-textarea" rows="3" placeholder="Notes for people using this character card…"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="cf-creator">Creator</label>
+                                <input type="text" id="cf-creator" class="form-input" placeholder="Your name or handle…">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="cf-version">Version</label>
+                                <input type="text" id="cf-version" class="form-input" placeholder="e.g. 1.0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tags</label>
+                            <div class="tags-input-wrap" id="tags-input-wrap">
+                                <div id="tags-chip-list" class="tags-chip-list"></div>
+                                <input type="text" id="tags-text-input" class="tags-text-input" placeholder="Type a tag and press Enter…">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="modal-footer-left">
+                        <button type="button" id="modal-delete-btn" class="btn btn-danger" hidden>Delete</button>
+                    </div>
+                    <div class="modal-footer-right">
+                        <button type="button" id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
+                        <button type="button" id="modal-save-btn" class="btn btn-primary">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================================================================
+         MAIN CONTENT
+    ================================================================ -->
+    <main id="main-content">
+        <header>
+            <button id="mobile-menu-btn" class="icon-btn mobile-only" title="Menu" aria-label="Open sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <h1 id="current-char-name">Cozy</h1>
+        </header>
+
+        <section id="chat-history">
+            <div id="chat-scroll">
+                <!-- Messages rendered by JS -->
+            </div>
+            <div class="empty-state" id="empty-state">
+                <div class="empty-state-icon" aria-hidden="true">💬</div>
+                <h2 id="empty-state-title">No character selected</h2>
+                <p id="empty-state-text">Select a character to start chatting, or create a new one.</p>
+                <button class="btn btn-primary" id="empty-new-char-btn">Create Character</button>
+            </div>
+            <button id="scroll-to-bottom-btn" class="scroll-to-bottom-btn" title="Scroll to bottom" aria-label="Scroll to bottom">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <polyline points="19 12 12 19 5 12"></polyline>
+                </svg>
+            </button>
+        </section>
+
+        <div id="input-container">
+            <div id="lorebook-notice" class="lorebook-notice" hidden>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <span id="lorebook-notice-text"></span>
+                <button id="lorebook-notice-dismiss" class="icon-btn lorebook-notice-dismiss" title="Dismiss" aria-label="Dismiss">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div id="input-wrapper">
+                <!-- Chat flyout popover -->
+                <div id="chat-flyout" class="chat-flyout" role="dialog" aria-label="Chats" hidden>
+                    <div class="chat-flyout-header panel-header panel-header--compact">
+                        <span class="section-label panel-title panel-title--left">Chats</span>
+                        <button id="flyout-new-chat-btn" class="icon-btn" title="New Chat" aria-label="New Chat">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="panel-divider"></div>
+                    <ul id="flyout-chat-list" class="chat-list"></ul>
+                </div>
+                <!-- Lorebook flyout popover -->
+                <div id="lorebook-flyout" class="chat-flyout lorebook-flyout" role="dialog" aria-label="Active lorebook for this chat" hidden>
+                    <div class="chat-flyout-header panel-header panel-header--compact">
+                        <span class="section-label panel-title panel-title--left">Active lorebook for this chat</span>
+                    </div>
+                    <div class="panel-divider"></div>
+                    <ul id="lorebook-flyout-list" class="lorebook-flyout-list"></ul>
+                    <div class="panel-divider"></div>
+                    <button id="lorebook-flyout-manage" class="lorebook-flyout-manage">Manage lorebooks…</button>
+                </div>
+                <button id="chat-flyout-btn" class="icon-btn" title="Chats" aria-label="Open chats" aria-haspopup="dialog" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </button>
+                <button id="lorebook-flyout-btn" class="icon-btn" title="Lorebook for this chat" aria-label="Lorebook for this chat" aria-haspopup="dialog" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                </button>
+                <textarea id="user-input" placeholder="Select a character to start chatting" rows="1" disabled></textarea>
+                <button id="send-btn" title="Send message" aria-label="Send message" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container" aria-live="polite" role="status"></div>
+
+    <div id="prompt-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="prompt-help-title" hidden>
+        <div class="modal">
+            <div class="modal-header panel-header">
+                <h2 id="prompt-help-title" class="section-label panel-title panel-title--left">Prompt Builder syntax</h2>
+                <div class="modal-header-actions">
+                    <button id="prompt-help-close" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="modal-body prompt-help-body">
+                <p class="prompt-help-callout"><strong>You don't need to change anything here.</strong> The default template already produces a sensible system message for every character. Only edit the template if you specifically want to change <em>how</em> the prompt is assembled — re-order sections, rename labels, drop a section entirely, add custom instructions, etc.</p>
+
+                <p>The textarea is a <strong>template</strong>. When a message is sent, it's resolved into the system message that goes to the model. Whatever you write here, character data and persona data is folded into, gets sent.</p>
+
+                <h3>Variables — <code>&#123;&#123;name&#125;&#125;</code></h3>
+                <p>Each <code>&#123;&#123;name&#125;&#125;</code> is replaced with the corresponding value at send time.</p>
+                <pre class="prompt-help-example">You are &#123;&#123;char&#125;&#125;, in conversation with &#123;&#123;user&#125;&#125;.
+&#123;&#123;description&#125;&#125;</pre>
+                <p class="prompt-help-note">Empty variables resolve to an empty string. See the <em>Available variables</em> list under the textarea for the full set.</p>
+
+                <h3>Conditional blocks — <code>&#123;&#123;#name&#125;&#125;…&#123;&#123;/name&#125;&#125;</code></h3>
+                <p>A conditional block is a fence around a chunk of template. The fence has an opening tag <code>&#123;&#123;#name&#125;&#125;</code> and a matching closing tag <code>&#123;&#123;/name&#125;&#125;</code> — the names must match on both sides.</p>
+
+                <p><strong>The rule:</strong> if the variable named in the fence is empty (or only whitespace), the entire fenced section is deleted from the output — including any labels, headers, and punctuation you wrote inside. If the variable has content, the fence tags themselves disappear and the inside is kept.</p>
+
+                <h4>Why it exists</h4>
+                <p>Without a conditional, this template:</p>
+                <pre class="prompt-help-example">[Scenario]
+&#123;&#123;scenario&#125;&#125;</pre>
+                <p>…always emits the <code>[Scenario]</code> line — even when the character has no scenario set. You'd get a header with nothing under it. The model might think you forgot something.</p>
+
+                <h4>With a conditional</h4>
+                <pre class="prompt-help-example">&#123;&#123;#scenario&#125;&#125;[Scenario]
+&#123;&#123;scenario&#125;&#125;&#123;&#123;/scenario&#125;&#125;</pre>
+                <p><strong>If <code>scenario</code> is set</strong> to <code>"Lost in a forest"</code> — fence tags vanish, the inside renders normally:</p>
+                <pre class="prompt-help-example">[Scenario]
+Lost in a forest</pre>
+                <p><strong>If <code>scenario</code> is empty</strong> — the whole fenced block is removed, header and all. No orphan <code>[Scenario]</code> line.</p>
+
+                <h4>What counts as "empty"</h4>
+                <ul class="prompt-help-tips">
+                    <li><code>null</code> / <code>undefined</code> — empty</li>
+                    <li><code>""</code> (empty string) — empty</li>
+                    <li><code>"   "</code> (only spaces or newlines) — empty</li>
+                    <li>Anything with real characters — not empty, block is kept</li>
+                </ul>
+
+                <h4>What can go inside the fence</h4>
+                <p>Anything you want — labels, brackets, multi-line text, even other variables. The whole chunk between <code>&#123;&#123;#name&#125;&#125;</code> and <code>&#123;&#123;/name&#125;&#125;</code> is treated as one unit. The fence is asking "if this variable has content, render all of this; otherwise, render none of it."</p>
+
+                <h4>The names must match</h4>
+                <ul class="prompt-help-tips">
+                    <li><code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/scenario&#125;&#125;</code> — works.</li>
+                    <li><code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/Scenario&#125;&#125;</code> — broken (capital S doesn't match).</li>
+                    <li><code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/scneario&#125;&#125;</code> — broken (typo).</li>
+                </ul>
+                <p>When the names don't match, the fence isn't recognized — the literal <code>&#123;&#123;#scenario&#125;&#125;</code> tag stays in the output. Use Preview to spot it.</p>
+
+                <h4>How the default template uses them</h4>
+                <p>The default template wraps every section so empty fields don't show up:</p>
+                <pre class="prompt-help-example">&#123;&#123;#description&#125;&#125;[Character Description]
+&#123;&#123;description&#125;&#125;&#123;&#123;/description&#125;&#125;
+
+&#123;&#123;#personality&#125;&#125;[Character Personality]
+&#123;&#123;personality&#125;&#125;&#123;&#123;/personality&#125;&#125;
+
+&#123;&#123;#scenario&#125;&#125;[Scenario]
+&#123;&#123;scenario&#125;&#125;&#123;&#123;/scenario&#125;&#125;</pre>
+                <p>A character with a description and personality but no scenario produces:</p>
+                <pre class="prompt-help-example">[Character Description]
+A wise old wizard.
+
+[Character Personality]
+Calm and patient.</pre>
+                <p>The <code>[Scenario]</code> block silently disappears.</p>
+
+                <h3>Random choice — <code>&#123;&#123;random:a,b,c&#125;&#125;</code></h3>
+                <p>Picks one of the comma-separated options at random each time the prompt is built.</p>
+                <pre class="prompt-help-example">The weather is &#123;&#123;random:sunny,rainy,foggy,stormy&#125;&#125;.</pre>
+
+                <h3>Per-character override</h3>
+                <p>If a character card has a <code>system_prompt</code> field, that text fills <code>&#123;&#123;system_prompt&#125;&#125;</code>. If you remove the variable from your template, the per-character field has no effect.</p>
+
+                <h3>Tips</h3>
+                <ul class="prompt-help-tips">
+                    <li>Click <strong>Preview</strong> (eye icon) any time to see exactly what will be sent for the active character + persona.</li>
+                    <li>Click <strong>Reset</strong> (circular arrow) to return to the default template.</li>
+                    <li>Multiple templates can be saved — switch between them with the dropdown.</li>
+                    <li>Typos in conditional tags fail silently (e.g. <code>&#123;&#123;#x&#125;&#125;…&#123;&#123;/y&#125;&#125;</code> won't match) — Preview is your debugging aid.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="prompt-preview-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title" hidden>
+        <div class="modal">
+            <div class="modal-header panel-header">
+                <h2 id="prompt-preview-title" class="section-label panel-title panel-title--left">Prompt preview</h2>
+                <div class="modal-header-actions">
+                    <button id="prompt-preview-close" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="modal-body">
+                <p class="settings-hint">Resolved against the active character and persona — exactly what would be sent on the next message.</p>
+                <pre id="prompt-preview-content" class="prompt-preview-content"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

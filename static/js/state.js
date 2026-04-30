@@ -1,0 +1,187 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+export const state = {
+    sidebarCollapsed: false,
+    theme:            'everforest-dark',
+    themes:           [],
+    characters:       [],
+    activeCharacter:  null,     // full character object
+    chats:            [],       // chats for the active character
+    activeChat:       null,     // full chat object
+    messages:         [],       // client-side cache of current chat's messages
+    currentEdit:      null,
+    greetingIndex:    0,        // which greeting is shown when chat is empty
+    _savedActiveId:   null,     // restored from localStorage
+    _savedChatId:     null,
+    personas:         [],
+    activePersona:    null,
+    _savedPersonaId:  null,
+    apiEndpoint:      '',
+    apiKeySet:        false,
+    apiModel:         '',
+    systemPrompts:       [],
+    activeSystemPromptId: null,
+    autoScroll:          true,
+    modelContextLength:  null,
+    modelDetails:        {},    // id → context_length (populated on model refresh)
+    activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
+    apiPresets:          [],
+    activePresetId:      null,
+    settingsSection:     'appearance',
+    lorebooks:           [],     // standalone DB lorebooks (summary list)
+    lorebookScanDepthOverride: 0,
+    lorebookAlwaysInjectAll: false,
+};
+
+// Active LLM request controller — mutable ref shared across modules
+export const llm = { abortController: null };
+
+export const SEND_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+export const STOP_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>`;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DOM ELEMENTS
+// ═══════════════════════════════════════════════════════════════════════════
+export const el = {};
+
+/** Populate el with DOM references. Call once when DOM is ready. */
+export function initElements() {
+    Object.assign(el, {
+        sidebar:         document.getElementById('sidebar'),
+        sidebarToggle:   document.getElementById('sidebar-toggle'),
+        charList:        document.getElementById('char-list'),
+        chatFlyout:      document.getElementById('chat-flyout'),
+        chatFlyoutBtn:   document.getElementById('chat-flyout-btn'),
+        flyoutChatList:  document.getElementById('flyout-chat-list'),
+        flyoutNewChatBtn:document.getElementById('flyout-new-chat-btn'),
+        newCharBtn:      document.getElementById('new-char-btn'),
+        emptyNewCharBtn: document.getElementById('empty-new-char-btn'),
+        currentCharName: document.getElementById('current-char-name'),
+        chatHistory:     document.getElementById('chat-scroll'),
+        emptyState:      document.getElementById('empty-state'),
+        emptyStateTitle: document.getElementById('empty-state-title'),
+        emptyStateText:  document.getElementById('empty-state-text'),
+        userInput:       document.getElementById('user-input'),
+        sendBtn:         document.getElementById('send-btn'),
+        inputContainer:  document.getElementById('input-container'),
+        userProfile:     document.getElementById('user-profile'),
+        personaDropup:   document.getElementById('persona-dropup'),
+        settingsBtn:       document.getElementById('settings-btn'),
+        settingsFlyout:    document.getElementById('settings-flyout'),
+        settingsCloseBtn:  document.getElementById('settings-close-btn'),
+        settingsBackBtn:   document.getElementById('settings-back-btn'),
+        settingsShell:     document.getElementById('settings-shell'),
+        settingsNav:       document.getElementById('settings-nav'),
+        settingsPane:      document.getElementById('settings-pane'),
+        settingsThemeSelect: document.getElementById('settings-theme-select'),
+        mobileMenuBtn:     document.getElementById('mobile-menu-btn'),
+        mobileBackdrop:    document.getElementById('mobile-backdrop'),
+        mobileSidebarClose: document.getElementById('mobile-sidebar-close'),
+        apiEndpoint:       document.getElementById('settings-api-endpoint'),
+        apiKey:            document.getElementById('settings-api-key'),
+        apiModel:          document.getElementById('settings-model'),
+        refreshModels:     document.getElementById('settings-refresh-models'),
+        modelPickerMenu:   document.getElementById('model-picker-menu'),
+        testApi:           document.getElementById('settings-test-api'),
+        testResult:        document.getElementById('settings-test-result'),
+        syspromptSelect:   document.getElementById('settings-sysprompt-select'),
+        syspromptContent:  document.getElementById('settings-sysprompt-content'),
+        syspromptNew:      document.getElementById('settings-sysprompt-new'),
+        syspromptSave:     document.getElementById('settings-sysprompt-save'),
+        syspromptDelete:   document.getElementById('settings-sysprompt-delete'),
+        syspromptPreview:  document.getElementById('settings-sysprompt-preview'),
+        syspromptReset:    document.getElementById('settings-sysprompt-reset'),
+        syspromptHelp:     document.getElementById('settings-sysprompt-help'),
+        promptPreviewModal:   document.getElementById('prompt-preview-modal'),
+        promptPreviewContent: document.getElementById('prompt-preview-content'),
+        promptPreviewClose:   document.getElementById('prompt-preview-close'),
+        promptHelpModal:   document.getElementById('prompt-help-modal'),
+        promptHelpClose:   document.getElementById('prompt-help-close'),
+        samplerTemperature:    document.getElementById('settings-sampler-temperature'),
+        samplerDyntempRange:   document.getElementById('settings-sampler-dynatemp-range'),
+        samplerDyntempExp:     document.getElementById('settings-sampler-dynatemp-exponent'),
+        samplerTopP:           document.getElementById('settings-sampler-top-p'),
+        samplerTopK:           document.getElementById('settings-sampler-top-k'),
+        samplerMinP:           document.getElementById('settings-sampler-min-p'),
+        samplerTypicalP:       document.getElementById('settings-sampler-typical-p'),
+        samplerTopNSigma:      document.getElementById('settings-sampler-top-n-sigma'),
+        samplerTfsZ:           document.getElementById('settings-sampler-tfs-z'),
+        samplerRepPenalty:     document.getElementById('settings-sampler-rep-penalty'),
+        samplerRepeatLastN:    document.getElementById('settings-sampler-repeat-last-n'),
+        samplerPresencePen:    document.getElementById('settings-sampler-presence-penalty'),
+        samplerFrequencyPen:   document.getElementById('settings-sampler-frequency-penalty'),
+        samplerDryMult:        document.getElementById('settings-sampler-dry-multiplier'),
+        samplerDryBase:        document.getElementById('settings-sampler-dry-base'),
+        samplerDryAllowed:     document.getElementById('settings-sampler-dry-allowed-length'),
+        samplerDryLastN:       document.getElementById('settings-sampler-dry-penalty-last-n'),
+        samplerMirostat:       document.getElementById('settings-sampler-mirostat'),
+        samplerMirostatTau:    document.getElementById('settings-sampler-mirostat-tau'),
+        samplerMirostatEta:    document.getElementById('settings-sampler-mirostat-eta'),
+        samplerXtcProb:        document.getElementById('settings-sampler-xtc-probability'),
+        samplerXtcThresh:      document.getElementById('settings-sampler-xtc-threshold'),
+        samplerMaxTokens:      document.getElementById('settings-sampler-max-tokens'),
+        samplerSeed:           document.getElementById('settings-sampler-seed'),
+        sendThinking:          document.getElementById('settings-send-thinking'),
+        samplerConfigureBtn:   document.getElementById('sampler-configure-btn'),
+        samplerPopover:        document.getElementById('sampler-popover'),
+        samplerCoreEmpty:      document.getElementById('sampler-core-empty'),
+        samplerAdvancedEmpty:  document.getElementById('sampler-advanced-empty'),
+        personaList:     document.getElementById('persona-list'),
+        personaForm:     document.getElementById('persona-inline-form'),
+        userName:        document.querySelector('#user-profile .user-name'),
+        userTagline:     document.querySelector('#user-profile .user-tagline'),
+        userAvatar:      document.querySelector('#user-profile .user-avatar'),
+        scrollToBottomBtn:   document.getElementById('scroll-to-bottom-btn'),
+        settingsContextSize: document.getElementById('settings-context-size'),
+        contextSizeWarning:  document.getElementById('context-size-warning'),
+        apiPreset:           document.getElementById('settings-api-preset'),
+        presetNew:           document.getElementById('settings-preset-new'),
+        presetSave:          document.getElementById('settings-preset-save'),
+        presetDelete:        document.getElementById('settings-preset-delete'),
+        lorebookFlyout:      document.getElementById('lorebook-flyout'),
+        lorebookFlyoutBtn:   document.getElementById('lorebook-flyout-btn'),
+        lorebookFlyoutList:  document.getElementById('lorebook-flyout-list'),
+        lorebookManageBtn:   document.getElementById('lorebook-flyout-manage'),
+        lorebookNotice:      document.getElementById('lorebook-notice'),
+        lorebookNoticeText:  document.getElementById('lorebook-notice-text'),
+        lorebookNoticeDismiss: document.getElementById('lorebook-notice-dismiss'),
+        lorebookScanOverride: document.getElementById('settings-lorebook-scan-override'),
+        lorebookAlwaysInjectAll: document.getElementById('settings-lorebook-always-inject-all'),
+        lorebookList:        document.getElementById('settings-lorebook-list'),
+        lorebookNew:         document.getElementById('settings-lorebook-new'),
+        lorebookImport:      document.getElementById('settings-lorebook-import'),
+        lorebookImportFile:  document.getElementById('settings-lorebook-import-file'),
+        lorebookMeta:        document.getElementById('settings-lorebook-meta'),
+        lorebookEmptyMeta:   document.getElementById('settings-lorebook-empty-meta'),
+        lorebookName:        document.getElementById('settings-lorebook-name'),
+        lorebookDescription: document.getElementById('settings-lorebook-description'),
+        lorebookScanDepth:   document.getElementById('settings-lorebook-scan-depth'),
+        lorebookMaxEntries:  document.getElementById('settings-lorebook-max-entries'),
+        lorebookEntries:     document.getElementById('settings-lorebook-entries'),
+        lorebookEmptyEntries: document.getElementById('settings-lorebook-empty-entries'),
+        lorebookEntriesCount: document.getElementById('settings-lorebook-entries-count'),
+        lorebookAddEntry:    document.getElementById('settings-lorebook-add-entry'),
+        lorebookSave:        document.getElementById('settings-lorebook-save'),
+        lorebookDestination: document.getElementById('settings-lorebook-destination'),
+        lorebookConvert:     document.getElementById('settings-lorebook-convert'),
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SVG ICONS
+// ═══════════════════════════════════════════════════════════════════════════
+export const icons = {
+    EDIT:       `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`,
+    SAVE:       `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+    CANCEL:     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+    TRASH:      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+    PENCIL:     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`,
+    DELETE:     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+    COPY:       `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+    REGEN:      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-4.5"></path></svg>`,
+    STAR:       `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"></polygon></svg>`,
+    CHEVLEFT:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`,
+    CHEVRIGHT:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`,
+    DOWNLOAD:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+};

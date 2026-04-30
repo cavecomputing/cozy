@@ -1,0 +1,12 @@
+services:
+  cozypub:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "80:5001"
+    volumes:
+      - ../data:/data
+    environment:
+      - COZY_DATA_DIR=/data
+    restart: unless-stopped
