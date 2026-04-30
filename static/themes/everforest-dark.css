@@ -1,0 +1,107 @@
+/* Cozy — Everforest Dark Theme */
+:root {
+    /* Layout */
+    --app-bg:         #1e2326;
+    --app-bg-blur:    rgba(30, 35, 38, 0.7);
+    --app-bg-clear:   rgba(30, 35, 38, 0);
+    --bg-color:       #2d353b;
+    --sidebar-bg:     #272e33;
+    --char-msg-bg:    #343f44;
+    --hover-bg:       #3d484d;
+    --active-bg:      rgba(167, 192, 128, 0.18);
+    --input-bg:       #232a2e;
+    --border-color:   #475258;
+
+    /* Typography */
+    --text-color:     #d3c6aa;
+    --text-secondary: #859289;
+
+    /* Accent */
+    --accent-color:   #a7c080;
+    --accent-hover:   #83c092;
+    --danger-color:   #e67e80;
+    --danger-bg-hover: rgba(230, 126, 128, 0.15);
+    --success-color:  #a7c080;
+
+    /* Shadows */
+    --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.45);
+    --accent-edit-bg:     rgba(167, 192, 128, 0.08);
+    --accent-border-light: rgba(167, 192, 128, 0.3);
+    --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.25);
+    --input-focus-shadow: 0 0 0 2px rgba(167, 192, 128, 0.22);
+
+    /* Design tokens */
+    --radius-sm:  8px;
+    --radius-md:  8px;
+    --radius-lg:  8px;
+
+    /* RP markdown accent colors */
+    --rp-dialogue-color:  #a7c080;   /* everforest green — quoted dialogue */
+    --rp-action-color:    #d699b6;   /* purple — italics/actions */
+    --rp-emphasis-color:  #dbbc7f;   /* golden yellow — bold/strong emphasis */
+    --rp-quote-color:     #7fbbb3;   /* blue — blockquotes/narration */
+    --rp-quote-bg:        rgba(127, 187, 179, 0.10);
+    --rp-ooc-color:       #9da9a0;   /* grey2 — code/OOC text */
+    --rp-intense-color:   #e69875;   /* orange — bold+italic intense actions */
+    --rp-intense-shadow:  0 0 6px rgba(230, 152, 117, 0.25);
+    --rp-strike-opacity:  0.5;
+    --rp-hr-opacity:      0.3;
+    --img-max-width:      300px;
+    --code-bg:            rgba(71, 82, 88, 0.5);
+    --code-border:        rgba(71, 82, 88, 0.65);
+    --pre-bg:             rgba(30, 35, 38, 0.65);
+    --pre-border:         rgba(71, 82, 88, 0.4);
+
+    /* Favicon */
+    --favicon-bg:           #2d353b;
+    --favicon-paw-pad:      #a7c080;
+    --favicon-paw-toes:     #7fbbb3;
+
+    /* Avatars */
+    --avatar-text-color:  #2d353b;
+
+    /* Buttons */
+    --btn-primary-color:      #2d353b;
+    --btn-danger-hover-color: #2d353b;
+
+    /* Overlays & backdrops */
+    --overlay-bg:     rgba(0, 0, 0, 0.55);
+    --overlay-color:  #d3c6aa;
+    --backdrop-bg:    rgba(0, 0, 0, 0.45);
+
+    /* Toasts */
+    --toast-color:    #2d353b;
+
+    /* User-message bubble */
+    --user-msg-bg:              #4a5e3a;
+    --user-msg-color:           #d3c6aa;
+    --user-msg-divider:         rgba(211, 198, 170, 0.2);
+    --user-msg-name-color:      rgba(211, 198, 170, 0.85);
+    --user-action-color:        rgba(211, 198, 170, 0.5);
+    --user-action-hover-bg:     rgba(211, 198, 170, 0.15);
+    --user-action-hover-color:  #d3c6aa;
+
+    /* User-message RP overrides */
+    --user-dialogue-color:      #b8d4a0;
+    --user-em-color:            rgba(214, 153, 182, 0.9);
+    --user-em-shadow:           0 0 8px rgba(214, 153, 182, 0.3);
+    --user-strong-color:        #dbbc7f;
+    --user-intense-color:       #e69875;
+    --user-intense-shadow:      0 0 8px rgba(230, 152, 117, 0.35);
+    --user-strike-opacity:      0.55;
+    --user-strike-color:        rgba(211, 198, 170, 0.55);
+    --user-blockquote-border:   rgba(131, 192, 146, 0.5);
+    --user-blockquote-bg:       rgba(131, 192, 146, 0.08);
+    --user-blockquote-color:    rgba(211, 198, 170, 0.85);
+    --user-code-bg:             rgba(211, 198, 170, 0.12);
+    --user-code-color:          rgba(211, 198, 170, 0.8);
+    --user-code-border:         rgba(211, 198, 170, 0.18);
+    --user-pre-bg:              rgba(30, 35, 38, 0.4);
+    --user-pre-border:          rgba(211, 198, 170, 0.15);
+    --user-heading-color:       #d3c6aa;
+    --user-h1-border:           rgba(211, 198, 170, 0.25);
+    --user-hr-mid-color:        rgba(211, 198, 170, 0.45);
+    --user-editable-bg:         rgba(211, 198, 170, 0.1);
+    --editable-bg:              rgba(211, 198, 170, 0.05);
+
+}

@@ -1,0 +1,369 @@
+"""Tests for character routes — V1/V2 import, export, avatar upload, sync."""
+
+import json
+import os
+from io import BytesIO
+
+import shared
+from png_utils import extract_png_chara, write_png_chara, make_minimal_png
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────
+
+def _png_with_card(card):
+    """Return PNG bytes with the given V2 card embedded."""
+    return write_png_chara(make_minimal_png(), card)
+
+
+def _v2_card(name='Char', **fields):
+    data = {
+        'name': name,
+        'description': fields.get('description', ''),
+        'personality': fields.get('personality', ''),
+        'scenario': fields.get('scenario', ''),
+        'first_mes': fields.get('first_mes', ''),
+        'mes_example': fields.get('mes_example', ''),
+        'creator_notes': fields.get('creator_notes', ''),
+        'system_prompt': fields.get('system_prompt', ''),
+        'post_history_instructions': fields.get('post_history_instructions', ''),
+        'alternate_greetings': fields.get('alternate_greetings', []),
+        'character_book': fields.get('character_book'),
+        'tags': fields.get('tags', []),
+        'creator': fields.get('creator', ''),
+        'character_version': fields.get('character_version', ''),
+        'extensions': fields.get('extensions', {}),
+    }
+    return {'spec': 'chara_card_v2', 'spec_version': '2.0', 'data': data}
+
+
+# ── PNG round-trip with realistic content ─────────────────────────────────
+
+class TestPngRoundtrip:
+    def test_basic_roundtrip(self):
+        card = _v2_card(name='Basic', description='A simple character.')
+        png = _png_with_card(card)
+        extracted = extract_png_chara(png)
+        assert extracted['data']['name'] == 'Basic'
+        assert extracted['data']['description'] == 'A simple character.'
+
+    def test_unicode_roundtrip(self):
+        """Emoji + CJK + accented latin must survive PNG embed/extract."""
+        card = _v2_card(
+            name='ユウキ',
+            description='Brave 🗡️ adventurer with a café past — naïve but résilient.',
+            personality='热情 and 好奇',
+        )
+        card['data']['character_book'] = {
+            'name': '世界',
+            'entries': [
+                {'keys': ['東京', 'tokyo'], 'content': '東京は大都市です。🏙️',
+                 'enabled': True, 'constant': False, 'insertion_order': 100},
+            ],
+        }
+        png = _png_with_card(card)
+        extracted = extract_png_chara(png)
+        assert extracted['data']['name'] == 'ユウキ'
+        assert '🗡️' in extracted['data']['description']
+        assert extracted['data']['character_book']['entries'][0]['content'] == '東京は大都市です。🏙️'
+
+    def test_large_lorebook_roundtrip(self):
+        """A book with many large entries should round-trip without truncation."""
+        long_text = 'lore line ' * 500  # ~5KB per entry
+        entries = [
+            {'keys': [f'k{i}'], 'content': f'#{i} {long_text}',
+             'enabled': True, 'constant': False, 'insertion_order': i}
+            for i in range(50)
+        ]
+        card = _v2_card(name='Big')
+        card['data']['character_book'] = {'name': 'Big', 'entries': entries}
+        png = _png_with_card(card)
+        extracted = extract_png_chara(png)
+        out_entries = extracted['data']['character_book']['entries']
+        assert len(out_entries) == 50
+        assert out_entries[49]['content'].startswith('#49')
+        assert long_text in out_entries[0]['content']
+
+    def test_replacing_existing_chara_chunk_does_not_duplicate(self):
+        """Writing the same PNG twice must not stack two chara chunks."""
+        card1 = _v2_card(name='First')
+        png1 = _png_with_card(card1)
+        card2 = _v2_card(name='Second')
+        png2 = write_png_chara(png1, card2)
+        # Only the second card should be readable
+        extracted = extract_png_chara(png2)
+        assert extracted['data']['name'] == 'Second'
+        # And it must remain a valid PNG (signature + IEND survive)
+        assert png2[:8] == b'\x89PNG\r\n\x1a\n'
+        assert b'IEND' in png2
+
+    def test_extract_returns_none_on_non_png(self):
+        assert extract_png_chara(b'not a png') is None
+
+    def test_extract_returns_none_on_png_without_chara(self):
+        png = make_minimal_png()
+        assert extract_png_chara(png) is None
+
+
+# ── V1 → V2 normalisation via the import endpoint ─────────────────────────
+
+class TestImport:
+    def test_import_v1_flat_json(self, client):
+        """Bare V1 card (no `data` nesting, no `spec` field) imports as V2."""
+        v1 = {
+            'name': 'V1Char',
+            'description': 'V1 description',
+            'personality': 'V1 personality',
+            'first_mes': 'Hi from V1.',
+        }
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(json.dumps(v1).encode('utf-8')), 'v1.json', 'application/json'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 201
+        body = r.get_json()
+        assert body['name'] == 'V1Char'
+        assert body['description'] == 'V1 description'
+        # The PNG on disk should embed a normalised V2 card
+        path = os.path.join(shared.CHARACTERS_DIR, body['filename'])
+        with open(path, 'rb') as f:
+            card = extract_png_chara(f.read())
+        assert card['spec'] == 'chara_card_v2'
+        assert card['data']['name'] == 'V1Char'
+
+    def test_import_v2_json(self, client):
+        v2 = _v2_card(name='V2Char', description='Already V2')
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(json.dumps(v2).encode('utf-8')), 'v2.json', 'application/json'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 201
+        assert r.get_json()['name'] == 'V2Char'
+
+    def test_import_png_with_embedded_card(self, client):
+        card = _v2_card(name='PngCard', description='From PNG.',
+                        character_book={'name': 'BK', 'entries': [
+                            {'keys': ['k'], 'content': 'v', 'enabled': True}
+                        ]})
+        png = _png_with_card(card)
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(png), 'card.png', 'image/png'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 201
+        body = r.get_json()
+        assert body['name'] == 'PngCard'
+        assert body['character_book']['entries'][0]['content'] == 'v'
+
+    def test_import_png_without_embedded_card_rejected(self, client):
+        png = make_minimal_png()
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(png), 'plain.png', 'image/png'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+
+    def test_import_invalid_json_rejected(self, client):
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(b'{not json'), 'bad.json', 'application/json'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+
+    def test_import_unsupported_extension_rejected(self, client):
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(b'data'), 'card.txt', 'text/plain'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+
+    def test_import_missing_file_rejected(self, client):
+        r = client.post('/api/characters/import', data={}, content_type='multipart/form-data')
+        assert r.status_code == 400
+
+
+# ── Export endpoint ────────────────────────────────────────────────────────
+
+class TestExport:
+    def test_export_json(self, client, sample_character):
+        r = client.get(f'/api/characters/{sample_character["id"]}/export?fmt=json')
+        assert r.status_code == 200
+        assert r.content_type.startswith('application/json')
+        body = json.loads(r.data)
+        assert body['spec'] == 'chara_card_v2'
+        assert body['data']['name'] == 'TestChar'
+        # The Content-Disposition header should suggest a sane filename
+        cd = r.headers.get('Content-Disposition', '')
+        assert 'TestChar' in cd
+
+    def test_export_png_round_trips(self, client, sample_character):
+        r = client.get(f'/api/characters/{sample_character["id"]}/export?fmt=png')
+        assert r.status_code == 200
+        assert r.content_type == 'image/png'
+        # The PNG bytes must contain readable card data
+        card = extract_png_chara(r.data)
+        assert card is not None
+        assert card['data']['name'] == 'TestChar'
+
+    def test_export_default_format_is_json(self, client, sample_character):
+        r = client.get(f'/api/characters/{sample_character["id"]}/export')
+        assert r.status_code == 200
+        assert r.content_type.startswith('application/json')
+
+    def test_export_missing_character_404(self, client):
+        r = client.get('/api/characters/99999/export?fmt=json')
+        assert r.status_code == 404
+
+    def test_export_then_reimport_preserves_lorebook(self, client, sample_character):
+        # Embed a lorebook on the character
+        book = {'name': 'Trip', 'entries': [
+            {'keys': ['hero'], 'content': 'Brave.', 'enabled': True}
+        ]}
+        client.put(f'/api/characters/{sample_character["id"]}', json={'character_book': book})
+
+        # Export as PNG
+        r = client.get(f'/api/characters/{sample_character["id"]}/export?fmt=png')
+        png_bytes = r.data
+
+        # Re-import — should land as a fresh character with the same book
+        r2 = client.post('/api/characters/import', data={
+            'file': (BytesIO(png_bytes), 'reimport.png', 'image/png'),
+        }, content_type='multipart/form-data')
+        assert r2.status_code == 201
+        new_char = r2.get_json()
+        assert new_char['character_book']['entries'][0]['content'] == 'Brave.'
+
+
+# ── Avatar upload ──────────────────────────────────────────────────────────
+
+class TestAvatarUpload:
+    def test_avatar_upload_preserves_card_data(self, client, sample_character):
+        # Establish baseline card data and embed a lorebook
+        book = {'name': 'AvBook', 'entries': [
+            {'keys': ['x'], 'content': 'survives', 'enabled': True}
+        ]}
+        client.put(f'/api/characters/{sample_character["id"]}', json={
+            'character_book': book,
+            'description': 'Pre-upload description',
+        })
+
+        # Upload a new avatar (a different PNG)
+        new_png = make_minimal_png()
+        r = client.post(
+            f'/api/characters/{sample_character["id"]}/avatar',
+            data={'avatar': (BytesIO(new_png), 'new.png', 'image/png')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 200
+
+        # Card data must survive the avatar swap
+        char = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert char['description'] == 'Pre-upload description'
+        assert char['character_book']['entries'][0]['content'] == 'survives'
+
+    def test_avatar_upload_updates_crc(self, client, sample_character):
+        # Force a different file content so CRC changes
+        new_png = make_minimal_png() + b''  # same bytes, but write_png_chara replays card
+        r = client.post(
+            f'/api/characters/{sample_character["id"]}/avatar',
+            data={'avatar': (BytesIO(new_png), 'a.png', 'image/png')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 200
+        # File must still be a valid PNG and still embed card data
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        with open(path, 'rb') as f:
+            data = f.read()
+        assert data[:8] == b'\x89PNG\r\n\x1a\n'
+        assert extract_png_chara(data) is not None
+
+    def test_avatar_upload_rejects_disallowed_format(self, client, sample_character):
+        r = client.post(
+            f'/api/characters/{sample_character["id"]}/avatar',
+            data={'avatar': (BytesIO(b'not an image'), 'bad.exe', 'application/octet-stream')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 400
+
+    def test_avatar_upload_no_file_rejected(self, client, sample_character):
+        r = client.post(
+            f'/api/characters/{sample_character["id"]}/avatar',
+            data={}, content_type='multipart/form-data',
+        )
+        assert r.status_code == 400
+
+    def test_avatar_upload_404_for_unknown_character(self, client):
+        png = make_minimal_png()
+        r = client.post(
+            '/api/characters/99999/avatar',
+            data={'avatar': (BytesIO(png), 'a.png', 'image/png')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 404
+
+
+# ── Sync logic — files renamed/missing on disk ─────────────────────────────
+
+class TestSync:
+    def test_rename_on_disk_is_detected_via_crc(self, client, sample_character):
+        old_path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        new_filename = 'renamed.png'
+        new_path = os.path.join(shared.CHARACTERS_DIR, new_filename)
+        os.rename(old_path, new_path)
+
+        # Listing characters runs _sync — the row should now point at the new filename
+        chars = client.get('/api/characters').get_json()
+        target = next(c for c in chars if c['id'] == sample_character['id'])
+        assert target['filename'] == new_filename
+        assert target['missing'] is False
+
+    def test_missing_file_marks_row_missing(self, client, sample_character):
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        os.remove(path)
+        chars = client.get('/api/characters').get_json()
+        target = next(c for c in chars if c['id'] == sample_character['id'])
+        assert target['missing'] is True
+
+    def test_new_file_on_disk_creates_row(self, client):
+        # Drop a fresh card directly into the dir — list endpoint should pick it up
+        card = _v2_card(name='WalkIn')
+        png = _png_with_card(card)
+        path = os.path.join(shared.CHARACTERS_DIR, 'walkin.png')
+        with open(path, 'wb') as f:
+            f.write(png)
+        chars = client.get('/api/characters').get_json()
+        names = [c['name'] for c in chars]
+        assert 'WalkIn' in names
+
+    def test_sync_after_restoring_file_clears_missing_flag(self, client, sample_character):
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        with open(path, 'rb') as f:
+            content = f.read()
+        os.remove(path)
+        client.get('/api/characters')  # marks missing
+
+        # Restore — listing again should clear the flag
+        with open(path, 'wb') as f:
+            f.write(content)
+        chars = client.get('/api/characters').get_json()
+        target = next(c for c in chars if c['id'] == sample_character['id'])
+        assert target['missing'] is False
+
+
+# ── Update behaviour for character_book null/empty ─────────────────────────
+
+class TestCharacterBookUpdate:
+    def test_clearing_character_book_with_null(self, client, sample_character):
+        book = {'name': 'B', 'entries': [{'keys': ['k'], 'content': 'v'}]}
+        client.put(f'/api/characters/{sample_character["id"]}', json={'character_book': book})
+        # Clear it
+        r = client.put(f'/api/characters/{sample_character["id"]}',
+                       json={'character_book': None})
+        assert r.status_code == 200
+        char = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert char.get('character_book') in (None, {}, {'entries': []})
+
+    def test_partial_field_update_preserves_others(self, client, sample_character):
+        client.put(f'/api/characters/{sample_character["id"]}', json={
+            'character_book': {'name': 'KeepMe', 'entries': [{'content': 'persist'}]}
+        })
+        client.put(f'/api/characters/{sample_character["id"]}', json={
+            'description': 'Changed description'
+        })
+        char = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert char['description'] == 'Changed description'
+        # character_book must survive an unrelated field update
+        assert char['character_book']['entries'][0]['content'] == 'persist'
