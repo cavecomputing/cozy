@@ -15,7 +15,7 @@ import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
 import { loadLLMSettings, saveLLMSettings, fetchModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, saveActivePreset, deletePreset } from './llm-settings.js';
-import { loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt, updateSystemPromptContent, saveActiveSystemPrompt, resetSystemPromptToDefault, previewSystemPrompt } from './system-prompts.js';
+import { loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt, updateSystemPromptContent, saveActiveSystemPrompt, resetSystemPromptToDefault, previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile, exportSystemPrompt } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook } from './lorebooks.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
@@ -315,6 +315,9 @@ async function init() {
         rememberSettingsSubmodalTrigger();
         if (el.promptHelpModal) el.promptHelpModal.hidden = false;
     });
+    el.syspromptImport?.addEventListener('click', importSystemPrompt);
+    el.syspromptImportFile?.addEventListener('change', handleSystemPromptImportFile);
+    el.syspromptExport?.addEventListener('click', exportSystemPrompt);
     el.promptPreviewClose?.addEventListener('click', () => {
         closeSettingsSubmodal(el.promptPreviewModal);
     });
