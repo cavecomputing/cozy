@@ -252,7 +252,7 @@ async function init() {
         const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
         if (el.settingsFlyout.contains(e.target) || path.includes(el.settingsFlyout)) return;
         if (e.target.closest('#settings-btn, #collapsed-settings-btn')) return;
-        if (e.target.closest('#prompt-help-modal, #prompt-preview-modal')) return;
+        if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal')) return;
         if (el.settingsFlyout.contains(document.activeElement)) {
             document.activeElement.blur();
         }
@@ -329,6 +329,16 @@ async function init() {
     });
     el.promptHelpModal?.addEventListener('click', e => {
         if (e.target === el.promptHelpModal) closeSettingsSubmodal(el.promptHelpModal);
+    });
+    el.samplerHelpBtn?.addEventListener('click', () => {
+        rememberSettingsSubmodalTrigger();
+        if (el.samplerHelpModal) el.samplerHelpModal.hidden = false;
+    });
+    el.samplerHelpClose?.addEventListener('click', () => {
+        closeSettingsSubmodal(el.samplerHelpModal);
+    });
+    el.samplerHelpModal?.addEventListener('click', e => {
+        if (e.target === el.samplerHelpModal) closeSettingsSubmodal(el.samplerHelpModal);
     });
 
     // Sampler configure popover
