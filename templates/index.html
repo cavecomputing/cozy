@@ -267,11 +267,6 @@
                                             <button id="settings-sysprompt-save" class="icon-btn" title="Save changes to selected prompt" aria-label="Save prompt">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                                             </button>
-                                            <button id="settings-sysprompt-delete" class="icon-btn" title="Delete prompt" aria-label="Delete prompt">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                            </button>
-                                        </div>
-                                        <div class="prompt-action-group">
                                             <button id="settings-sysprompt-import" class="icon-btn" title="Import prompt from JSON" aria-label="Import prompt">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                             </button>
@@ -279,6 +274,9 @@
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                                             </button>
                                             <input type="file" id="settings-sysprompt-import-file" accept="application/json,.json" hidden>
+                                            <button id="settings-sysprompt-delete" class="icon-btn" title="Delete prompt" aria-label="Delete prompt">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
                                         </div>
                                         <div class="prompt-action-group">
                                             <button id="settings-sysprompt-preview" class="icon-btn" title="Preview rendered prompt" aria-label="Preview prompt">
@@ -348,11 +346,13 @@
                                     <header class="lorebook-col-header">
                                         <h4 class="lorebook-card-title">Lorebooks</h4>
                                         <div class="lorebook-side-actions">
-                                            <button id="settings-lorebook-import" class="icon-btn" title="Import lorebook from JSON" aria-label="Import lorebook">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                            <button id="settings-lorebook-import" class="btn btn-secondary btn-sm" title="Import lorebook from JSON" aria-label="Import lorebook">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                                Import
                                             </button>
-                                            <button id="settings-lorebook-new" class="icon-btn" title="New lorebook" aria-label="New lorebook">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            <button id="settings-lorebook-new" class="btn btn-secondary btn-sm" title="New lorebook" aria-label="New lorebook">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                                New
                                             </button>
                                         </div>
                                     </header>
@@ -429,6 +429,9 @@
                                 <p>Tune generation behavior. Keep common controls visible and enable only the advanced samplers you use.</p>
                             </div>
                             <div class="sampler-toolbar">
+                                <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                </button>
                                 <button id="sampler-configure-btn" class="sampler-configure-btn" title="Configure active samplers" aria-label="Configure active samplers" aria-haspopup="true" aria-expanded="false">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                                     <span>Active samplers</span>
@@ -494,7 +497,7 @@
                             </div>
                             </section>
                             <details class="settings-disclosure settings-card sampler-advanced-card">
-                                <summary>Advanced sampler controls</summary>
+                                <summary>Advanced sampler controls <span class="sampler-advanced-hint">— niche or experimental samplers, off by default</span></summary>
                             <p id="sampler-advanced-empty" class="sampler-empty-state" hidden>No advanced samplers active. Enable one from Active samplers to show controls here.</p>
                             <!-- Typical-P -->
                             <div class="settings-row" data-sampler="typical_p">
@@ -893,6 +896,101 @@ Calm and patient.</pre>
                     <li>Multiple templates can be saved — switch between them with the dropdown.</li>
                     <li>Typos in conditional tags fail silently (e.g. <code>&#123;&#123;#x&#125;&#125;…&#123;&#123;/y&#125;&#125;</code> won't match) — Preview is your debugging aid.</li>
                 </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="sampler-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sampler-help-title" hidden>
+        <div class="modal">
+            <div class="modal-header panel-header">
+                <h2 id="sampler-help-title" class="section-label panel-title panel-title--left">Sampler reference</h2>
+                <div class="modal-header-actions">
+                    <button id="sampler-help-close" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="modal-body sampler-help-body">
+                <p class="prompt-help-callout">Samplers shape <em>how</em> the model picks its next word. The defaults are sensible — only tweak these if you want to change the feel of the output. Settings marked <span class="sampler-advanced-badge">ADV</span> are niche or experimental.</p>
+
+                <div class="sampler-help-section">
+                    <h3>Core samplers</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row">
+                            <dt>Temperature</dt>
+                            <dd>How "wild" the writing is. Low (0.5) = safe and predictable. High (1.3+) = creative but risks nonsense. Most models like 0.7–1.0.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Dynamic Temp <span class="sampler-advanced-badge">ADV</span></dt>
+                            <dd>Lets temperature flex up or down on the fly based on how confident the model is. <em>Range</em> sets how far it can swing; <em>Exponent</em> shapes the curve. Off when range is 0.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Top-P (nucleus)</dt>
+                            <dd>Only consider the smallest set of words whose combined probability adds up to this fraction. 1.0 = no filtering; 0.9 = drop the long tail of unlikely words. Lower values = safer.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Top-K</dt>
+                            <dd>Only consider this many top candidates each step. 0 = unlimited. 40 is a common middle ground; 1 = always pick the single most-likely word (deterministic).</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Min-P</dt>
+                            <dd>Drop any word whose probability is less than this fraction of the top word's. Modern alternative to Top-P that adapts better to the model's confidence. 0.05–0.1 is typical.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Rep. Penalty</dt>
+                            <dd>Discourages the model from repeating tokens it has recently used. 1.0 = off; 1.1–1.15 nudges it to use fresh words. <em>Last N</em> = how far back to look.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Max Tokens</dt>
+                            <dd>Hard cap on how many tokens (~words) the model is allowed to generate in one reply.</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Advanced samplers <span class="sampler-advanced-badge">ADV</span></h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row">
+                            <dt>Typical-P</dt>
+                            <dd>Picks tokens whose surprisal is close to the average — keeps writing "typical" rather than chasing peaks. 1.0 = off. Try 0.9 for steadier prose.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Top-N Sigma</dt>
+                            <dd>Filters tokens by their distance from the mean (in standard deviations) of the model's logit scores. -1 = off. Newer alternative to Top-P/Min-P.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>TFS-Z (Tail-Free Sampling)</dt>
+                            <dd>Trims the long flat tail of low-probability tokens by looking at the curve's second derivative. 1.0 = off. Lower = more aggressive trimming.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Presence Penalty</dt>
+                            <dd>Flat penalty applied once a token has appeared at all. Pushes the model toward new vocabulary. 0 = off.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Frequency Penalty</dt>
+                            <dd>Penalty that grows with how often a token has appeared. Stronger anti-repetition than Presence. 0 = off.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>DRY (Don't Repeat Yourself)</dt>
+                            <dd>Penalises the model for echoing recent multi-word phrases verbatim. Good for fighting "looping" replies. <em>Multiplier</em> = strength; <em>Base</em> = exponent; <em>Allowed length</em> = ignore phrases shorter than this.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Mirostat</dt>
+                            <dd>Adaptive controller that targets a specific surprisal level (perplexity) instead of using fixed Top-P/Top-K. <em>Tau</em> = target surprisal; <em>Eta</em> = how fast it adapts. Modes: 0=off, 1=v1, 2=v2.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>XTC (Exclude Top Choices)</dt>
+                            <dd>With some probability, throws away the most likely tokens to force less obvious choices — adds creative spark. <em>Probability</em> = how often it triggers; <em>Threshold</em> = how confident those top picks must be before XTC kicks in.</dd>
+                        </div>
+                        <div class="sampler-help-row">
+                            <dt>Seed</dt>
+                            <dd>Fixes the random number generator so the same prompt produces the same reply. -1 = random each time. Use a fixed seed when comparing settings.</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <p class="prompt-help-note">Different backends support different samplers — anything your engine doesn't recognise is silently ignored. When in doubt, leave the advanced ones off.</p>
             </div>
         </div>
     </div>

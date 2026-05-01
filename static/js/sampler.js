@@ -87,7 +87,7 @@ export const DEFAULT_ACTIVE_GROUPS = new Set([
     'temperature', 'top_p', 'top_k', 'min_p', 'max_tokens', 'repetition_penalty',
 ]);
 
-const CORE_GROUPS = new Set([
+export const CORE_GROUPS = new Set([
     'temperature', 'dynatemp', 'top_p', 'top_k', 'min_p', 'max_tokens', 'repetition_penalty',
 ]);
 
@@ -123,6 +123,13 @@ export function renderSamplerPopover() {
         span.textContent = info.label;
         row.appendChild(cb);
         row.appendChild(span);
+        if (!CORE_GROUPS.has(group)) {
+            const badge = document.createElement('span');
+            badge.className = 'sampler-advanced-badge';
+            badge.textContent = 'ADV';
+            badge.title = 'Advanced sampler — niche or experimental, off by default';
+            row.appendChild(badge);
+        }
         pop.appendChild(row);
     }
 }

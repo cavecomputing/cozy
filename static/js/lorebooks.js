@@ -299,15 +299,16 @@ function clearEditor() {
 }
 
 export async function newLorebook() {
-    // Create a blank standalone book server-side and select it.
-    const name = (prompt('New lorebook name:') || '').trim();
-    if (!name) return;
     try {
-        const created = await API.createLorebook({ name });
-        // Refresh summary list (entry_count etc.)
+        const created = await API.createLorebook({ name: 'New lorebook' });
         await loadLorebooks();
         await selectLorebook('standalone', created.id);
-        showToast('Lorebook created', 'success');
+        // Put focus on the name field so the user can rename immediately
+        if (el.lorebookName) {
+            el.lorebookName.select();
+            el.lorebookName.focus();
+        }
+        showToast('Lorebook created — rename it above', 'success');
     } catch (e) {
         showToast('Failed to create: ' + e.message);
     }
