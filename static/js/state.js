@@ -24,6 +24,7 @@ export const state = {
     activeSystemPromptId: null,
     autoScroll:          true,
     modelContextLength:  null,
+    modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
     apiPresets:          [],

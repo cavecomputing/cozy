@@ -3,6 +3,11 @@ import { loadSamplerSettings, updateContextSizeWarning } from './sampler.js';
 import { API } from './api.js';
 import { showToast } from './utils.js';
 
+const MODEL_SEARCH_DEBOUNCE_MS = 250;
+let modelSearchTimer = null;
+let modelFetchRequestId = 0;
+let modelListLoaded = false;
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LLM SETTINGS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -32,33 +37,40 @@ export async function saveLLMSettings(fields) {
     } catch (e) { console.warn('Failed to save LLM settings:', e); }
 }
 
-function renderModelMenu(models) {
+function setModelMenuOpen(open) {
+    if (!el.modelPickerMenu) return;
+    el.modelPickerMenu.hidden = !open;
+    if (el.refreshModels) el.refreshModels.setAttribute('aria-expanded', String(open));
+    if (el.apiModel) el.apiModel.setAttribute('aria-expanded', String(open));
+}
+
+function renderModelMenu(models, emptyText = 'No models found') {
     if (!el.modelPickerMenu) return;
     el.modelPickerMenu.innerHTML = '';
     if (!models || models.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'model-picker-empty';
-        empty.textContent = 'No models found';
+        empty.textContent = emptyText;
         el.modelPickerMenu.appendChild(empty);
         return;
     }
     const current = el.apiModel?.value || '';
-    for (const m of models) {
+    models.forEach((m, i) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'model-picker-item';
         btn.dataset.model = m;
         btn.textContent = m;
         btn.setAttribute('role', 'option');
+        btn.id = `model-picker-option-${i}`;
         if (m === current) btn.classList.add('active');
         el.modelPickerMenu.appendChild(btn);
-    }
+    });
 }
 
 export function closeModelMenu() {
     if (!el.modelPickerMenu) return;
-    el.modelPickerMenu.hidden = true;
-    if (el.refreshModels) el.refreshModels.setAttribute('aria-expanded', 'false');
+    setModelMenuOpen(false);
 }
 
 export function selectModelFromMenu(name) {
@@ -71,34 +83,92 @@ export function selectModelFromMenu(name) {
     closeModelMenu();
 }
 
+function filterModels(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) return state.modelList;
+    return state.modelList.filter(m => m.toLowerCase().includes(q));
+}
+
+async function loadModels() {
+    const requestId = ++modelFetchRequestId;
+    const res = await fetch('/api/llm/models');
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Failed');
+    if (requestId !== modelFetchRequestId) return false;
+    state.modelList = body.models || [];
+    state.modelDetails = body.model_details || {};
+    modelListLoaded = true;
+    state.modelContextLength = state.modelDetails[el.apiModel?.value || ''] ?? null;
+    updateContextSizeWarning();
+    return true;
+}
+
+function openModelSearchResults(query) {
+    const trimmed = query.trim();
+    const matches = filterModels(query);
+    renderModelMenu(matches, trimmed ? 'No matching models' : 'No models found');
+    setModelMenuOpen(true);
+}
+
 /** Fetch the model list from the configured endpoint and open the picker menu. */
-export async function fetchModels() {
+export async function fetchModels({ force = false, filter = '' } = {}) {
     if (!el.refreshModels || !el.apiModel || !el.modelPickerMenu) return;
-    // Toggle off if already open
-    if (!el.modelPickerMenu.hidden) { closeModelMenu(); return; }
+    if (!force && !filter && !el.modelPickerMenu.hidden) { closeModelMenu(); return; }
 
     el.refreshModels.classList.add('spinning');
     el.testResult.textContent = '';
     el.testResult.className = 'settings-test-result';
     try {
-        const res = await fetch('/api/llm/models');
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error || 'Failed');
-        state.modelDetails = body.model_details || {};
-        renderModelMenu(body.models || []);
-        el.modelPickerMenu.hidden = false;
-        el.refreshModels.setAttribute('aria-expanded', 'true');
-        state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
-        updateContextSizeWarning();
+        if (force || !modelListLoaded) await loadModels();
+        if (filter) {
+            openModelSearchResults(filter);
+        } else {
+            renderModelMenu(state.modelList);
+            setModelMenuOpen(true);
+        }
     } catch (e) {
-        renderModelMenu([]);
+        renderModelMenu([], 'Failed to fetch: ' + e.message);
         const empty = el.modelPickerMenu.querySelector('.model-picker-empty');
         if (empty) empty.textContent = 'Failed to fetch: ' + e.message;
-        el.modelPickerMenu.hidden = false;
-        el.refreshModels.setAttribute('aria-expanded', 'true');
+        setModelMenuOpen(true);
     } finally {
         el.refreshModels.classList.remove('spinning');
     }
+}
+
+export function browseModels() {
+    fetchModels({ force: true });
+}
+
+export function searchModelsFromInput() {
+    if (!el.apiModel || !el.modelPickerMenu) return;
+    clearTimeout(modelSearchTimer);
+    const query = el.apiModel.value;
+    modelSearchTimer = setTimeout(async () => {
+        const trimmed = query.trim();
+        if (!trimmed) {
+            closeModelMenu();
+            return;
+        }
+
+        if (modelListLoaded) {
+            openModelSearchResults(query);
+            return;
+        }
+
+        renderModelMenu([], 'Loading models...');
+        setModelMenuOpen(true);
+        await fetchModels({ filter: query });
+    }, MODEL_SEARCH_DEBOUNCE_MS);
+}
+
+export function clearModelListCache() {
+    modelFetchRequestId += 1;
+    modelListLoaded = false;
+    state.modelList = [];
+    state.modelDetails = {};
+    state.modelContextLength = null;
+    closeModelMenu();
 }
 
 export async function testLLMConnection() {
@@ -189,6 +259,7 @@ export async function activatePreset(id) {
     if (!id) { updatePresetButtonStates(); return; }
     try {
         const s = await API.activatePreset(id);
+        clearModelListCache();
         applySettingsToUI(s);
         state.activePresetId = id;
         updatePresetButtonStates();

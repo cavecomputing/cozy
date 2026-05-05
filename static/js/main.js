@@ -14,7 +14,7 @@ import { renderMarkdown, findStateMsg, startEditing, finishEditing } from './mes
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
-import { loadLLMSettings, saveLLMSettings, fetchModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, saveActivePreset, deletePreset } from './llm-settings.js';
+import { loadLLMSettings, saveLLMSettings, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, saveActivePreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
 import { loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt, updateSystemPromptContent, saveActiveSystemPrompt, resetSystemPromptToDefault, previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile, exportSystemPrompt } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook } from './lorebooks.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
@@ -269,16 +269,18 @@ async function init() {
     // LLM API settings — save on blur
     el.apiEndpoint?.addEventListener('change', () => {
         state.apiEndpoint = el.apiEndpoint.value;
+        clearModelListCache();
         saveLLMSettings({api_endpoint: el.apiEndpoint.value});
     });
     el.apiKey?.addEventListener('change', () => {
         const v = el.apiKey.value;
         if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026')) {
             state.apiKeySet = true;
+            clearModelListCache();
             saveLLMSettings({api_key: v});
         }
     });
-    el.refreshModels?.addEventListener('click', fetchModels);
+    el.refreshModels?.addEventListener('click', browseModels);
     el.modelPickerMenu?.addEventListener('click', e => {
         const btn = e.target.closest('.model-picker-item');
         if (btn) selectModelFromMenu(btn.dataset.model);
@@ -286,7 +288,8 @@ async function init() {
     document.addEventListener('click', e => {
         if (el.modelPickerMenu && !el.modelPickerMenu.hidden
             && !el.modelPickerMenu.contains(e.target)
-            && !el.refreshModels?.contains(e.target)) {
+            && !el.refreshModels?.contains(e.target)
+            && !el.apiModel?.contains(e.target)) {
             closeModelMenu();
         }
     });
@@ -379,7 +382,13 @@ async function init() {
         updateContextSizeWarning();
     });
 
-    // Model select change — update stored context_length
+    // Model input — type to search suggestions, save on committed change.
+    el.apiModel?.addEventListener('input', () => {
+        state.apiModel = el.apiModel.value;
+        state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
+        updateContextSizeWarning();
+        searchModelsFromInput();
+    });
     el.apiModel?.addEventListener('change', () => {
         state.apiModel = el.apiModel.value;
         state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
