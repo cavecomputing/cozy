@@ -96,6 +96,7 @@ class TestPresetActivation:
         assert s['api_endpoint'] == 'http://activated/v1'
         assert s['api_model'] == 'mythical-7B'
         assert s['context_max_messages'] == '64'
+        assert s['active_api_preset'] == str(created['id'])
         assert s['api_key_set'] is True
 
     def test_activate_404_unknown(self, client):
@@ -110,6 +111,16 @@ class TestPresetDelete:
         assert r.status_code == 200
         rows = client.get('/api/presets').get_json()
         assert all(p['id'] != created['id'] for p in rows)
+
+    def test_delete_active_preset_clears_selection(self, client):
+        created = client.post('/api/presets', json={'name': 'Active'}).get_json()
+        client.post(f'/api/presets/{created["id"]}/activate')
+
+        r = client.delete(f'/api/presets/{created["id"]}')
+
+        assert r.status_code == 200
+        s = client.get('/api/settings').get_json()
+        assert s['active_api_preset'] == ''
 
     def test_create_requires_name(self, client):
         r = client.post('/api/presets', json={'api_endpoint': 'http://x/v1'})

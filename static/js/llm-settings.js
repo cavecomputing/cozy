@@ -207,6 +207,7 @@ function updatePresetButtonStates() {
 function renderPresetDropdown() {
     if (!el.apiPreset) return;
     const selected = el.apiPreset.value || (state.activePresetId ? String(state.activePresetId) : '');
+    const selectedExists = state.apiPresets.some(p => String(p.id) === selected);
     el.apiPreset.innerHTML = '';
 
     // Placeholder option — visible label when nothing is selected.
@@ -216,14 +217,14 @@ function renderPresetDropdown() {
     placeholder.disabled = true;
     placeholder.textContent = state.apiPresets.length === 0 ? '(no presets)' : 'Select preset…';
     if (state.apiPresets.length > 0) placeholder.hidden = true;
-    placeholder.selected = !selected;
+    placeholder.selected = !selectedExists;
     el.apiPreset.appendChild(placeholder);
 
     for (const p of state.apiPresets) {
         const opt = document.createElement('option');
         opt.value = p.id;
         opt.textContent = p.name;
-        opt.selected = String(p.id) === selected;
+        opt.selected = String(p.id) === selected && selectedExists;
         el.apiPreset.appendChild(opt);
     }
     updatePresetButtonStates();
@@ -240,6 +241,7 @@ function applySettingsToUI(s) {
     state.apiEndpoint = s.api_endpoint || '';
     state.apiKeySet   = s.api_key_set || false;
     state.apiModel    = s.api_model || '';
+    state.activePresetId = s.active_api_preset || null;
     if (el.apiEndpoint) el.apiEndpoint.value = state.apiEndpoint;
     if (el.apiKey) {
         el.apiKey.value = state.apiKeySet ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : '';
@@ -262,6 +264,7 @@ export async function activatePreset(id) {
         clearModelListCache();
         applySettingsToUI(s);
         state.activePresetId = id;
+        if (el.apiPreset) el.apiPreset.value = String(id);
         updatePresetButtonStates();
     } catch (e) {
         showToast('Failed to activate preset');
@@ -282,8 +285,7 @@ export async function createNewPreset() {
         });
         await loadPresets();
         if (created?.id && el.apiPreset) {
-            el.apiPreset.value = String(created.id);
-            state.activePresetId = created.id;
+            await activatePreset(String(created.id));
             updatePresetButtonStates();
         }
         showToast('Preset created', 'success');

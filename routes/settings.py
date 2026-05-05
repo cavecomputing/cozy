@@ -10,6 +10,7 @@ settings_bp = Blueprint('settings', __name__)
 
 SETTINGS_KEYS = {
     'api_endpoint', 'api_key', 'api_model',
+    'active_api_preset',
     'active_system_prompt',
     'sampler_temperature', 'sampler_top_p', 'sampler_top_k',
     'sampler_min_p', 'sampler_max_tokens', 'sampler_repetition_penalty',
@@ -275,7 +276,17 @@ def update_preset(preset_id):
 @settings_bp.route('/api/presets/<int:preset_id>', methods=['DELETE'])
 def delete_preset(preset_id):
     with get_db() as conn:
+        active = conn.execute(
+            'SELECT value FROM settings WHERE key = ?',
+            ('active_api_preset',)
+        ).fetchone()
         conn.execute('DELETE FROM api_presets WHERE id = ?', (preset_id,))
+        if active and active['value'] == str(preset_id):
+            conn.execute(
+                'INSERT INTO settings (key, value) VALUES (?, ?) '
+                'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+                ('active_api_preset', '')
+            )
         return jsonify({'ok': True})
 
 
@@ -292,4 +303,9 @@ def activate_preset(preset_id):
                 'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
                 (key, row[key])
             )
+        conn.execute(
+            'INSERT INTO settings (key, value) VALUES (?, ?) '
+            'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+            ('active_api_preset', str(preset_id))
+        )
     return read_settings()
