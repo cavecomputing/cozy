@@ -31,6 +31,22 @@ SETTINGS_KEYS = {
 }
 
 
+def mask_secret(value):
+    if value:
+        return {
+            'api_key_masked': value[:3] + '…' + value[-4:] if len(value) > 8 else '••••',
+            'api_key_set': True,
+        }
+    return {'api_key_masked': '', 'api_key_set': False}
+
+
+def is_masked_secret(value):
+    if not value:
+        return True
+    value = str(value).strip()
+    return not value or value.startswith('••') or '…' in value
+
+
 def get_settings():
     with get_db() as conn:
         rows = conn.execute('SELECT key, value FROM settings').fetchall()
@@ -41,13 +57,7 @@ def get_settings():
 def read_settings():
     s = get_settings()
     # Never send the full API key to the frontend — mask it
-    if 'api_key' in s and s['api_key']:
-        k = s['api_key']
-        s['api_key_masked'] = k[:3] + '…' + k[-4:] if len(k) > 8 else '••••'
-        s['api_key_set'] = True
-    else:
-        s['api_key_masked'] = ''
-        s['api_key_set'] = False
+    s.update(mask_secret(s.get('api_key', '')))
     s.pop('api_key', None)
     return jsonify(s)
 
@@ -61,7 +71,7 @@ def write_settings():
                 val = str(data[key] or '').strip()
                 # Allow clearing, or setting a new value
                 # For api_key, skip if the placeholder/masked value is sent back
-                if key == 'api_key' and (not val or val.startswith('••') or '\u2026' in val):
+                if key == 'api_key' and is_masked_secret(val):
                     continue
                 conn.execute(
                     'INSERT INTO settings (key, value) VALUES (?, ?) '
@@ -207,13 +217,7 @@ PRESET_FIELDS = ('api_endpoint', 'api_key', 'api_model', 'context_max_messages')
 def _mask_preset(row):
     """Return a dict with the api_key masked (same logic as read_settings)."""
     d = dict(row)
-    k = d.get('api_key', '')
-    if k:
-        d['api_key_masked'] = k[:3] + '\u2026' + k[-4:] if len(k) > 8 else '\u2022\u2022\u2022\u2022'
-        d['api_key_set'] = True
-    else:
-        d['api_key_masked'] = ''
-        d['api_key_set'] = False
+    d.update(mask_secret(d.get('api_key', '')))
     d.pop('api_key', None)
     return d
 
@@ -233,7 +237,7 @@ def create_preset():
         return jsonify({'error': 'name is required'}), 400
     # If no real key was provided, inherit the current one from settings
     key_val = data.get('api_key', '')
-    if not key_val or key_val.startswith('\u2022\u2022') or '\u2026' in key_val:
+    if is_masked_secret(key_val):
         s = get_settings()
         key_val = s.get('api_key', '')
     with get_db() as conn:
@@ -260,7 +264,7 @@ def update_preset(preset_id):
         ctx = data.get('context_max_messages', row['context_max_messages'])
         # Only update api_key if a real (non-masked) value was sent
         key_val = data.get('api_key', '')
-        if key_val and not key_val.startswith('\u2022\u2022') and '\u2026' not in key_val:
+        if not is_masked_secret(key_val):
             key = key_val
         else:
             key = row['api_key']

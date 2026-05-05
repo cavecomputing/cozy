@@ -5,8 +5,8 @@ import os
 from flask import Blueprint, request, jsonify
 
 import shared
+from card_store import read_character_card
 from shared import get_db
-from png_utils import extract_png_chara
 
 chats_bp = Blueprint('chats', __name__)
 
@@ -30,11 +30,7 @@ def _character_has_lorebook(conn, char_id):
     if not row or row['missing']:
         return False
     filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    try:
-        with open(filepath, 'rb') as f:
-            card = extract_png_chara(f.read())
-    except (OSError, IOError):
-        return False
+    card = read_character_card(filepath)
     if not card:
         return False
     data = card.get('data', card)

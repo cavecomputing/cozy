@@ -13,8 +13,8 @@ import os
 from flask import Blueprint, request, jsonify, Response
 
 import shared
+from card_store import read_character_card, set_character_book
 from shared import get_db
-from png_utils import extract_png_chara, write_png_chara
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
 
@@ -250,52 +250,6 @@ def delete_lorebook(book_id):
         return jsonify({'ok': True})
 
 
-# ── Cross-storage helpers ──────────────────────────────────────────────────
-
-def _read_character_card(filepath):
-    try:
-        with open(filepath, 'rb') as f:
-            return extract_png_chara(f.read())
-    except (OSError, IOError):
-        return None
-
-
-def _write_character_book(char_id, new_book):
-    """Embed *new_book* into the character card PNG, overwriting any existing
-    ``character_book``. Returns the updated card dict on success, or an error
-    string if the character is missing/unreadable."""
-    with get_db() as conn:
-        row = conn.execute(
-            'SELECT * FROM characters WHERE id=?', (char_id,)
-        ).fetchone()
-        if not row or row['missing']:
-            return None, 'Character not found'
-
-        filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-        with open(filepath, 'rb') as f:
-            png_bytes = f.read()
-
-        existing_card = extract_png_chara(png_bytes) or {'data': {}}
-        existing_data = existing_card.get('data', existing_card)
-        existing_data['character_book'] = new_book
-
-        card = {
-            'spec': 'chara_card_v2',
-            'spec_version': '2.0',
-            'data': existing_data,
-        }
-        png_bytes = write_png_chara(png_bytes, card)
-        with open(filepath, 'wb') as f:
-            f.write(png_bytes)
-
-        # Refresh CRC index
-        import zlib
-        with open(filepath, 'rb') as f:
-            crc = format(zlib.crc32(f.read()) & 0xFFFFFFFF, '08x')
-        conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
-        return card, None
-
-
 @lorebooks_bp.route('/api/lorebooks/<int:book_id>/embed-in-character/<int:char_id>', methods=['POST'])
 def embed_in_character(book_id, char_id):
     delete_standalone = request.args.get('delete_standalone') == '1'
@@ -305,7 +259,7 @@ def embed_in_character(book_id, char_id):
             return jsonify({'error': 'Lorebook not found'}), 404
         book = _parse_book(row['book'])
 
-    card, err = _write_character_book(char_id, book)
+    _, err = set_character_book(char_id, book)
     if err:
         return jsonify({'error': err}), 404
 
@@ -329,7 +283,7 @@ def extract_from_character(char_id):
             return jsonify({'error': 'Character not found'}), 404
 
     filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = _read_character_card(filepath)
+    card = read_character_card(filepath)
     char_data = (card or {}).get('data', card or {})
     book = char_data.get('character_book')
     if not isinstance(book, dict) or not book.get('entries'):
@@ -349,7 +303,7 @@ def extract_from_character(char_id):
         ).fetchone()
 
     if clear_embedded:
-        _write_character_book(char_id, None)
+        set_character_book(char_id, None)
 
     return jsonify(_full_dict(new_row)), 201
 
@@ -425,7 +379,7 @@ def export_character_lorebook(char_id):
             return jsonify({'error': 'Character not found'}), 404
 
     filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = _read_character_card(filepath)
+    card = read_character_card(filepath)
     char_data = (card or {}).get('data', card or {})
     book = char_data.get('character_book')
     if not isinstance(book, dict) or not book.get('entries'):

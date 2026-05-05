@@ -121,17 +121,7 @@ function openMobileSidebar() {
     el.mobileBackdrop.classList.add('show');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// INITIALIZATION
-// ═══════════════════════════════════════════════════════════════════════════
-async function init() {
-    initElements();
-    initTooltips();
-    loadPrefs();
-    if (state.sidebarCollapsed) el.sidebar.classList.add('collapsed');
-    applyTheme(state.theme);
-    await loadThemeList();
-
+function bindResponsiveShellHandlers() {
     // On mobile, move modals out of sidebar so CSS fixed positioning works
     // (transform on sidebar creates a new containing block that breaks fixed)
     const mobileQuery = window.matchMedia('(max-width: 600px)');
@@ -163,16 +153,9 @@ async function init() {
     }
     new ResizeObserver(updateModalBottom).observe(el.inputContainer);
     updateModalBottom();
+}
 
-    const [, settings] = await Promise.all([loadPersonas(), loadLLMSettings()]);
-    await loadSystemPrompts(settings);
-    await loadLorebooks();
-    await loadCharacters();
-    updateComposerState();
-    renderLorebookList();
-    renderLorebookFlyout();
-    renderLorebookNotice();
-
+function bindFlyoutHandlers() {
     // Register flyouts so only one is open at a time
     Flyouts.register('settings', () => {
         // Blur focused element inside the flyout to flush pending change events
@@ -195,7 +178,9 @@ async function init() {
         el.personaDropup.classList.remove('show');
         el.personaDropup.setAttribute('aria-hidden', 'true');
     });
+}
 
+function bindSidebarHandlers() {
     // Sidebar toggle
     el.sidebarToggle.addEventListener('click', toggleSidebar);
 
@@ -203,7 +188,9 @@ async function init() {
     el.mobileMenuBtn?.addEventListener('click', openMobileSidebar);
     el.mobileBackdrop?.addEventListener('click', closeMobileSidebar);
     el.mobileSidebarClose?.addEventListener('click', closeMobileSidebar);
+}
 
+function bindSettingsHandlers() {
     // Settings flyout (collapsed gear icon delegates to same handler)
     const collapsedSettingsBtn = document.getElementById('collapsed-settings-btn');
     const openSettings = async e => {
@@ -400,7 +387,9 @@ async function init() {
     el.sendThinking?.addEventListener('change', () => {
         saveLLMSettings({ send_thinking: el.sendThinking.checked ? '1' : '0' });
     });
+}
 
+function bindCharacterHandlers() {
     // New character
     el.newCharBtn.addEventListener('click', () => Modal.open());
     el.emptyNewCharBtn?.addEventListener('click', () => Modal.open());
@@ -428,7 +417,9 @@ async function init() {
             selectCharacter(id);
         }
     });
+}
 
+function bindChatHandlers() {
     // Chat flyout — toggle open/close
     el.chatFlyoutBtn.addEventListener('click', e => {
         e.stopPropagation();
@@ -484,7 +475,9 @@ async function init() {
 
     // New chat button (in flyout)
     el.flyoutNewChatBtn.addEventListener('click', () => createNewChat(true, false));
+}
 
+function bindLorebookHandlers() {
     // Lorebook flyout — toggle, render fresh on each open, close on outside click
     el.lorebookFlyoutBtn?.addEventListener('click', e => {
         e.stopPropagation();
@@ -549,7 +542,9 @@ async function init() {
         state.lorebookAlwaysInjectAll = on;
         saveLLMSettings({ lorebook_always_inject_all: on ? '1' : '0' });
     });
+}
 
+function bindMessageHandlers() {
     // Avatar expand/collapse on click
     el.chatHistory.addEventListener('click', e => {
         const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
@@ -733,7 +728,9 @@ async function init() {
             if (isGreeting) state.greetingIndex = idx;
         }
     });
+}
 
+function bindComposerHandlers() {
     // Send / Stop
     el.sendBtn.addEventListener('click', () => {
         if (llm.abortController) llm.abortController.abort();
@@ -744,7 +741,9 @@ async function init() {
     });
     el.userInput.addEventListener('input', () => autoResize(el.userInput));
     autoResize(el.userInput);
+}
 
+function bindPersonaHandlers() {
     // Persona dropup
     el.userProfile.addEventListener('click', e => {
         e.stopPropagation();
@@ -767,7 +766,9 @@ async function init() {
         e.stopPropagation();
         showPersonaForm();
     });
+}
 
+function bindScrollHandlers() {
     // Scroll-to-bottom button
     el.scrollToBottomBtn?.addEventListener('click', () => {
         scrollToBottom();
@@ -780,7 +781,39 @@ async function init() {
         state.autoScroll = atBottom;
         el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
     });
+}
 
+// ═══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+async function init() {
+    initElements();
+    initTooltips();
+    loadPrefs();
+    if (state.sidebarCollapsed) el.sidebar.classList.add('collapsed');
+    applyTheme(state.theme);
+    await loadThemeList();
+    bindResponsiveShellHandlers();
+
+    const [, settings] = await Promise.all([loadPersonas(), loadLLMSettings()]);
+    await loadSystemPrompts(settings);
+    await loadLorebooks();
+    await loadCharacters();
+    updateComposerState();
+    renderLorebookList();
+    renderLorebookFlyout();
+    renderLorebookNotice();
+
+    bindFlyoutHandlers();
+    bindSidebarHandlers();
+    bindSettingsHandlers();
+    bindCharacterHandlers();
+    bindChatHandlers();
+    bindLorebookHandlers();
+    bindMessageHandlers();
+    bindComposerHandlers();
+    bindPersonaHandlers();
+    bindScrollHandlers();
 }
 
 init().then(() => {

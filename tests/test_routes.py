@@ -38,6 +38,7 @@ class TestSettings:
         r = client.get('/api/settings')
         data = r.get_json()
         assert data['api_key_set'] is True
+        assert data['api_key_masked'] == 'sk-…2345'
         # Raw key should not be in response
         assert 'sk-test-secret-key-12345' not in str(data)
 

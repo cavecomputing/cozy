@@ -39,6 +39,34 @@ export function findStateMsg(swipes, msgEl) {
     );
 }
 
+function iconButton(className, title, ariaLabel, icon) {
+    const btn = document.createElement('button');
+    btn.className = className;
+    btn.title = title;
+    btn.setAttribute('aria-label', ariaLabel);
+    btn.innerHTML = icon;
+    return btn;
+}
+
+function buildSwipeButton(direction, title, disabled) {
+    const btn = iconButton(
+        `swipe-btn swipe-${direction}`,
+        title,
+        direction === 'prev' ? 'Previous swipe' : title,
+        direction === 'prev' ? icons.CHEVLEFT : icons.CHEVRIGHT,
+    );
+    btn.disabled = disabled;
+    return btn;
+}
+
+function appendMessageActionButtons(bar) {
+    bar.append(
+        iconButton('msg-action-btn copy-msg-btn', 'Copy', 'Copy message', icons.COPY),
+        iconButton('msg-action-btn edit-msg-btn', 'Edit', 'Edit message', icons.EDIT),
+        iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.DELETE),
+    );
+}
+
 /** Build the Discord-style floating action toolbar for a message. */
 export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGreeting = false) {
     const bar = document.createElement('div');
@@ -48,25 +76,31 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
         const atEnd = idx >= swipeCount;
         const nextDisabled = isGreeting && atEnd;
         const nextTitle = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
-        bar.innerHTML = `
-            <div class="swipe-nav">
-                <button class="swipe-btn swipe-prev" title="Previous" aria-label="Previous swipe" ${idx <= 1 ? 'disabled' : ''}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
-                <span class="swipe-counter">${idx}/${swipeCount}</span>
-                <button class="swipe-btn swipe-next" title="${nextTitle}" aria-label="${nextTitle}" ${nextDisabled ? 'disabled' : ''}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
-                </button>
-            </div>
-            <button class="msg-action-btn copy-msg-btn" title="Copy" aria-label="Copy message">${icons.COPY}</button>
-            <button class="msg-action-btn edit-msg-btn" title="Edit" aria-label="Edit message">${icons.EDIT}</button>
-            <button class="msg-action-btn delete-msg-btn" title="Delete" aria-label="Delete message">${icons.DELETE}</button>`;
-    } else {
-        bar.innerHTML = `
-            <button class="msg-action-btn copy-msg-btn" title="Copy" aria-label="Copy message">${icons.COPY}</button>
-            <button class="msg-action-btn edit-msg-btn" title="Edit" aria-label="Edit message">${icons.EDIT}</button>
-            <button class="msg-action-btn delete-msg-btn" title="Delete" aria-label="Delete message">${icons.DELETE}</button>`;
+
+        const nav = document.createElement('div');
+        nav.className = 'swipe-nav';
+
+        const counter = document.createElement('span');
+        counter.className = 'swipe-counter';
+        counter.textContent = `${idx}/${swipeCount}`;
+
+        nav.append(
+            buildSwipeButton('prev', 'Previous', idx <= 1),
+            counter,
+            buildSwipeButton('next', nextTitle, nextDisabled),
+        );
+        bar.append(nav);
     }
+    appendMessageActionButtons(bar);
+    return bar;
+}
+
+function buildEditActions() {
+    const bar = document.createElement('div');
+    bar.append(
+        iconButton('msg-action-btn save-msg-btn', 'Save (Enter)', 'Save message edit', icons.SAVE),
+        iconButton('msg-action-btn cancel-msg-btn', 'Cancel (Esc)', 'Cancel message edit', icons.CANCEL),
+    );
     return bar;
 }
 
@@ -282,9 +316,7 @@ export function startEditing(messageEl) {
     window.getSelection().addRange(range);
 
     // Swap toolbar to Save / Cancel
-    actionsBar.innerHTML = `
-        <button class="msg-action-btn save-msg-btn" title="Save (Enter)" aria-label="Save message edit">${icons.SAVE}</button>
-        <button class="msg-action-btn cancel-msg-btn" title="Cancel (Esc)" aria-label="Cancel message edit">${icons.CANCEL}</button>`;
+    actionsBar.replaceChildren(...buildEditActions().childNodes);
     actionsBar.classList.add('always-visible');
 
     const handler = e => {
@@ -333,7 +365,7 @@ export function finishEditing(save) {
     const swipes = JSON.parse(messageEl.dataset.swipes || '[]');
     const activeIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
     const isGreeting = messageEl.dataset.isGreeting === 'true';
-    actionsBar.innerHTML = buildMsgActions(role, swipes.length, activeIdx, isGreeting).innerHTML;
+    actionsBar.replaceChildren(...buildMsgActions(role, swipes.length, activeIdx, isGreeting).childNodes);
     actionsBar.classList.remove('always-visible');
 
     state.currentEdit = null;

@@ -1,27 +1,20 @@
 """Character routes — file-based character card storage with PNG embedding."""
 
-import io
 import os
 import json
-import zlib
 
-from PIL import Image
 from flask import Blueprint, request, jsonify, Response
 from werkzeug.utils import secure_filename
 
 import shared
+from card_store import (
+    ensure_png, file_crc, normalize_to_v2, read_character_card,
+    write_character_card,
+)
 from shared import get_db
 from png_utils import make_minimal_png, write_png_chara, extract_png_chara
 
 characters_bp = Blueprint('characters', __name__)
-
-
-# ── File-based character helpers ──────────────────────────────────────────
-
-def _file_crc(filepath):
-    """Compute CRC32 of a file, returned as a hex string."""
-    with open(filepath, 'rb') as f:
-        return format(zlib.crc32(f.read()) & 0xFFFFFFFF, '08x')
 
 
 def _unique_filename(name):
@@ -35,53 +28,6 @@ def _unique_filename(name):
         candidate = f"{base}_{counter}.png"
         counter += 1
     return candidate
-
-
-def _read_character_card(filepath):
-    """Parse embedded card data from a PNG file. Returns dict or None."""
-    try:
-        with open(filepath, 'rb') as f:
-            return extract_png_chara(f.read())
-    except (OSError, IOError):
-        return None
-
-
-def _normalize_to_v2(card_data):
-    """Normalize V1/V2/flat card data into a proper V2 card dict."""
-    if isinstance(card_data, dict) and card_data.get('spec') == 'chara_card_v2':
-        return card_data
-    data = card_data.get('data', card_data)
-    return {
-        'spec': 'chara_card_v2',
-        'spec_version': '2.0',
-        'data': {
-            'name':                      data.get('name', 'Unnamed'),
-            'description':               data.get('description', ''),
-            'personality':               data.get('personality', ''),
-            'scenario':                  data.get('scenario', ''),
-            'first_mes':                 data.get('first_mes', ''),
-            'mes_example':               data.get('mes_example', ''),
-            'creator_notes':             data.get('creator_notes', ''),
-            'system_prompt':             data.get('system_prompt', ''),
-            'post_history_instructions': data.get('post_history_instructions', ''),
-            'alternate_greetings':       data.get('alternate_greetings', []),
-            'character_book':            data.get('character_book'),
-            'tags':                      data.get('tags', []),
-            'creator':                   data.get('creator', ''),
-            'character_version':         data.get('character_version', ''),
-            'extensions':                data.get('extensions', {}),
-        }
-    }
-
-
-def _ensure_png(image_bytes):
-    """Convert any supported image format to PNG bytes."""
-    if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':
-        return image_bytes
-    img = Image.open(io.BytesIO(image_bytes))
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    return buf.getvalue()
 
 
 def _char_to_dict(row, card_data=None):
@@ -125,7 +71,7 @@ def _sync_characters(conn):
         if f.lower().endswith('.png') and not f.startswith('.'):
             filepath = os.path.join(shared.CHARACTERS_DIR, f)
             if os.path.isfile(filepath):
-                disk_files[f] = _file_crc(filepath)
+                disk_files[f] = file_crc(filepath)
 
     # Fetch DB records
     db_rows = conn.execute('SELECT * FROM characters').fetchall()
@@ -180,7 +126,7 @@ def list_characters():
                     'avatar_url': None, 'created_at': row['created_at'],
                 })
             else:
-                card = _read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+                card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
                 result.append(_char_to_dict(row, card))
         return jsonify(result)
 
@@ -190,12 +136,15 @@ def create_character():
     if 'image' not in request.files:
         return jsonify({'error': 'An image is required'}), 400
 
-    data = json.loads(request.form.get('data', '{}'))
+    try:
+        data = json.loads(request.form.get('data', '{}'))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return jsonify({'error': 'Invalid character data'}), 400
     if not data.get('name', '').strip():
         return jsonify({'error': 'name is required'}), 400
 
-    card = _normalize_to_v2(data)
-    png_bytes = _ensure_png(request.files['image'].read())
+    card = normalize_to_v2(data)
+    png_bytes = ensure_png(request.files['image'].read())
     png_bytes = write_png_chara(png_bytes, card)
 
     filename = _unique_filename(data['name'])
@@ -203,7 +152,7 @@ def create_character():
     with open(filepath, 'wb') as f:
         f.write(png_bytes)
 
-    crc = _file_crc(filepath)
+    crc = file_crc(filepath)
     with get_db() as conn:
         cur = conn.execute(
             'INSERT INTO characters (filename, crc) VALUES (?, ?)', (filename, crc)
@@ -240,7 +189,7 @@ def import_character():
             if not (isinstance(card_data, dict) and isinstance(card_data.get('data'), dict)):
                 return jsonify({'error': 'File does not appear to be a valid Character Card (V1 or V2)'}), 400
 
-        card = _normalize_to_v2(card_data)
+        card = normalize_to_v2(card_data)
         png_bytes = write_png_chara(make_minimal_png(), card)
     else:
         return jsonify({'error': 'Unsupported file – use .json or .png'}), 400
@@ -253,7 +202,7 @@ def import_character():
     with open(filepath, 'wb') as f:
         f.write(png_bytes)
 
-    crc = _file_crc(filepath)
+    crc = file_crc(filepath)
     with get_db() as conn:
         cur = conn.execute(
             'INSERT INTO characters (filename, crc) VALUES (?, ?)', (filename, crc)
@@ -275,7 +224,7 @@ def get_character(char_id):
                 'missing': True, 'name': row['filename'].rsplit('.', 1)[0],
                 'avatar_url': None, 'created_at': row['created_at'],
             })
-        card = _read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
         return jsonify(_char_to_dict(row, card))
 
 
@@ -292,7 +241,7 @@ def export_character(char_id):
             return jsonify({'error': 'Not found'}), 404
 
     filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card_data = _read_character_card(filepath)
+    card_data = read_character_card(filepath)
     data = card_data.get('data', card_data) if card_data else {}
     safe = secure_filename(data.get('name') or 'character')
 
@@ -308,7 +257,7 @@ def export_character(char_id):
 
     # Default: JSON
     if not card_data:
-        card_data = _normalize_to_v2({'name': safe})
+        card_data = normalize_to_v2({'name': safe})
     return Response(
         json.dumps(card_data, ensure_ascii=False, indent=2),
         mimetype='application/json',
@@ -340,11 +289,7 @@ def update_character(char_id):
             'data': existing_data,
         }
 
-        png_bytes = write_png_chara(png_bytes, card)
-        with open(filepath, 'wb') as f:
-            f.write(png_bytes)
-
-        crc = _file_crc(filepath)
+        png_bytes, crc = write_character_card(filepath, card)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         return jsonify(_char_to_dict(row, card))
@@ -383,18 +328,18 @@ def upload_avatar(char_id):
 
         # Read card data from current file
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-        card_data = _read_character_card(filepath)
+        card_data = read_character_card(filepath)
         if not card_data:
-            card_data = _normalize_to_v2({'name': row['filename'].rsplit('.', 1)[0]})
+            card_data = normalize_to_v2({'name': row['filename'].rsplit('.', 1)[0]})
 
         # Convert new image to PNG and embed card data
-        png_bytes = _ensure_png(file.read())
+        png_bytes = ensure_png(file.read())
         png_bytes = write_png_chara(png_bytes, card_data)
 
         with open(filepath, 'wb') as f:
             f.write(png_bytes)
 
-        crc = _file_crc(filepath)
+        crc = file_crc(filepath)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         return jsonify(_char_to_dict(row, extract_png_chara(png_bytes)))

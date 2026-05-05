@@ -36,6 +36,42 @@ def _v2_card(name='Char', **fields):
     return {'spec': 'chara_card_v2', 'spec_version': '2.0', 'data': data}
 
 
+# ── Create endpoint validation ────────────────────────────────────────────
+
+class TestCreate:
+    def test_create_invalid_form_json_rejected(self, client):
+        r = client.post('/api/characters', data={
+            'data': '{not json',
+            'image': (BytesIO(make_minimal_png()), 'avatar.png', 'image/png'),
+        }, content_type='multipart/form-data')
+
+        assert r.status_code == 400
+        assert r.get_json() == {'error': 'Invalid character data'}
+
+    def test_create_non_utf8_form_json_rejected(self, client):
+        boundary = b'CozyBoundary'
+        png = make_minimal_png()
+        body = b''.join([
+            b'--', boundary, b'\r\n',
+            b'Content-Disposition: form-data; name="data"\r\n\r\n',
+            b'\xff\xfe\r\n',
+            b'--', boundary, b'\r\n',
+            b'Content-Disposition: form-data; name="image"; filename="avatar.png"\r\n',
+            b'Content-Type: image/png\r\n\r\n',
+            png, b'\r\n',
+            b'--', boundary, b'--\r\n',
+        ])
+
+        r = client.post(
+            '/api/characters',
+            data=body,
+            content_type='multipart/form-data; boundary=CozyBoundary',
+        )
+
+        assert r.status_code == 400
+        assert r.get_json() == {'error': 'Invalid character data'}
+
+
 # ── PNG round-trip with realistic content ─────────────────────────────────
 
 class TestPngRoundtrip:

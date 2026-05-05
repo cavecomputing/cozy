@@ -15,8 +15,7 @@ class TestPresetMasking:
         assert body['api_key_set'] is True
         assert 'sk-realsecret1234567' not in str(body)
         # Masked form is informative but not the raw key
-        assert body['api_key_masked']
-        assert 'sk-' in body['api_key_masked'] or '•' in body['api_key_masked']
+        assert body['api_key_masked'] == 'sk-…4567'
 
     def test_create_without_key_inherits_from_settings(self, client):
         # Seed a global key
