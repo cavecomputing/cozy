@@ -19,8 +19,6 @@ data/
 .claude/
 .codex
 .codex/
-AGENTS.md
-CLAUDE.md
 
 # OS metadata
 .DS_Store
