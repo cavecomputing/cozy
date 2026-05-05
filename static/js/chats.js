@@ -23,15 +23,10 @@ function buildChatItem(chat) {
     li.className = `chat-item${chat.id === state.activeChat?.id ? ' active' : ''}`;
     li.dataset.chatId = chat.id;
 
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'chat-name';
-    nameSpan.textContent = chat.name;
-
-    // Double-click the name to rename
-    nameSpan.addEventListener('dblclick', e => {
-        e.stopPropagation();
-        startChatRename(li, chat);
-    });
+    const selectBtn = buildChatSelectButton(chat);
+    if (chat.id === state.activeChat?.id) {
+        selectBtn.setAttribute('aria-current', 'true');
+    }
 
     const actions = document.createElement('div');
     actions.className = 'chat-item-actions';
@@ -41,22 +36,49 @@ function buildChatItem(chat) {
         <button class="icon-btn chat-delete-btn" title="Delete chat" aria-label="Delete chat">${icons.TRASH}</button>
     `;
 
-    li.append(nameSpan, actions);
+    li.append(selectBtn, actions);
     return li;
+}
+
+function buildChatSelectButton(chat) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'chat-select-btn';
+    button.setAttribute('aria-label', `Select chat ${chat.name}`);
+
+    const prefix = document.createElement('span');
+    prefix.className = 'chat-prefix';
+    prefix.setAttribute('aria-hidden', 'true');
+    prefix.textContent = '#';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'chat-name';
+    nameSpan.textContent = chat.name;
+
+    // Double-click the name to rename
+    button.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        startChatRename(button.closest('.chat-item'), chat);
+    });
+
+    button.append(prefix, nameSpan);
+    return button;
 }
 
 /** Replace the name span with an inline input for renaming. */
 export function startChatRename(li, chat) {
+    const selectBtn = li.querySelector('.chat-select-btn');
     const nameSpan = li.querySelector('.chat-name');
-    if (!nameSpan || li.querySelector('.chat-rename-input')) return; // already renaming
+    if (!selectBtn || !nameSpan || li.querySelector('.chat-rename-input')) return; // already renaming
 
     const original = nameSpan.textContent;
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'chat-rename-input';
     input.value = original;
+    input.setAttribute('aria-label', 'Chat name');
 
-    nameSpan.replaceWith(input);
+    selectBtn.replaceWith(input);
     input.focus();
     input.select();
 
@@ -69,12 +91,12 @@ export function startChatRename(li, chat) {
         const newName = save ? input.value.trim() : original;
         const finalName = newName || original;
 
-        // Swap input back to span
-        const newSpan = document.createElement('span');
-        newSpan.className = 'chat-name';
-        newSpan.textContent = finalName;
-        newSpan.addEventListener('dblclick', e => { e.stopPropagation(); startChatRename(li, chat); });
-        input.replaceWith(newSpan);
+        const buttonChat = { ...chat, name: finalName };
+        const newButton = buildChatSelectButton(buttonChat);
+        if (chat.id === state.activeChat?.id) {
+            newButton.setAttribute('aria-current', 'true');
+        }
+        input.replaceWith(newButton);
 
         if (save && finalName !== original) {
             try {
@@ -83,9 +105,14 @@ export function startChatRename(li, chat) {
                 if (idx >= 0) state.chats[idx] = updated;
                 if (state.activeChat?.id === chat.id) state.activeChat = updated;
                 li.dataset.chatId = updated.id;
+                newButton.setAttribute('aria-label', `Select chat ${updated.name}`);
                 showToast('Chat renamed', 'success');
             } catch (err) {
-                newSpan.textContent = original;
+                const restoredButton = buildChatSelectButton(chat);
+                if (chat.id === state.activeChat?.id) {
+                    restoredButton.setAttribute('aria-current', 'true');
+                }
+                newButton.replaceWith(restoredButton);
                 console.error('Rename failed:', err);
             }
         }
@@ -127,8 +154,13 @@ export async function selectChat(chat) {
     updateComposerState();
 
     // Highlight active item
-    document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
-    document.querySelector(`.chat-item[data-chat-id="${chat.id}"]`)?.classList.add('active');
+    document.querySelectorAll('.chat-item').forEach(i => {
+        i.classList.remove('active');
+        i.querySelector('.chat-select-btn')?.removeAttribute('aria-current');
+    });
+    const activeItem = document.querySelector(`.chat-item[data-chat-id="${chat.id}"]`);
+    activeItem?.classList.add('active');
+    activeItem?.querySelector('.chat-select-btn')?.setAttribute('aria-current', 'true');
 
     // Load messages from DB
     try {

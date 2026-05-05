@@ -13,7 +13,10 @@ export function renderCharList() {
     if (state.characters.length === 0) {
         const li = document.createElement('li');
         li.className = 'char-list-empty';
-        li.textContent = 'No characters yet.';
+        li.innerHTML = `
+            <span>Create or import a character to start chatting.</span>
+            <button type="button" class="btn btn-secondary btn-sm char-list-create-btn">Create Character</button>
+        `;
         el.charList.appendChild(li);
         return;
     }
@@ -22,6 +25,15 @@ export function renderCharList() {
         li.className = `char-item${char.id === state.activeCharacter?.id ? ' active' : ''}${char.missing ? ' missing' : ''}`;
         li.dataset.charId = char.id;
 
+        const selectBtn = document.createElement('button');
+        selectBtn.type = 'button';
+        selectBtn.className = 'char-select-btn';
+        selectBtn.disabled = !!char.missing;
+        selectBtn.setAttribute('aria-label', char.missing ? `${char.name} is missing` : `Select ${char.name}`);
+        if (char.id === state.activeCharacter?.id) {
+            selectBtn.setAttribute('aria-current', 'true');
+        }
+
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'avatar';
         applyAvatar(avatarDiv, char);
@@ -29,6 +41,7 @@ export function renderCharList() {
         const nameSpan = document.createElement('span');
         nameSpan.className = 'char-name hide-on-collapse';
         nameSpan.textContent = char.missing ? `${char.name} (missing)` : char.name;
+        selectBtn.append(avatarDiv, nameSpan);
 
         const actions = document.createElement('div');
         actions.className = 'char-item-actions hide-on-collapse';
@@ -43,7 +56,7 @@ export function renderCharList() {
             `;
         }
 
-        li.append(avatarDiv, nameSpan, actions);
+        li.append(selectBtn, actions);
         el.charList.appendChild(li);
     });
 }
@@ -78,8 +91,13 @@ export async function selectCharacter(charId) {
     el.currentCharName.textContent = char.name;
     updateComposerState();
 
-    document.querySelectorAll('.char-item').forEach(i => i.classList.remove('active'));
-    document.querySelector(`.char-item[data-char-id="${charId}"]`)?.classList.add('active');
+    document.querySelectorAll('.char-item').forEach(i => {
+        i.classList.remove('active');
+        i.querySelector('.char-select-btn')?.removeAttribute('aria-current');
+    });
+    const activeItem = document.querySelector(`.char-item[data-char-id="${charId}"]`);
+    activeItem?.classList.add('active');
+    activeItem?.querySelector('.char-select-btn')?.setAttribute('aria-current', 'true');
 
     // Clear current chat view while chats load
     state.chats    = [];

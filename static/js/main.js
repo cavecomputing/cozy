@@ -407,8 +407,13 @@ async function init() {
 
     // Character list — select / edit / delete
     el.charList.addEventListener('click', e => {
+        if (e.target.closest('.char-list-create-btn')) {
+            Modal.open();
+            return;
+        }
         const editBtn   = e.target.closest('.char-edit-btn');
         const deleteBtn = e.target.closest('.char-delete-btn');
+        const selectBtn = e.target.closest('.char-select-btn');
         const item      = e.target.closest('.char-item');
         if (!item) return;
         const id   = parseInt(item.dataset.charId, 10);
@@ -419,7 +424,7 @@ async function init() {
         } else if (deleteBtn) {
             e.stopPropagation();
             deleteCharacter(id);
-        } else {
+        } else if (selectBtn) {
             selectCharacter(id);
         }
     });
@@ -455,6 +460,7 @@ async function init() {
         const exportBtn = e.target.closest('.chat-export-btn');
         const renameBtn = e.target.closest('.chat-rename-btn');
         const deleteBtn = e.target.closest('.chat-delete-btn');
+        const selectBtn = e.target.closest('.chat-select-btn');
         const item      = e.target.closest('.chat-item');
         if (!item) return;
         const chatId = parseInt(item.dataset.chatId, 10);
@@ -469,7 +475,7 @@ async function init() {
         } else if (deleteBtn) {
             e.stopPropagation();
             deleteChat(chatId);
-        } else if (chat) {
+        } else if (selectBtn && chat) {
             selectChat(chat);
             el.chatFlyout.hidden = true;
             el.chatFlyoutBtn.setAttribute('aria-expanded', 'false');
