@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 export const state = {
     sidebarCollapsed: false,
-    theme:            'everforest-dark',
+    theme:            'cozy',
     themes:           [],
     characters:       [],
     activeCharacter:  null,     // full character object

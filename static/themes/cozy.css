@@ -1,0 +1,101 @@
+/* Cozy — Signature Theme (matches logo: navy + warm cream toast) */
+:root {
+    /* Layout */
+    --app-bg:         #131b34;
+    --app-bg-blur:    rgba(19, 27, 52, 0.7);
+    --app-bg-clear:   rgba(19, 27, 52, 0);
+    --bg-color:       #1d2849;
+    --sidebar-bg:     #182142;
+    --char-msg-bg:    #28335a;
+    --hover-bg:       #2f3c66;
+    --active-bg:      rgba(240, 230, 208, 0.14);
+    --input-bg:       #151d3a;
+    --border-color:   #3a4773;
+
+    /* Typography */
+    --text-color:     #f0e6d0;
+    --text-secondary: #9aa4c4;
+
+    /* Accent (warm cream — the toast) */
+    --accent-color:   #f0e6d0;
+    --accent-hover:   #ebd9b3;
+    --danger-color:   #e08585;
+    --danger-bg-hover: rgba(224, 133, 133, 0.15);
+    --success-color:  #95c79e;
+
+    /* Shadows */
+    --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.5);
+    --accent-edit-bg:     rgba(240, 230, 208, 0.08);
+    --accent-border-light: rgba(240, 230, 208, 0.28);
+    --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.3);
+    --input-focus-shadow: 0 0 0 2px rgba(240, 230, 208, 0.22);
+
+    /* Design tokens */
+    --radius-sm:  8px;
+    --radius-md:  8px;
+    --radius-lg:  8px;
+
+    /* RP markdown accent colors */
+    --rp-dialogue-color:  #f0e6d0;   /* cream — quoted dialogue (the toast) */
+    --rp-action-color:    #c8a8d4;   /* soft lavender — italics/actions */
+    --rp-emphasis-color:  #ebc88a;   /* warm gold — bold/strong emphasis */
+    --rp-quote-color:     #8fb8d8;   /* sky blue — blockquotes/narration */
+    --rp-quote-bg:        rgba(143, 184, 216, 0.10);
+    --rp-ooc-color:       #8c95b0;   /* muted blue-grey — code/OOC text */
+    --rp-intense-color:   #e8a878;   /* warm amber — bold+italic intense actions */
+    --rp-intense-shadow:  0 0 6px rgba(232, 168, 120, 0.28);
+    --rp-strike-opacity:  0.5;
+    --rp-hr-opacity:      0.3;
+    --img-max-width:      300px;
+    --code-bg:            rgba(58, 71, 115, 0.45);
+    --code-border:        rgba(58, 71, 115, 0.65);
+    --pre-bg:             rgba(19, 27, 52, 0.7);
+    --pre-border:         rgba(58, 71, 115, 0.45);
+
+    /* Avatars */
+    --avatar-text-color:  #1d2849;
+
+    /* Buttons */
+    --btn-primary-color:      #1d2849;
+    --btn-danger-hover-color: #1d2849;
+
+    /* Overlays & backdrops */
+    --overlay-bg:     rgba(8, 12, 26, 0.6);
+    --overlay-color:  #f0e6d0;
+    --backdrop-bg:    rgba(8, 12, 26, 0.5);
+
+    /* Toasts */
+    --toast-color:    #1d2849;
+
+    /* User-message bubble — cream (the toast in the logo) */
+    --user-msg-bg:              #f0e6d0;
+    --user-msg-color:           #1d2849;
+    --user-msg-divider:         rgba(29, 40, 73, 0.2);
+    --user-msg-name-color:      rgba(29, 40, 73, 0.85);
+    --user-action-color:        rgba(29, 40, 73, 0.5);
+    --user-action-hover-bg:     rgba(29, 40, 73, 0.12);
+    --user-action-hover-color:  #1d2849;
+
+    /* User-message RP overrides */
+    --user-dialogue-color:      #2c4276;
+    --user-em-color:            #7a4f9a;
+    --user-em-shadow:           0 0 8px rgba(122, 79, 154, 0.25);
+    --user-strong-color:        #8a6420;
+    --user-intense-color:       #a85a2a;
+    --user-intense-shadow:      0 0 8px rgba(168, 90, 42, 0.3);
+    --user-strike-opacity:      0.5;
+    --user-strike-color:        rgba(29, 40, 73, 0.5);
+    --user-blockquote-border:   rgba(29, 40, 73, 0.35);
+    --user-blockquote-bg:       rgba(29, 40, 73, 0.06);
+    --user-blockquote-color:    rgba(29, 40, 73, 0.85);
+    --user-code-bg:             rgba(29, 40, 73, 0.08);
+    --user-code-color:          rgba(29, 40, 73, 0.8);
+    --user-code-border:         rgba(29, 40, 73, 0.15);
+    --user-pre-bg:              rgba(29, 40, 73, 0.06);
+    --user-pre-border:          rgba(29, 40, 73, 0.12);
+    --user-heading-color:       #1d2849;
+    --user-h1-border:           rgba(29, 40, 73, 0.25);
+    --user-hr-mid-color:        rgba(29, 40, 73, 0.35);
+    --user-editable-bg:         rgba(29, 40, 73, 0.08);
+    --editable-bg:              rgba(240, 230, 208, 0.06);
+}

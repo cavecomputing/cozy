@@ -53,7 +53,7 @@ function loadPrefs() {
     try {
         const p = JSON.parse(localStorage.getItem('cozy/prefs') || '{}');
         state.sidebarCollapsed = p.sidebarCollapsed || false;
-        state.theme            = p.theme             || 'everforest-dark';
+        state.theme            = p.theme             || 'cozy';
         state._savedActiveId   = p.activeCharId     || null;
         state._savedChatId     = p.activeChatId     || null;
         state._savedPersonaId  = p.activePersonaId  || null;

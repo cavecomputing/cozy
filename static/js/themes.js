@@ -15,7 +15,7 @@ export async function loadThemeList() {
     try {
         const r = await fetch('/api/themes');
         state.themes = await r.json();
-    } catch { state.themes = ['everforest-dark']; }
+    } catch { state.themes = ['cozy']; }
 }
 
 export function renderThemePicker() {
