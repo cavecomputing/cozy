@@ -27,15 +27,23 @@ import { initTooltips } from './tooltips.js';
 marked.use({ breaks: true, gfm: true });
 
 // RP dialogue extension — wrap "quoted speech" in a styled span
+const RP_DIALOGUE_QUOTES = ['"', '\u201c'];
+const RP_DIALOGUE_PATTERN = /^(?:"([^"\n]+)"|\u201c([^\u201d\n]+)\u201d)/;
+
 marked.use({
     extensions: [{
         name: 'rpDialogue',
         level: 'inline',
-        start(src) { return src.indexOf('"'); },
+        start(src) {
+            const starts = RP_DIALOGUE_QUOTES
+                .map(ch => src.indexOf(ch))
+                .filter(idx => idx !== -1);
+            return starts.length ? Math.min(...starts) : undefined;
+        },
         tokenizer(src) {
-            const match = /^"([^"\n]+)"/.exec(src);
+            const match = RP_DIALOGUE_PATTERN.exec(src);
             if (match) {
-                const token = { type: 'rpDialogue', raw: match[0], text: match[1], tokens: [] };
+                const token = { type: 'rpDialogue', raw: match[0], text: match[1] || match[2], tokens: [] };
                 this.lexer.inline(token.text, token.tokens);
                 return token;
             }
