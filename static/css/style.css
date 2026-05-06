@@ -1218,9 +1218,13 @@ header::after {
 /* Quoted dialogue — spoken words */
 .message-content .rp-dialogue {
     color: var(--rp-dialogue-color);
+    font-weight: var(--rp-dialogue-weight, 500);
+    text-shadow: var(--rp-dialogue-shadow, none);
 }
 .message.user .message-content .rp-dialogue {
     color: var(--user-dialogue-color);
+    font-weight: var(--user-dialogue-weight, var(--rp-dialogue-weight, 500));
+    text-shadow: var(--user-dialogue-shadow, var(--rp-dialogue-shadow, none));
 }
 
 /* Inline code — OOC (out of character) */

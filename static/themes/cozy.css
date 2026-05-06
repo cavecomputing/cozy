@@ -35,8 +35,10 @@
     --radius-md:  8px;
     --radius-lg:  8px;
 
-    /* RP markdown accent colors (muted but distinct) */
-    --rp-dialogue-color:  #d8cfb8;   /* dim cream — quoted dialogue (the toast, softened) */
+    /* RP markdown accent colors */
+    --rp-dialogue-color:  #38bdf8;   /* sky blue — quoted dialogue */
+    --rp-dialogue-weight: 600;
+    --rp-dialogue-shadow: 0 0 8px rgba(56, 189, 248, 0.18);
     --rp-action-color:    #b3a0c2;   /* dusty lavender — italics/actions */
     --rp-emphasis-color:  #d2b878;   /* muted gold — bold/strong emphasis */
     --rp-quote-color:     #88a8c0;   /* muted sky — blockquotes/narration */
@@ -77,7 +79,9 @@
     --user-action-hover-color:  #f3eedb;
 
     /* User-message RP overrides (on bright blue) */
-    --user-dialogue-color:      #f3eedb;
+    --user-dialogue-color:      #bae6fd;
+    --user-dialogue-weight:     600;
+    --user-dialogue-shadow:     0 0 8px rgba(186, 230, 253, 0.16);
     --user-em-color:            #d4c2e8;
     --user-em-shadow:           0 0 6px rgba(212, 194, 232, 0.22);
     --user-strong-color:        #f0d68a;
