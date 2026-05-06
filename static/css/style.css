@@ -1002,9 +1002,9 @@ header::after {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    background-color: var(--accent-color);
-    color: #fff;
-    border: none;
+    background-color: var(--scroll-bottom-bg, var(--accent-color));
+    color: var(--scroll-bottom-color, #fff);
+    border: 1px solid var(--scroll-bottom-border, transparent);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1013,7 +1013,7 @@ header::after {
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--scroll-bottom-shadow, 0 2px 8px rgba(0, 0, 0, 0.25));
 }
 
 .scroll-to-bottom-btn.visible {
@@ -1022,6 +1022,8 @@ header::after {
 }
 
 .scroll-to-bottom-btn:hover {
+    background-color: var(--scroll-bottom-hover-bg, var(--scroll-bottom-bg, var(--accent-color)));
+    color: var(--scroll-bottom-hover-color, var(--scroll-bottom-color, #fff));
     transform: translateY(-1px);
 }
 

@@ -60,6 +60,11 @@
     /* Buttons */
     --btn-primary-color:      #1d2849;
     --btn-danger-hover-color: #1d2849;
+    --scroll-bottom-bg:       rgba(240, 230, 208, 0.9);
+    --scroll-bottom-color:    #1d2849;
+    --scroll-bottom-border:   rgba(240, 230, 208, 0.45);
+    --scroll-bottom-hover-bg: #f0e6d0;
+    --scroll-bottom-shadow:   0 6px 18px rgba(8, 12, 26, 0.34);
 
     /* Overlays & backdrops */
     --overlay-bg:     rgba(8, 12, 26, 0.6);
