@@ -156,6 +156,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
             avatarDiv.style.backgroundImage = `url('${p.avatar_url}?t=${Date.now()}')`;
             avatarDiv.dataset.hasImage = 'true';
         } else {
+            avatarDiv.dataset.hasImage = 'false';
             avatarDiv.textContent = getInitials((p && p.name) || 'ME');
         }
     } else {

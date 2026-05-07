@@ -20,8 +20,10 @@ export function renderPersonaList() {
         avatar.className = 'avatar small user-avatar';
         if (p.avatar_url) {
             avatar.style.backgroundImage = `url(${p.avatar_url})`;
+            avatar.dataset.hasImage = 'true';
             avatar.textContent = '';
         } else {
+            avatar.dataset.hasImage = 'false';
             avatar.textContent = (p.name || '?').slice(0, 2).toUpperCase();
         }
 
@@ -104,9 +106,11 @@ export function updateUserProfile() {
     if (el.userAvatar) {
         if (p.avatar_url) {
             el.userAvatar.style.backgroundImage = `url(${p.avatar_url})`;
+            el.userAvatar.dataset.hasImage = 'true';
             el.userAvatar.textContent = '';
         } else {
             el.userAvatar.style.backgroundImage = '';
+            el.userAvatar.dataset.hasImage = 'false';
             el.userAvatar.textContent = (p.name || '?').slice(0, 2).toUpperCase();
         }
     }
@@ -128,9 +132,11 @@ export function showPersonaForm(editPersona = null) {
     descInput.value = editPersona?.description || '';
     if (editPersona?.avatar_url) {
         avatarPreview.style.backgroundImage = `url(${editPersona.avatar_url})`;
+        avatarPreview.dataset.hasImage = 'true';
         avatarPreview.textContent = '';
     } else {
         avatarPreview.style.backgroundImage = '';
+        avatarPreview.dataset.hasImage = 'false';
         avatarPreview.textContent = '?';
     }
 
@@ -142,6 +148,7 @@ export function showPersonaForm(editPersona = null) {
             selectedFile = fileInput.files[0];
             objectUrl = URL.createObjectURL(selectedFile);
             avatarPreview.style.backgroundImage = `url(${objectUrl})`;
+            avatarPreview.dataset.hasImage = 'true';
             avatarPreview.textContent = '';
         }
     };

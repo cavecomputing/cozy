@@ -545,7 +545,9 @@ body {
     flex-shrink: 0;
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
     margin-bottom: 0;
+    overflow: hidden;
 }
 
 .avatar.small {
@@ -1605,7 +1607,13 @@ header::after {
 
 /* Avatar with image background */
 .avatar[data-has-image="true"] {
+    --avatar-soften-filter: blur(0.15px);
     font-size: 0;
+    image-rendering: auto;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: var(--avatar-soften-filter);
 }
 
 /* Expandable message avatars */
@@ -1616,6 +1624,7 @@ header::after {
 
 .message-container .avatar.avatar-expanded {
     border-radius: 8px;
+    filter: none;
 }
 
 /* ── Shared button styles ────────────────────────────────────────────────── */
