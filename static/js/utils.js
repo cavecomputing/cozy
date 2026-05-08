@@ -198,8 +198,17 @@ export function savePrefs() {
 }
 
 export function closeMobileSidebar() {
+    const wasOpen = el.sidebar.classList.contains('mobile-open');
     el.sidebar.classList.remove('mobile-open');
     el.mobileBackdrop.classList.remove('show');
+    el.mobileMenuBtn?.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('mobile-drawer-open');
+    const main = document.getElementById('main-content');
+    if (main) {
+        main.inert = false;
+        main.removeAttribute('aria-hidden');
+    }
+    if (wasOpen) el.mobileMenuBtn?.focus();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

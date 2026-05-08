@@ -73,7 +73,8 @@ function loadPrefs() {
 // ═══════════════════════════════════════════════════════════════════════════
 // SETTINGS NAV (macOS-style two-pane)
 // ═══════════════════════════════════════════════════════════════════════════
-const isMobileSettings = () => window.matchMedia('(max-width: 600px)').matches;
+const MOBILE_SHELL_QUERY = '(max-width: 768px)';
+const isMobileSettings = () => window.matchMedia(MOBILE_SHELL_QUERY).matches;
 
 function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     state.settingsSection = key;
@@ -128,12 +129,20 @@ function toggleSidebar() {
 function openMobileSidebar() {
     el.sidebar.classList.add('mobile-open');
     el.mobileBackdrop.classList.add('show');
+    el.mobileMenuBtn?.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('mobile-drawer-open');
+    const main = document.getElementById('main-content');
+    if (main) {
+        main.inert = true;
+        main.setAttribute('aria-hidden', 'true');
+    }
+    el.mobileSidebarClose?.focus();
 }
 
 function bindResponsiveShellHandlers() {
     // On mobile, move modals out of sidebar so CSS fixed positioning works
     // (transform on sidebar creates a new containing block that breaks fixed)
-    const mobileQuery = window.matchMedia('(max-width: 600px)');
+    const mobileQuery = window.matchMedia(MOBILE_SHELL_QUERY);
     function handleMobileModals(mq) {
         if (mq.matches) {
             document.querySelectorAll('#sidebar .modal-overlay').forEach(m => {
@@ -197,6 +206,11 @@ function bindSidebarHandlers() {
     el.mobileMenuBtn?.addEventListener('click', openMobileSidebar);
     el.mobileBackdrop?.addEventListener('click', closeMobileSidebar);
     el.mobileSidebarClose?.addEventListener('click', closeMobileSidebar);
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && el.sidebar.classList.contains('mobile-open')) {
+            closeMobileSidebar();
+        }
+    });
 }
 
 function bindSettingsHandlers() {
