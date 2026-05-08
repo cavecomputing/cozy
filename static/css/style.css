@@ -719,7 +719,7 @@ body {
 
     #sidebar.collapsed #persona-dropup.dropup-content {
         margin-left: 18px;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
     }
 
     #persona-dropup.dropup-content.show {
