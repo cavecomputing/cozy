@@ -246,7 +246,7 @@ def create_preset():
             'VALUES (?, ?, ?, ?, ?, ?)',
             (name, data.get('api_endpoint', ''), key_val,
              data.get('api_model', ''), data.get('context_max_messages', '0'),
-             data.get('context_max_tokens', '4096'))
+             data.get('context_max_tokens', '32768'))
         )
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (cur.lastrowid,)).fetchone()
         return jsonify(_mask_preset(row)), 201

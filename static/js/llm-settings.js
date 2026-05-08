@@ -248,9 +248,8 @@ function applySettingsToUI(s) {
         el.apiKey.placeholder = state.apiKeySet ? 'Key saved (edit to change)' : 'sk-...';
     }
     if (el.apiModel) el.apiModel.value = state.apiModel;
-    if (el.settingsContextSize) el.settingsContextSize.value = s.context_max_messages || '0';
-    if (el.settingsContextTokens) el.settingsContextTokens.value = s.context_max_tokens || '4096';
-    state.contextMaxTokens = s.context_max_tokens || '4096';
+    if (el.settingsContextTokens) el.settingsContextTokens.value = s.context_max_tokens || '32768';
+    state.contextMaxTokens = s.context_max_tokens || '32768';
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;
     if (el.lorebookScanOverride) el.lorebookScanOverride.value = String(state.lorebookScanDepthOverride);
     state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';
@@ -283,8 +282,7 @@ export async function createNewPreset() {
             api_endpoint: el.apiEndpoint?.value || '',
             api_key: el.apiKey?.value || '',
             api_model: el.apiModel?.value || '',
-            context_max_messages: el.settingsContextSize?.value || '0',
-            context_max_tokens: el.settingsContextTokens?.value || '4096',
+            context_max_tokens: el.settingsContextTokens?.value || '32768',
         });
         await loadPresets();
         if (created?.id && el.apiPreset) {
@@ -306,8 +304,7 @@ export async function saveActivePreset() {
             api_endpoint: el.apiEndpoint?.value || '',
             api_key: el.apiKey?.value || '',
             api_model: el.apiModel?.value || '',
-            context_max_messages: el.settingsContextSize?.value || '0',
-            context_max_tokens: el.settingsContextTokens?.value || '4096',
+            context_max_tokens: el.settingsContextTokens?.value || '32768',
         });
         showToast('Preset updated', 'success');
     } catch (e) {

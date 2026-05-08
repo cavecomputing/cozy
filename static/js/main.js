@@ -372,14 +372,9 @@ function bindSettingsHandlers() {
         });
     }
 
-    // Context size — save on change and update warning (debounced)
-    el.settingsContextSize?.addEventListener('change', () => {
-        queueSettingsSave({ context_max_messages: el.settingsContextSize.value });
-        updateContextSizeWarning();
-        updateContextMeter();
-    });
+    // Context budget — save on change and update warning + meter
     el.settingsContextTokens?.addEventListener('change', () => {
-        state.contextMaxTokens = el.settingsContextTokens.value || '4096';
+        state.contextMaxTokens = el.settingsContextTokens.value || '0';
         queueSettingsSave({ context_max_tokens: state.contextMaxTokens });
         updateContextSizeWarning();
         updateContextMeter();
@@ -411,6 +406,7 @@ function bindSettingsHandlers() {
 function bindCharacterHandlers() {
     // New character
     el.newCharBtn.addEventListener('click', () => Modal.open());
+    el.collapsedNewCharBtn?.addEventListener('click', () => Modal.open());
     el.emptyNewCharBtn?.addEventListener('click', () => Modal.open());
 
     // Character list — select / edit / delete

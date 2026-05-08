@@ -185,10 +185,10 @@ def init_db():
 
         preset_cols = {row['name'] for row in conn.execute('PRAGMA table_info(api_presets)').fetchall()}
         if 'context_max_tokens' not in preset_cols:
-            conn.execute("ALTER TABLE api_presets ADD COLUMN context_max_tokens TEXT NOT NULL DEFAULT '4096'")
+            conn.execute("ALTER TABLE api_presets ADD COLUMN context_max_tokens TEXT NOT NULL DEFAULT '32768'")
 
         conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '4096') "
+            "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "
             "ON CONFLICT(key) DO NOTHING"
         )
 

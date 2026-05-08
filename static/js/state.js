@@ -24,7 +24,7 @@ export const state = {
     activeSystemPromptId: null,
     autoScroll:          true,
     modelContextLength:  null,
-    contextMaxTokens:    '4096',
+    contextMaxTokens:    '32768',
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -60,6 +60,7 @@ export function initElements() {
         flyoutImportChatBtn: document.getElementById('flyout-import-chat-btn'),
         flyoutImportChatFile: document.getElementById('flyout-import-chat-file'),
         newCharBtn:      document.getElementById('new-char-btn'),
+        collapsedNewCharBtn: document.getElementById('collapsed-new-char-btn'),
         emptyNewCharBtn: document.getElementById('empty-new-char-btn'),
         currentCharName: document.getElementById('current-char-name'),
         chatHistory:     document.getElementById('chat-scroll'),
@@ -144,7 +145,6 @@ export function initElements() {
         userTagline:     document.querySelector('#user-profile .user-tagline'),
         userAvatar:      document.querySelector('#user-profile .user-avatar'),
         scrollToBottomBtn:   document.getElementById('scroll-to-bottom-btn'),
-        settingsContextSize: document.getElementById('settings-context-size'),
         settingsContextTokens: document.getElementById('settings-context-tokens'),
         contextSizeWarning:  document.getElementById('context-size-warning'),
         contextTokenMeter:   document.getElementById('context-token-meter'),

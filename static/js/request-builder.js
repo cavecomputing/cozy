@@ -41,11 +41,11 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     // 1. Build context-limited message slice — lorebook scan needs it before
     //    template resolution.
     let msgs = excludeLastN > 0 ? state.messages.slice(0, -excludeLastN) : state.messages;
-    const ctxLimit = parseInt(el.settingsContextSize?.value || '0', 10) || 0;
-    const tokenLimit = parseInt(el.settingsContextTokens?.value || state.contextMaxTokens || '4096', 10) || 4096;
+    // 0 = no cap (entire history sent). Otherwise, fill back-to-front until the
+    // approximate token budget is hit.
+    const tokenLimit = parseInt(el.settingsContextTokens?.value || state.contextMaxTokens || '0', 10) || 0;
     const stripThinking = !el.sendThinking?.checked;
     msgs = selectContextMessages(msgs, {
-        maxMessages: ctxLimit,
         maxTokens: tokenLimit,
         stripThinking,
     });

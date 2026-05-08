@@ -400,6 +400,30 @@ body {
     justify-content: center;
 }
 
+/* Collapsed-only "new character" button. Sits below the character list and is
+   only revealed when the sidebar is collapsed — gives a one-click affordance
+   to create a character without having to expand the sidebar first. */
+.collapsed-new-char-btn {
+    display: none;
+}
+
+#sidebar.collapsed .collapsed-new-char-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin: 0.4rem auto 0;
+}
+
+/* When the list is empty AND collapsed, the empty-state copy + full button
+   are hidden via .hide-on-collapse on their children, but the <li> itself
+   would still take padding and leave a gap. Collapse it to nothing so the
+   "+" button sits right under the chevron. */
+#sidebar.collapsed .char-list-empty {
+    display: none;
+}
+
 /* Sidebar Sections (Chats) */
 /* Shared typography for small uppercase section labels */
 .section-label {
@@ -2392,22 +2416,6 @@ header::after {
 
 .settings-row[hidden] { display: none; }
 
-.settings-row.sampler-inactive,
-.sampler-group.sampler-inactive {
-    opacity: 0.52;
-}
-
-.settings-row.sampler-inactive .form-input,
-.sampler-group.sampler-inactive .form-input {
-    background-color: var(--hover-bg);
-}
-
-.sampler-disabled-hint {
-    color: var(--text-secondary);
-    font-weight: 400;
-    text-transform: none;
-}
-
 .settings-row-hint {
     font-style: italic;
     font-size: 0.7rem;
@@ -2646,14 +2654,6 @@ input[type="checkbox"]:disabled {
 
 .sampler-empty-state[hidden] {
     display: none;
-}
-
-.sampler-advanced-card > summary {
-    margin-bottom: 0;
-}
-
-.sampler-advanced-card[open] > summary {
-    margin-bottom: 0.65rem;
 }
 
 #settings-sysprompt-content {
@@ -3153,11 +3153,6 @@ input[type="checkbox"]:disabled {
 @media (max-width: 640px) {
     .sampler-help-row { grid-template-columns: 1fr; }
     .sampler-help-row dt { margin-bottom: 0.1rem; }
-}
-.sampler-advanced-hint {
-    font-weight: normal;
-    color: var(--text-secondary);
-    font-size: 0.85em;
 }
 .sampler-advanced-badge {
     margin-left: auto;
