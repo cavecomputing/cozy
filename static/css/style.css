@@ -701,7 +701,7 @@ body {
         top: auto;
         /* Keep the flyout covering the composer's bottom edge while its body
            grows upward from that anchor. */
-        bottom: -13px;
+        bottom: -12px;
         /* Push past user-profile-container's right margin (0.625rem) plus its
            border, with a small inward nudge so the left edge sits just inside the
            chat bubbles' left edge. */
