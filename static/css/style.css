@@ -718,7 +718,8 @@ body {
     }
 
     #sidebar.collapsed #persona-dropup.dropup-content {
-        margin-left: 16px;
+        margin-left: 18px;
+        margin-bottom: 5px;
     }
 
     #persona-dropup.dropup-content.show {
