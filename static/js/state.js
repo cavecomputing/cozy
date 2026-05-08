@@ -24,6 +24,7 @@ export const state = {
     activeSystemPromptId: null,
     autoScroll:          true,
     modelContextLength:  null,
+    contextMaxTokens:    '4096',
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -56,6 +57,8 @@ export function initElements() {
         chatFlyoutBtn:   document.getElementById('chat-flyout-btn'),
         flyoutChatList:  document.getElementById('flyout-chat-list'),
         flyoutNewChatBtn:document.getElementById('flyout-new-chat-btn'),
+        flyoutImportChatBtn: document.getElementById('flyout-import-chat-btn'),
+        flyoutImportChatFile: document.getElementById('flyout-import-chat-file'),
         newCharBtn:      document.getElementById('new-char-btn'),
         emptyNewCharBtn: document.getElementById('empty-new-char-btn'),
         currentCharName: document.getElementById('current-char-name'),
@@ -66,6 +69,7 @@ export function initElements() {
         userInput:       document.getElementById('user-input'),
         sendBtn:         document.getElementById('send-btn'),
         inputContainer:  document.getElementById('input-container'),
+        inputWrapper:    document.getElementById('input-wrapper'),
         userProfile:     document.getElementById('user-profile'),
         personaDropup:   document.getElementById('persona-dropup'),
         settingsBtn:       document.getElementById('settings-btn'),
@@ -141,7 +145,11 @@ export function initElements() {
         userAvatar:      document.querySelector('#user-profile .user-avatar'),
         scrollToBottomBtn:   document.getElementById('scroll-to-bottom-btn'),
         settingsContextSize: document.getElementById('settings-context-size'),
+        settingsContextTokens: document.getElementById('settings-context-tokens'),
         contextSizeWarning:  document.getElementById('context-size-warning'),
+        contextTokenMeter:   document.getElementById('context-token-meter'),
+        contextTokenLabel:   document.getElementById('context-token-label'),
+        contextTokenBar:     document.getElementById('context-token-bar'),
         apiPreset:           document.getElementById('settings-api-preset'),
         presetNew:           document.getElementById('settings-preset-new'),
         presetSave:          document.getElementById('settings-preset-save'),
@@ -191,4 +199,5 @@ export const icons = {
     CHEVLEFT:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`,
     CHEVRIGHT:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`,
     DOWNLOAD:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+    UPLOAD:     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
 };

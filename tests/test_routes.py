@@ -48,6 +48,13 @@ class TestSettings:
         data = r.get_json()
         assert data['send_thinking'] == '1'
 
+    def test_context_token_default_and_write(self, client):
+        r = client.get('/api/settings')
+        assert r.get_json()['context_max_tokens'] == '4096'
+        client.put('/api/settings', json={'context_max_tokens': '8192'})
+        r = client.get('/api/settings')
+        assert r.get_json()['context_max_tokens'] == '8192'
+
 
 class TestSystemPrompts:
     def test_list_includes_default_seed(self, client):
@@ -236,6 +243,67 @@ class TestMessages:
         })
         assert r.status_code == 200
         assert r.get_json()['ok'] is True
+
+
+class TestChatJsonlImportExport:
+    def test_export_chat_as_sillytavern_jsonl(self, client, sample_chat):
+        import json
+        chat_id = sample_chat['id']
+        client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Hello!',
+        })
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'Original',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Alternative'})
+
+        r = client.get(f'/api/chats/{chat_id}/export')
+        assert r.status_code == 200
+        assert r.headers['Content-Type'].startswith('application/jsonl')
+        assert 'attachment' in r.headers['Content-Disposition']
+
+        lines = [json.loads(line) for line in r.data.decode('utf-8').splitlines()]
+        assert lines[0]['character_name'] == 'TestChar'
+        assert lines[1]['is_user'] is True
+        assert lines[1]['mes'] == 'Hello!'
+        assert lines[2]['is_user'] is False
+        assert lines[2]['mes'] == 'Alternative'
+        assert lines[2]['swipes'] == ['Original', 'Alternative']
+        assert lines[2]['swipe_id'] == 1
+
+    def test_import_sillytavern_jsonl_with_swipes(self, client, sample_character):
+        import json
+        payload = '\n'.join(json.dumps(line) for line in [
+            {'user_name': 'Alice', 'character_name': 'TestChar', 'create_date': '2026-05-07T12:00:00Z', 'chat_metadata': {}},
+            {'name': 'Alice', 'is_user': True, 'send_date': '2026-05-07T12:00:01Z', 'mes': 'Hi'},
+            {'name': 'TestChar', 'is_user': False, 'send_date': '2026-05-07T12:00:02Z', 'mes': 'Alt B',
+             'swipe_id': 1, 'swipes': ['Alt A', 'Alt B'], 'extra': {'source': 'test'}},
+        ]).encode('utf-8')
+
+        r = client.post(
+            f'/api/chats/import?character_id={sample_character["id"]}',
+            data={'file': (BytesIO(payload), 'st-chat.jsonl')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        imported = r.get_json()
+        assert imported['id']
+        assert imported['warnings'] == ['Line 3: ignored extra metadata']
+
+        messages = client.get(f'/api/chats/{imported["id"]}/messages').get_json()
+        assert [m['role'] for m in messages] == ['user', 'character']
+        assert messages[0]['content'] == 'Hi'
+        assert messages[1]['content'] == 'Alt B'
+        assert [s['content'] for s in messages[1]['swipes']] == ['Alt A', 'Alt B']
+
+    def test_import_rejects_invalid_jsonl(self, client, sample_character):
+        r = client.post(
+            f'/api/chats/import?character_id={sample_character["id"]}',
+            data={'file': (BytesIO(b'{"ok": true}\nnot json'), 'bad.jsonl')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 400
+        assert 'Line 2' in r.get_json()['error']
 
 
 class TestCharacters:

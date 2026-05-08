@@ -183,6 +183,15 @@ def init_db():
         if 'lorebook_notice_dismissed' not in chat_cols:
             conn.execute('ALTER TABLE chats ADD COLUMN lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0')
 
+        preset_cols = {row['name'] for row in conn.execute('PRAGMA table_info(api_presets)').fetchall()}
+        if 'context_max_tokens' not in preset_cols:
+            conn.execute("ALTER TABLE api_presets ADD COLUMN context_max_tokens TEXT NOT NULL DEFAULT '4096'")
+
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '4096') "
+            "ON CONFLICT(key) DO NOTHING"
+        )
+
         # Seed a default persona if the table is empty
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:
             conn.execute(

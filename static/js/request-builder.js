@@ -4,6 +4,7 @@ import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, SAMPLER_GROUPS, FIELD_TO_GROUP, INT_PARAMS } from './sampler.js';
+import { selectContextMessages } from './tokenizer.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST BUILDER
@@ -40,8 +41,14 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     // 1. Build context-limited message slice — lorebook scan needs it before
     //    template resolution.
     let msgs = excludeLastN > 0 ? state.messages.slice(0, -excludeLastN) : state.messages;
-    const ctxLimit = parseInt(el.settingsContextSize?.value || '0', 10);
-    if (!isNaN(ctxLimit) && ctxLimit > 0) msgs = msgs.slice(-ctxLimit);
+    const ctxLimit = parseInt(el.settingsContextSize?.value || '0', 10) || 0;
+    const tokenLimit = parseInt(el.settingsContextTokens?.value || state.contextMaxTokens || '4096', 10) || 4096;
+    const stripThinking = !el.sendThinking?.checked;
+    msgs = selectContextMessages(msgs, {
+        maxMessages: ctxLimit,
+        maxTokens: tokenLimit,
+        stripThinking,
+    });
 
     // 2. Resolve lorebook entries against the context window.
     const activeBook = resolveActiveLorebook(state.activeChat, c, state.lorebooks);
@@ -75,7 +82,6 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     if (sysContent) messages.push({ role: 'system', content: sysContent });
 
     // 5. Chat history (map character → assistant), optionally limited
-    const stripThinking = !el.sendThinking?.checked;
     for (const msg of msgs) {
         let content = msg.text;
         if (stripThinking) {

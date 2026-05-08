@@ -112,6 +112,8 @@ export function renderSamplerPopover() {
     const pop = el.samplerPopover;
     if (!pop) return;
     pop.innerHTML = '';
+    const rows = document.createElement('div');
+    rows.className = 'sampler-popover-rows';
     for (const [group, info] of Object.entries(SAMPLER_GROUPS)) {
         const row = document.createElement('label');
         row.className = 'sampler-popover-row';
@@ -130,8 +132,17 @@ export function renderSamplerPopover() {
             badge.title = 'Advanced sampler — niche or experimental, off by default';
             row.appendChild(badge);
         }
-        pop.appendChild(row);
+        rows.appendChild(row);
     }
+    const footer = document.createElement('div');
+    footer.className = 'sampler-popover-footer';
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'sampler-reset-btn';
+    resetBtn.textContent = 'Reset to defaults';
+    resetBtn.addEventListener('click', resetActiveSamplers);
+    footer.appendChild(resetBtn);
+    pop.append(rows, footer);
 }
 
 export function toggleSampler(group, active) {
@@ -148,23 +159,47 @@ export function toggleSampler(group, active) {
     import('./llm-settings.js').then(mod => mod.saveLLMSettings({ active_samplers: [...state.activeSamplers].join(',') }));
 }
 
+export function resetActiveSamplers() {
+    state.activeSamplers = new Set(DEFAULT_ACTIVE_GROUPS);
+    renderSamplerPopover();
+    applySamplerVisibility();
+    import('./llm-settings.js').then(mod => mod.saveLLMSettings({ active_samplers: [...state.activeSamplers].join(',') }));
+}
+
 export function applySamplerVisibility() {
     for (const group of Object.keys(SAMPLER_GROUPS)) {
         const active = state.activeSamplers.has(group);
         // Multi-param groups use a .sampler-group wrapper; single-param use .settings-row directly
         const wrapper = document.querySelector(`.sampler-group[data-sampler="${group}"]`);
+        const target = wrapper || document.querySelector(`.settings-row[data-sampler="${group}"]`);
+        if (!target) continue;
+        target.classList.toggle('sampler-inactive', !active);
+        target.setAttribute('aria-disabled', String(!active));
         if (wrapper) {
-            wrapper.hidden = !active;
+            const header = wrapper.querySelector('.sampler-group-header');
+            updateDisabledHint(header, active);
         } else {
-            const row = document.querySelector(`.settings-row[data-sampler="${group}"]`);
-            if (row) row.hidden = !active;
+            const label = target.querySelector('.settings-row-label');
+            updateDisabledHint(label, active);
         }
     }
-    const activeGroups = [...state.activeSamplers];
-    const hasCoreActive = activeGroups.some(group => CORE_GROUPS.has(group));
-    const hasAdvancedActive = activeGroups.some(group => !CORE_GROUPS.has(group));
-    if (el.samplerCoreEmpty) el.samplerCoreEmpty.hidden = hasCoreActive;
-    if (el.samplerAdvancedEmpty) el.samplerAdvancedEmpty.hidden = hasAdvancedActive;
+    if (el.samplerCoreEmpty) el.samplerCoreEmpty.hidden = true;
+    if (el.samplerAdvancedEmpty) el.samplerAdvancedEmpty.hidden = true;
+}
+
+function updateDisabledHint(labelEl, active) {
+    if (!labelEl) return;
+    let hint = labelEl.querySelector('.sampler-disabled-hint');
+    if (active) {
+        hint?.remove();
+        return;
+    }
+    if (!hint) {
+        hint = document.createElement('span');
+        hint.className = 'sampler-disabled-hint';
+        hint.textContent = ' (disabled)';
+        labelEl.appendChild(hint);
+    }
 }
 
 export function loadSamplerSettings(settings) {
@@ -172,6 +207,8 @@ export function loadSamplerSettings(settings) {
         if (el[elName]) el[elName].value = settings[key] || SAMPLER_DEFAULTS[key];
     }
     if (el.settingsContextSize) el.settingsContextSize.value = settings.context_max_messages || '0';
+    if (el.settingsContextTokens) el.settingsContextTokens.value = settings.context_max_tokens || '4096';
+    state.contextMaxTokens = settings.context_max_tokens || '4096';
     state.activeSamplers = getActiveSamplers(settings);
     renderSamplerPopover();
     applySamplerVisibility();
@@ -180,19 +217,16 @@ export function loadSamplerSettings(settings) {
     if (advanced) advanced.open = hasAdvancedActive;
 }
 
-const AVG_TOKENS_PER_MSG = 150;
-
 export function updateContextSizeWarning() {
     if (!el.contextSizeWarning) return;
-    const limit = parseInt(el.settingsContextSize?.value || '0', 10);
+    const limit = parseInt(el.settingsContextTokens?.value || '4096', 10);
     const ctxLen = state.modelContextLength;
     if (!limit || limit <= 0 || !ctxLen) {
         el.contextSizeWarning.textContent = '';
         el.contextSizeWarning.hidden = true;
         return;
     }
-    const estimated = limit * AVG_TOKENS_PER_MSG;
-    if (estimated > ctxLen * 0.9) {
+    if (limit > ctxLen * 0.9) {
         el.contextSizeWarning.textContent =
             `\u26a0 This may exceed the model's context window (~${ctxLen.toLocaleString()} tokens).`;
         el.contextSizeWarning.hidden = false;

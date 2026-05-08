@@ -1,8 +1,11 @@
 """Chat CRUD routes."""
 
+import json
 import os
+from datetime import datetime, timezone
+from pathlib import Path
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 
 import shared
 from card_store import read_character_card
@@ -41,6 +44,139 @@ def _character_has_lorebook(conn, char_id):
     return isinstance(entries, list) and len(entries) > 0
 
 
+def _safe_filename(name, fallback='chat'):
+    safe = ''.join(c for c in (name or '') if c.isalnum() or c in (' ', '-', '_')).strip()
+    return safe or fallback
+
+
+def _iso_from_sqlite(value):
+    if not value:
+        return datetime.now(timezone.utc).isoformat()
+    try:
+        return datetime.fromisoformat(str(value).replace('Z', '+00:00')).replace(tzinfo=timezone.utc).isoformat()
+    except ValueError:
+        return datetime.now(timezone.utc).isoformat()
+
+
+def _read_character_name(conn, char_id):
+    row = conn.execute(
+        'SELECT filename, missing FROM characters WHERE id=?', (char_id,)
+    ).fetchone()
+    if not row or row['missing']:
+        return 'Character'
+    card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+    data = card.get('data', card) if card else {}
+    return data.get('name') or 'Character'
+
+
+def _default_user_name(conn, chat_id):
+    row = conn.execute('''
+        SELECT p.name
+        FROM messages m
+        JOIN personas p ON m.persona_id = p.id
+        WHERE m.chat_id=? AND m.role='user' AND p.name IS NOT NULL
+        ORDER BY m.created_at ASC
+        LIMIT 1
+    ''', (chat_id,)).fetchone()
+    if row and row['name']:
+        return row['name']
+    row = conn.execute(
+        'SELECT name FROM personas WHERE is_default=1 ORDER BY id ASC LIMIT 1'
+    ).fetchone()
+    return row['name'] if row and row['name'] else 'User'
+
+
+def _chat_jsonl(conn, chat_id):
+    chat = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+    if not chat:
+        return None, None
+
+    char_name = _read_character_name(conn, chat['character_id'])
+    user_name = _default_user_name(conn, chat_id)
+    lines = [{
+        'user_name': user_name,
+        'character_name': char_name,
+        'create_date': _iso_from_sqlite(chat['created_at']),
+        'chat_metadata': {},
+    }]
+
+    rows = conn.execute('''
+        SELECT m.*, p.name AS persona_name
+        FROM messages m
+        LEFT JOIN personas p ON m.persona_id = p.id
+        WHERE m.chat_id=?
+        ORDER BY m.created_at ASC
+    ''', (chat_id,)).fetchall()
+    for row in rows:
+        is_user = row['role'] == 'user'
+        swipes = conn.execute(
+            'SELECT content FROM message_swipes WHERE message_id=? ORDER BY id ASC',
+            (row['id'],)
+        ).fetchall()
+        swipe_texts = [s['content'] for s in swipes] or [row['content']]
+        try:
+            swipe_id = swipe_texts.index(row['content'])
+        except ValueError:
+            swipe_id = 0
+
+        item = {
+            'name': (row['persona_name'] if is_user else char_name) or user_name,
+            'is_user': is_user,
+            'send_date': _iso_from_sqlite(row['created_at']),
+            'mes': row['content'],
+        }
+        if len(swipe_texts) > 1:
+            item['swipe_id'] = swipe_id
+            item['swipes'] = swipe_texts
+        lines.append(item)
+
+    body = '\n'.join(json.dumps(line, ensure_ascii=False) for line in lines) + '\n'
+    return chat, body
+
+
+def _parse_jsonl(raw):
+    rows = []
+    for idx, line in enumerate(raw.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError as e:
+            raise ValueError(f'Line {idx}: invalid JSON ({e.msg})') from e
+        if not isinstance(parsed, dict):
+            raise ValueError(f'Line {idx}: expected a JSON object')
+        rows.append(parsed)
+    if not rows:
+        raise ValueError('Chat file is empty')
+    return rows
+
+
+def _normalise_swipes(message, warnings, line_no):
+    content = str(message.get('mes') or '')
+    raw_swipes = message.get('swipes')
+    if raw_swipes is None:
+        return [content], 0
+    if not isinstance(raw_swipes, list):
+        warnings.append(f'Line {line_no}: ignored non-array swipes field')
+        return [content], 0
+    swipes = [s for s in raw_swipes if isinstance(s, str)]
+    if len(swipes) != len(raw_swipes):
+        warnings.append(f'Line {line_no}: ignored non-text swipe entries')
+    if not swipes:
+        return [content], 0
+    try:
+        swipe_id = int(message.get('swipe_id', 0))
+    except (TypeError, ValueError):
+        swipe_id = 0
+        warnings.append(f'Line {line_no}: invalid swipe_id; selected the first swipe')
+    if content not in swipes:
+        insert_at = min(max(swipe_id, 0), len(swipes))
+        swipes.insert(insert_at, content)
+        warnings.append(f'Line {line_no}: mes was not present in swipes; added it for round-trip safety')
+    swipe_id = min(max(swipe_id, 0), len(swipes) - 1)
+    return swipes, swipe_id
+
+
 @chats_bp.route('/api/characters/<int:char_id>/chats', methods=['GET'])
 def list_chats(char_id):
     with get_db() as conn:
@@ -68,6 +204,89 @@ def create_chat(char_id):
         chat_id = cur.lastrowid
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
         return jsonify(_chat_to_dict(row)), 201
+
+
+@chats_bp.route('/api/chats/<int:chat_id>/export', methods=['GET'])
+def export_chat(chat_id):
+    with get_db() as conn:
+        chat, body = _chat_jsonl(conn, chat_id)
+        if chat is None:
+            return jsonify({'error': 'Chat not found'}), 404
+        filename = f"{_safe_filename(chat['name'])}.jsonl"
+        return Response(
+            body,
+            mimetype='application/jsonl; charset=utf-8',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+        )
+
+
+@chats_bp.route('/api/chats/import', methods=['POST'])
+def import_chat():
+    try:
+        char_id = int(request.args.get('character_id', ''))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'character_id is required'}), 400
+    if not request.files or 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    upload = request.files['file']
+    try:
+        rows = _parse_jsonl(upload.read().decode('utf-8'))
+    except UnicodeDecodeError:
+        return jsonify({'error': 'File must be UTF-8 text'}), 400
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    header = rows[0]
+    messages = rows[1:]
+    warnings = []
+    with get_db() as conn:
+        if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
+            return jsonify({'error': 'Character not found'}), 404
+
+        name = Path(upload.filename or '').stem or 'Imported Chat'
+        if header.get('create_date'):
+            name = f'Imported {header["create_date"]}'
+        cur = conn.execute(
+            'INSERT INTO chats (character_id, name, active_lorebook_embedded) VALUES (?, ?, ?)',
+            (char_id, name[:120], 1 if _character_has_lorebook(conn, char_id) else 0)
+        )
+        chat_id = cur.lastrowid
+
+        for line_no, message in enumerate(messages, start=2):
+            if message.get('is_system'):
+                warnings.append(f'Line {line_no}: skipped system message; Cozy does not store hidden/system chat rows')
+                continue
+            if 'extra' in message:
+                warnings.append(f'Line {line_no}: ignored extra metadata')
+            if 'swipe_info' in message:
+                warnings.append(f'Line {line_no}: ignored swipe_info metadata')
+
+            content = str(message.get('mes') or '').strip()
+            if not content:
+                warnings.append(f'Line {line_no}: skipped empty message')
+                continue
+            role = 'user' if bool(message.get('is_user')) else 'character'
+            swipes, swipe_id = _normalise_swipes(message, warnings, line_no)
+            selected = swipes[swipe_id] if swipes else content
+
+            cur = conn.execute(
+                'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
+                (chat_id, role, selected)
+            )
+            msg_id = cur.lastrowid
+            for swipe in swipes:
+                if swipe.strip():
+                    conn.execute(
+                        'INSERT INTO message_swipes (message_id, content) VALUES (?, ?)',
+                        (msg_id, swipe)
+                    )
+
+        conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
+        row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+        result = _chat_to_dict(row)
+        result['warnings'] = warnings
+        return jsonify(result), 201
 
 
 @chats_bp.route('/api/chats/<int:chat_id>', methods=['PUT'])

@@ -1,11 +1,13 @@
-import { state, el, icons } from './state.js';
+import { state, el, icons, SEND_SVG, STOP_SVG, llm } from './state.js';
 import { API } from './api.js';
 import {
     applyAvatar, getInitials, resolveTemplateVariables, showToast,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
-    updateComposerState,
+    updateComposerState, setSendButtonMode,
 } from './utils.js';
 import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
+import { updateContextMeter } from './context-meter.js';
+import { generateResponse } from './request-builder.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CHAT — MESSAGES
@@ -37,6 +39,147 @@ export function findStateMsg(swipes, msgEl) {
     return state.messages.find(m =>
         swipes.some(s => s.content === m.text) || m.text === msgEl.dataset.rawText
     );
+}
+
+function updateSwipeNav(msgEl, swipes, idx, isGreeting) {
+    const nav = msgEl.querySelector('.swipe-nav');
+    if (!nav) return;
+    nav.querySelector('.swipe-counter').textContent = `${idx + 1}/${swipes.length}`;
+    nav.querySelector('.swipe-prev').disabled = idx <= 0;
+    const atEnd = idx >= swipes.length - 1;
+    const next = nav.querySelector('.swipe-next');
+    next.disabled = isGreeting && atEnd;
+    next.title = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
+}
+
+async function generateSwipe(msgEl, swipes, idx) {
+    const stateMsg = findStateMsg(swipes, msgEl);
+    const msgId = stateMsg?.id;
+    const contentEl = msgEl.querySelector('.message-content');
+    const msgBody = msgEl.querySelector('.msg-body');
+    const prevThinkBlock = msgBody.querySelector('.thinking-block');
+    if (prevThinkBlock) prevThinkBlock.remove();
+
+    contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
+    llm.abortController = new AbortController();
+    const regenSignal = llm.abortController.signal;
+    el.sendBtn.innerHTML = STOP_SVG;
+    setSendButtonMode('stop');
+    el.sendBtn.disabled = false;
+    updateComposerState();
+
+    let newContent;
+    try {
+        newContent = await generateResponse(1, (accumulated) => {
+            const parsed = parseThinkingContent(accumulated);
+            renderThinkingBlock(msgBody, parsed);
+            renderMarkdown(contentEl, parsed.response);
+            maybeScrollToBottom();
+        }, regenSignal);
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error('Regen error:', err);
+            showToast(err.message);
+        }
+        const prevText = swipes[idx]?.content || '';
+        renderMarkdown(contentEl, prevText);
+        return null;
+    } finally {
+        llm.abortController = null;
+        el.sendBtn.innerHTML = SEND_SVG;
+        setSendButtonMode('send');
+        updateComposerState();
+    }
+
+    const parsed = parseThinkingContent(newContent);
+    renderThinkingBlock(msgBody, parsed);
+    renderMarkdown(contentEl, parsed.response);
+
+    swipes.push({ content: newContent });
+    idx = swipes.length - 1;
+    msgEl.dataset.swipes = JSON.stringify(swipes);
+    msgEl.dataset.activeSwipeIndex = idx;
+    msgEl.dataset.rawText = newContent;
+
+    if (msgId) {
+        API.addSwipe(msgId, newContent).catch(err => {
+            console.error('Swipe save failed:', err);
+            showToast('Swipe failed to save: ' + err.message);
+        });
+    }
+    if (stateMsg) {
+        stateMsg.text = newContent;
+        stateMsg.activeSwipeIndex = idx;
+    }
+    updateContextMeter();
+    return idx;
+}
+
+function showSwipe(msgEl, swipes, idx) {
+    const newText = swipes[idx].content;
+    const contentEl = msgEl.querySelector('.message-content');
+    const msgBody = msgEl.querySelector('.msg-body');
+    msgEl.dataset.rawText = newText;
+    const swipeParsed = parseThinkingContent(newText);
+    const prevThink = msgBody.querySelector('.thinking-block');
+    if (prevThink) prevThink.remove();
+    if (swipeParsed.thinking) renderThinkingBlock(msgBody, swipeParsed);
+    renderMarkdown(contentEl, swipeParsed.thinking ? swipeParsed.response : newText);
+
+    const stateMsg = findStateMsg(swipes, msgEl);
+    if (stateMsg) {
+        stateMsg.text = newText;
+        stateMsg.activeSwipeIndex = idx;
+        if (stateMsg.id) {
+            API.updateMessage(stateMsg.id, newText).catch(err => {
+                console.error('Failed to persist swipe selection:', err);
+            });
+        }
+    }
+    updateContextMeter();
+}
+
+export async function handleSwipeAction(msgEl, isPrev) {
+    const swipes = JSON.parse(msgEl.dataset.swipes || '[]');
+    let idx = parseInt(msgEl.dataset.activeSwipeIndex || '0', 10);
+    const isGreeting = msgEl.dataset.isGreeting === 'true';
+
+    if (!isPrev && idx >= swipes.length - 1 && !isGreeting) {
+        const generatedIdx = await generateSwipe(msgEl, swipes, idx);
+        if (generatedIdx == null) return;
+        idx = generatedIdx;
+    } else if (!isPrev && idx >= swipes.length - 1) {
+        return;
+    } else {
+        idx = isPrev ? Math.max(0, idx - 1) : Math.min(swipes.length - 1, idx + 1);
+        msgEl.dataset.activeSwipeIndex = idx;
+        showSwipe(msgEl, swipes, idx);
+    }
+
+    updateSwipeNav(msgEl, swipes, idx, isGreeting);
+    if (isGreeting) state.greetingIndex = idx;
+}
+
+export async function regenerateLastAssistantMessage() {
+    if (!state.activeChat) {
+        showToast('Select a chat first');
+        return;
+    }
+    const last = [...state.messages].reverse().find(m => m.role === 'character');
+    if (!last?.id) {
+        showToast('No assistant message to retry yet');
+        return;
+    }
+    const msgEl = el.chatHistory.querySelector(`.message.character[data-msg-id="${last.id}"]`);
+    if (!msgEl || msgEl.dataset.isGreeting === 'true') {
+        showToast('No assistant message to retry yet');
+        return;
+    }
+    const swipes = JSON.parse(msgEl.dataset.swipes || '[]');
+    while (parseInt(msgEl.dataset.activeSwipeIndex || '0', 10) < swipes.length - 1) {
+        await handleSwipeAction(msgEl, false);
+    }
+    await handleSwipeAction(msgEl, false);
 }
 
 function iconButton(className, title, ariaLabel, icon) {
@@ -290,6 +433,7 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
     }
 
     if (role === 'user') scrollToBottom(); else maybeScrollToBottom();
+    updateContextMeter();
     return container;
 }
 

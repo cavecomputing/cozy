@@ -4,6 +4,8 @@ import { syslogStamp, showToast, updateComposerState } from './utils.js';
 import { renderMessages, appendMessage } from './messages.js';
 import { savePrefs } from './utils.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
+import { restoreDraft, saveDraft } from './drafts.js';
+import { updateContextMeter } from './context-meter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHAT LIST
@@ -147,10 +149,12 @@ export async function loadChats(charId) {
 }
 
 export async function selectChat(chat) {
+    saveDraft();
     if (llm.abortController) llm.abortController.abort();
 
     state.activeChat   = chat;
     state.greetingIndex = 0;    // reset greeting switcher for each new chat
+    restoreDraft();
     updateComposerState();
 
     // Highlight active item
@@ -220,6 +224,7 @@ export async function selectChat(chat) {
     updateComposerState();
     renderLorebookFlyout();
     renderLorebookNotice();
+    updateContextMeter();
     savePrefs();
 }
 
@@ -234,6 +239,31 @@ export async function createNewChat(autoSelect = true, silent = false) {
         return chat;
     } catch (err) {
         if (!silent) showToast('Could not create chat: ' + err.message, 'error');
+    }
+}
+
+export function importChat() {
+    el.flyoutImportChatFile?.click();
+}
+
+export async function handleChatImportFile() {
+    const file = el.flyoutImportChatFile?.files?.[0];
+    if (!file || !state.activeCharacter) return;
+    try {
+        const imported = await API.importChat(state.activeCharacter.id, file);
+        state.chats = await API.getChats(state.activeCharacter.id);
+        renderChats();
+        const chat = state.chats.find(c => c.id === imported.id) || imported;
+        await selectChat(chat);
+        if (imported.warnings?.length) {
+            showToast(`Imported with warnings:\n${imported.warnings.join('\n')}`, 'error', 9000);
+        } else {
+            showToast('Chat imported', 'success');
+        }
+    } catch (err) {
+        showToast('Could not import chat: ' + err.message, 'error');
+    } finally {
+        if (el.flyoutImportChatFile) el.flyoutImportChatFile.value = '';
     }
 }
 

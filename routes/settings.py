@@ -25,7 +25,7 @@ SETTINGS_KEYS = {
     'sampler_seed',
     'send_thinking',
     'active_samplers',
-    'context_max_messages',
+    'context_max_messages', 'context_max_tokens',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
 }
@@ -211,7 +211,7 @@ def export_system_prompt(prompt_id):
 
 # ── API Presets CRUD ──────────────────────────────────────────────────────
 
-PRESET_FIELDS = ('api_endpoint', 'api_key', 'api_model', 'context_max_messages')
+PRESET_FIELDS = ('api_endpoint', 'api_key', 'api_model', 'context_max_messages', 'context_max_tokens')
 
 
 def _mask_preset(row):
@@ -242,10 +242,11 @@ def create_preset():
         key_val = s.get('api_key', '')
     with get_db() as conn:
         cur = conn.execute(
-            'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, context_max_messages) '
-            'VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, context_max_messages, context_max_tokens) '
+            'VALUES (?, ?, ?, ?, ?, ?)',
             (name, data.get('api_endpoint', ''), key_val,
-             data.get('api_model', ''), data.get('context_max_messages', '0'))
+             data.get('api_model', ''), data.get('context_max_messages', '0'),
+             data.get('context_max_tokens', '4096'))
         )
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (cur.lastrowid,)).fetchone()
         return jsonify(_mask_preset(row)), 201
@@ -262,6 +263,7 @@ def update_preset(preset_id):
         endpoint = data.get('api_endpoint', row['api_endpoint'])
         model = data.get('api_model', row['api_model'])
         ctx = data.get('context_max_messages', row['context_max_messages'])
+        ctx_tokens = data.get('context_max_tokens', row['context_max_tokens'])
         # Only update api_key if a real (non-masked) value was sent
         key_val = data.get('api_key', '')
         if not is_masked_secret(key_val):
@@ -270,8 +272,8 @@ def update_preset(preset_id):
             key = row['api_key']
         conn.execute(
             'UPDATE api_presets SET name=?, api_endpoint=?, api_key=?, api_model=?, '
-            'context_max_messages=? WHERE id=?',
-            (name, endpoint, key, model, ctx, preset_id)
+            'context_max_messages=?, context_max_tokens=? WHERE id=?',
+            (name, endpoint, key, model, ctx, ctx_tokens, preset_id)
         )
         updated = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         return jsonify(_mask_preset(updated))

@@ -1,16 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ENTRY POINT — orchestrates all modules
 // ═══════════════════════════════════════════════════════════════════════════
-import { state, el, SEND_SVG, STOP_SVG, llm, initElements } from './state.js';
+import { state, el, llm, initElements } from './state.js';
 import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
-    maybeScrollToBottom, debounce, setSendButtonMode, updateComposerState,
+    debounce, updateComposerState,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter } from './characters.js';
-import { selectChat, createNewChat, deleteChat, startChatRename } from './chats.js';
-import { renderMarkdown, findStateMsg, startEditing, finishEditing } from './messages.js';
+import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile } from './chats.js';
+import { startEditing, finishEditing, handleSwipeAction } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -19,9 +19,10 @@ import { loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystem
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook } from './lorebooks.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
-import { generateResponse } from './request-builder.js';
-import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
 import { initTooltips } from './tooltips.js';
+import { saveDraft } from './drafts.js';
+import { initSlashCommands, updateSlashCommands, handleSlashKeydown } from './slash-commands.js';
+import { updateContextMeter } from './context-meter.js';
 
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
 marked.use({ breaks: true, gfm: true });
@@ -375,6 +376,13 @@ function bindSettingsHandlers() {
     el.settingsContextSize?.addEventListener('change', () => {
         queueSettingsSave({ context_max_messages: el.settingsContextSize.value });
         updateContextSizeWarning();
+        updateContextMeter();
+    });
+    el.settingsContextTokens?.addEventListener('change', () => {
+        state.contextMaxTokens = el.settingsContextTokens.value || '4096';
+        queueSettingsSave({ context_max_tokens: state.contextMaxTokens });
+        updateContextSizeWarning();
+        updateContextMeter();
     });
 
     // Model input — type to search suggestions, save on committed change.
@@ -382,6 +390,7 @@ function bindSettingsHandlers() {
         state.apiModel = el.apiModel.value;
         state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
         updateContextSizeWarning();
+        updateContextMeter();
         searchModelsFromInput();
     });
     el.apiModel?.addEventListener('change', () => {
@@ -389,11 +398,13 @@ function bindSettingsHandlers() {
         state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
         saveLLMSettings({ api_model: el.apiModel.value });
         updateContextSizeWarning();
+        updateContextMeter();
     });
 
     // Thinking settings — save on change
     el.sendThinking?.addEventListener('change', () => {
         saveLLMSettings({ send_thinking: el.sendThinking.checked ? '1' : '0' });
+        updateContextMeter();
     });
 }
 
@@ -448,6 +459,12 @@ function bindChatHandlers() {
     });
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape') return;
+        if (llm.abortController) {
+            e.preventDefault();
+            e.stopPropagation();
+            llm.abortController.abort();
+            return;
+        }
         Flyouts.closeAllExcept(null);
     });
 
@@ -483,6 +500,8 @@ function bindChatHandlers() {
 
     // New chat button (in flyout)
     el.flyoutNewChatBtn.addEventListener('click', () => createNewChat(true, false));
+    el.flyoutImportChatBtn?.addEventListener('click', importChat);
+    el.flyoutImportChatFile?.addEventListener('change', handleChatImportFile);
 }
 
 function bindLorebookHandlers() {
@@ -622,132 +641,30 @@ function bindMessageHandlers() {
                 .catch(() => showToast('Could not copy message'));
         } else if (e.target.closest('.swipe-prev') || e.target.closest('.swipe-next')) {
             const isPrev = !!e.target.closest('.swipe-prev');
-            const swipes = JSON.parse(msgEl.dataset.swipes || '[]');
-            let idx = parseInt(msgEl.dataset.activeSwipeIndex || '0', 10);
-
-            const isGreeting = msgEl.dataset.isGreeting === 'true';
-            let generated = false;
-
-            if (!isPrev && idx >= swipes.length - 1 && !isGreeting) {
-                // At the last swipe and clicking next → generate new response
-                const stateMsg = findStateMsg(swipes, msgEl);
-                const msgId = stateMsg?.id;
-                const contentEl = msgEl.querySelector('.message-content');
-                const msgBody = msgEl.querySelector('.msg-body');
-                const prevThinkBlock = msgBody.querySelector('.thinking-block');
-                if (prevThinkBlock) prevThinkBlock.remove();
-
-                // Show loading dots
-                contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
-                llm.abortController = new AbortController();
-                const regenSignal = llm.abortController.signal;
-                el.sendBtn.innerHTML = STOP_SVG;
-                setSendButtonMode('stop');
-                el.sendBtn.disabled = false;
-                updateComposerState();
-                let newContent;
-                try {
-                    newContent = await generateResponse(1, (accumulated) => {
-                        const parsed = parseThinkingContent(accumulated);
-                        renderThinkingBlock(msgBody, parsed);
-                        renderMarkdown(contentEl, parsed.response);
-                        maybeScrollToBottom();
-                    }, regenSignal);
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        console.error('Regen error:', err);
-                        showToast(err.message);
-                    }
-                    // Restore previous content
-                    const prevText = swipes[idx]?.content || '';
-                    renderMarkdown(contentEl, prevText);
-                    return;
-                } finally {
-                    llm.abortController = null;
-                    el.sendBtn.innerHTML = SEND_SVG;
-                    setSendButtonMode('send');
-                    updateComposerState();
-                }
-
-                // Finalize thinking block
-                const parsed = parseThinkingContent(newContent);
-                renderThinkingBlock(msgBody, parsed);
-                renderMarkdown(contentEl, parsed.response);
-
-                swipes.push({ content: newContent });
-                msgEl.dataset.swipes = JSON.stringify(swipes);
-                idx = swipes.length - 1;
-                msgEl.dataset.activeSwipeIndex = idx;
-
-                // Persist swipe to backend
-                if (msgId) {
-                    API.addSwipe(msgId, newContent).catch(err => {
-                        console.error('Swipe save failed:', err);
-                        showToast('Swipe failed to save: ' + err.message);
-                    });
-                }
-                // Update state and rawText so shared code below just updates nav
-                if (stateMsg) { stateMsg.text = newContent; stateMsg.activeSwipeIndex = idx; }
-                msgEl.dataset.rawText = newContent;
-                generated = true;
-            } else if (!isPrev && idx >= swipes.length - 1) {
-                // Greeting at last swipe — do nothing
-                return;
-            } else {
-                idx = isPrev ? Math.max(0, idx - 1) : Math.min(swipes.length - 1, idx + 1);
-                msgEl.dataset.activeSwipeIndex = idx;
-            }
-
-            // Update content for prev/next navigation (skip for generate — already rendered)
-            if (!generated) {
-                const newText = swipes[idx].content;
-                const contentEl = msgEl.querySelector('.message-content');
-                const msgBody = msgEl.querySelector('.msg-body');
-                msgEl.dataset.rawText = newText;
-                const swipeParsed = parseThinkingContent(newText);
-                const prevThink = msgBody.querySelector('.thinking-block');
-                if (prevThink) prevThink.remove();
-                if (swipeParsed.thinking) renderThinkingBlock(msgBody, swipeParsed);
-                renderMarkdown(contentEl, swipeParsed.thinking ? swipeParsed.response : newText);
-
-                // Keep state.messages in sync so the next LLM call uses the visible text
-                const stateMsg = findStateMsg(swipes, msgEl);
-                if (stateMsg) {
-                    stateMsg.text = newText;
-                    stateMsg.activeSwipeIndex = idx;
-                    // Persist the selected swipe to the DB so it survives refresh
-                    if (stateMsg.id) {
-                        API.updateMessage(stateMsg.id, newText).catch(err => {
-                            console.error('Failed to persist swipe selection:', err);
-                        });
-                    }
-                }
-            }
-
-            // Update counter and button states
-            const nav = msgEl.querySelector('.swipe-nav');
-            nav.querySelector('.swipe-counter').textContent = `${idx + 1}/${swipes.length}`;
-            nav.querySelector('.swipe-prev').disabled = idx <= 0;
-            const atEnd = idx >= swipes.length - 1;
-            nav.querySelector('.swipe-next').disabled = isGreeting && atEnd;
-            nav.querySelector('.swipe-next').title = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
-
-            // Track greeting index for persistence
-            if (isGreeting) state.greetingIndex = idx;
+            await handleSwipeAction(msgEl, isPrev);
         }
     });
 }
 
 function bindComposerHandlers() {
+    const saveDraftDebounced = debounce(saveDraft, 250);
+    initSlashCommands();
+
     // Send / Stop
     el.sendBtn.addEventListener('click', () => {
         if (llm.abortController) llm.abortController.abort();
         else handleSend();
     });
     el.userInput.addEventListener('keydown', e => {
+        if (handleSlashKeydown(e)) return;
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     });
-    el.userInput.addEventListener('input', () => autoResize(el.userInput));
+    el.userInput.addEventListener('input', () => {
+        autoResize(el.userInput);
+        saveDraftDebounced();
+        updateSlashCommands();
+        updateContextMeter();
+    });
     autoResize(el.userInput);
 }
 
@@ -811,6 +728,7 @@ async function init() {
     renderLorebookList();
     renderLorebookFlyout();
     renderLorebookNotice();
+    updateContextMeter();
 
     bindFlyoutHandlers();
     bindSidebarHandlers();

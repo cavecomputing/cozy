@@ -93,6 +93,16 @@ export const API = {
         if (!r.ok) throw new Error(await apiError(r, 'Delete failed'));
         return r.json();
     },
+    async importChat(characterId, file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const r = await fetch(`/api/chats/import?character_id=${characterId}`, {
+            method: 'POST',
+            body: fd,
+        });
+        if (!r.ok) throw new Error(await apiError(r, 'Import failed'));
+        return r.json();
+    },
 
     // Messages
     async getMessages(chatId) {

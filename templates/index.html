@@ -237,6 +237,12 @@
                                            min="0" max="9999" value="0" placeholder="0 = all">
                                 </div>
                                 <p class="settings-hint">Recent messages sent to the LLM. 0 = all.</p>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
+                                    <input type="number" id="settings-context-tokens" class="form-input"
+                                           min="256" step="256" value="4096">
+                                </div>
+                                <p class="settings-hint">Approximate chat-history budget. Cozy fills messages from newest to oldest.</p>
                                 <span id="context-size-warning" class="settings-warning" hidden></span>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-send-thinking">Send thinking in context</label>
@@ -761,12 +767,20 @@
                 <div id="chat-flyout" class="chat-flyout" role="dialog" aria-label="Chats" hidden>
                     <div class="chat-flyout-header panel-header panel-header--compact">
                         <span class="section-label panel-title panel-title--left">Chats</span>
+                        <button id="flyout-import-chat-btn" class="icon-btn" title="Import chat" aria-label="Import chat">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </button>
                         <button id="flyout-new-chat-btn" class="icon-btn" title="New Chat" aria-label="New Chat">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                         </button>
+                        <input id="flyout-import-chat-file" type="file" accept=".jsonl,application/jsonl,text/plain,application/json" hidden>
                     </div>
                     <div class="panel-divider"></div>
                     <ul id="flyout-chat-list" class="chat-list"></ul>
@@ -798,6 +812,10 @@
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
                 </button>
+            </div>
+            <div id="context-token-meter" class="context-token-meter" hidden>
+                <div class="context-token-meter-track"><span id="context-token-bar"></span></div>
+                <span id="context-token-label">≈ 0 / 4,096</span>
             </div>
         </div>
     </main>

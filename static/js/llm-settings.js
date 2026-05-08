@@ -249,6 +249,8 @@ function applySettingsToUI(s) {
     }
     if (el.apiModel) el.apiModel.value = state.apiModel;
     if (el.settingsContextSize) el.settingsContextSize.value = s.context_max_messages || '0';
+    if (el.settingsContextTokens) el.settingsContextTokens.value = s.context_max_tokens || '4096';
+    state.contextMaxTokens = s.context_max_tokens || '4096';
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;
     if (el.lorebookScanOverride) el.lorebookScanOverride.value = String(state.lorebookScanDepthOverride);
     state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';
@@ -282,6 +284,7 @@ export async function createNewPreset() {
             api_key: el.apiKey?.value || '',
             api_model: el.apiModel?.value || '',
             context_max_messages: el.settingsContextSize?.value || '0',
+            context_max_tokens: el.settingsContextTokens?.value || '4096',
         });
         await loadPresets();
         if (created?.id && el.apiPreset) {
@@ -304,6 +307,7 @@ export async function saveActivePreset() {
             api_key: el.apiKey?.value || '',
             api_model: el.apiModel?.value || '',
             context_max_messages: el.settingsContextSize?.value || '0',
+            context_max_tokens: el.settingsContextTokens?.value || '4096',
         });
         showToast('Preset updated', 'success');
     } catch (e) {

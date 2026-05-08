@@ -4,6 +4,8 @@ import { appendMessage } from './messages.js';
 import { renderMarkdown } from './messages.js';
 import { generateResponse } from './request-builder.js';
 import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
+import { clearDraft } from './drafts.js';
+import { executeSlashCommand } from './slash-commands.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEND MESSAGE
@@ -11,6 +13,7 @@ import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
 export async function handleSend() {
     const text = el.userInput.value.trim();
     if (!state.activeCharacter || !state.activeChat) return;
+    if (executeSlashCommand(text)) return;
 
     el.userInput.value = '';
     autoResize(el.userInput);
@@ -24,7 +27,10 @@ export async function handleSend() {
     updateComposerState();
 
     const nudge = text ? null : 'Continue.';
-    if (text) await appendMessage('user', text, true);
+    if (text) {
+        await appendMessage('user', text, true);
+        clearDraft();
+    }
 
     // Create loading bubble (not persisted)
     const loadingContainer = await appendMessage('character', '', false);
