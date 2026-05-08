@@ -412,7 +412,7 @@ body {
     justify-content: center;
     width: 36px;
     height: 36px;
-    margin: 0.4rem auto 0;
+    margin: 0 auto 0.4rem;
 }
 
 /* When the list is empty AND collapsed, the empty-state copy + full button
@@ -1065,6 +1065,11 @@ header::after {
     gap: 0.5rem;
     border-radius: var(--radius-lg);
     min-height: 0;
+}
+
+body:has(#context-token-meter:not([hidden])) #chat-scroll {
+    padding-bottom: 0.35rem;
+    scroll-padding-bottom: 0.35rem;
 }
 
 .message-container {
