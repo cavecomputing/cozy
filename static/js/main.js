@@ -261,6 +261,11 @@ function bindSettingsHandlers() {
         applyTheme(el.settingsThemeSelect.value);
         savePrefs();
     });
+    el.settingsContextMeterToggle?.addEventListener('change', () => {
+        state.showContextTokenMeter = el.settingsContextMeterToggle.checked;
+        saveLLMSettings({ show_context_token_meter: state.showContextTokenMeter ? '1' : '0' });
+        updateContextMeter();
+    });
 
     // LLM API settings — save on blur
     el.apiEndpoint?.addEventListener('change', () => {

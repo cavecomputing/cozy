@@ -25,6 +25,7 @@ SETTINGS_KEYS = {
     'sampler_seed',
     'send_thinking',
     'active_samplers',
+    'show_context_token_meter',
     'context_max_messages', 'context_max_tokens',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',

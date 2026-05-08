@@ -191,6 +191,10 @@ def init_db():
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "
             "ON CONFLICT(key) DO NOTHING"
         )
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('show_context_token_meter', '1') "
+            "ON CONFLICT(key) DO NOTHING"
+        )
 
         # Seed a default persona if the table is empty
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:

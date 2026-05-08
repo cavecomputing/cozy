@@ -250,6 +250,8 @@ function applySettingsToUI(s) {
     if (el.apiModel) el.apiModel.value = state.apiModel;
     if (el.settingsContextTokens) el.settingsContextTokens.value = s.context_max_tokens || '32768';
     state.contextMaxTokens = s.context_max_tokens || '32768';
+    state.showContextTokenMeter = s.show_context_token_meter !== '0';
+    if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = state.showContextTokenMeter;
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;
     if (el.lorebookScanOverride) el.lorebookScanOverride.value = String(state.lorebookScanDepthOverride);
     state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';

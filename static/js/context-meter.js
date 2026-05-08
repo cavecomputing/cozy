@@ -10,7 +10,7 @@ export function getContextMaxTokens() {
 
 export function updateContextMeter() {
     if (!el.contextTokenMeter || !el.contextTokenLabel || !el.contextTokenBar) return;
-    if (!state.activeChat) {
+    if (!state.showContextTokenMeter || !state.activeChat) {
         el.contextTokenMeter.hidden = true;
         return;
     }

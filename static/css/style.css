@@ -229,8 +229,7 @@ body {
 .form-input:focus-visible,
 .form-textarea:focus-visible,
 .settings-select:focus-visible,
-#send-btn:focus-visible,
-#user-input:focus-visible {
+#send-btn:focus-visible {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
 }
@@ -700,15 +699,15 @@ body {
         left: 100%;
         right: auto;
         top: auto;
-        /* user-profile-container has margin-bottom 0.625rem and a 1px border;
-           extend past most of that so the popup bottom roughly lines up with the
-           input box bottom (a few px above the sidebar border for breathing room). */
-        bottom: -12px;
+        /* Keep the flyout covering the composer's bottom edge while its body
+           grows upward from that anchor. */
+        bottom: -13px;
         /* Push past user-profile-container's right margin (0.625rem) plus its
            border, with a small inward nudge so the left edge sits just inside the
            chat bubbles' left edge. */
         margin-left: 22px;
         width: 340px;
+        min-height: 172px;
         max-height: min(70vh, 520px);
         padding: 0;
         border-radius: var(--radius-lg);
@@ -716,6 +715,10 @@ body {
         z-index: 500;
         overflow: hidden;
         flex-direction: column;
+    }
+
+    #sidebar.collapsed #persona-dropup.dropup-content {
+        margin-left: 16px;
     }
 
     #persona-dropup.dropup-content.show {
@@ -1468,9 +1471,12 @@ header::after {
 /* Floating Input */
 #input-container {
     flex-shrink: 0;
+    position: relative;
     padding: 0.625rem;
     background: none;
     pointer-events: none;
+    display: flex;
+    flex-direction: column;
 }
 
 
@@ -1523,6 +1529,7 @@ header::after {
 }
 
 #input-wrapper {
+    order: 2;
     position: relative;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
@@ -1533,6 +1540,15 @@ header::after {
     gap: 0.75rem;
     box-shadow: var(--shadow-md);
     pointer-events: auto;
+    z-index: 1;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+#input-wrapper:focus-within {
+    border-color: color-mix(in srgb, var(--accent-color) 46%, var(--border-color));
+    box-shadow:
+        var(--shadow-md),
+        0 0 0 2px color-mix(in srgb, var(--accent-color) 14%, transparent);
 }
 
 .slash-command-menu {
@@ -1611,14 +1627,22 @@ header::after {
     opacity: 0.65;
 }
 
+#user-input:focus-visible {
+    outline: none;
+}
+
 .context-token-meter {
-    pointer-events: auto;
+    order: 1;
+    pointer-events: none;
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    padding: 0.35rem 0.25rem 0 3.1rem;
+    width: 100%;
+    margin: 0 0 0.28rem;
+    padding: 0;
     color: var(--text-secondary);
     font-size: 0.72rem;
+    line-height: 1;
 }
 
 .context-token-meter[hidden] {
