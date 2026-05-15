@@ -2,10 +2,7 @@
 
 import os
 import sqlite3
-import logging
 from contextlib import contextmanager
-
-log = logging.getLogger('cozy')
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
@@ -47,12 +44,6 @@ DEFAULT_PROMPT_TEMPLATE = """{{#system_prompt}}[System Instructions]
 {{#lorebook}}[WORLD INFO / CHARACTER LORE]
 {{lorebook}}{{/lorebook}}"""
 
-# Used by the migration to detect rows already in template form. Keep adjacent
-# to DEFAULT_PROMPT_TEMPLATE so they stay in sync.
-_BUILDER_VARS = ('{{description}}', '{{personality}}', '{{scenario}}',
-                 '{{persona}}', '{{mesExamples}}', '{{lorebook}}',
-                 '{{system_prompt}}')
-
 
 # ── Database helpers ────────────────────────────────────────────────────────
 @contextmanager
@@ -78,20 +69,6 @@ def init_db():
         conn.execute('PRAGMA journal_mode=WAL')
         conn.execute('PRAGMA synchronous=NORMAL')
 
-        # Migrate from old DB-stored character data to file-based storage.
-        # If the old schema is detected, drop character + dependent tables.
-        try:
-            conn.execute('SELECT description FROM characters LIMIT 0')
-            log.info('Old characters schema detected — migrating to file-based storage')
-            conn.executescript('''
-                DROP TABLE IF EXISTS message_swipes;
-                DROP TABLE IF EXISTS messages;
-                DROP TABLE IF EXISTS chats;
-                DROP TABLE IF EXISTS characters;
-            ''')
-        except sqlite3.OperationalError:
-            pass
-
         conn.executescript('''
             CREATE TABLE IF NOT EXISTS characters (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,6 +84,9 @@ def init_db():
                 name         TEXT    NOT NULL,
                 created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+                active_lorebook_id INTEGER DEFAULT NULL,
+                active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
+                lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
             );
 
@@ -158,7 +138,7 @@ def init_db():
                 api_endpoint         TEXT NOT NULL DEFAULT '',
                 api_key              TEXT NOT NULL DEFAULT '',
                 api_model            TEXT NOT NULL DEFAULT '',
-                context_max_messages TEXT NOT NULL DEFAULT '0',
+                context_max_tokens   TEXT NOT NULL DEFAULT '32768',
                 created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -170,22 +150,6 @@ def init_db():
                 updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         ''')
-
-        # Additive migration: per-chat lorebook selection columns. Runs once
-        # against existing DBs; no-op afterwards. The FK on active_lorebook_id
-        # cannot be added by ALTER TABLE in SQLite, so we enforce the cascade
-        # behaviour at delete time inside routes/lorebooks.py.
-        chat_cols = {row['name'] for row in conn.execute('PRAGMA table_info(chats)').fetchall()}
-        if 'active_lorebook_id' not in chat_cols:
-            conn.execute('ALTER TABLE chats ADD COLUMN active_lorebook_id INTEGER DEFAULT NULL')
-        if 'active_lorebook_embedded' not in chat_cols:
-            conn.execute('ALTER TABLE chats ADD COLUMN active_lorebook_embedded INTEGER NOT NULL DEFAULT 0')
-        if 'lorebook_notice_dismissed' not in chat_cols:
-            conn.execute('ALTER TABLE chats ADD COLUMN lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0')
-
-        preset_cols = {row['name'] for row in conn.execute('PRAGMA table_info(api_presets)').fetchall()}
-        if 'context_max_tokens' not in preset_cols:
-            conn.execute("ALTER TABLE api_presets ADD COLUMN context_max_tokens TEXT NOT NULL DEFAULT '32768'")
 
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "
@@ -201,26 +165,6 @@ def init_db():
             conn.execute(
                 "INSERT INTO personas (name, tagline, description, is_default) VALUES (?, ?, ?, 1)",
                 ('Default User', 'The brave adventurer', '')
-            )
-
-        # One-shot migration: wrap legacy plain-text system_prompts rows in the
-        # default template, injecting their old prose at the {{system_prompt}}
-        # slot. Gated by a sentinel settings row so it never runs twice.
-        sentinel = conn.execute(
-            "SELECT value FROM settings WHERE key='prompt_template_migration'"
-        ).fetchone()
-        if not sentinel:
-            rows = conn.execute('SELECT id, content FROM system_prompts').fetchall()
-            for row in rows:
-                c = row['content'] or ''
-                if not any(v in c for v in _BUILDER_VARS):
-                    new_content = DEFAULT_PROMPT_TEMPLATE.replace('{{system_prompt}}', c)
-                    conn.execute(
-                        'UPDATE system_prompts SET content=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
-                        (new_content, row['id'])
-                    )
-            conn.execute(
-                "INSERT INTO settings (key, value) VALUES ('prompt_template_migration', '1')"
             )
 
         # Seed a default system prompt if the table is empty. Use the bare

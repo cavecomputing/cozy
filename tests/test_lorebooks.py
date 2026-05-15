@@ -2,10 +2,8 @@
 
 import json
 import os
-from io import BytesIO
 
 import shared
-from png_utils import extract_png_chara, make_minimal_png, write_png_chara
 
 
 def _make_book(name='Test Book', entries=None):

@@ -95,7 +95,7 @@ git pull
 pip install -r requirements.txt
 ```
 
-Then restart the app. Database migrations run automatically on startup.
+Then restart the app. Current schema setup and seed data run automatically on startup.
 
 ### Docker
 

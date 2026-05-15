@@ -15,9 +15,7 @@ chats_bp = Blueprint('chats', __name__)
 
 
 def _chat_to_dict(row):
-    """Coerce the SQLite Row into a plain dict with normalised types for the
-    new lorebook fields (the legacy DB columns may not exist on cold rows from
-    older fixtures, so .keys() is consulted defensively)."""
+    """Coerce the SQLite Row into a plain dict with normalised lorebook flags."""
     d = dict(row)
     d['active_lorebook_id'] = d.get('active_lorebook_id')
     d['active_lorebook_embedded'] = bool(d.get('active_lorebook_embedded') or 0)

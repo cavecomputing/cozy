@@ -87,7 +87,6 @@ class TestPresetActivation:
             'api_endpoint': 'http://activated/v1',
             'api_key': 'sk-active-9999',
             'api_model': 'mythical-7B',
-            'context_max_messages': '64',
             'context_max_tokens': '8192',
         }).get_json()
         r = client.post(f'/api/presets/{created["id"]}/activate')
@@ -95,8 +94,8 @@ class TestPresetActivation:
         s = client.get('/api/settings').get_json()
         assert s['api_endpoint'] == 'http://activated/v1'
         assert s['api_model'] == 'mythical-7B'
-        assert s['context_max_messages'] == '64'
         assert s['context_max_tokens'] == '8192'
+        assert 'context_max_messages' not in s
         assert s['active_api_preset'] == str(created['id'])
         assert s['api_key_set'] is True
 

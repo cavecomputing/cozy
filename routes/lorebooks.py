@@ -240,8 +240,7 @@ def delete_lorebook(book_id):
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Not found'}), 404
-        # Manually clear references on chats — SQLite ALTER TABLE can't add an
-        # ON DELETE SET NULL FK after the fact.
+        # Keep chat selections tidy when a standalone lorebook is removed.
         conn.execute(
             'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
             (book_id,)

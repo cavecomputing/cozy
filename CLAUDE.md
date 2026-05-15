@@ -25,17 +25,17 @@ Production (Docker) runs gunicorn with the `gthread` worker class — required b
 
 ## Architecture
 
-Single-process Flask app. Entry point [app.py](app.py) registers seven blueprints from [routes/](routes/), all serving `/api/*`. [shared.py](shared.py) owns paths, the SQLite connection (`get_db()` context manager), `init_db()` schema + migrations, and the `DEFAULT_PROMPT_TEMPLATE`. The frontend is a single SPA loaded from [templates/index.html](templates/index.html) with vanilla-JS modules under [static/js/](static/js/) (entry: [main.js](static/js/main.js)).
+Single-process Flask app. Entry point [app.py](app.py) registers seven blueprints from [routes/](routes/), all serving `/api/*`. [shared.py](shared.py) owns paths, the SQLite connection (`get_db()` context manager), `init_db()` schema + seed data, and the `DEFAULT_PROMPT_TEMPLATE`. The frontend is a single SPA loaded from [templates/index.html](templates/index.html) with vanilla-JS modules under [static/js/](static/js/) (entry: [main.js](static/js/main.js)).
 
 ### Data lives in two places
 
 Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`). Routes that need card data read it from the PNG via [png_utils.py](png_utils.py) at request time.
 
-Everything else (chats, messages, message_swipes, personas, settings, system_prompts, api_presets, lorebooks) lives in `data/cozy_chat.db`. Schema and migrations are in `init_db()` in [shared.py](shared.py:73). Migrations are additive and idempotent — they re-run on every startup and must stay safe to re-run.
+Everything else (chats, messages, message_swipes, personas, settings, system_prompts, api_presets, lorebooks) lives in `data/cozy_chat.db`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py:64). Keep startup idempotent so calling `init_db()` repeatedly is safe.
 
 ### Prompt template system
 
-System prompts are not plain text — they are Mustache-ish templates with `{{variable}}` and `{{#var}}…{{/var}}` conditional sections (see `DEFAULT_PROMPT_TEMPLATE` in [shared.py](shared.py:29)). A one-shot migration gated by the `prompt_template_migration` settings sentinel wraps any legacy plain-text rows in the default template. If you change `DEFAULT_PROMPT_TEMPLATE`, also update the `_BUILDER_VARS` tuple next to it — that tuple is how the migration detects already-migrated rows.
+System prompts are not plain text — they are Mustache-ish templates with `{{variable}}` and `{{#var}}…{{/var}}` conditional sections (see `DEFAULT_PROMPT_TEMPLATE` in [shared.py](shared.py:26)). Fresh databases seed the default template directly, with `{{system_prompt}}` left as a live variable for per-character instructions.
 
 ### LLM proxy and streaming
 

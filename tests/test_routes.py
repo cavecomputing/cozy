@@ -69,6 +69,11 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['context_max_tokens'] == '0'
 
+    def test_legacy_context_message_setting_is_not_exposed(self, client):
+        client.put('/api/settings', json={'context_max_messages': '64'})
+        r = client.get('/api/settings')
+        assert 'context_max_messages' not in r.get_json()
+
 
 class TestSystemPrompts:
     def test_list_includes_default_seed(self, client):
@@ -172,44 +177,6 @@ class TestSystemPrompts:
         for var in ('{{#system_prompt}}', '{{#description}}', '{{#personality}}',
                     '{{#scenario}}', '{{#persona}}', '{{#mesExamples}}', '{{#lorebook}}'):
             assert var in data['template']
-
-    def test_legacy_prompt_migration_wraps_plain_content(self, client, monkeypatch, tmp_path):
-        """Legacy plain-text system_prompts rows should be wrapped in the
-        default template at the {{system_prompt}} slot, and the migration
-        sentinel should make subsequent init_db() calls a no-op."""
-        import shared
-        # New temp DB so we control the seed → migration sequence
-        db_path = tmp_path / 'legacy.db'
-        monkeypatch.setattr(shared, 'DATABASE', str(db_path))
-        shared.init_db()
-
-        # Replace the seeded template content with legacy plain text and clear
-        # the migration sentinel so the next init_db() runs the migration.
-        with shared.get_db() as conn:
-            conn.execute('DELETE FROM settings WHERE key=?', ('prompt_template_migration',))
-            conn.execute('UPDATE system_prompts SET content=? WHERE id=1',
-                         ('Plain legacy instructions for {{char}}.',))
-
-        shared.init_db()
-
-        with shared.get_db() as conn:
-            row = conn.execute('SELECT content FROM system_prompts WHERE id=1').fetchone()
-            sentinel = conn.execute(
-                'SELECT value FROM settings WHERE key=?',
-                ('prompt_template_migration',)
-            ).fetchone()
-
-        assert sentinel is not None
-        assert 'Plain legacy instructions for {{char}}.' in row['content']
-        assert '{{#description}}' in row['content']
-
-        # Idempotency: running init_db() again should not re-wrap.
-        before = row['content']
-        shared.init_db()
-        with shared.get_db() as conn:
-            row2 = conn.execute('SELECT content FROM system_prompts WHERE id=1').fetchone()
-        assert row2['content'] == before
-
 
 class TestMessages:
     def test_add_message_creates_swipe(self, client, sample_chat):

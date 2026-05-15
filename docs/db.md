@@ -27,6 +27,9 @@ Each chat belongs to one character. Deleting a character cascades to all its cha
 | name         | TEXT     | Chat display name.                       |
 | created_at   | DATETIME | Creation timestamp.                      |
 | updated_at   | DATETIME | Last activity timestamp.                 |
+| active_lorebook_id | INTEGER | Optional standalone lorebook selected for this chat. |
+| active_lorebook_embedded | INTEGER | `1` when the character card's embedded lorebook is selected. |
+| lorebook_notice_dismissed | INTEGER | `1` once the embedded-lorebook notice has been dismissed. |
 
 ### messages
 
@@ -88,18 +91,46 @@ Saved system prompt templates.
 | created_at | DATETIME | Creation timestamp.             |
 | updated_at | DATETIME | Last modification timestamp.    |
 
+### api_presets
+
+Saved OpenAI-compatible endpoint presets. API keys are stored here, but route responses always mask them before returning preset data to the frontend.
+
+| Column             | Type     | Description                                  |
+|--------------------|----------|----------------------------------------------|
+| id                 | INTEGER  | Primary key (auto-increment).                |
+| name               | TEXT     | Unique preset display name.                  |
+| api_endpoint       | TEXT     | OpenAI-compatible base URL.                  |
+| api_key            | TEXT     | API key for this preset.                     |
+| api_model          | TEXT     | Model name to use with this preset.          |
+| context_max_tokens | TEXT     | Token budget for chat history context.       |
+| created_at         | DATETIME | Creation timestamp.                          |
+
+### lorebooks
+
+Standalone lorebooks store V2 `character_book` JSON. Embedded character-card lorebooks stay inside PNG card metadata.
+
+| Column     | Type     | Description                     |
+|------------|----------|---------------------------------|
+| id         | INTEGER  | Primary key (auto-increment).   |
+| name       | TEXT     | Lorebook display name.          |
+| book       | TEXT     | Serialized `character_book`.    |
+| created_at | DATETIME | Creation timestamp.             |
+| updated_at | DATETIME | Last modification timestamp.    |
+
 ## Relationships
 
 ```
 characters  1──*  chats  1──*  messages  1──*  message_swipes
                                    *──1  personas (optional)
+                 *──1  lorebooks (optional active selection)
 ```
 
-All foreign keys use `ON DELETE CASCADE`, so deleting a character removes all its chats, messages, and swipes. Deleting a persona does not delete messages — the `persona_id` is left as a dangling reference.
+Declared character, chat, and message foreign keys use `ON DELETE CASCADE`, so deleting a character removes all its chats, messages, and swipes. Persona and lorebook references are optional selections; deleting a persona does not delete messages, and deleting a standalone lorebook clears matching chat selections in the lorebook route.
 
 ## Seeded data
 
 On first run, the database is seeded with:
 
 - **Default persona**: "Default User" (tagline: "The brave adventurer", `is_default = 1`)
-- **Default system prompt**: "Default" with a generic roleplay instruction
+- **Default system prompt**: "Default" with the Prompt Builder template
+- **Default settings**: context token budget (`32768`) and visible context meter

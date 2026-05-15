@@ -26,7 +26,7 @@ SETTINGS_KEYS = {
     'send_thinking',
     'active_samplers',
     'show_context_token_meter',
-    'context_max_messages', 'context_max_tokens',
+    'context_max_tokens',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
 }
@@ -57,6 +57,7 @@ def get_settings():
 @settings_bp.route('/api/settings', methods=['GET'])
 def read_settings():
     s = get_settings()
+    s.pop('context_max_messages', None)
     # Never send the full API key to the frontend — mask it
     s.update(mask_secret(s.get('api_key', '')))
     s.pop('api_key', None)
@@ -212,14 +213,21 @@ def export_system_prompt(prompt_id):
 
 # ── API Presets CRUD ──────────────────────────────────────────────────────
 
-PRESET_FIELDS = ('api_endpoint', 'api_key', 'api_model', 'context_max_messages', 'context_max_tokens')
+PRESET_FIELDS = ('api_endpoint', 'api_key', 'api_model', 'context_max_tokens')
 
 
 def _mask_preset(row):
     """Return a dict with the api_key masked (same logic as read_settings)."""
-    d = dict(row)
-    d.update(mask_secret(d.get('api_key', '')))
-    d.pop('api_key', None)
+    row = dict(row)
+    d = {
+        'id': row['id'],
+        'name': row['name'],
+        'api_endpoint': row['api_endpoint'],
+        'api_model': row['api_model'],
+        'context_max_tokens': row['context_max_tokens'],
+        'created_at': row['created_at'],
+    }
+    d.update(mask_secret(row.get('api_key', '')))
     return d
 
 
@@ -243,11 +251,10 @@ def create_preset():
         key_val = s.get('api_key', '')
     with get_db() as conn:
         cur = conn.execute(
-            'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, context_max_messages, context_max_tokens) '
-            'VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, context_max_tokens) '
+            'VALUES (?, ?, ?, ?, ?)',
             (name, data.get('api_endpoint', ''), key_val,
-             data.get('api_model', ''), data.get('context_max_messages', '0'),
-             data.get('context_max_tokens', '32768'))
+             data.get('api_model', ''), data.get('context_max_tokens', '32768'))
         )
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (cur.lastrowid,)).fetchone()
         return jsonify(_mask_preset(row)), 201
@@ -263,7 +270,6 @@ def update_preset(preset_id):
         name = (data.get('name') or '').strip() or row['name']
         endpoint = data.get('api_endpoint', row['api_endpoint'])
         model = data.get('api_model', row['api_model'])
-        ctx = data.get('context_max_messages', row['context_max_messages'])
         ctx_tokens = data.get('context_max_tokens', row['context_max_tokens'])
         # Only update api_key if a real (non-masked) value was sent
         key_val = data.get('api_key', '')
@@ -273,8 +279,8 @@ def update_preset(preset_id):
             key = row['api_key']
         conn.execute(
             'UPDATE api_presets SET name=?, api_endpoint=?, api_key=?, api_model=?, '
-            'context_max_messages=?, context_max_tokens=? WHERE id=?',
-            (name, endpoint, key, model, ctx, ctx_tokens, preset_id)
+            'context_max_tokens=? WHERE id=?',
+            (name, endpoint, key, model, ctx_tokens, preset_id)
         )
         updated = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         return jsonify(_mask_preset(updated))
