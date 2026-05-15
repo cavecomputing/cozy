@@ -14,7 +14,7 @@ from flask import Blueprint, request, jsonify, Response
 
 import shared
 from card_store import read_character_card, set_character_book
-from shared import get_db
+from shared import get_db, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
 
@@ -309,11 +309,6 @@ def extract_from_character(char_id):
 
 # ── Import / export ────────────────────────────────────────────────────────
 
-def _safe_filename(name, fallback='lorebook'):
-    safe = ''.join(c for c in (name or '') if c.isalnum() or c in (' ', '-', '_')).strip()
-    return safe or fallback
-
-
 @lorebooks_bp.route('/api/lorebooks/import', methods=['POST'])
 def import_lorebook():
     """Create a new standalone lorebook from a JSON payload.
@@ -361,7 +356,7 @@ def export_lorebook(book_id):
             return jsonify({'error': 'Not found'}), 404
         book = _parse_book(row['book'])
 
-    filename = f"{_safe_filename(row['name'])}.json"
+    filename = f"{safe_download_name(row['name'], 'lorebook')}.json"
     return Response(
         json.dumps(book, indent=2, ensure_ascii=False),
         mimetype='application/json; charset=utf-8',
@@ -385,7 +380,7 @@ def export_character_lorebook(char_id):
         return jsonify({'error': 'This character has no embedded lorebook'}), 400
 
     name = book.get('name') or char_data.get('name') or 'lorebook'
-    filename = f"{_safe_filename(name)}.json"
+    filename = f"{safe_download_name(name, 'lorebook')}.json"
     return Response(
         json.dumps(book, indent=2, ensure_ascii=False),
         mimetype='application/json; charset=utf-8',

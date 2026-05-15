@@ -69,6 +69,11 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['context_max_tokens'] == '0'
 
+    def test_numeric_zero_setting_persists_as_zero(self, client):
+        client.put('/api/settings', json={'context_max_tokens': 0})
+        r = client.get('/api/settings')
+        assert r.get_json()['context_max_tokens'] == '0'
+
     def test_legacy_context_message_setting_is_not_exposed(self, client):
         client.put('/api/settings', json={'context_max_messages': '64'})
         r = client.get('/api/settings')

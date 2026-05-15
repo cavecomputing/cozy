@@ -9,7 +9,7 @@ from flask import Blueprint, request, jsonify, Response
 
 import shared
 from card_store import read_character_card
-from shared import get_db
+from shared import get_db, safe_download_name
 
 chats_bp = Blueprint('chats', __name__)
 
@@ -40,11 +40,6 @@ def _character_has_lorebook(conn, char_id):
         return False
     entries = book.get('entries')
     return isinstance(entries, list) and len(entries) > 0
-
-
-def _safe_filename(name, fallback='chat'):
-    safe = ''.join(c for c in (name or '') if c.isalnum() or c in (' ', '-', '_')).strip()
-    return safe or fallback
 
 
 def _iso_from_sqlite(value):
@@ -105,13 +100,24 @@ def _chat_jsonl(conn, chat_id):
         WHERE m.chat_id=?
         ORDER BY m.created_at ASC
     ''', (chat_id,)).fetchall()
+    swipes_by_message = {}
+    if rows:
+        placeholders = ','.join('?' for _ in rows)
+        swipes = conn.execute(
+            f'''
+            SELECT message_id, content
+            FROM message_swipes
+            WHERE message_id IN ({placeholders})
+            ORDER BY message_id ASC, id ASC
+            ''',
+            [row['id'] for row in rows],
+        ).fetchall()
+        for swipe in swipes:
+            swipes_by_message.setdefault(swipe['message_id'], []).append(swipe['content'])
+
     for row in rows:
         is_user = row['role'] == 'user'
-        swipes = conn.execute(
-            'SELECT content FROM message_swipes WHERE message_id=? ORDER BY id ASC',
-            (row['id'],)
-        ).fetchall()
-        swipe_texts = [s['content'] for s in swipes] or [row['content']]
+        swipe_texts = swipes_by_message.get(row['id']) or [row['content']]
         try:
             swipe_id = swipe_texts.index(row['content'])
         except ValueError:
@@ -210,7 +216,7 @@ def export_chat(chat_id):
         chat, body = _chat_jsonl(conn, chat_id)
         if chat is None:
             return jsonify({'error': 'Chat not found'}), 404
-        filename = f"{_safe_filename(chat['name'])}.jsonl"
+        filename = f"{safe_download_name(chat['name'], 'chat')}.jsonl"
         return Response(
             body,
             mimetype='application/jsonl; charset=utf-8',

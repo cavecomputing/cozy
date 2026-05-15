@@ -4,9 +4,7 @@ import logging
 from flask import Flask, render_template, jsonify, send_from_directory
 
 from shared import (
-    BASE_DIR, DATA_DIR, DATABASE, CHARACTERS_DIR, PERSONAS_DIR,
-    THEMES_DIR, BUILTIN_THEMES_DIR, ALLOWED_IMG,
-    get_db, init_db,
+    CHARACTERS_DIR, PERSONAS_DIR, THEMES_DIR, BUILTIN_THEMES_DIR, init_db,
 )
 
 log = logging.getLogger('cozy')

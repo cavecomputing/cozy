@@ -19,6 +19,15 @@ os.makedirs(PERSONAS_DIR, exist_ok=True)
 os.makedirs(THEMES_DIR, exist_ok=True)
 
 
+def safe_download_name(name, fallback='download'):
+    """Return a conservative display filename stem for download headers."""
+    safe = ''.join(
+        c for c in (name or '')
+        if (c.isascii() and c.isalnum()) or c in (' ', '-', '_')
+    ).strip()
+    return safe or fallback
+
+
 # ── Default Prompt Builder template ─────────────────────────────────────────
 # Reproduces the legacy hardcoded system-block assembly. Conditional blocks
 # ({{#var}}…{{/var}}) drop out when the variable is empty, so empty fields

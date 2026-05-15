@@ -20,6 +20,25 @@ def list_messages(chat_id):
             WHERE m.chat_id=?
             ORDER BY m.created_at ASC
         ''', (chat_id,)).fetchall()
+        swipes_by_message = {}
+        if rows:
+            placeholders = ','.join('?' for _ in rows)
+            swipes = conn.execute(
+                f'''
+                SELECT id, message_id, content, created_at
+                FROM message_swipes
+                WHERE message_id IN ({placeholders})
+                ORDER BY message_id ASC, id ASC
+                ''',
+                [r['id'] for r in rows],
+            ).fetchall()
+            for swipe in swipes:
+                swipes_by_message.setdefault(swipe['message_id'], []).append({
+                    'id': swipe['id'],
+                    'content': swipe['content'],
+                    'created_at': swipe['created_at'],
+                })
+
         messages = []
         for r in rows:
             m = dict(r)
@@ -28,11 +47,7 @@ def list_messages(chat_id):
             else:
                 m['persona_avatar_url'] = None
             del m['persona_avatar_path']
-            swipes = conn.execute(
-                'SELECT id, content, created_at FROM message_swipes WHERE message_id=? ORDER BY id ASC',
-                (r['id'],)
-            ).fetchall()
-            m['swipes'] = [dict(s) for s in swipes] if swipes else [{'id': None, 'content': r['content']}]
+            m['swipes'] = swipes_by_message.get(r['id']) or [{'id': None, 'content': r['content']}]
             messages.append(m)
         return jsonify(messages)
 

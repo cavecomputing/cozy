@@ -32,6 +32,16 @@ def _unique_filename(name):
 
 def _char_to_dict(row, card_data=None):
     """Merge a DB character row with parsed card data into an API response dict."""
+    if row['missing']:
+        return {
+            'id': row['id'],
+            'filename': row['filename'],
+            'missing': True,
+            'name': row['filename'].rsplit('.', 1)[0],
+            'avatar_url': None,
+            'created_at': row['created_at'],
+        }
+
     d = {
         'id': row['id'],
         'filename': row['filename'],
@@ -120,11 +130,7 @@ def list_characters():
         result = []
         for row in rows:
             if row['missing']:
-                result.append({
-                    'id': row['id'], 'filename': row['filename'],
-                    'missing': True, 'name': row['filename'].rsplit('.', 1)[0],
-                    'avatar_url': None, 'created_at': row['created_at'],
-                })
+                result.append(_char_to_dict(row))
             else:
                 card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
                 result.append(_char_to_dict(row, card))
@@ -219,11 +225,7 @@ def get_character(char_id):
         if not row:
             return jsonify({'error': 'Not found'}), 404
         if row['missing']:
-            return jsonify({
-                'id': row['id'], 'filename': row['filename'],
-                'missing': True, 'name': row['filename'].rsplit('.', 1)[0],
-                'avatar_url': None, 'created_at': row['created_at'],
-            })
+            return jsonify(_char_to_dict(row))
         card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
         return jsonify(_char_to_dict(row, card))
 
@@ -243,7 +245,7 @@ def export_character(char_id):
     filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
     card_data = read_character_card(filepath)
     data = card_data.get('data', card_data) if card_data else {}
-    safe = secure_filename(data.get('name') or 'character')
+    safe = shared.safe_download_name(data.get('name'), 'character')
 
     fmt = request.args.get('fmt', 'json').lower()
 

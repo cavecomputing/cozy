@@ -4,7 +4,7 @@ import json
 
 from flask import Blueprint, request, jsonify, Response
 
-from shared import get_db, DEFAULT_PROMPT_TEMPLATE
+from shared import get_db, safe_download_name, DEFAULT_PROMPT_TEMPLATE
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -54,6 +54,10 @@ def get_settings():
         return {r['key']: r['value'] for r in rows}
 
 
+def _setting_value(value):
+    return '' if value is None else str(value).strip()
+
+
 @settings_bp.route('/api/settings', methods=['GET'])
 def read_settings():
     s = get_settings()
@@ -70,7 +74,7 @@ def write_settings():
     with get_db() as conn:
         for key in SETTINGS_KEYS:
             if key in data:
-                val = str(data[key] or '').strip()
+                val = _setting_value(data[key])
                 # Allow clearing, or setting a new value
                 # For api_key, skip if the placeholder/masked value is sent back
                 if key == 'api_key' and is_masked_secret(val):
@@ -139,11 +143,6 @@ def delete_system_prompt(prompt_id):
 
 # ── System prompt import / export ─────────────────────────────────────────
 
-def _safe_filename(name, fallback='prompt'):
-    safe = ''.join(c for c in (name or '') if c.isalnum() or c in (' ', '-', '_')).strip()
-    return safe or fallback
-
-
 def _unique_prompt_name(conn, base):
     """Append " (n)" until the name is free."""
     base = (base or '').strip() or 'Imported Prompt'
@@ -203,7 +202,7 @@ def export_system_prompt(prompt_id):
             return jsonify({'error': 'Not found'}), 404
 
     body = {'name': row['name'], 'content': row['content']}
-    filename = f"{_safe_filename(row['name'])}.json"
+    filename = f"{safe_download_name(row['name'], 'prompt')}.json"
     return Response(
         json.dumps(body, indent=2, ensure_ascii=False),
         mimetype='application/json; charset=utf-8',
