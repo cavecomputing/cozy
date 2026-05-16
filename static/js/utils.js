@@ -154,7 +154,7 @@ export function hideEmptyState() {
 /** Set avatar element — background-image if URL, else initials. */
 export function applyAvatar(avatarEl, char) {
     if (char && char.avatar_url) {
-        avatarEl.style.backgroundImage = `url('${char.avatar_url}?t=${Date.now()}')`;
+        avatarEl.style.backgroundImage = `url('${char.avatar_url}')`;
         avatarEl.dataset.hasImage = 'true';
         avatarEl.textContent = '';
     } else {

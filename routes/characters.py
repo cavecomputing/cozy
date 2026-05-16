@@ -47,7 +47,7 @@ def _char_to_dict(row, card_data=None):
         'filename': row['filename'],
         'missing': bool(row['missing']),
         'created_at': row['created_at'],
-        'avatar_url': f"/characters/{row['filename']}",
+        'avatar_url': f"/characters/{row['filename']}?v={row['crc']}",
     }
     if card_data:
         data = card_data.get('data', card_data)

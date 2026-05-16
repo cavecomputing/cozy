@@ -74,8 +74,8 @@ class TestPersonaAvatar:
         body = r.get_json()
         assert body['avatar_url']
         assert body['avatar_url'].startswith('/personas/')
-        # File exists in PERSONAS_DIR
-        filename = body['avatar_url'].rsplit('/', 1)[-1]
+        # File exists in PERSONAS_DIR (URL has a ?v=updated_at cache key)
+        filename = body['avatar_url'].rsplit('/', 1)[-1].split('?', 1)[0]
         assert os.path.exists(os.path.join(shared.PERSONAS_DIR, filename))
 
     def test_upload_replaces_old_avatar_file(self, client, sample_persona):

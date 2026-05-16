@@ -12,7 +12,11 @@ personas_bp = Blueprint('personas', __name__)
 
 def persona_to_dict(row):
     d = dict(row)
-    d['avatar_url'] = f"/personas/{d['avatar_path']}" if d.get('avatar_path') else None
+    if d.get('avatar_path'):
+        # Stable cache key bumped on upload, so the browser actually caches.
+        d['avatar_url'] = f"/personas/{d['avatar_path']}?v={d.get('updated_at') or ''}"
+    else:
+        d['avatar_url'] = None
     return d
 
 

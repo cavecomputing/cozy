@@ -14,7 +14,8 @@ def list_messages(chat_id):
             return jsonify({'error': 'Chat not found'}), 404
         rows = conn.execute('''
             SELECT m.*, p.name AS persona_name, p.tagline AS persona_tagline,
-                   p.avatar_path AS persona_avatar_path
+                   p.avatar_path AS persona_avatar_path,
+                   p.updated_at AS persona_updated_at
             FROM messages m
             LEFT JOIN personas p ON m.persona_id = p.id
             WHERE m.chat_id=?
@@ -43,10 +44,14 @@ def list_messages(chat_id):
         for r in rows:
             m = dict(r)
             if m.get('persona_avatar_path'):
-                m['persona_avatar_url'] = f'/personas/{m["persona_avatar_path"]}'
+                m['persona_avatar_url'] = (
+                    f'/personas/{m["persona_avatar_path"]}'
+                    f'?v={m.get("persona_updated_at") or ""}'
+                )
             else:
                 m['persona_avatar_url'] = None
-            del m['persona_avatar_path']
+            m.pop('persona_avatar_path', None)
+            m.pop('persona_updated_at', None)
             m['swipes'] = swipes_by_message.get(r['id']) or [{'id': None, 'content': r['content']}]
             messages.append(m)
         return jsonify(messages)
@@ -78,17 +83,22 @@ def add_message(chat_id):
         conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
         row = conn.execute('''
             SELECT m.*, p.name AS persona_name, p.tagline AS persona_tagline,
-                   p.avatar_path AS persona_avatar_path
+                   p.avatar_path AS persona_avatar_path,
+                   p.updated_at AS persona_updated_at
             FROM messages m
             LEFT JOIN personas p ON m.persona_id = p.id
             WHERE m.id=?
         ''', (msg_id,)).fetchone()
         result = dict(row)
         if result.get('persona_avatar_path'):
-            result['persona_avatar_url'] = f'/personas/{result["persona_avatar_path"]}'
+            result['persona_avatar_url'] = (
+                f'/personas/{result["persona_avatar_path"]}'
+                f'?v={result.get("persona_updated_at") or ""}'
+            )
         else:
             result['persona_avatar_url'] = None
         result.pop('persona_avatar_path', None)
+        result.pop('persona_updated_at', None)
         result['swipes'] = [{'id': None, 'content': content}]  # inline for convenience
         return jsonify(result), 201
 

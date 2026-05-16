@@ -296,7 +296,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     if (role === 'user') {
         avatarDiv.className = 'avatar user-avatar';
         if (p && p.avatar_url) {
-            avatarDiv.style.backgroundImage = `url('${p.avatar_url}?t=${Date.now()}')`;
+            avatarDiv.style.backgroundImage = `url('${p.avatar_url}')`;
             avatarDiv.dataset.hasImage = 'true';
         } else {
             avatarDiv.dataset.hasImage = 'false';
