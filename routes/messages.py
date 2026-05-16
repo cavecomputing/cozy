@@ -18,19 +18,19 @@ def list_messages(chat_id):
             FROM messages m
             LEFT JOIN personas p ON m.persona_id = p.id
             WHERE m.chat_id=?
-            ORDER BY m.created_at ASC, m.id ASC
+            ORDER BY m.id ASC
         ''', (chat_id,)).fetchall()
         swipes_by_message = {}
         if rows:
-            placeholders = ','.join('?' for _ in rows)
             swipes = conn.execute(
-                f'''
-                SELECT id, message_id, content, created_at
-                FROM message_swipes
-                WHERE message_id IN ({placeholders})
-                ORDER BY message_id ASC, id ASC
+                '''
+                SELECT s.id, s.message_id, s.content, s.created_at
+                FROM message_swipes s
+                JOIN messages m ON m.id = s.message_id
+                WHERE m.chat_id=?
+                ORDER BY s.message_id ASC, s.id ASC
                 ''',
-                [r['id'] for r in rows],
+                (chat_id,),
             ).fetchall()
             for swipe in swipes:
                 swipes_by_message.setdefault(swipe['message_id'], []).append({

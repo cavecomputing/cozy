@@ -68,7 +68,7 @@ def _default_user_name(conn, chat_id):
         FROM messages m
         JOIN personas p ON m.persona_id = p.id
         WHERE m.chat_id=? AND m.role='user' AND p.name IS NOT NULL
-        ORDER BY m.created_at ASC, m.id ASC
+        ORDER BY m.id ASC
         LIMIT 1
     ''', (chat_id,)).fetchone()
     if row and row['name']:
@@ -98,19 +98,19 @@ def _chat_jsonl(conn, chat_id):
         FROM messages m
         LEFT JOIN personas p ON m.persona_id = p.id
         WHERE m.chat_id=?
-        ORDER BY m.created_at ASC, m.id ASC
+        ORDER BY m.id ASC
     ''', (chat_id,)).fetchall()
     swipes_by_message = {}
     if rows:
-        placeholders = ','.join('?' for _ in rows)
         swipes = conn.execute(
-            f'''
-            SELECT message_id, content
-            FROM message_swipes
-            WHERE message_id IN ({placeholders})
-            ORDER BY message_id ASC, id ASC
+            '''
+            SELECT s.message_id, s.content
+            FROM message_swipes s
+            JOIN messages m ON m.id = s.message_id
+            WHERE m.chat_id=?
+            ORDER BY s.message_id ASC, s.id ASC
             ''',
-            [row['id'] for row in rows],
+            (chat_id,),
         ).fetchall()
         for swipe in swipes:
             swipes_by_message.setdefault(swipe['message_id'], []).append(swipe['content'])

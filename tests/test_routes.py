@@ -212,6 +212,27 @@ class TestMessages:
         assert msgs[0]['content'] == 'First'
         assert msgs[1]['content'] == 'Second'
 
+    def test_list_many_messages_with_swipes(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        with shared.get_db() as conn:
+            for i in range(1200):
+                cur = conn.execute(
+                    'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
+                    (chat_id, 'user' if i % 2 == 0 else 'character', f'Message {i}')
+                )
+                conn.execute(
+                    'INSERT INTO message_swipes (message_id, content) VALUES (?, ?)',
+                    (cur.lastrowid, f'Message {i}')
+                )
+
+        r = client.get(f'/api/chats/{chat_id}/messages')
+        assert r.status_code == 200
+        msgs = r.get_json()
+        assert len(msgs) == 1200
+        assert msgs[0]['content'] == 'Message 0'
+        assert msgs[-1]['content'] == 'Message 1199'
+        assert msgs[-1]['swipes'][0]['content'] == 'Message 1199'
+
     def test_add_swipe(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={

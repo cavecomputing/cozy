@@ -167,6 +167,7 @@ export async function selectChat(chat) {
     activeItem?.querySelector('.chat-select-btn')?.setAttribute('aria-current', 'true');
 
     // Load messages from DB
+    let messagesLoaded = false;
     try {
         const rows = await API.getMessages(chat.id);
         // Normalise DB rows to the shape appendMessage expects
@@ -186,13 +187,14 @@ export async function selectChat(chat) {
                 persona,
             };
         });
+        messagesLoaded = true;
     } catch (err) {
         state.messages = [];
         console.error('Could not load messages:', err);
     }
 
     // Seed the character's greeting into the DB if the chat is brand-new
-    if (state.messages.length === 0 && state.activeCharacter) {
+    if (messagesLoaded && state.messages.length === 0 && state.activeCharacter) {
         const char = state.activeCharacter;
         const greeting = char.first_mes;
         if (greeting) {

@@ -159,10 +159,12 @@ def init_db():
                 updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
+            DROP INDEX IF EXISTS idx_messages_chat_created;
+
             CREATE INDEX IF NOT EXISTS idx_chats_character_created
                 ON chats(character_id, created_at, id);
-            CREATE INDEX IF NOT EXISTS idx_messages_chat_created
-                ON messages(chat_id, created_at, id);
+            CREATE INDEX IF NOT EXISTS idx_messages_chat_id
+                ON messages(chat_id, id);
             CREATE INDEX IF NOT EXISTS idx_message_swipes_message
                 ON message_swipes(message_id, id);
         ''')
