@@ -3,6 +3,7 @@
 from flask import Blueprint, request, jsonify
 
 from shared import get_db
+from routes.personas import _avatar_cache_key
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -46,7 +47,7 @@ def list_messages(chat_id):
             if m.get('persona_avatar_path'):
                 m['persona_avatar_url'] = (
                     f'/personas/{m["persona_avatar_path"]}'
-                    f'?v={m.get("persona_updated_at") or ""}'
+                    f'?v={_avatar_cache_key(m.get("persona_updated_at"))}'
                 )
             else:
                 m['persona_avatar_url'] = None
@@ -93,7 +94,7 @@ def add_message(chat_id):
         if result.get('persona_avatar_path'):
             result['persona_avatar_url'] = (
                 f'/personas/{result["persona_avatar_path"]}'
-                f'?v={result.get("persona_updated_at") or ""}'
+                f'?v={_avatar_cache_key(result.get("persona_updated_at"))}'
             )
         else:
             result['persona_avatar_url'] = None

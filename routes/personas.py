@@ -10,11 +10,16 @@ from shared import get_db
 personas_bp = Blueprint('personas', __name__)
 
 
+def _avatar_cache_key(updated_at):
+    # updated_at is a SQLite timestamp like '2026-05-15 01:33:45'; strip the
+    # space/colons so it's safe inside an unquoted CSS url(...).
+    return (updated_at or '').replace(' ', 'T').replace(':', '')
+
+
 def persona_to_dict(row):
     d = dict(row)
     if d.get('avatar_path'):
-        # Stable cache key bumped on upload, so the browser actually caches.
-        d['avatar_url'] = f"/personas/{d['avatar_path']}?v={d.get('updated_at') or ''}"
+        d['avatar_url'] = f"/personas/{d['avatar_path']}?v={_avatar_cache_key(d.get('updated_at'))}"
     else:
         d['avatar_url'] = None
     return d
