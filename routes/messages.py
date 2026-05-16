@@ -18,7 +18,7 @@ def list_messages(chat_id):
             FROM messages m
             LEFT JOIN personas p ON m.persona_id = p.id
             WHERE m.chat_id=?
-            ORDER BY m.created_at ASC
+            ORDER BY m.created_at ASC, m.id ASC
         ''', (chat_id,)).fetchall()
         swipes_by_message = {}
         if rows:

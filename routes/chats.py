@@ -68,7 +68,7 @@ def _default_user_name(conn, chat_id):
         FROM messages m
         JOIN personas p ON m.persona_id = p.id
         WHERE m.chat_id=? AND m.role='user' AND p.name IS NOT NULL
-        ORDER BY m.created_at ASC
+        ORDER BY m.created_at ASC, m.id ASC
         LIMIT 1
     ''', (chat_id,)).fetchone()
     if row and row['name']:
@@ -98,7 +98,7 @@ def _chat_jsonl(conn, chat_id):
         FROM messages m
         LEFT JOIN personas p ON m.persona_id = p.id
         WHERE m.chat_id=?
-        ORDER BY m.created_at ASC
+        ORDER BY m.created_at ASC, m.id ASC
     ''', (chat_id,)).fetchall()
     swipes_by_message = {}
     if rows:
@@ -187,7 +187,7 @@ def list_chats(char_id):
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
             return jsonify({'error': 'Character not found'}), 404
         rows = conn.execute(
-            'SELECT * FROM chats WHERE character_id=? ORDER BY created_at ASC', (char_id,)
+            'SELECT * FROM chats WHERE character_id=? ORDER BY created_at ASC, id ASC', (char_id,)
         ).fetchall()
         return jsonify([_chat_to_dict(r) for r in rows])
 

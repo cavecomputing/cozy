@@ -199,8 +199,13 @@ class TestMessages:
 
     def test_list_messages_ordered(self, client, sample_chat):
         chat_id = sample_chat['id']
-        client.post(f'/api/chats/{chat_id}/messages', json={'role': 'user', 'content': 'First'})
-        client.post(f'/api/chats/{chat_id}/messages', json={'role': 'character', 'content': 'Second'})
+        first = client.post(f'/api/chats/{chat_id}/messages', json={'role': 'user', 'content': 'First'}).get_json()
+        second = client.post(f'/api/chats/{chat_id}/messages', json={'role': 'character', 'content': 'Second'}).get_json()
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE messages SET created_at=? WHERE id IN (?, ?)',
+                ('2026-05-15 12:00:00', first['id'], second['id'])
+            )
         r = client.get(f'/api/chats/{chat_id}/messages')
         msgs = r.get_json()
         assert len(msgs) == 2
@@ -235,13 +240,18 @@ class TestChatJsonlImportExport:
     def test_export_chat_as_sillytavern_jsonl(self, client, sample_chat):
         import json
         chat_id = sample_chat['id']
-        client.post(f'/api/chats/{chat_id}/messages', json={
+        user_msg = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'user', 'content': 'Hello!',
-        })
+        }).get_json()
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'character', 'content': 'Original',
         }).get_json()
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Alternative'})
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE messages SET created_at=? WHERE id IN (?, ?)',
+                ('2026-05-15 12:00:00', user_msg['id'], msg['id'])
+            )
 
         r = client.get(f'/api/chats/{chat_id}/export')
         assert r.status_code == 200
