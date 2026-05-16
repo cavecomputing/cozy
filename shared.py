@@ -178,6 +178,26 @@ def init_db():
             "ON CONFLICT(key) DO NOTHING"
         )
 
+        # One-shot cleanup: a previous bug re-seeded character greetings into
+        # the END of long chats whenever the messages GET failed. Remove any
+        # character message whose content matches the chat's first character
+        # message (which is the legitimate greeting). Idempotent.
+        conn.execute('''
+            DELETE FROM messages
+            WHERE role = 'character'
+              AND id > (
+                  SELECT MIN(id) FROM messages m2
+                  WHERE m2.chat_id = messages.chat_id AND m2.role = 'character'
+              )
+              AND content = (
+                  SELECT content FROM messages m3
+                  WHERE m3.id = (
+                      SELECT MIN(id) FROM messages m4
+                      WHERE m4.chat_id = messages.chat_id AND m4.role = 'character'
+                  )
+              )
+        ''')
+
         # Seed a default persona if the table is empty
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:
             conn.execute(
