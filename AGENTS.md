@@ -26,6 +26,14 @@ Use `uv run ...` for Python execution and testing in this repo. Do not start wit
 
 Commit directly to `main` unless the user explicitly asks for a branch or PR workflow.
 
+Before committing code changes:
+
+1. Run the relevant `uv run pytest ...` target, and prefer the full `uv run pytest` suite when the change touches shared route, DB, import/export, or frontend/API behavior.
+2. Add or update tests when the change introduces behavior, fixes a bug, changes response shapes, touches persistence, or covers a regression-prone path.
+3. For frontend/UI changes, start the dev server with `uv run python app.py`, open the app in the in-harness browser, exercise the affected workflow, and check that the relevant screens are not visually broken on desktop and mobile-sized viewports when practical.
+4. For CSS/template/layout changes, verify the affected UI visually rather than relying only on backend tests.
+5. If the dev server or browser smoke test is blocked by the environment, say so clearly in the final note and run the closest available substitute, such as Flask test-client checks or syntax checks.
+
 Production (Docker) runs gunicorn with the `gthread` worker class — required because `/api/llm/chat` streams SSE and the default sync worker buffers responses.
 
 ## Architecture
