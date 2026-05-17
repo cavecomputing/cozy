@@ -7,19 +7,24 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 ```bash
 # Dev server (Flask, auto-reload, port 5001)
 uv run python app.py
-# or: python app.py
 
 # Custom data directory (default: ./data)
-COZY_DATA_DIR=/path/to/data python app.py
+COZY_DATA_DIR=/path/to/data uv run python app.py
 
-# Tests
-pytest                                 # full suite
-pytest tests/test_characters.py        # one file
-pytest tests/test_characters.py::test_name -x   # one test, stop on fail
+# Tests (always run through uv)
+uv run pytest                                 # full suite
+uv run pytest tests/test_characters.py        # one file
+uv run pytest tests/test_characters.py::test_name -x   # one test, stop on fail
 
 # Docker (port 9002 -> container 5001 per docs/run.md; compose file currently maps 80:5001)
 cd docker && docker compose up --build
 ```
+
+Use `uv run ...` for Python execution and testing in this repo. Do not start with bare `python` or bare `pytest` unless the user explicitly asks for that.
+
+## Git workflow
+
+Commit directly to `main` unless the user explicitly asks for a branch or PR workflow.
 
 Production (Docker) runs gunicorn with the `gthread` worker class — required because `/api/llm/chat` streams SSE and the default sync worker buffers responses.
 
