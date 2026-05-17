@@ -3,12 +3,31 @@
 import io
 import os
 import zlib
+from copy import deepcopy
 
 from PIL import Image
 
 import shared
 from shared import get_db
 from png_utils import extract_png_chara, write_png_chara
+
+CARD_DATA_DEFAULTS = {
+    'name': 'Unnamed',
+    'description': '',
+    'personality': '',
+    'scenario': '',
+    'first_mes': '',
+    'mes_example': '',
+    'creator_notes': '',
+    'system_prompt': '',
+    'post_history_instructions': '',
+    'alternate_greetings': [],
+    'character_book': None,
+    'tags': [],
+    'creator': '',
+    'character_version': '',
+    'extensions': {},
+}
 
 
 def file_crc(path):
@@ -34,23 +53,16 @@ def normalize_to_v2(card_data):
     return {
         'spec': 'chara_card_v2',
         'spec_version': '2.0',
-        'data': {
-            'name':                      data.get('name', 'Unnamed'),
-            'description':               data.get('description', ''),
-            'personality':               data.get('personality', ''),
-            'scenario':                  data.get('scenario', ''),
-            'first_mes':                 data.get('first_mes', ''),
-            'mes_example':               data.get('mes_example', ''),
-            'creator_notes':             data.get('creator_notes', ''),
-            'system_prompt':             data.get('system_prompt', ''),
-            'post_history_instructions': data.get('post_history_instructions', ''),
-            'alternate_greetings':       data.get('alternate_greetings', []),
-            'character_book':            data.get('character_book'),
-            'tags':                      data.get('tags', []),
-            'creator':                   data.get('creator', ''),
-            'character_version':         data.get('character_version', ''),
-            'extensions':                data.get('extensions', {}),
-        }
+        'data': card_data_fields(data),
+    }
+
+
+def card_data_fields(card_data):
+    """Return API-facing character data fields with V2 defaults applied."""
+    data = card_data.get('data', card_data) if isinstance(card_data, dict) else {}
+    return {
+        key: data[key] if key in data else deepcopy(default)
+        for key, default in CARD_DATA_DEFAULTS.items()
     }
 
 

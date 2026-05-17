@@ -1,4 +1,5 @@
 import os
+import glob
 import logging
 
 from flask import Flask, render_template, jsonify, send_from_directory
@@ -71,13 +72,16 @@ from routes.settings import settings_bp
 from routes.llm import llm_bp
 from routes.lorebooks import lorebooks_bp
 
-app.register_blueprint(characters_bp)
-app.register_blueprint(chats_bp)
-app.register_blueprint(messages_bp)
-app.register_blueprint(personas_bp)
-app.register_blueprint(settings_bp)
-app.register_blueprint(llm_bp)
-app.register_blueprint(lorebooks_bp)
+for blueprint in (
+    characters_bp,
+    chats_bp,
+    messages_bp,
+    personas_bp,
+    settings_bp,
+    llm_bp,
+    lorebooks_bp,
+):
+    app.register_blueprint(blueprint)
 
 
 # ── Initialise DB (runs under both gunicorn and `python app.py`) ────────────
@@ -95,7 +99,8 @@ if __name__ == '__main__':
     # livereload.Server wraps WSGI and buffers responses, which breaks SSE
     # streaming.  Flask's dev server supports streaming natively and the
     # ``extra_files`` watcher gives us auto-reload on template/static changes.
-    import glob as _glob
-    extra = _glob.glob('static/**/*', recursive=True) + \
-            _glob.glob('templates/**/*', recursive=True)
+    extra = [
+        *glob.glob('static/**/*', recursive=True),
+        *glob.glob('templates/**/*', recursive=True),
+    ]
     app.run(port=5001, debug=True, extra_files=extra, threaded=True)

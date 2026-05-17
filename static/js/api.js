@@ -5,46 +5,53 @@ export async function apiError(r, fallback) {
     try { const e = await r.json(); return e.error || fallback; } catch { return fallback; }
 }
 
+async function jsonRequest(url, { method = 'GET', body, fallback = 'Request failed' } = {}) {
+    const options = { method };
+    if (body !== undefined) {
+        options.headers = { 'Content-Type': 'application/json' };
+        options.body = JSON.stringify(body);
+    }
+    const r = await fetch(url, options);
+    if (!r.ok) throw new Error(await apiError(r, fallback));
+    return r.json();
+}
+
+async function formRequest(url, fields, fallback) {
+    const fd = new FormData();
+    for (const [key, value] of Object.entries(fields)) {
+        if (value != null) fd.append(key, value);
+    }
+    const r = await fetch(url, { method: 'POST', body: fd });
+    if (!r.ok) throw new Error(await apiError(r, fallback));
+    return r.json();
+}
+
 export const API = {
     // Characters
     async getCharacters() {
-        const r = await fetch('/api/characters');
-        if (!r.ok) throw new Error('Failed to load characters');
-        return r.json();
+        return jsonRequest('/api/characters', { fallback: 'Failed to load characters' });
     },
     async createCharacter(data, imageFile) {
-        const fd = new FormData();
-        fd.append('data', JSON.stringify(data));
-        fd.append('image', imageFile);
-        const r = await fetch('/api/characters', { method: 'POST', body: fd });
-        if (!r.ok) throw new Error(await apiError(r, 'Create failed'));
-        return r.json();
+        return formRequest('/api/characters', {
+            data: JSON.stringify(data),
+            image: imageFile,
+        }, 'Create failed');
     },
     async updateCharacter(id, data) {
-        const r = await fetch(`/api/characters/${id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+        return jsonRequest(`/api/characters/${id}`, {
+            method: 'PUT',
+            body: data,
+            fallback: 'Update failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Update failed'));
-        return r.json();
     },
     async deleteCharacter(id) {
-        const r = await fetch(`/api/characters/${id}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error(await apiError(r, 'Delete failed'));
-        return r.json();
+        return jsonRequest(`/api/characters/${id}`, { method: 'DELETE', fallback: 'Delete failed' });
     },
     async uploadAvatar(id, file) {
-        const fd = new FormData();
-        fd.append('avatar', file);
-        const r = await fetch(`/api/characters/${id}/avatar`, { method: 'POST', body: fd });
-        if (!r.ok) throw new Error(await apiError(r, 'Upload failed'));
-        return r.json();
+        return formRequest(`/api/characters/${id}/avatar`, { avatar: file }, 'Upload failed');
     },
     async importCard(file) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const r = await fetch('/api/characters/import', { method: 'POST', body: fd });
-        if (!r.ok) throw new Error(await apiError(r, 'Import failed'));
-        return r.json();
+        return formRequest('/api/characters/import', { file }, 'Import failed');
     },
     exportCard(id, name, fmt = 'json') {
         // Trigger a browser download — fmt is 'json' or 'png'
@@ -60,101 +67,77 @@ export const API = {
 
     // Chats
     async getChats(charId) {
-        const r = await fetch(`/api/characters/${charId}/chats`);
-        if (!r.ok) throw new Error('Failed to load chats');
-        return r.json();
+        return jsonRequest(`/api/characters/${charId}/chats`, { fallback: 'Failed to load chats' });
     },
     async createChat(charId, name) {
-        const r = await fetch(`/api/characters/${charId}/chats`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name }),
+        return jsonRequest(`/api/characters/${charId}/chats`, {
+            method: 'POST',
+            body: { name },
+            fallback: 'Chat create failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Chat create failed'));
-        return r.json();
     },
     async renameChat(chatId, name) {
-        const r = await fetch(`/api/chats/${chatId}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name }),
+        return jsonRequest(`/api/chats/${chatId}`, {
+            method: 'PUT',
+            body: { name },
+            fallback: 'Rename failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Rename failed'));
-        return r.json();
     },
     async updateChat(chatId, fields) {
-        const r = await fetch(`/api/chats/${chatId}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(fields),
+        return jsonRequest(`/api/chats/${chatId}`, {
+            method: 'PUT',
+            body: fields,
+            fallback: 'Update failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Update failed'));
-        return r.json();
     },
     async deleteChat(chatId) {
-        const r = await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error(await apiError(r, 'Delete failed'));
-        return r.json();
+        return jsonRequest(`/api/chats/${chatId}`, { method: 'DELETE', fallback: 'Delete failed' });
     },
     async importChat(characterId, file) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const r = await fetch(`/api/chats/import?character_id=${characterId}`, {
-            method: 'POST',
-            body: fd,
-        });
-        if (!r.ok) throw new Error(await apiError(r, 'Import failed'));
-        return r.json();
+        return formRequest(`/api/chats/import?character_id=${characterId}`, { file }, 'Import failed');
     },
 
     // Messages
     async getMessages(chatId) {
-        const r = await fetch(`/api/chats/${chatId}/messages`);
-        if (!r.ok) throw new Error('Failed to load messages');
-        return r.json();
+        return jsonRequest(`/api/chats/${chatId}/messages`, { fallback: 'Failed to load messages' });
     },
     async addMessage(chatId, role, content, personaId = null) {
         const payload = { role, content };
         if (personaId != null) payload.persona_id = personaId;
-        const r = await fetch(`/api/chats/${chatId}/messages`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+        return jsonRequest(`/api/chats/${chatId}/messages`, {
+            method: 'POST',
+            body: payload,
+            fallback: 'Message save failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Message save failed'));
-        return r.json();
     },
     async addSwipe(msgId, content) {
-        const r = await fetch(`/api/messages/${msgId}/swipes`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content }),
+        return jsonRequest(`/api/messages/${msgId}/swipes`, {
+            method: 'POST',
+            body: { content },
+            fallback: 'Swipe save failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Swipe save failed'));
-        return r.json();
     },
 
     // Personas
     async getPersonas() {
-        const r = await fetch('/api/personas');
-        if (!r.ok) throw new Error('Failed to load personas');
-        return r.json();
+        return jsonRequest('/api/personas', { fallback: 'Failed to load personas' });
     },
     async createPersona(data) {
-        const r = await fetch('/api/personas', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
+        return jsonRequest('/api/personas', {
+            method: 'POST',
+            body: data,
+            fallback: 'Create failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Create failed'));
-        return r.json();
     },
     async updatePersona(id, data) {
-        const r = await fetch(`/api/personas/${id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
+        return jsonRequest(`/api/personas/${id}`, {
+            method: 'PUT',
+            body: data,
+            fallback: 'Update failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Update failed'));
-        return r.json();
     },
     async deletePersona(id) {
-        const r = await fetch(`/api/personas/${id}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error(await apiError(r, 'Delete failed'));
-        return r.json();
+        return jsonRequest(`/api/personas/${id}`, { method: 'DELETE', fallback: 'Delete failed' });
     },
     async chatCompletion(payload) {
         const r = await fetch('/api/llm/chat', {
@@ -222,116 +205,88 @@ export const API = {
         return fullText;
     },
     async updateMessage(msgId, content) {
-        const r = await fetch(`/api/messages/${msgId}`, {
+        return jsonRequest(`/api/messages/${msgId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content }),
+            body: { content },
+            fallback: 'Update failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Update failed'));
-        return r.json();
     },
     async deleteMessage(msgId) {
-        const r = await fetch(`/api/messages/${msgId}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error(await apiError(r, 'Delete failed'));
-        return r.json();
+        return jsonRequest(`/api/messages/${msgId}`, { method: 'DELETE', fallback: 'Delete failed' });
     },
 
     // Presets
     async getPresets() {
-        const r = await fetch('/api/presets');
-        if (!r.ok) throw new Error('Failed to load presets');
-        return r.json();
+        return jsonRequest('/api/presets', { fallback: 'Failed to load presets' });
     },
     async createPreset(data) {
-        const r = await fetch('/api/presets', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
+        return jsonRequest('/api/presets', {
+            method: 'POST',
+            body: data,
+            fallback: 'Create preset failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Create preset failed'));
-        return r.json();
     },
     async updatePreset(id, data) {
-        const r = await fetch(`/api/presets/${id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
+        return jsonRequest(`/api/presets/${id}`, {
+            method: 'PUT',
+            body: data,
+            fallback: 'Update preset failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Update preset failed'));
-        return r.json();
     },
     async deletePreset(id) {
-        const r = await fetch(`/api/presets/${id}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error(await apiError(r, 'Delete preset failed'));
-        return r.json();
+        return jsonRequest(`/api/presets/${id}`, { method: 'DELETE', fallback: 'Delete preset failed' });
     },
     async activatePreset(id) {
-        const r = await fetch(`/api/presets/${id}/activate`, { method: 'POST' });
-        if (!r.ok) throw new Error(await apiError(r, 'Activate preset failed'));
-        return r.json();
+        return jsonRequest(`/api/presets/${id}/activate`, {
+            method: 'POST',
+            fallback: 'Activate preset failed',
+        });
     },
 
     async uploadPersonaAvatar(id, file) {
-        const fd = new FormData();
-        fd.append('avatar', file);
-        const r = await fetch(`/api/personas/${id}/avatar`, { method: 'POST', body: fd });
-        if (!r.ok) throw new Error(await apiError(r, 'Upload failed'));
-        return r.json();
+        return formRequest(`/api/personas/${id}/avatar`, { avatar: file }, 'Upload failed');
     },
 
     // Lorebooks (standalone DB-backed)
     async getLorebooks() {
-        const r = await fetch('/api/lorebooks');
-        if (!r.ok) throw new Error('Failed to load lorebooks');
-        return r.json();
+        return jsonRequest('/api/lorebooks', { fallback: 'Failed to load lorebooks' });
     },
     async getLorebook(id) {
-        const r = await fetch(`/api/lorebooks/${id}`);
-        if (!r.ok) throw new Error(await apiError(r, 'Failed to load lorebook'));
-        return r.json();
+        return jsonRequest(`/api/lorebooks/${id}`, { fallback: 'Failed to load lorebook' });
     },
     async createLorebook(data) {
-        const r = await fetch('/api/lorebooks', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
+        return jsonRequest('/api/lorebooks', {
+            method: 'POST',
+            body: data,
+            fallback: 'Create lorebook failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Create lorebook failed'));
-        return r.json();
     },
     async updateLorebook(id, data) {
-        const r = await fetch(`/api/lorebooks/${id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
+        return jsonRequest(`/api/lorebooks/${id}`, {
+            method: 'PUT',
+            body: data,
+            fallback: 'Update lorebook failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Update lorebook failed'));
-        return r.json();
     },
     async deleteLorebook(id) {
-        const r = await fetch(`/api/lorebooks/${id}`, { method: 'DELETE' });
-        if (!r.ok) throw new Error(await apiError(r, 'Delete lorebook failed'));
-        return r.json();
+        return jsonRequest(`/api/lorebooks/${id}`, { method: 'DELETE', fallback: 'Delete lorebook failed' });
     },
     async embedLorebookInCharacter(bookId, charId, deleteStandalone = false) {
         const qs = deleteStandalone ? '?delete_standalone=1' : '';
-        const r = await fetch(`/api/lorebooks/${bookId}/embed-in-character/${charId}${qs}`, {
+        return jsonRequest(`/api/lorebooks/${bookId}/embed-in-character/${charId}${qs}`, {
             method: 'POST',
+            fallback: 'Embed failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Embed failed'));
-        return r.json();
     },
     async extractCharacterLorebook(charId, clearEmbedded = false) {
         const qs = clearEmbedded ? '?clear_embedded=1' : '';
-        const r = await fetch(`/api/characters/${charId}/extract-lorebook${qs}`, {
+        return jsonRequest(`/api/characters/${charId}/extract-lorebook${qs}`, {
             method: 'POST',
+            fallback: 'Extract failed',
         });
-        if (!r.ok) throw new Error(await apiError(r, 'Extract failed'));
-        return r.json();
     },
     async importLorebook(file, name) {
-        const fd = new FormData();
-        fd.append('file', file);
-        if (name) fd.append('name', name);
-        const r = await fetch('/api/lorebooks/import', { method: 'POST', body: fd });
-        if (!r.ok) throw new Error(await apiError(r, 'Import failed'));
-        return r.json();
+        return formRequest('/api/lorebooks/import', { file, name }, 'Import failed');
     },
     exportLorebookUrl(id) {
         return `/api/lorebooks/${id}/export`;

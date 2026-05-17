@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 
 import shared
 from card_store import (
-    ensure_png, file_crc, normalize_to_v2, read_character_card,
+    card_data_fields, ensure_png, file_crc, normalize_to_v2, read_character_card,
     write_character_card,
 )
 from shared import get_db
@@ -50,24 +50,7 @@ def _char_to_dict(row, card_data=None):
         'avatar_url': f"/characters/{row['filename']}?v={row['crc']}",
     }
     if card_data:
-        data = card_data.get('data', card_data)
-        d.update({
-            'name':                      data.get('name', 'Unnamed'),
-            'description':               data.get('description', ''),
-            'personality':               data.get('personality', ''),
-            'scenario':                  data.get('scenario', ''),
-            'first_mes':                 data.get('first_mes', ''),
-            'mes_example':               data.get('mes_example', ''),
-            'creator_notes':             data.get('creator_notes', ''),
-            'system_prompt':             data.get('system_prompt', ''),
-            'post_history_instructions': data.get('post_history_instructions', ''),
-            'alternate_greetings':       data.get('alternate_greetings', []),
-            'character_book':            data.get('character_book'),
-            'tags':                      data.get('tags', []),
-            'creator':                   data.get('creator', ''),
-            'character_version':         data.get('character_version', ''),
-            'extensions':                data.get('extensions', {}),
-        })
+        d.update(card_data_fields(card_data))
     else:
         d['name'] = row['filename'].rsplit('.', 1)[0]
     return d
@@ -186,7 +169,7 @@ def import_character():
     elif fname.lower().endswith('.json'):
         try:
             card_data = json.loads(raw_bytes.decode('utf-8'))
-        except Exception:
+        except (UnicodeDecodeError, json.JSONDecodeError):
             return jsonify({'error': 'Invalid JSON file'}), 400
 
         is_v2 = isinstance(card_data, dict) and card_data.get('spec') == 'chara_card_v2'

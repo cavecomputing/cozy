@@ -104,6 +104,19 @@ function setSamplerPopoverOpen(open) {
     el.samplerConfigureBtn.setAttribute('aria-expanded', String(open));
 }
 
+function blurSettingsFlyoutFocus() {
+    if (el.settingsFlyout.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
+}
+
+function closeSettingsFlyout() {
+    blurSettingsFlyoutFocus();
+    el.settingsFlyout.hidden = true;
+    setSamplerPopoverOpen(false);
+    exitSettingsDetail();
+}
+
 let settingsSubmodalReturnFocus = null;
 function rememberSettingsSubmodalTrigger() {
     settingsSubmodalReturnFocus = document.activeElement;
@@ -176,13 +189,7 @@ function bindResponsiveShellHandlers() {
 function bindFlyoutHandlers() {
     // Register flyouts so only one is open at a time
     Flyouts.register('settings', () => {
-        // Blur focused element inside the flyout to flush pending change events
-        if (el.settingsFlyout.contains(document.activeElement)) {
-            document.activeElement.blur();
-        }
-        el.settingsFlyout.hidden = true;
-        setSamplerPopoverOpen(false);
-        exitSettingsDetail();
+        closeSettingsFlyout();
     });
     Flyouts.register('chat', () => {
         el.chatFlyout.hidden = true;
@@ -219,9 +226,7 @@ function bindSettingsHandlers() {
     const openSettings = async e => {
         e.stopPropagation();
         const isOpen = !el.settingsFlyout.hidden;
-        if (isOpen && el.settingsFlyout.contains(document.activeElement)) {
-            document.activeElement.blur();
-        }
+        if (isOpen) blurSettingsFlyoutFocus();
         Flyouts.closeAllExcept('settings');
         el.settingsFlyout.hidden = isOpen;
         if (isOpen) setSamplerPopoverOpen(false);
@@ -238,12 +243,7 @@ function bindSettingsHandlers() {
     el.settingsBtn?.addEventListener('click', openSettings);
     collapsedSettingsBtn?.addEventListener('click', openSettings);
     el.settingsCloseBtn?.addEventListener('click', () => {
-        if (el.settingsFlyout.contains(document.activeElement)) {
-            document.activeElement.blur();
-        }
-        el.settingsFlyout.hidden = true;
-        setSamplerPopoverOpen(false);
-        exitSettingsDetail();
+        closeSettingsFlyout();
     });
 
     // Settings nav (section switcher) + mobile back button
@@ -263,12 +263,7 @@ function bindSettingsHandlers() {
         if (el.settingsFlyout.contains(e.target) || path.includes(el.settingsFlyout)) return;
         if (e.target.closest('#settings-btn, #collapsed-settings-btn')) return;
         if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal')) return;
-        if (el.settingsFlyout.contains(document.activeElement)) {
-            document.activeElement.blur();
-        }
-        el.settingsFlyout.hidden = true;
-        setSamplerPopoverOpen(false);
-        exitSettingsDetail();
+        closeSettingsFlyout();
     });
 
     el.settingsThemeSelect?.addEventListener('change', () => {

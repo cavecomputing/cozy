@@ -197,6 +197,28 @@ class TestMessages:
         assert len(msg['swipes']) == 1
         assert msg['swipes'][0]['content'] == 'Hello!'
 
+    def test_user_message_includes_persona_avatar_url(self, client, sample_chat, sample_persona):
+        client.post(
+            f'/api/personas/{sample_persona["id"]}/avatar',
+            data={'avatar': (BytesIO(make_minimal_png()), 'avatar.png', 'image/png')},
+            content_type='multipart/form-data',
+        )
+
+        chat_id = sample_chat['id']
+        r = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user',
+            'content': 'Hello!',
+            'persona_id': sample_persona['id'],
+        })
+        assert r.status_code == 201
+        created = r.get_json()
+        assert created['persona_avatar_url'].startswith('/personas/')
+        assert len(created['swipes']) == 1
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        assert listed[0]['persona_avatar_url'] == created['persona_avatar_url']
+        assert listed[0]['swipes'][0]['content'] == 'Hello!'
+
     def test_list_messages_ordered(self, client, sample_chat):
         chat_id = sample_chat['id']
         first = client.post(f'/api/chats/{chat_id}/messages', json={'role': 'user', 'content': 'First'}).get_json()

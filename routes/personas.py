@@ -16,12 +16,15 @@ def _avatar_cache_key(updated_at):
     return (updated_at or '').replace(' ', 'T').replace(':', '')
 
 
+def persona_avatar_url(avatar_path, updated_at):
+    if not avatar_path:
+        return None
+    return f'/personas/{avatar_path}?v={_avatar_cache_key(updated_at)}'
+
+
 def persona_to_dict(row):
     d = dict(row)
-    if d.get('avatar_path'):
-        d['avatar_url'] = f"/personas/{d['avatar_path']}?v={_avatar_cache_key(d.get('updated_at'))}"
-    else:
-        d['avatar_url'] = None
+    d['avatar_url'] = persona_avatar_url(d.get('avatar_path'), d.get('updated_at'))
     return d
 
 

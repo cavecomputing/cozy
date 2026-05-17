@@ -3,9 +3,38 @@
 from flask import Blueprint, request, jsonify
 
 from shared import get_db
-from routes.personas import _avatar_cache_key
+from routes.personas import persona_avatar_url
 
 messages_bp = Blueprint('messages', __name__)
+
+
+MESSAGE_WITH_PERSONA_SQL = '''
+    SELECT m.*, p.name AS persona_name, p.tagline AS persona_tagline,
+           p.avatar_path AS persona_avatar_path,
+           p.updated_at AS persona_updated_at
+    FROM messages m
+    LEFT JOIN personas p ON m.persona_id = p.id
+'''
+
+
+def _swipe_to_dict(row):
+    return {
+        'id': row['id'],
+        'content': row['content'],
+        'created_at': row['created_at'],
+    }
+
+
+def _message_to_dict(row, swipes=None):
+    message = dict(row)
+    message['persona_avatar_url'] = persona_avatar_url(
+        message.get('persona_avatar_path'),
+        message.get('persona_updated_at'),
+    )
+    message.pop('persona_avatar_path', None)
+    message.pop('persona_updated_at', None)
+    message['swipes'] = swipes or [{'id': None, 'content': row['content']}]
+    return message
 
 
 @messages_bp.route('/api/chats/<int:chat_id>/messages', methods=['GET'])
@@ -13,12 +42,7 @@ def list_messages(chat_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM chats WHERE id=?', (chat_id,)).fetchone():
             return jsonify({'error': 'Chat not found'}), 404
-        rows = conn.execute('''
-            SELECT m.*, p.name AS persona_name, p.tagline AS persona_tagline,
-                   p.avatar_path AS persona_avatar_path,
-                   p.updated_at AS persona_updated_at
-            FROM messages m
-            LEFT JOIN personas p ON m.persona_id = p.id
+        rows = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
             WHERE m.chat_id=?
             ORDER BY m.id ASC
         ''', (chat_id,)).fetchall()
@@ -35,27 +59,12 @@ def list_messages(chat_id):
                 (chat_id,),
             ).fetchall()
             for swipe in swipes:
-                swipes_by_message.setdefault(swipe['message_id'], []).append({
-                    'id': swipe['id'],
-                    'content': swipe['content'],
-                    'created_at': swipe['created_at'],
-                })
+                swipes_by_message.setdefault(swipe['message_id'], []).append(_swipe_to_dict(swipe))
 
-        messages = []
-        for r in rows:
-            m = dict(r)
-            if m.get('persona_avatar_path'):
-                m['persona_avatar_url'] = (
-                    f'/personas/{m["persona_avatar_path"]}'
-                    f'?v={_avatar_cache_key(m.get("persona_updated_at"))}'
-                )
-            else:
-                m['persona_avatar_url'] = None
-            m.pop('persona_avatar_path', None)
-            m.pop('persona_updated_at', None)
-            m['swipes'] = swipes_by_message.get(r['id']) or [{'id': None, 'content': r['content']}]
-            messages.append(m)
-        return jsonify(messages)
+        return jsonify([
+            _message_to_dict(row, swipes_by_message.get(row['id']))
+            for row in rows
+        ])
 
 
 @messages_bp.route('/api/chats/<int:chat_id>/messages', methods=['POST'])
@@ -82,26 +91,10 @@ def add_message(chat_id):
         )
         # Bump the chat's updated_at so most-recent ordering works
         conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
-        row = conn.execute('''
-            SELECT m.*, p.name AS persona_name, p.tagline AS persona_tagline,
-                   p.avatar_path AS persona_avatar_path,
-                   p.updated_at AS persona_updated_at
-            FROM messages m
-            LEFT JOIN personas p ON m.persona_id = p.id
+        row = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
             WHERE m.id=?
         ''', (msg_id,)).fetchone()
-        result = dict(row)
-        if result.get('persona_avatar_path'):
-            result['persona_avatar_url'] = (
-                f'/personas/{result["persona_avatar_path"]}'
-                f'?v={_avatar_cache_key(result.get("persona_updated_at"))}'
-            )
-        else:
-            result['persona_avatar_url'] = None
-        result.pop('persona_avatar_path', None)
-        result.pop('persona_updated_at', None)
-        result['swipes'] = [{'id': None, 'content': content}]  # inline for convenience
-        return jsonify(result), 201
+        return jsonify(_message_to_dict(row, [{'id': None, 'content': content}])), 201
 
 
 # ── Swipe routes ───────────────────────────────────────────────────────────
