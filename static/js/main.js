@@ -228,6 +228,9 @@ function bindSettingsHandlers() {
         const isOpen = !el.settingsFlyout.hidden;
         if (isOpen) blurSettingsFlyoutFocus();
         Flyouts.closeAllExcept('settings');
+        if (!isOpen && isMobileSettings()) {
+            closeMobileSidebar({ restoreFocus: false, immediate: true });
+        }
         el.settingsFlyout.hidden = isOpen;
         if (isOpen) setSamplerPopoverOpen(false);
         if (!isOpen) {
@@ -418,15 +421,20 @@ function bindSettingsHandlers() {
 }
 
 function bindCharacterHandlers() {
+    const openCharacterModal = char => {
+        closeMobileSidebar({ restoreFocus: false, immediate: true });
+        Modal.open(char);
+    };
+
     // New character
-    el.newCharBtn.addEventListener('click', () => Modal.open());
-    el.collapsedNewCharBtn?.addEventListener('click', () => Modal.open());
-    el.emptyNewCharBtn?.addEventListener('click', () => Modal.open());
+    el.newCharBtn.addEventListener('click', () => openCharacterModal());
+    el.collapsedNewCharBtn?.addEventListener('click', () => openCharacterModal());
+    el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
     // Character list — select / edit / delete
     el.charList.addEventListener('click', e => {
         if (e.target.closest('.char-list-create-btn')) {
-            Modal.open();
+            openCharacterModal();
             return;
         }
         const editBtn   = e.target.closest('.char-edit-btn');
@@ -438,7 +446,7 @@ function bindCharacterHandlers() {
         const char = state.characters.find(c => c.id === id);
         if (editBtn) {
             e.stopPropagation();
-            if (char) Modal.open(char);
+            if (char) openCharacterModal(char);
         } else if (deleteBtn) {
             e.stopPropagation();
             deleteCharacter(id);

@@ -3419,6 +3419,10 @@ input[type="checkbox"]:disabled {
         overflow-x: hidden;
     }
 
+    #sidebar.mobile-closing-immediate {
+        transition: none;
+    }
+
     /* Override collapsed state on mobile — always show full sidebar when open */
     #sidebar.collapsed.mobile-open {
         width: min(88vw, 360px);
@@ -3435,7 +3439,7 @@ input[type="checkbox"]:disabled {
     }
     #sidebar.collapsed.mobile-open .sidebar-header {
         justify-content: initial;
-        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.5rem 0.35rem;
+        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.75rem 0.35rem;
         gap: initial;
     }
     #sidebar.collapsed.mobile-open .char-item,
@@ -3461,7 +3465,7 @@ input[type="checkbox"]:disabled {
     .sidebar-header {
         height: auto;
         min-height: var(--mobile-header-height);
-        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.5rem 0.35rem;
+        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.75rem 0.35rem;
     }
 
     .sidebar-scrollable {
@@ -3495,16 +3499,20 @@ input[type="checkbox"]:disabled {
         margin: 0 0.6rem calc(env(safe-area-inset-bottom, 0px) + 0.6rem);
     }
 
-    .dropup-content {
-        position: fixed;
-        left: var(--mobile-inline-padding);
-        right: var(--mobile-inline-padding);
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
-        max-height: min(70dvh, 520px);
+    #persona-dropup.dropup-content {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: calc(100% + 0.55rem);
+        max-height: min(46dvh, 360px);
         overflow-y: auto;
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-md);
         z-index: 240;
+    }
+
+    #persona-dropup.dropup-content.show {
+        display: block;
     }
 
     /* ── Modal overlays: full-screen on mobile ─────────────────────── */
@@ -3518,6 +3526,7 @@ input[type="checkbox"]:disabled {
         justify-content: stretch;
         padding: 0;
         z-index: 200;
+        animation: none;
     }
 
     .modal-overlay > .modal {
@@ -3765,6 +3774,34 @@ input[type="checkbox"]:disabled {
         padding: 0.35rem 0.2rem;
         font-size: 16px;
         line-height: 1.4;
+    }
+
+    #input-container.composer-no-character #chat-flyout-btn,
+    #input-container.composer-no-character #lorebook-flyout-btn,
+    #input-container.composer-no-character #send-btn {
+        display: none;
+    }
+
+    #input-container.composer-no-character #input-wrapper {
+        justify-content: center;
+        min-height: 44px;
+        padding: 0.3rem 0.8rem;
+    }
+
+    #input-container.composer-no-character #user-input {
+        flex: 0 1 auto;
+        width: auto;
+        min-height: 32px;
+        height: 32px !important;
+        max-height: 32px;
+        overflow: hidden;
+        text-align: center;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    #main-content:has(#empty-state:not([hidden]) #empty-new-char-btn:not([hidden])) #input-container {
+        display: none;
     }
 
     .context-token-meter {

@@ -103,6 +103,8 @@ export function updateComposerState() {
     if (!el.userInput || !el.sendBtn) return;
     const hasChat = !!state.activeCharacter && !!state.activeChat;
     const hasCharacter = !!state.activeCharacter;
+    el.inputContainer?.classList.toggle('composer-no-character', !hasCharacter);
+    el.inputContainer?.classList.toggle('composer-no-chat', hasCharacter && !hasChat);
     el.userInput.disabled = !hasChat;
     if (hasChat) {
         const name = state.activeCharacter?.name || 'this character';
@@ -197,8 +199,11 @@ export function savePrefs() {
     }));
 }
 
-export function closeMobileSidebar() {
+export function closeMobileSidebar({ restoreFocus = true, immediate = false } = {}) {
     const wasOpen = el.sidebar.classList.contains('mobile-open');
+    if (immediate) {
+        el.sidebar.classList.add('mobile-closing-immediate');
+    }
     el.sidebar.classList.remove('mobile-open');
     el.mobileBackdrop.classList.remove('show');
     el.mobileMenuBtn?.setAttribute('aria-expanded', 'false');
@@ -208,7 +213,12 @@ export function closeMobileSidebar() {
         main.inert = false;
         main.removeAttribute('aria-hidden');
     }
-    if (wasOpen) el.mobileMenuBtn?.focus();
+    if (wasOpen && restoreFocus) el.mobileMenuBtn?.focus();
+    if (immediate) {
+        requestAnimationFrame(() => {
+            el.sidebar.classList.remove('mobile-closing-immediate');
+        });
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
