@@ -49,9 +49,8 @@ def _char_to_dict(row, card_data=None):
         'created_at': row['created_at'],
         'avatar_url': f"/characters/{row['filename']}?v={row['crc']}",
     }
-    if card_data:
-        d.update(card_data_fields(card_data))
-    else:
+    d.update(card_data_fields(card_data or {}))
+    if not d.get('name'):
         d['name'] = row['filename'].rsplit('.', 1)[0]
     return d
 
@@ -284,7 +283,10 @@ def delete_character(char_id):
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         if os.path.exists(filepath):
-            os.remove(filepath)
+            try:
+                os.remove(filepath)
+            except OSError:
+                pass
 
         conn.execute('DELETE FROM characters WHERE id=?', (char_id,))
         return jsonify({'success': True})
@@ -302,8 +304,8 @@ def upload_avatar(char_id):
             return jsonify({'error': 'No file provided'}), 400
 
         file = request.files['avatar']
-        ext  = (file.filename or '').rsplit('.', 1)[-1].lower()
-        if ext not in shared.ALLOWED_IMG:
+        ext = shared.validate_image_extension(file)
+        if not ext:
             return jsonify({'error': f'File type not allowed (use {", ".join(shared.ALLOWED_IMG)})'}), 400
 
         # Read card data from current file

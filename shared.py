@@ -14,6 +14,23 @@ THEMES_DIR     = os.path.join(DATA_DIR, 'themes')
 BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
+
+def validate_image_extension(file_storage):
+    """Return the lower-case extension if allowed, or None."""
+    ext = (file_storage.filename or '').rsplit('.', 1)[-1].lower()
+    return ext if ext in ALLOWED_IMG else None
+
+
+def avatar_cache_key(updated_at):
+    """Build a cache-busting key from a SQLite timestamp."""
+    return (updated_at or '').replace(' ', 'T').replace(':', '')
+
+
+def persona_avatar_url(avatar_path, updated_at):
+    if not avatar_path:
+        return None
+    return f'/personas/{avatar_path}?v={avatar_cache_key(updated_at)}'
+
 os.makedirs(CHARACTERS_DIR, exist_ok=True)
 os.makedirs(PERSONAS_DIR, exist_ok=True)
 os.makedirs(THEMES_DIR, exist_ok=True)

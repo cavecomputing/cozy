@@ -5,21 +5,9 @@ import os
 from flask import Blueprint, request, jsonify
 
 import shared
-from shared import get_db
+from shared import get_db, persona_avatar_url
 
 personas_bp = Blueprint('personas', __name__)
-
-
-def _avatar_cache_key(updated_at):
-    # updated_at is a SQLite timestamp like '2026-05-15 01:33:45'; strip the
-    # space/colons so it's safe inside an unquoted CSS url(...).
-    return (updated_at or '').replace(' ', 'T').replace(':', '')
-
-
-def persona_avatar_url(avatar_path, updated_at):
-    if not avatar_path:
-        return None
-    return f'/personas/{avatar_path}?v={_avatar_cache_key(updated_at)}'
 
 
 def persona_to_dict(row):
@@ -80,7 +68,10 @@ def delete_persona(persona_id):
         if row['avatar_path']:
             avatar_file = os.path.join(shared.PERSONAS_DIR, row['avatar_path'])
             if os.path.exists(avatar_file):
-                os.remove(avatar_file)
+                try:
+                    os.remove(avatar_file)
+                except OSError:
+                    pass
         conn.execute('DELETE FROM personas WHERE id=?', (persona_id,))
         return jsonify({'success': True})
 
@@ -94,8 +85,8 @@ def upload_persona_avatar(persona_id):
         if 'avatar' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
         file = request.files['avatar']
-        ext = (file.filename or '').rsplit('.', 1)[-1].lower()
-        if ext not in shared.ALLOWED_IMG:
+        ext = shared.validate_image_extension(file)
+        if not ext:
             return jsonify({'error': f'File type not allowed (use {", ".join(shared.ALLOWED_IMG)})'}), 400
         if row['avatar_path']:
             old = os.path.join(shared.PERSONAS_DIR, row['avatar_path'])

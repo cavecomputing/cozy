@@ -2,8 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 
-from shared import get_db
-from routes.personas import persona_avatar_url
+from shared import get_db, persona_avatar_url
 
 messages_bp = Blueprint('messages', __name__)
 

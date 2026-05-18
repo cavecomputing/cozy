@@ -62,9 +62,9 @@
 - **Line**: 2
 - **Issue**: `maybeScrollToBottom` is imported from `utils.js` but never called. (Already used at line 47 in current file.)
 
-### Fragile message deletion in `static/js/main.js:640-654`
+### [DONE] Fragile message deletion in `static/js/main.js:640-654`
 - **Issue**: Matches messages by `rawText` content instead of `msgId`. Can fail with duplicate text. Should use `msgId`-based lookup (see `findStateMsg` in `messages.js`).
-- **Phase**: 2
+- **Fix**: Replaced text-based lookup with `findStateMsg()` which uses `data-msg-id` with text fallback.
 
 ### [DONE] Dead condition in `static/js/messages.js:379`
 - **Code**: `if (!char || !state.activeChat)`
@@ -80,9 +80,10 @@
 - **Issue**: Defined inside `buildChatPayload()`, so a new closure is created on every invocation. Has no dependency on local variables — should be hoisted to module scope.
 - **Fix**: Hoisted `enforceAlternation` to module scope.
 
-### Signal not passed to non-streaming path in `static/js/request-builder.js:178`
+### [DONE] Signal not passed to non-streaming path in `static/js/request-builder.js:178`
 - **Code**: `return API.chatCompletion(payload)` ignores the `signal` parameter.
 - **Issue**: If `generateResponse` is called with a signal but no `onToken`, the abort signal is silently dropped. `API.chatCompletion` doesn't accept a signal parameter.
+- **Fix**: Added `signal` parameter to `API.chatCompletion()` and forwarded it from `generateResponse()`.
 
 ### [DONE] `API.chatCompletion()` in `static/js/api.js` never called at runtime
 - **Lines**: 142-152
@@ -98,15 +99,15 @@
 - **Issue**: For strings 4–8 chars long, `value[:3] + '…' + value[-4:]` produces an overlapping mask (e.g. `"abc…bcde"` for `"abcde"`).
 - **Fix**: Changed short-value mask to `'•••••'` to avoid overlap; the `> 8` threshold for partial masking remains.
 
-### `persona_avatar_url` cross-module import
+### [DONE] `persona_avatar_url` cross-module import
 - **File**: `routes/messages.py:6`
 - **Issue**: `from routes.personas import persona_avatar_url` creates coupling between route modules. Should live in a shared module.
+- **Fix**: Moved `persona_avatar_url` and `_avatar_cache_key` to `shared.py`; both `personas.py` and `messages.py` import from shared.
 
-### Duplicate avatar file-type validation
+### [DONE] Duplicate avatar file-type validation
 - **Files**: `routes/personas.py:97-99`, `routes/characters.py:310-312`
 - **Pattern**: `ext = (file.filename or '').rsplit('.', 1)[-1].lower(); if ext not in shared.ALLOWED_IMG`
-- **Fix**: Extract to a shared helper.
-- **Phase**: 2
+- **Fix**: Extracted `validate_image_extension()` to `shared.py`; both route files use it.
 
 ### [DONE] `from pathlib import Path` in `routes/chats.py` (line 6)
 - **Issue**: Used only once (line 251: `Path(upload.filename or '').stem`). `os.path.splitext` could do the same with the already-imported `os` module.
@@ -116,10 +117,10 @@
 - **Issue**: `fromisoformat`→`replace(tzinfo=timezone.utc)`→`isoformat()` round-trip is essentially a no-op plus timezone annotation for SQLite `CURRENT_TIMESTAMP` values. Somewhat misleading name.
 - **Fix**: Renamed to `_ensure_utc_iso()` with a docstring explaining the purpose.
 
-### `_character_has_lorebook` and `_read_character_name` duplication in `routes/chats.py`
+### [DONE] `_character_has_lorebook` and `_read_character_name` duplication in `routes/chats.py`
 - **Lines**: 26-42 and 54-62
 - **Issue**: Both query the `characters` table by `char_id` and read the character card from disk. Share the same preamble.
-- **Fix**: Consolidate into a shared `_get_character_card(conn, char_id)` helper.
+- **Fix**: Resolved by earlier extraction of `get_character_card_data()` in `card_store.py`; both functions now call it directly.
 
 ### `update_character` allows arbitrary key injection
 - **File**: `routes/characters.py:268-269`
@@ -215,18 +216,18 @@
 ### Modal delete handler duplicates `deleteCharacter` in `static/js/modal.js:307-333`
 - **Issue**: Manually deletes a character and refreshes state, overlapping with `deleteCharacter()` in `characters.js`. Risks divergent behavior.
 
-### `_chat_jsonl()` iterates `data` twice in `routes/llm.py:36-37`
+### [DONE] `_chat_jsonl()` iterates `data` twice in `routes/llm.py:36-37`
 - **Issue**: `models = sorted(m['id'] for m in data)` uses `m['id']` (will KeyError if missing), while `model_details` uses `m.get('context_length')` (safe). Inconsistent key access.
-- **Phase**: 2
+- **Fix**: Changed to `m.get('id', '')` with a filter to skip entries missing an `id`.
 
-### `model_details` possibly dead data in `routes/llm.py:37`
+### [DONE] `model_details` possibly dead data in `routes/llm.py:37`
 - **Issue**: Computed and returned but may not be used by any frontend code. Worth verifying.
-- **Phase**: 2
+- **Fix**: Verified — `model_details` is used by `llm-settings.js:99` for context-length display. Not dead.
 
-### Inconsistent error response shape in `routes/llm.py`
+### [DONE] Inconsistent error response shape in `routes/llm.py`
 - **Lines**: 40 vs 64-66
 - **Issue**: `list_models()` returns `{'error': ...}` without an `ok` key. `test_llm()` returns `{'ok': False, 'error': ...}`. Inconsistent response shape within the same module.
-- **Phase**: 2
+- **Fix**: Added `ok` key to all `list_models()` responses; success now includes `'ok': True`.
 
 ### [DONE] Dead code in `routes/lorebooks.py:224-227`
 - **Code**: `name = (existing.get('name') or row['name'] or '').strip() or row['name']`
@@ -241,13 +242,13 @@
 - **Issue**: Unusual style. No other file uses this alignment.
 - **Fix**: Normalized spacing to standard single-space alignment.
 
-### `_char_to_dict()` else branch potentially unreachable in `routes/characters.py:52-56`
+### [DONE] `_char_to_dict()` else branch potentially unreachable in `routes/characters.py:52-56`
 - **Issue**: `card_data_fields()` always returns a full dict with defaults, so `if card_data:` on line 52 is True for any dict. The `else` branch (line 55) is only reachable when `card_data` is explicitly `None` or `False`.
-- **Phase**: 2
+- **Fix**: Removed the conditional; always call `card_data_fields(card_data or {})` and fallback-set `name` if empty.
 
-### `os.remove()` without error handling in `routes/personas.py:83`, `routes/characters.py:292`
+### [DONE] `os.remove()` without error handling in `routes/personas.py:83`, `routes/characters.py:292`
 - **Issue**: No handling if the file is locked or permissions prevent deletion. Not a Python-level bug on macOS/Linux, but worth noting.
-- **Phase**: 2
+- **Fix**: Wrapped both `os.remove()` calls in `try/except OSError: pass`.
 
 ### [DONE] Inconsistent SQL style (`WHERE id = ?` vs `WHERE id=?`)
 - **Files**: `routes/messages.py` uses spaces around `=`; all other route files do not.

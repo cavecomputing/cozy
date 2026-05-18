@@ -165,5 +165,5 @@ export async function generateResponse(excludeLastN = 0, onToken = null, signal 
     if (!payload.model) throw new Error('No model configured \u2014 check Settings');
     if (payload.messages.length === 0) throw new Error('No messages to send');
     if (onToken) return API.streamChatCompletion(payload, onToken, signal);
-    return API.chatCompletion(payload);
+    return API.chatCompletion(payload, signal);
 }
