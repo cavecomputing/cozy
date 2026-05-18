@@ -1,9 +1,8 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, showToast, updateComposerState, showEmptyState } from './utils.js';
+import { applyAvatar, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages } from './messages.js';
-import { savePrefs, closeMobileSidebar } from './utils.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHARACTER LIST

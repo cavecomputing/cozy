@@ -146,18 +146,20 @@ def update_message(msg_id):
     if not content:
         return jsonify({'error': 'content required'}), 400
     with get_db() as conn:
-        row = conn.execute('SELECT id FROM messages WHERE id = ?', (msg_id,)).fetchone()
+        row = conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Message not found'}), 404
-        conn.execute('UPDATE messages SET content = ? WHERE id = ?', (content, msg_id))
+
+        # Update the message's primary content
+        conn.execute('UPDATE messages SET content=? WHERE id=?', (content, msg_id))
         return jsonify({'success': True})
 
 
 @messages_bp.route('/api/messages/<int:msg_id>', methods=['DELETE'])
 def delete_message(msg_id):
     with get_db() as conn:
-        row = conn.execute('SELECT id FROM messages WHERE id = ?', (msg_id,)).fetchone()
+        row = conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Message not found'}), 404
-        conn.execute('DELETE FROM messages WHERE id = ?', (msg_id,))
+        conn.execute('DELETE FROM messages WHERE id=?', (msg_id,))
         return jsonify({'success': True})

@@ -254,7 +254,7 @@ def import_chat():
             if not content:
                 warnings.append(f'Line {line_no}: skipped empty message')
                 continue
-            role = 'user' if bool(message.get('is_user')) else 'character'
+            role = 'user' if message.get('is_user') else 'character'
             swipes, swipe_id = _normalise_swipes(message, warnings, line_no)
             selected = swipes[swipe_id] if swipes else content
 

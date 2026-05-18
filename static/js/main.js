@@ -287,6 +287,7 @@ function bindSettingsHandlers() {
     });
     el.apiKey?.addEventListener('change', () => {
         const v = el.apiKey.value;
+        // Skip masked API keys: bullet-prefixed ("\u2022\u2022…") or containing ellipsis mask ("\u2026")
         if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026')) {
             state.apiKeySet = true;
             clearModelListCache();

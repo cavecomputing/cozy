@@ -1,8 +1,7 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
-import { syslogStamp, showToast, updateComposerState } from './utils.js';
+import { syslogStamp, showToast, updateComposerState, savePrefs } from './utils.js';
 import { renderMessages, appendMessage } from './messages.js';
-import { savePrefs } from './utils.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
 import { updateContextMeter } from './context-meter.js';

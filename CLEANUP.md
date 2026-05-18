@@ -4,6 +4,7 @@
 > Tackled so far:
 > - Docker docs port mismatch (`docs/run.md`) — fixed
 > - Inconsistent DELETE/PUT success response keys — standardized to `{'success': True}`
+> - Missing 404 check in `update_message` (`routes/messages.py`) — fixed
 
 ---
 
@@ -63,33 +64,39 @@
 
 ### Fragile message deletion in `static/js/main.js:640-654`
 - **Issue**: Matches messages by `rawText` content instead of `msgId`. Can fail with duplicate text. Should use `msgId`-based lookup (see `findStateMsg` in `messages.js`).
+- **Phase**: 2
 
 ### Dead condition in `static/js/messages.js:379`
 - **Code**: `if (!char || !state.activeChat)`
 - **Issue**: After two prior `!char` guards that return, `!char` is unreachable. Simplifies to `if (!state.activeChat)`.
+- **Phase**: 2
 
-### Variable shadowing in `static/js/system-prompts.js:91`
+### [DONE] Variable shadowing in `static/js/system-prompts.js:91`
 - **Code**: `const p = state.systemPrompts.find(p => ...)`
 - **Issue**: Inner `p` shadows outer `const p`. Rename inner to `sp`.
+- **Fix**: Renamed inner parameter to `sp`.
 
 ### `enforceAlternation` recreated every call in `static/js/request-builder.js:125-159`
 - **Issue**: Defined inside `buildChatPayload()`, so a new closure is created on every invocation. Has no dependency on local variables — should be hoisted to module scope.
+- **Phase**: 2
 
 ### Signal not passed to non-streaming path in `static/js/request-builder.js:178`
 - **Code**: `return API.chatCompletion(payload)` ignores the `signal` parameter.
 - **Issue**: If `generateResponse` is called with a signal but no `onToken`, the abort signal is silently dropped. `API.chatCompletion` doesn't accept a signal parameter.
 
-### `API.chatCompletion()` in `static/js/api.js` never called at runtime
+### [DONE] `API.chatCompletion()` in `static/js/api.js` never called at runtime
 - **Lines**: 142-152
 - **Issue**: Only reachable via a fallback path in `request-builder.js` that's never exercised. Add a comment if kept intentionally.
+- **Fix**: Added comment noting it's an unexercised fallback path kept as safety net.
 
-### Duplicate imports (same module, split statements)
+### [DONE] Duplicate imports (same module, split statements)
 - **Files**: `static/js/characters.js` (lines 3, 6), `static/js/chats.js` (lines 3, 5), `static/js/personas.js` (lines 3, 4), `static/js/send.js` (lines 4, 5)
-- **Fix**: Consolidate into a single import statement per module.
+- **Fix**: Consolidated into a single import statement per module.
 
 ### Settings `mask_secret()` edge case
 - **File**: `routes/settings.py:38`
 - **Issue**: For strings 4–8 chars long, `value[:3] + '…' + value[-4:]` produces an overlapping mask (e.g. `"abc…bcde"` for `"abcde"`).
+- **Phase**: 2
 
 ### `persona_avatar_url` cross-module import
 - **File**: `routes/messages.py:6`
@@ -99,12 +106,15 @@
 - **Files**: `routes/personas.py:97-99`, `routes/characters.py:310-312`
 - **Pattern**: `ext = (file.filename or '').rsplit('.', 1)[-1].lower(); if ext not in shared.ALLOWED_IMG`
 - **Fix**: Extract to a shared helper.
+- **Phase**: 2
 
 ### `from pathlib import Path` in `routes/chats.py` (line 6)
 - **Issue**: Used only once (line 251: `Path(upload.filename or '').stem`). `os.path.splitext` could do the same with the already-imported `os` module.
+- **Phase**: 2
 
 ### `_iso_from_sqlite()` in `routes/chats.py:45-51`
 - **Issue**: `fromisoformat`→`replace(tzinfo=timezone.utc)`→`isoformat()` round-trip is essentially a no-op plus timezone annotation for SQLite `CURRENT_TIMESTAMP` values. Somewhat misleading name.
+- **Phase**: 2
 
 ### `_character_has_lorebook` and `_read_character_name` duplication in `routes/chats.py`
 - **Lines**: 26-42 and 54-62
@@ -118,24 +128,29 @@
 ### Inconsistent 404 error message formats
 - **Issue**: Some endpoints use generic `"Not found"`; others use specific entity names (`"Character not found"`, `"Chat not found"`, etc.). Should be consistent.
 
-### `bool()` wrapper redundancy in `routes/chats.py:273`
+### [DONE] `bool()` wrapper redundancy in `routes/chats.py:273`
 - **Code**: `role = 'user' if bool(message.get('is_user')) else 'character'`
 - **Issue**: `bool()` wrapper is redundant; the ternary already handles truthiness.
+- **Fix**: Removed redundant `bool()` wrapper.
 
 ### Inconsistent persona update stripping
 - **File**: `routes/personas.py:54-69`
 - **Issue**: `name` is stripped, but `tagline` and `description` are not. In `create_persona` (lines 44-45), both are stripped. Should be consistent.
+- **Phase**: 2
 
-### `_make_test_png()` wrapper in `tests/conftest.py:48-50`
+### [DONE] `_make_test_png()` wrapper in `tests/conftest.py:48-50`
 - **Issue**: Trivial one-liner wrapper around `make_minimal_png()` that adds no value. Use `make_minimal_png()` directly.
+- **Fix**: Removed wrapper; call `make_minimal_png()` directly.
 
 ### `_v2_card()` helper only in `tests/test_characters.py`
 - **Issue**: Useful for building test data. Could benefit `test_lorebooks.py` which constructs card-like dicts manually.
 - **Fix**: Move to `conftest.py` or a shared helper module.
+- **Phase**: 3
 
-### Inconsistent inline imports in tests
+### [DONE] Inconsistent inline imports in tests
 - **Files**: `tests/test_lorebooks.py` (lines 504, 610), `tests/test_routes.py` (line 162)
 - **Issue**: Some test methods have inline imports while other files keep all imports at the module top.
+- **Fix**: Moved `from io import BytesIO` and `from png_utils import …` to module top; replaced `io.BytesIO` with `BytesIO` in `test_routes.py`.
 
 ### Missing test coverage areas
 - LLM streaming endpoint beyond basic content-type checks
@@ -152,16 +167,20 @@
 - `livereload` is not used at runtime (app.py explicitly avoids it because it buffers SSE).
 - `pytest` should be a dev dependency.
 - **Fix**: Move to a separate dev-requirements file or `pyproject.toml` dev group.
+- **Phase**: 3
 
 ### Docker `COZY_DATA_DIR` set in both Dockerfile and docker-compose.yml
 - **Issue**: Redundant. Compose value takes precedence, but duplication is confusing.
+- **Phase**: 3
 
 ### Docker entrypoint missing `mkdir -p` for data subdirectories
 - **Issue**: If a host volume mount overlays the Dockerfile's pre-created dirs, they might not exist. Consider adding `mkdir -p /data/characters /data/personas /data/themes`.
+- **Phase**: 3
 
 ### CDN deps without SRI
 - **File**: `templates/index.html` (lines 1043-1044)
 - **Issue**: `marked.min.js` and `purify.min.js` loaded from CDN without `integrity` attributes or local fallbacks.
+- **Phase**: 3
 
 ---
 
@@ -173,17 +192,21 @@
 
 ### Redundant `renderChats()` call in `static/js/chats.js:106`
 - **Issue**: Called after clearing state, then `loadChats()` calls it again after fetching. The first call renders an empty list. Harmless but slightly wasteful.
+- **Phase**: 2
 
 ### Context-meter scrolls redundantly in `static/js/context-meter.js:37-41`
 - **Issue**: Duplicates scroll-to-bottom behavior in `utils.js` `scrollToBottom()`. Could call the utility instead.
+- **Phase**: 2
 
-### Unicode escapes undocumented in `static/js/main.js:289-291`
+### [DONE] Unicode escapes undocumented in `static/js/main.js:289-291`
 - **Code**: `if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026'))`
 - **Issue**: Checks for masked password display (`\u2022` = bullet, `\u2026` = ellipsis). Not self-documenting. Add a comment or named constant.
+- **Fix**: Added inline comment explaining the masked API key checks.
 
-### `estimateTextTokens` dead export in `static/js/tokenizer.js`
+### [DONE] `estimateTextTokens` dead export in `static/js/tokenizer.js`
 - **Line**: 18
 - **Issue**: Exported but never imported by any other module. Could be made non-exported (private) since no other module calls it.
+- **Fix**: Removed `export` keyword; function is now module-private.
 
 ### Dynamic import for circular dependency in `static/js/sampler.js:156-157`
 - **Code**: `import('./llm-settings.js').then(mod => mod.saveLLMSettings(...))`
@@ -194,40 +217,50 @@
 
 ### `_chat_jsonl()` iterates `data` twice in `routes/llm.py:36-37`
 - **Issue**: `models = sorted(m['id'] for m in data)` uses `m['id']` (will KeyError if missing), while `model_details` uses `m.get('context_length')` (safe). Inconsistent key access.
+- **Phase**: 2
 
 ### `model_details` possibly dead data in `routes/llm.py:37`
 - **Issue**: Computed and returned but may not be used by any frontend code. Worth verifying.
+- **Phase**: 2
 
 ### Inconsistent error response shape in `routes/llm.py`
 - **Lines**: 40 vs 64-66
 - **Issue**: `list_models()` returns `{'error': ...}` without an `ok` key. `test_llm()` returns `{'ok': False, 'error': ...}`. Inconsistent response shape within the same module.
+- **Phase**: 2
 
 ### Dead code in `routes/lorebooks.py:224-227`
 - **Code**: `name = (existing.get('name') or row['name'] or '').strip() or row['name']`
 - **Issue**: The final `or row['name']` is unreachable. If `row['name']` is truthy, the `.strip()` would never fall through. If falsy, `'' or row['name']` is also falsy.
+- **Phase**: 2
 
 ### Non-transactional `embed_in_character` in `routes/lorebooks.py:253-273`
 - **Issue**: Opens two separate `get_db()` contexts. If deletion fails, the character book has already been embedded but the standalone lorebook is orphaned.
 
-### Space-aligned variable assignments in `routes/characters.py:159-161`
+### [DONE] Space-aligned variable assignments in `routes/characters.py:159-161`
 - **Code**: `file      =`, `fname     =`, `raw_bytes =`
 - **Issue**: Unusual style. No other file uses this alignment.
+- **Fix**: Normalized spacing to standard single-space alignment.
 
 ### `_char_to_dict()` else branch potentially unreachable in `routes/characters.py:52-56`
 - **Issue**: `card_data_fields()` always returns a full dict with defaults, so `if card_data:` on line 52 is True for any dict. The `else` branch (line 55) is only reachable when `card_data` is explicitly `None` or `False`.
+- **Phase**: 2
 
 ### `os.remove()` without error handling in `routes/personas.py:83`, `routes/characters.py:292`
 - **Issue**: No handling if the file is locked or permissions prevent deletion. Not a Python-level bug on macOS/Linux, but worth noting.
+- **Phase**: 2
 
-### Inconsistent SQL style (`WHERE id = ?` vs `WHERE id=?`)
+### [DONE] Inconsistent SQL style (`WHERE id = ?` vs `WHERE id=?`)
 - **Files**: `routes/messages.py` uses spaces around `=`; all other route files do not.
+- **Fix**: Normalized to `WHERE id=?` / `SET content=?` style (no spaces around `=`) to match the rest of the codebase.
 
 ### Missing `<noscript>` fallback in `templates/index.html`
 - **Issue**: Entire app is an SPA with no content when JavaScript is disabled.
+- **Phase**: 3 (template/structural)
 
-### Google Fonts external dependency
+### [SKIPPED] Google Fonts external dependency
 - **File**: `templates/index.html` (lines 7-9)
-- **Issue**: Inter font loaded from Google Fonts. Fails offline.
+- **Issue**: Inter font loaded from Google Fonts. Fails offline. (Intentionally skipped — acceptable trade-off for now.)
 
 ### `updateContextSizeWarning()` called redundantly in `static/js/llm-settings.js:260`
 - **Issue**: Called from `applySettingsToUI()` and also from `loadSamplerSettings()` via init flow. Double-calling is harmless but indicates the init path could be streamlined.
+- **Phase**: 2

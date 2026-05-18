@@ -136,6 +136,9 @@ export const API = {
     async deletePersona(id) {
         return jsonRequest(`/api/personas/${id}`, { method: 'DELETE', fallback: 'Delete failed' });
     },
+    // Non-streaming chat completion. Only reached via the fallback path in
+    // request-builder.js when no onToken callback is provided — currently
+    // unexercised at runtime (all UI paths stream). Kept as a safety net.
     async chatCompletion(payload) {
         const r = await fetch('/api/llm/chat', {
             method: 'POST',

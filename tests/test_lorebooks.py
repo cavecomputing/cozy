@@ -2,8 +2,10 @@
 
 import json
 import os
+from io import BytesIO
 
 import shared
+from png_utils import extract_png_chara, write_png_chara
 
 
 def _make_book(name='Test Book', entries=None):
@@ -501,7 +503,6 @@ class TestLorebookImport:
 
     def test_import_via_multipart_upload(self, client):
         """Uploading a JSON file via multipart works the same as a JSON body."""
-        from io import BytesIO
         data = json.dumps({
             'name': 'Uploaded',
             'entries': [{'keys': ['u'], 'content': 'u-content'}],
@@ -607,7 +608,6 @@ class TestLorebookExport:
 
     def test_export_character_lorebook(self, client, sample_character):
         """Embedded books export the same way."""
-        from png_utils import extract_png_chara, write_png_chara
         # Embed a book in the character
         filepath = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
         with open(filepath, 'rb') as f:

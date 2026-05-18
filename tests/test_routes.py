@@ -130,7 +130,7 @@ class TestSystemPrompts:
         assert r.status_code == 400
 
     def test_export_prompt_round_trips_through_import(self, client):
-        import io, json as _json
+        import json as _json
         created = client.post('/api/system-prompts', json={
             'name': 'Roundtrip', 'content': 'You are {{char}}. End.'
         }).get_json()
@@ -146,7 +146,7 @@ class TestSystemPrompts:
         # Re-import the same payload — name collision should suffix " (2)"
         r = client.post(
             '/api/system-prompts/import',
-            data={'file': (io.BytesIO(r.data), 'roundtrip.json')},
+            data={'file': (BytesIO(r.data), 'roundtrip.json')},
             content_type='multipart/form-data',
         )
         assert r.status_code == 201
@@ -156,19 +156,17 @@ class TestSystemPrompts:
         assert imported['id'] != created['id']
 
     def test_import_prompt_rejects_non_json(self, client):
-        import io
         r = client.post(
             '/api/system-prompts/import',
-            data={'file': (io.BytesIO(b'not json at all'), 'bad.json')},
+            data={'file': (BytesIO(b'not json at all'), 'bad.json')},
             content_type='multipart/form-data',
         )
         assert r.status_code == 400
 
     def test_import_prompt_uses_imported_prompt_when_name_missing(self, client):
-        import io
         r = client.post(
             '/api/system-prompts/import',
-            data={'file': (io.BytesIO(b'{"content":"hi"}'), 'noname.json')},
+            data={'file': (BytesIO(b'{"content":"hi"}'), 'noname.json')},
             content_type='multipart/form-data',
         )
         assert r.status_code == 201

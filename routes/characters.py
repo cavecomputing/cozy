@@ -156,8 +156,8 @@ def import_character():
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
 
-    file      = request.files['file']
-    fname     = (file.filename or '')
+    file = request.files['file']
+    fname = (file.filename or '')
     raw_bytes = file.read()
     card_data = None
 
