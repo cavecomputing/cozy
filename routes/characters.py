@@ -229,7 +229,6 @@ def export_character(char_id):
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         data = card_data.get('data', card_data) if card_data else {}
         safe = shared.safe_download_name(data.get('name'), 'character')
-        filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
 
     fmt = request.args.get('fmt', 'json').lower()
 
