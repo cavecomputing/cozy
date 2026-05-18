@@ -240,7 +240,9 @@ body {
 }
 
 .icon-btn svg,
-.msg-action-btn svg {
+.msg-action-btn svg,
+.swipe-btn svg,
+.greeting-nav-btn svg {
     width: 14px;
     height: 14px;
 }
