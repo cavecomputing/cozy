@@ -30,7 +30,7 @@
 
 ## Medium Priority
 
-### Duplicate icons in `static/js/state.js`
+### [DONE] Duplicate icons in `static/js/state.js`
 - **Issue**: `icons.TRASH` and `icons.DELETE` are identical SVGs. `icons.EDIT` and `icons.PENCIL` differ only in size (14 vs 13).
 - **Fix**: Consolidate into one icon each; control size via CSS.
 

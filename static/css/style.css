@@ -239,6 +239,12 @@ body {
     outline-offset: 2px;
 }
 
+.icon-btn svg,
+.msg-action-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
 #sidebar-toggle {
     flex-shrink: 0;
     width: 32px;

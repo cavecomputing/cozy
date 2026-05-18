@@ -34,7 +34,7 @@ function buildChatItem(chat) {
     actions.className = 'chat-item-actions';
     actions.innerHTML = `
         <button class="icon-btn chat-export-btn" title="Export chat" aria-label="Export chat">${icons.DOWNLOAD}</button>
-        <button class="icon-btn chat-rename-btn" title="Rename chat" aria-label="Rename chat">${icons.PENCIL}</button>
+        <button class="icon-btn chat-rename-btn" title="Rename chat" aria-label="Rename chat">${icons.EDIT}</button>
         <button class="icon-btn chat-delete-btn" title="Delete chat" aria-label="Delete chat">${icons.TRASH}</button>
     `;
 

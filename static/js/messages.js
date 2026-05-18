@@ -206,7 +206,7 @@ function appendMessageActionButtons(bar) {
     bar.append(
         iconButton('msg-action-btn copy-msg-btn', 'Copy', 'Copy message', icons.COPY),
         iconButton('msg-action-btn edit-msg-btn', 'Edit', 'Edit message', icons.EDIT),
-        iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.DELETE),
+        iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.TRASH),
     );
 }
 

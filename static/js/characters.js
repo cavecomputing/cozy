@@ -51,7 +51,7 @@ export function renderCharList() {
             `;
         } else {
             actions.innerHTML = `
-                <button class="icon-btn char-edit-btn" title="Edit character" aria-label="Edit character">${icons.PENCIL}</button>
+                <button class="icon-btn char-edit-btn" title="Edit character" aria-label="Edit character">${icons.EDIT}</button>
                 <button class="icon-btn char-delete-btn" title="Delete character" aria-label="Delete character">${icons.TRASH}</button>
             `;
         }
