@@ -140,7 +140,7 @@ def add_swipe(msg_id):
 
 @messages_bp.route('/api/messages/<int:msg_id>', methods=['PUT'])
 def update_message(msg_id):
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     content = (data.get('content') or '').strip()
     if not content:
         return jsonify({'error': 'content required'}), 400

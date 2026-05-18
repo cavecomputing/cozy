@@ -70,7 +70,7 @@ def read_settings():
 
 @settings_bp.route('/api/settings', methods=['PUT'])
 def write_settings():
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     with get_db() as conn:
         for key in SETTINGS_KEYS:
             if key in data:
@@ -103,7 +103,7 @@ def list_system_prompts():
 
 @settings_bp.route('/api/system-prompts', methods=['POST'])
 def create_system_prompt():
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
     if not name:
         return jsonify({'error': 'name is required'}), 400
@@ -119,11 +119,11 @@ def create_system_prompt():
 
 @settings_bp.route('/api/system-prompts/<int:prompt_id>', methods=['PUT'])
 def update_system_prompt(prompt_id):
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     with get_db() as conn:
         row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'System prompt not found'}), 404
         name = (data.get('name') or '').strip() or row['name']
         content = data.get('content', row['content'])
         conn.execute(
@@ -139,7 +139,7 @@ def delete_system_prompt(prompt_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'System prompt not found'}), 404
         conn.execute('DELETE FROM system_prompts WHERE id = ?', (prompt_id,))
         return jsonify({'success': True})
 
@@ -202,7 +202,7 @@ def export_system_prompt(prompt_id):
             'SELECT name, content FROM system_prompts WHERE id = ?', (prompt_id,)
         ).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'System prompt not found'}), 404
 
     body = {'name': row['name'], 'content': row['content']}
     filename = f"{safe_download_name(row['name'], 'prompt')}.json"
@@ -242,7 +242,7 @@ def list_presets():
 
 @settings_bp.route('/api/presets', methods=['POST'])
 def create_preset():
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
     if not name:
         return jsonify({'error': 'name is required'}), 400
@@ -264,11 +264,11 @@ def create_preset():
 
 @settings_bp.route('/api/presets/<int:preset_id>', methods=['PUT'])
 def update_preset(preset_id):
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     with get_db() as conn:
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Preset not found'}), 404
         name = (data.get('name') or '').strip() or row['name']
         endpoint = data.get('api_endpoint', row['api_endpoint'])
         model = data.get('api_model', row['api_model'])
@@ -293,7 +293,7 @@ def delete_preset(preset_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Preset not found'}), 404
         active = conn.execute(
             'SELECT value FROM settings WHERE key = ?',
             ('active_api_preset',)
@@ -313,7 +313,7 @@ def activate_preset(preset_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Preset not found'}), 404
         # Write preset fields into the settings table
         for key in PRESET_FIELDS:
             conn.execute(

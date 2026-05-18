@@ -108,8 +108,9 @@ export async function selectCharacter(charId) {
     savePrefs();
 }
 
-export async function deleteCharacter(charId) {
-    if (!confirm('Delete this character and all their chats? This cannot be undone.')) return;
+export async function deleteCharacter(charId, name) {
+    const label = name || 'this character';
+    if (!confirm(`Delete ${label} and all their chats? This cannot be undone.`)) return;
     try {
         await API.deleteCharacter(charId);
         showToast('Character deleted', 'success');

@@ -383,3 +383,18 @@ class TestCharacterBookUpdate:
         assert char['description'] == 'Changed description'
         # character_book must survive an unrelated field update
         assert char['character_book']['entries'][0]['content'] == 'persist'
+
+    def test_update_ignores_disallowed_keys(self, client, sample_character):
+        r = client.put(f'/api/characters/{sample_character["id"]}', json={
+            'name': 'Allowed',
+            'spec': 'injected_spec',
+            'spec_version': '99.0',
+        })
+        assert r.status_code == 200
+        char = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert char['name'] == 'Allowed'
+        # spec/spec_version are not in ALLOWED_UPDATE_KEYS and must be ignored
+        r2 = client.get(f'/api/characters/{sample_character["id"]}/export?fmt=json')
+        card = r2.get_json()
+        assert card.get('spec') == 'chara_card_v2'
+        assert card.get('spec_version') == '2.0'

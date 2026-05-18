@@ -125,7 +125,7 @@ class TestPresetDelete:
     def test_delete_preset_404(self, client):
         r = client.delete('/api/presets/99999')
         assert r.status_code == 404
-        assert r.get_json()['error'] == 'Not found'
+        assert r.get_json()['error'] == 'Preset not found'
 
     def test_create_requires_name(self, client):
         r = client.post('/api/presets', json={'api_endpoint': 'http://x/v1'})

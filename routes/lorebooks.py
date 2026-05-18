@@ -201,7 +201,7 @@ def get_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
         return jsonify(_full_dict(row))
 
 
@@ -211,7 +211,7 @@ def update_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
 
         existing = _parse_book(row['book'])
         if isinstance(data.get('book'), dict):
@@ -238,7 +238,7 @@ def delete_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
         # Keep chat selections tidy when a standalone lorebook is removed.
         conn.execute(
             'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
@@ -257,12 +257,11 @@ def embed_in_character(book_id, char_id):
             return jsonify({'error': 'Lorebook not found'}), 404
         book = _parse_book(row['book'])
 
-    _, err = set_character_book(char_id, book)
-    if err:
-        return jsonify({'error': err}), 404
+        _, err = set_character_book(char_id, book)
+        if err:
+            return jsonify({'error': err}), 404
 
-    if delete_standalone:
-        with get_db() as conn:
+        if delete_standalone:
             conn.execute(
                 'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
                 (book_id,)
@@ -349,7 +348,7 @@ def export_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
         book = _parse_book(row['book'])
 
     filename = f"{safe_download_name(row['name'], 'lorebook')}.json"

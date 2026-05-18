@@ -71,7 +71,9 @@ def llm_chat():
     endpoint, api_key, _ = _llm_settings()
     if not endpoint:
         return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'ok': False, 'error': 'Invalid or missing JSON body'}), 400
     if not data.get('model'):
         return jsonify({'ok': False, 'error': 'No model specified'}), 400
 

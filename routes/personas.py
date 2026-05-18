@@ -44,7 +44,7 @@ def update_persona(persona_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Persona not found'}), 404
         data = request.get_json(silent=True) or {}
         name = (data.get('name') or '').strip() or row['name']
         tagline = (data.get('tagline') or row['tagline'] or '').strip()
@@ -62,7 +62,7 @@ def delete_persona(persona_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Persona not found'}), 404
         if row['is_default']:
             return jsonify({'error': 'Cannot delete the default persona'}), 400
         if row['avatar_path']:
@@ -81,7 +81,7 @@ def upload_persona_avatar(persona_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Persona not found'}), 404
         if 'avatar' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
         file = request.files['avatar']

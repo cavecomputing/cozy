@@ -123,7 +123,7 @@ class TestSystemPrompts:
     def test_delete_prompt_404(self, client):
         r = client.delete('/api/system-prompts/99999')
         assert r.status_code == 404
-        assert r.get_json()['error'] == 'Not found'
+        assert r.get_json()['error'] == 'System prompt not found'
 
     def test_create_prompt_missing_name(self, client):
         r = client.post('/api/system-prompts', json={'content': 'No name'})

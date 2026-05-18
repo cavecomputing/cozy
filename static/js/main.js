@@ -591,8 +591,7 @@ function bindLorebookHandlers() {
 }
 
 function bindMessageHandlers() {
-    // Avatar expand/collapse on click
-    el.chatHistory.addEventListener('click', e => {
+    el.chatHistory.addEventListener('click', async e => {
         const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
         if (avatar) {
             if (avatar.classList.contains('avatar-expanded')) {
@@ -617,12 +616,7 @@ function bindMessageHandlers() {
             }
             return;
         }
-    });
 
-    // Message area — floating action toolbar
-    el.chatHistory.addEventListener('click', async e => {
-        // The .msg-actions toolbar is a sibling of .message inside .message-wrapper,
-        // so we need to look for .message via the wrapper when clicking toolbar buttons.
         let msgEl = e.target.closest('.message');
         if (!msgEl) {
             const wrapper = e.target.closest('.message-wrapper');

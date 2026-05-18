@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { applyAvatar, sanitize, showToast, Flyouts, updateComposerState } from './utils.js';
-import { renderCharList, selectCharacter } from './characters.js';
+import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderMessages } from './messages.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -301,36 +301,9 @@ document.addEventListener('click', () => {
 
 deleteBtn.addEventListener('click', async () => {
     if (!editingCharId) return;
-    const name = fields.name.value.trim() || 'this character';
-    if (!confirm(`Delete ${name}? This will also delete all their chats and messages and cannot be undone.`)) return;
-    deleteBtn.disabled = true;
-    try {
-        await API.deleteCharacter(editingCharId);
-        state.characters = state.characters.filter(c => c.id !== editingCharId);
-        if (state.activeCharacter?.id === editingCharId) {
-            state.activeCharacter = null;
-            state.chats = [];
-            state.activeChat = null;
-            state.messages = [];
-            el.chatFlyout.hidden = true;
-            el.currentCharName.textContent = '';
-            el.chatHistory.innerHTML = '';
-            updateComposerState();
-            // Auto-select another non-missing character if one exists
-            const next = state.characters.find(c => !c.missing);
-            if (next) {
-                await selectCharacter(next.id);
-            } else {
-                renderMessages();
-            }
-        }
-        renderCharList();
-        close();
-        showToast('Character deleted', 'success');
-    } catch (err) {
-        showToast('Could not delete character: ' + err.message, 'error');
-        deleteBtn.disabled = false;
-    }
+    const name = fields.name.value.trim();
+    close();
+    await deleteCharacter(editingCharId, name);
 });
 closeBtn.addEventListener('click',  close);
 cancelBtn.addEventListener('click', close);

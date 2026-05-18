@@ -153,14 +153,14 @@ export function toggleSampler(group, active) {
     }
     applySamplerVisibility();
     // Import saveLLMSettings lazily to avoid circular dependency
-    import('./llm-settings.js').then(mod => mod.saveLLMSettings({ active_samplers: [...state.activeSamplers].join(',') }));
+    import('./llm-settings.js').then(mod => mod.saveLLMSettings({ active_samplers: [...state.activeSamplers].join(',') })).catch(err => console.error('Failed to save sampler settings:', err));
 }
 
 export function resetActiveSamplers() {
     state.activeSamplers = new Set(DEFAULT_ACTIVE_GROUPS);
     renderSamplerPopover();
     applySamplerVisibility();
-    import('./llm-settings.js').then(mod => mod.saveLLMSettings({ active_samplers: [...state.activeSamplers].join(',') }));
+    import('./llm-settings.js').then(mod => mod.saveLLMSettings({ active_samplers: [...state.activeSamplers].join(',') })).catch(err => console.error('Failed to save sampler settings:', err));
 }
 
 export function applySamplerVisibility() {
