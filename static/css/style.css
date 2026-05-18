@@ -387,13 +387,22 @@ body {
 }
 
 .char-item:hover .char-item-actions,
-.char-item:focus-within .char-item-actions {
+.char-item:focus-within .char-item-actions,
+.char-item.pinned .char-item-actions {
     display: flex;
 }
 
 .char-item-actions .icon-btn {
     width: 22px;
     height: 22px;
+}
+
+.char-pin-btn {
+    color: var(--text-secondary);
+}
+
+.char-item.pinned .char-pin-btn {
+    color: var(--accent-color);
 }
 
 .char-list-empty {

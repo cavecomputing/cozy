@@ -101,6 +101,7 @@ def init_db():
                 filename   TEXT    NOT NULL UNIQUE,
                 crc        TEXT    NOT NULL,
                 missing    INTEGER DEFAULT 0,
+                pinned_at  DATETIME DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -185,6 +186,11 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_message_swipes_message
                 ON message_swipes(message_id, id);
         ''')
+
+        # Migration: add pinned_at to existing databases
+        cols = [c[1] for c in conn.execute('PRAGMA table_info(characters)').fetchall()]
+        if 'pinned_at' not in cols:
+            conn.execute('ALTER TABLE characters ADD COLUMN pinned_at DATETIME DEFAULT NULL')
 
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "

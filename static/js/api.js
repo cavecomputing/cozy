@@ -49,6 +49,9 @@ export const API = {
     async deleteCharacter(id) {
         return jsonRequest(`/api/characters/${id}`, { method: 'DELETE', fallback: 'Delete failed' });
     },
+    async toggleCharacterPin(id) {
+        return jsonRequest(`/api/characters/${id}/pin`, { method: 'POST', fallback: 'Pin toggle failed' });
+    },
     async uploadAvatar(id, file) {
         return formRequest(`/api/characters/${id}/avatar`, { avatar: file }, 'Upload failed');
     },

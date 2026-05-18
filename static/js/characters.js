@@ -21,7 +21,7 @@ export function renderCharList() {
     }
     state.characters.forEach(char => {
         const li = document.createElement('li');
-        li.className = `char-item${char.id === state.activeCharacter?.id ? ' active' : ''}${char.missing ? ' missing' : ''}`;
+        li.className = `char-item${char.id === state.activeCharacter?.id ? ' active' : ''}${char.missing ? ' missing' : ''}${char.pinned ? ' pinned' : ''}`;
         li.dataset.charId = char.id;
 
         const selectBtn = document.createElement('button');
@@ -44,12 +44,15 @@ export function renderCharList() {
 
         const actions = document.createElement('div');
         actions.className = 'char-item-actions hide-on-collapse';
+        const pinIcon = char.pinned ? icons.STAR_FILLED : icons.STAR;
+        const pinTitle = char.pinned ? 'Unpin character' : 'Pin character';
         if (char.missing) {
             actions.innerHTML = `
                 <button class="icon-btn char-delete-btn" title="Delete character" aria-label="Delete character">${icons.TRASH}</button>
             `;
         } else {
             actions.innerHTML = `
+                <button class="icon-btn char-pin-btn" title="${pinTitle}" aria-label="${pinTitle}">${pinIcon}</button>
                 <button class="icon-btn char-edit-btn" title="Edit character" aria-label="Edit character">${icons.EDIT}</button>
                 <button class="icon-btn char-delete-btn" title="Delete character" aria-label="Delete character">${icons.TRASH}</button>
             `;

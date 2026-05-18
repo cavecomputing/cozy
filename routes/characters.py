@@ -34,6 +34,7 @@ def _unique_filename(name):
 
 def _char_to_dict(row, card_data=None):
     """Merge a DB character row with parsed card data into an API response dict."""
+    pinned = row['pinned_at'] is not None
     if row['missing']:
         return {
             'id': row['id'],
@@ -41,6 +42,8 @@ def _char_to_dict(row, card_data=None):
             'missing': True,
             'name': row['filename'].rsplit('.', 1)[0],
             'avatar_url': None,
+            'pinned': pinned,
+            'pinned_at': row['pinned_at'],
             'created_at': row['created_at'],
         }
 
@@ -50,6 +53,8 @@ def _char_to_dict(row, card_data=None):
         'missing': bool(row['missing']),
         'created_at': row['created_at'],
         'avatar_url': f"/characters/{row['filename']}?v={row['crc']}",
+        'pinned': pinned,
+        'pinned_at': row['pinned_at'],
     }
     d.update(card_data_fields(card_data or {}))
     if not d.get('name'):
@@ -110,7 +115,9 @@ def _sync_characters(conn):
 def list_characters():
     with get_db() as conn:
         _sync_characters(conn)
-        rows = conn.execute('SELECT * FROM characters ORDER BY created_at ASC').fetchall()
+        rows = conn.execute(
+            'SELECT * FROM characters ORDER BY pinned_at DESC NULLS LAST, created_at ASC'
+        ).fetchall()
         result = []
         for row in rows:
             if row['missing']:
@@ -208,6 +215,25 @@ def get_character(char_id):
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Character not found'}), 404
+        if row['missing']:
+            return jsonify(_char_to_dict(row))
+        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+        return jsonify(_char_to_dict(row, card))
+
+
+@characters_bp.route('/api/characters/<int:char_id>/pin', methods=['POST'])
+def toggle_pin_character(char_id):
+    with get_db() as conn:
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        if not row:
+            return jsonify({'error': 'Character not found'}), 404
+        if row['pinned_at']:
+            conn.execute('UPDATE characters SET pinned_at=NULL WHERE id=?', (char_id,))
+        else:
+            conn.execute(
+                'UPDATE characters SET pinned_at=CURRENT_TIMESTAMP WHERE id=?', (char_id,)
+            )
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if row['missing']:
             return jsonify(_char_to_dict(row))
         card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))

@@ -8,7 +8,7 @@ import {
     debounce, updateComposerState,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
-import { loadCharacters, selectCharacter, deleteCharacter } from './characters.js';
+import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './messages.js';
 import { Modal } from './modal.js';
@@ -432,12 +432,13 @@ function bindCharacterHandlers() {
     el.collapsedNewCharBtn?.addEventListener('click', () => openCharacterModal());
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
-    // Character list — select / edit / delete
+    // Character list — select / edit / delete / pin
     el.charList.addEventListener('click', e => {
         if (e.target.closest('.char-list-create-btn')) {
             openCharacterModal();
             return;
         }
+        const pinBtn    = e.target.closest('.char-pin-btn');
         const editBtn   = e.target.closest('.char-edit-btn');
         const deleteBtn = e.target.closest('.char-delete-btn');
         const selectBtn = e.target.closest('.char-select-btn');
@@ -445,7 +446,29 @@ function bindCharacterHandlers() {
         if (!item) return;
         const id   = parseInt(item.dataset.charId, 10);
         const char = state.characters.find(c => c.id === id);
-        if (editBtn) {
+        if (pinBtn) {
+            e.stopPropagation();
+            if (char) {
+                API.toggleCharacterPin(id)
+                    .then(updated => {
+                        // Replace the character in state and re-render so order updates
+                        const idx = state.characters.findIndex(c => c.id === id);
+                        if (idx !== -1) state.characters[idx] = updated;
+                        // Mirror server sort: pinned first (most recent pin at top),
+                        // then unpinned by created_at ASC
+                        state.characters.sort((a, b) => {
+                            if (a.pinned && !b.pinned) return -1;
+                            if (!a.pinned && b.pinned) return 1;
+                            if (a.pinned && b.pinned) {
+                                return (b.pinned_at || '').localeCompare(a.pinned_at || '');
+                            }
+                            return (a.created_at || '').localeCompare(b.created_at || '');
+                        });
+                        renderCharList();
+                    })
+                    .catch(err => showToast('Could not pin character: ' + err.message, 'error'));
+            }
+        } else if (editBtn) {
             e.stopPropagation();
             if (char) openCharacterModal(char);
         } else if (deleteBtn) {

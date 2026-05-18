@@ -398,3 +398,52 @@ class TestCharacterBookUpdate:
         card = r2.get_json()
         assert card.get('spec') == 'chara_card_v2'
         assert card.get('spec_version') == '2.0'
+
+
+# ── Pin / favourite ────────────────────────────────────────────────────────
+
+class TestPin:
+    def test_pin_toggle(self, client, sample_character):
+        # Pin
+        r = client.post(f'/api/characters/{sample_character["id"]}/pin')
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body['pinned'] is True
+        assert body['pinned_at'] is not None
+
+        # Unpin
+        r2 = client.post(f'/api/characters/{sample_character["id"]}/pin')
+        assert r2.status_code == 200
+        body2 = r2.get_json()
+        assert body2['pinned'] is False
+        assert body2['pinned_at'] is None
+
+    def test_list_orders_pinned_first(self, client):
+        # Create three characters
+        from io import BytesIO
+        png = make_minimal_png()
+        chars = []
+        for name in ('Alpha', 'Beta', 'Gamma'):
+            r = client.post('/api/characters', data={
+                'data': json.dumps({'name': name}),
+                'image': (BytesIO(png), f'{name}.png', 'image/png'),
+            }, content_type='multipart/form-data')
+            assert r.status_code == 201
+            chars.append(r.get_json())
+
+        # Pin Beta, then Alpha (Alpha should be first among pinned because most recent)
+        client.post(f'/api/characters/{chars[1]["id"]}/pin')
+        client.post(f'/api/characters/{chars[0]["id"]}/pin')
+
+        listing = client.get('/api/characters').get_json()
+        names = [c['name'] for c in listing]
+        assert names[0] == 'Alpha'
+        assert names[1] == 'Beta'
+        assert names[2] == 'Gamma'
+        assert listing[0]['pinned'] is True
+        assert listing[1]['pinned'] is True
+        assert listing[2]['pinned'] is False
+
+    def test_pin_404_for_missing_character(self, client):
+        r = client.post('/api/characters/99999/pin')
+        assert r.status_code == 404
