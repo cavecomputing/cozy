@@ -120,6 +120,11 @@ class TestSystemPrompts:
         assert r.status_code == 200
         assert r.get_json()['success'] is True
 
+    def test_delete_prompt_404(self, client):
+        r = client.delete('/api/system-prompts/99999')
+        assert r.status_code == 404
+        assert r.get_json()['error'] == 'Not found'
+
     def test_create_prompt_missing_name(self, client):
         r = client.post('/api/system-prompts', json={'content': 'No name'})
         assert r.status_code == 400

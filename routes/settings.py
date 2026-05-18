@@ -137,6 +137,9 @@ def update_system_prompt(prompt_id):
 @settings_bp.route('/api/system-prompts/<int:prompt_id>', methods=['DELETE'])
 def delete_system_prompt(prompt_id):
     with get_db() as conn:
+        row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
+        if not row:
+            return jsonify({'error': 'Not found'}), 404
         conn.execute('DELETE FROM system_prompts WHERE id = ?', (prompt_id,))
         return jsonify({'success': True})
 
@@ -288,6 +291,9 @@ def update_preset(preset_id):
 @settings_bp.route('/api/presets/<int:preset_id>', methods=['DELETE'])
 def delete_preset(preset_id):
     with get_db() as conn:
+        row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
+        if not row:
+            return jsonify({'error': 'Not found'}), 404
         active = conn.execute(
             'SELECT value FROM settings WHERE key = ?',
             ('active_api_preset',)

@@ -13,7 +13,7 @@
 - **Files**: `routes/messages.py`, `routes/settings.py`, `routes/llm.py` use `force=True`; `routes/characters.py`, `routes/chats.py`, `routes/personas.py`, `routes/lorebooks.py` use `silent=True`
 - **Issue**: `force=True` ignores Content-Type and raises 400 on bad JSON. `silent=True` silently returns `{}`. These have different error-handling semantics and should be unified.
 
-### Duplicate "read character card data" extraction pattern
+### [DONE] Duplicate "read character card data" extraction pattern
 - **Locations** (6+):
   - `routes/characters.py:230`, `routes/characters.py:265`
   - `routes/chats.py:37`, `routes/chats.py:61`
@@ -21,9 +21,10 @@
 - **Pattern**: `card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename'])); data = card.get('data', card) if card else {}`
 - **Fix**: Extract a shared helper in `card_store.py` like `get_character_card_data(conn, char_id)`.
 
-### Missing 404 existence check in `delete_system_prompt`
+### [DONE] Missing 404 existence check in `delete_system_prompt`
 - **File**: `routes/settings.py:140`
 - **Issue**: Deletes without first checking the row exists. Every other DELETE endpoint verifies first. Risks silently succeeding on a non-existent resource.
+- **Fix**: Added `SELECT` existence check before delete; returns 404 if missing. Same fix applied to `delete_preset` (same file, same bug).
 
 ---
 
