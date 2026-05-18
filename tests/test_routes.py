@@ -604,3 +604,106 @@ class TestLorebookOverrideInSettings:
         assert r.status_code == 200
         s = client.get('/api/settings').get_json()
         assert s['lorebook_always_inject_all'] == '0'
+
+
+class TestSettingsWhitelist:
+    def test_unknown_key_is_ignored(self, client):
+        r = client.put('/api/settings', json={'evil_injection': 'hacked'})
+        assert r.status_code == 200
+        s = client.get('/api/settings').get_json()
+        assert 'evil_injection' not in s
+
+    def test_legacy_context_max_messages_not_reintroduced(self, client):
+        r = client.put('/api/settings', json={'context_max_messages': '50'})
+        assert r.status_code == 200
+        s = client.get('/api/settings').get_json()
+        assert 'context_max_messages' not in s
+
+
+class TestChatRename:
+    def test_rename_chat(self, client, sample_chat):
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={'name': 'Renamed Chat'})
+        assert r.status_code == 200
+        assert r.get_json()['name'] == 'Renamed Chat'
+        r2 = client.get(f'/api/characters/{sample_chat["character_id"]}/chats')
+        chat = next(c for c in r2.get_json() if c['id'] == sample_chat['id'])
+        assert chat['name'] == 'Renamed Chat'
+
+    def test_rename_empty_name_keeps_existing(self, client, sample_chat):
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={'name': ''})
+        assert r.status_code == 200
+        assert r.get_json()['name'] == sample_chat['name']
+
+
+class TestGetSingleCharacter:
+    def test_get_character_by_id(self, client, sample_character):
+        r = client.get(f'/api/characters/{sample_character["id"]}')
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data['id'] == sample_character['id']
+        assert data['name'] == 'TestChar'
+        assert data['description'] == 'A brave test character.'
+
+    def test_get_character_404(self, client):
+        r = client.get('/api/characters/99999')
+        assert r.status_code == 404
+        assert r.get_json()['error'] == 'Character not found'
+
+
+class TestListChatsForCharacter:
+    def test_list_chats(self, client, sample_character, sample_chat):
+        r = client.get(f'/api/characters/{sample_character["id"]}/chats')
+        assert r.status_code == 200
+        chats = r.get_json()
+        assert len(chats) >= 1
+        assert any(c['id'] == sample_chat['id'] for c in chats)
+
+    def test_list_chats_unknown_character_404(self, client):
+        r = client.get('/api/characters/99999/chats')
+        assert r.status_code == 404
+
+
+class TestCharacterBasicFieldUpdate:
+    def test_update_multiple_fields(self, client, sample_character):
+        r = client.put(f'/api/characters/{sample_character["id"]}', json={
+            'name': 'Updated',
+            'description': 'New description',
+            'personality': 'Revised personality',
+            'scenario': 'New scenario',
+            'first_mes': 'New first message',
+        })
+        assert r.status_code == 200
+        char = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert char['name'] == 'Updated'
+        assert char['description'] == 'New description'
+        assert char['personality'] == 'Revised personality'
+        assert char['scenario'] == 'New scenario'
+        assert char['first_mes'] == 'New first message'
+
+
+class TestThemePrecedence:
+    def test_user_theme_shadows_builtin(self, client, monkeypatch):
+        builtin_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'themes')
+        if not os.path.isdir(builtin_dir):
+            return
+        builtin_files = [f for f in os.listdir(builtin_dir) if f.endswith('.css') and not f.startswith('.')]
+        if not builtin_files:
+            return
+        shadow_name = builtin_files[0]
+        user_content = '/* user override */ :root { --shadow-test: 1; }'
+        path = os.path.join(shared.THEMES_DIR, shadow_name)
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(user_content)
+        r = client.get(f'/themes/{shadow_name}')
+        assert r.status_code == 200
+        assert b'shadow-test' in r.data
+
+    def test_builtin_fallback_when_no_user_theme(self, client):
+        builtin_dir = shared.BUILTIN_THEMES_DIR
+        if not os.path.isdir(builtin_dir):
+            return
+        builtin_files = [f for f in os.listdir(builtin_dir) if f.endswith('.css') and not f.startswith('.')]
+        if not builtin_files:
+            return
+        r = client.get(f'/themes/{builtin_files[0]}')
+        assert r.status_code == 200
