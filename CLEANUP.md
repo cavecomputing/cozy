@@ -9,10 +9,6 @@
 
 ## High Priority
 
-### Docker compose port mapping vs docs
-- **File**: `docker/docker-compose.yml`
-- **Issue**: Maps `80:5001`, but `docs/run.md` previously claimed `9002`. The docs have been updated to port 80, but verify the compose file is intentionally `80:5001` for production.
-
 ### Inconsistent `request.get_json()` semantics
 - **Files**: `routes/messages.py`, `routes/settings.py`, `routes/llm.py` use `force=True`; `routes/characters.py`, `routes/chats.py`, `routes/personas.py`, `routes/lorebooks.py` use `silent=True`
 - **Issue**: `force=True` ignores Content-Type and raises 400 on bad JSON. `silent=True` silently returns `{}`. These have different error-handling semantics and should be unified.

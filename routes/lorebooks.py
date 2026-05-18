@@ -8,12 +8,11 @@ character update path.
 """
 
 import json
-import os
 
 from flask import Blueprint, request, jsonify, Response
 
 import shared
-from card_store import read_character_card, set_character_book
+from card_store import get_character_card, set_character_book
 from shared import get_db, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
@@ -277,13 +276,10 @@ def embed_in_character(book_id, char_id):
 def extract_from_character(char_id):
     clear_embedded = request.args.get('clear_embedded') == '1'
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if not row or row['missing']:
+        row, card = get_character_card(conn, char_id)
+        if not row:
             return jsonify({'error': 'Character not found'}), 404
-
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = read_character_card(filepath)
-    char_data = (card or {}).get('data', card or {})
+        char_data = (card or {}).get('data', card or {})
     book = char_data.get('character_book')
     if not isinstance(book, dict) or not book.get('entries'):
         return jsonify({'error': 'This character has no embedded lorebook to extract'}), 400
@@ -368,13 +364,10 @@ def export_lorebook(book_id):
 def export_character_lorebook(char_id):
     """Download a character's embedded lorebook as JSON."""
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if not row or row['missing']:
+        row, card = get_character_card(conn, char_id)
+        if not row:
             return jsonify({'error': 'Character not found'}), 404
-
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = read_character_card(filepath)
-    char_data = (card or {}).get('data', card or {})
+        char_data = (card or {}).get('data', card or {})
     book = char_data.get('character_book')
     if not isinstance(book, dict) or not book.get('entries'):
         return jsonify({'error': 'This character has no embedded lorebook'}), 400

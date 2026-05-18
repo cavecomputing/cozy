@@ -45,6 +45,21 @@ def read_character_card(path):
         return None
 
 
+def get_character_card(conn, char_id):
+    """Return (row, full_card_dict) for *char_id*, or (None, None) if absent/missing."""
+    row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+    if not row or row['missing']:
+        return None, None
+    path = os.path.join(shared.CHARACTERS_DIR, row['filename'])
+    return row, read_character_card(path)
+
+
+def get_character_card_data(conn, char_id):
+    """Return the character card's inner `data` dict, or `{}` if absent/missing."""
+    _, card = get_character_card(conn, char_id)
+    return card.get('data', card) if card else {}
+
+
 def normalize_to_v2(card_data):
     """Normalize V1/V2/flat card data into a proper V2 card dict."""
     if isinstance(card_data, dict) and card_data.get('spec') == 'chara_card_v2':

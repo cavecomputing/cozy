@@ -1,14 +1,13 @@
 """Chat CRUD routes."""
 
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Blueprint, request, jsonify, Response
 
 import shared
-from card_store import read_character_card
+from card_store import get_character_card_data
 from shared import get_db, safe_download_name
 
 chats_bp = Blueprint('chats', __name__)
@@ -25,16 +24,7 @@ def _chat_to_dict(row):
 
 def _character_has_lorebook(conn, char_id):
     """True if the character's PNG card embeds a non-empty character_book."""
-    row = conn.execute(
-        'SELECT filename, missing FROM characters WHERE id=?', (char_id,)
-    ).fetchone()
-    if not row or row['missing']:
-        return False
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = read_character_card(filepath)
-    if not card:
-        return False
-    data = card.get('data', card)
+    data = get_character_card_data(conn, char_id)
     book = data.get('character_book')
     if not isinstance(book, dict):
         return False
@@ -52,13 +42,7 @@ def _iso_from_sqlite(value):
 
 
 def _read_character_name(conn, char_id):
-    row = conn.execute(
-        'SELECT filename, missing FROM characters WHERE id=?', (char_id,)
-    ).fetchone()
-    if not row or row['missing']:
-        return 'Character'
-    card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-    data = card.get('data', card) if card else {}
+    data = get_character_card_data(conn, char_id)
     return data.get('name') or 'Character'
 
 

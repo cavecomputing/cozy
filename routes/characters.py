@@ -8,8 +8,8 @@ from werkzeug.utils import secure_filename
 
 import shared
 from card_store import (
-    card_data_fields, ensure_png, file_crc, normalize_to_v2, read_character_card,
-    write_character_card,
+    card_data_fields, ensure_png, file_crc, get_character_card, normalize_to_v2,
+    read_character_card, write_character_card,
 )
 from shared import get_db
 from png_utils import make_minimal_png, write_png_chara, extract_png_chara
@@ -221,14 +221,12 @@ def export_character(char_id):
     ?fmt=json -> extract card JSON from the PNG and return it
     """
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if not row or row['missing']:
+        row, card_data = get_character_card(conn, char_id)
+        if not row:
             return jsonify({'error': 'Not found'}), 404
-
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card_data = read_character_card(filepath)
-    data = card_data.get('data', card_data) if card_data else {}
-    safe = shared.safe_download_name(data.get('name'), 'character')
+        data = card_data.get('data', card_data) if card_data else {}
+        safe = shared.safe_download_name(data.get('name'), 'character')
+        filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
 
     fmt = request.args.get('fmt', 'json').lower()
 
@@ -259,10 +257,7 @@ def update_character(char_id):
             return jsonify({'error': 'Not found'}), 404
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-        with open(filepath, 'rb') as f:
-            png_bytes = f.read()
-
-        existing_card = extract_png_chara(png_bytes) or {'data': {}}
+        existing_card = read_character_card(filepath) or {'data': {}}
         existing_data = existing_card.get('data', existing_card)
 
         for key in data:
