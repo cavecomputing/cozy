@@ -34,9 +34,4 @@ export function updateContextMeter() {
         el.contextTokenMeter.dataset.level = pct >= 90 ? 'danger' : (pct >= 70 ? 'warn' : 'ok');
     }
     el.contextTokenMeter.hidden = false;
-    if (state.autoScroll && el.chatHistory) {
-        requestAnimationFrame(() => {
-            el.chatHistory.scrollTop = el.chatHistory.scrollHeight;
-        });
-    }
 }

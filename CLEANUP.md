@@ -66,10 +66,10 @@
 - **Issue**: Matches messages by `rawText` content instead of `msgId`. Can fail with duplicate text. Should use `msgId`-based lookup (see `findStateMsg` in `messages.js`).
 - **Phase**: 2
 
-### Dead condition in `static/js/messages.js:379`
+### [DONE] Dead condition in `static/js/messages.js:379`
 - **Code**: `if (!char || !state.activeChat)`
 - **Issue**: After two prior `!char` guards that return, `!char` is unreachable. Simplifies to `if (!state.activeChat)`.
-- **Phase**: 2
+- **Fix**: Removed unreachable `!char` from condition.
 
 ### [DONE] Variable shadowing in `static/js/system-prompts.js:91`
 - **Code**: `const p = state.systemPrompts.find(p => ...)`
@@ -93,10 +93,10 @@
 - **Files**: `static/js/characters.js` (lines 3, 6), `static/js/chats.js` (lines 3, 5), `static/js/personas.js` (lines 3, 4), `static/js/send.js` (lines 4, 5)
 - **Fix**: Consolidated into a single import statement per module.
 
-### Settings `mask_secret()` edge case
+### [DONE] Settings `mask_secret()` edge case
 - **File**: `routes/settings.py:38`
 - **Issue**: For strings 4–8 chars long, `value[:3] + '…' + value[-4:]` produces an overlapping mask (e.g. `"abc…bcde"` for `"abcde"`).
-- **Phase**: 2
+- **Fix**: Changed short-value mask to `'•••••'` to avoid overlap; the `> 8` threshold for partial masking remains.
 
 ### `persona_avatar_url` cross-module import
 - **File**: `routes/messages.py:6`
@@ -190,13 +190,13 @@
 - **Lines**: 594 and 622
 - **Issue**: Both add click listeners on the same element. Could be consolidated into one handler with clear branching.
 
-### Redundant `renderChats()` call in `static/js/chats.js:106`
+### [DONE] Redundant `renderChats()` call in `static/js/chats.js:106`
 - **Issue**: Called after clearing state, then `loadChats()` calls it again after fetching. The first call renders an empty list. Harmless but slightly wasteful.
-- **Phase**: 2
+- **Fix**: Removed redundant `renderChats()` call in `characters.js` that preceded `loadChats()`.
 
-### Context-meter scrolls redundantly in `static/js/context-meter.js:37-41`
+### [DONE] Context-meter scrolls redundantly in `static/js/context-meter.js:37-41`
 - **Issue**: Duplicates scroll-to-bottom behavior in `utils.js` `scrollToBottom()`. Could call the utility instead.
-- **Phase**: 2
+- **Fix**: Removed inline `requestAnimationFrame` scroll; `scrollToBottom()` in `utils.js` handles it.
 
 ### [DONE] Unicode escapes undocumented in `static/js/main.js:289-291`
 - **Code**: `if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026'))`
@@ -261,6 +261,6 @@
 - **File**: `templates/index.html` (lines 7-9)
 - **Issue**: Inter font loaded from Google Fonts. Fails offline. (Intentionally skipped — acceptable trade-off for now.)
 
-### `updateContextSizeWarning()` called redundantly in `static/js/llm-settings.js:260`
+### [DONE] `updateContextSizeWarning()` called redundantly in `static/js/llm-settings.js:260`
 - **Issue**: Called from `applySettingsToUI()` and also from `loadSamplerSettings()` via init flow. Double-calling is harmless but indicates the init path could be streamlined.
-- **Phase**: 2
+- **Fix**: Removed `updateContextSizeWarning()` from `applySettingsToUI()`; added it to `activatePreset()` which is the only caller that needs it outside the init path.

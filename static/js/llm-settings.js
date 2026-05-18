@@ -257,7 +257,6 @@ function applySettingsToUI(s) {
     state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';
     if (el.lorebookAlwaysInjectAll) el.lorebookAlwaysInjectAll.checked = state.lorebookAlwaysInjectAll;
     state.modelContextLength = state.modelDetails[state.apiModel] ?? null;
-    updateContextSizeWarning();
 }
 
 export async function activatePreset(id) {
@@ -266,6 +265,7 @@ export async function activatePreset(id) {
         const s = await API.activatePreset(id);
         clearModelListCache();
         applySettingsToUI(s);
+        updateContextSizeWarning();
         state.activePresetId = id;
         if (el.apiPreset) el.apiPreset.value = String(id);
         updatePresetButtonStates();

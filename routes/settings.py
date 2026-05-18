@@ -35,7 +35,7 @@ SETTINGS_KEYS = {
 def mask_secret(value):
     if value:
         return {
-            'api_key_masked': value[:3] + '…' + value[-4:] if len(value) > 8 else '••••',
+            'api_key_masked': value[:3] + '…' + value[-4:] if len(value) > 8 else '•••••',
             'api_key_set': True,
         }
     return {'api_key_masked': '', 'api_key_set': False}

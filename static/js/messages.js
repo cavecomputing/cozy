@@ -370,7 +370,7 @@ export function renderMessages() {
         updateComposerState();
         return;
     }
-    if (!char || !state.activeChat) {
+    if (!state.activeChat) {
         showEmptyState('No chat selected', 'Create or select a chat to start messaging this character.', false);
         updateComposerState();
         return;

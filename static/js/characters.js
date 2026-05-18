@@ -102,7 +102,6 @@ export async function selectCharacter(charId) {
     state.chats    = [];
     state.activeChat = null;
     state.messages  = [];
-    renderChats();
     el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
 
     await loadChats(charId);
