@@ -246,7 +246,7 @@ def delete_lorebook(book_id):
             (book_id,)
         )
         conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
-        return jsonify({'ok': True})
+        return jsonify({'success': True})
 
 
 @lorebooks_bp.route('/api/lorebooks/<int:book_id>/embed-in-character/<int:char_id>', methods=['POST'])
@@ -270,7 +270,7 @@ def embed_in_character(book_id, char_id):
             )
             conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
 
-    return jsonify({'ok': True, 'character_book': book})
+    return jsonify({'success': True, 'character_book': book})
 
 
 @lorebooks_bp.route('/api/characters/<int:char_id>/extract-lorebook', methods=['POST'])

@@ -150,7 +150,7 @@ def update_message(msg_id):
         if not row:
             return jsonify({'error': 'Message not found'}), 404
         conn.execute('UPDATE messages SET content = ? WHERE id = ?', (content, msg_id))
-        return jsonify({'ok': True})
+        return jsonify({'success': True})
 
 
 @messages_bp.route('/api/messages/<int:msg_id>', methods=['DELETE'])
@@ -160,4 +160,4 @@ def delete_message(msg_id):
         if not row:
             return jsonify({'error': 'Message not found'}), 404
         conn.execute('DELETE FROM messages WHERE id = ?', (msg_id,))
-        return jsonify({'ok': True})
+        return jsonify({'success': True})

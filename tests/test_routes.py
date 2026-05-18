@@ -118,7 +118,7 @@ class TestSystemPrompts:
         created = client.post('/api/system-prompts', json={'name': 'Temp'}).get_json()
         r = client.delete(f'/api/system-prompts/{created["id"]}')
         assert r.status_code == 200
-        assert r.get_json()['ok'] is True
+        assert r.get_json()['success'] is True
 
     def test_create_prompt_missing_name(self, client):
         r = client.post('/api/system-prompts', json={'content': 'No name'})
@@ -276,7 +276,7 @@ class TestMessages:
             'content': 'Edited text',
         })
         assert r.status_code == 200
-        assert r.get_json()['ok'] is True
+        assert r.get_json()['success'] is True
 
 
 class TestChatJsonlImportExport:

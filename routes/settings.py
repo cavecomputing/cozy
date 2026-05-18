@@ -138,7 +138,7 @@ def update_system_prompt(prompt_id):
 def delete_system_prompt(prompt_id):
     with get_db() as conn:
         conn.execute('DELETE FROM system_prompts WHERE id = ?', (prompt_id,))
-        return jsonify({'ok': True})
+        return jsonify({'success': True})
 
 
 # ── System prompt import / export ─────────────────────────────────────────
@@ -299,7 +299,7 @@ def delete_preset(preset_id):
                 'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
                 ('active_api_preset', '')
             )
-        return jsonify({'ok': True})
+        return jsonify({'success': True})
 
 
 @settings_bp.route('/api/presets/<int:preset_id>/activate', methods=['POST'])
