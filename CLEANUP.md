@@ -1,158 +1,170 @@
 # Code Cleanup Backlog
 
-> Generated from a full codebase audit. Items are organized by priority.
-> Tackled so far:
-> - Docker docs port mismatch (`docs/run.md`) — fixed
-> - Inconsistent DELETE/PUT success response keys — standardized to `{'success': True}`
-> - Missing 404 check in `update_message` (`routes/messages.py`) — fixed
+> Remaining items from a full codebase audit. All Phase 1–3 items are resolved.
 
 ---
 
-## High Priority
+## 1. Inconsistent `request.get_json()` semantics
 
-### Inconsistent `request.get_json()` semantics
-- **Files**: `routes/messages.py`, `routes/settings.py`, `routes/llm.py` use `force=True`; `routes/characters.py`, `routes/chats.py`, `routes/personas.py`, `routes/lorebooks.py` use `silent=True`
-- **Issue**: `force=True` ignores Content-Type and raises 400 on bad JSON. `silent=True` silently returns `{}`. These have different error-handling semantics and should be unified.
+**Files**:
+- `force=True`: `routes/messages.py:143`, `routes/settings.py:73,106,122,245,267`, `routes/llm.py:74`
+- `silent=True`: `routes/characters.py:252`, `routes/chats.py:190,292`, `routes/personas.py:28,48`, `routes/lorebooks.py:183,210,324`, `routes/messages.py:74,117`
 
-### [DONE] Duplicate "read character card data" extraction pattern
-- **Locations** (6+):
-  - `routes/characters.py:230`, `routes/characters.py:265`
-  - `routes/chats.py:37`, `routes/chats.py:61`
-  - `routes/lorebooks.py:286`, `routes/lorebooks.py:377`
-- **Pattern**: `card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename'])); data = card.get('data', card) if card else {}`
-- **Fix**: Extract a shared helper in `card_store.py` like `get_character_card_data(conn, char_id)`.
+**Problem**: `force=True` ignores Content-Type header and raises 400 on unparseable JSON. `silent=True` silently returns `None` (coerced to `{}` by the `or {}` idiom). These have very different error-handling semantics — some callers silently accept empty bodies, others reject malformed ones.
 
-### [DONE] Missing 404 existence check in `delete_system_prompt`
-- **File**: `routes/settings.py:140`
-- **Issue**: Deletes without first checking the row exists. Every other DELETE endpoint verifies first. Risks silently succeeding on a non-existent resource.
-- **Fix**: Added `SELECT` existence check before delete; returns 404 if missing. Same fix applied to `delete_preset` (same file, same bug).
+**Plan**:
+1. Decide on a project-wide standard. Recommendation: use `silent=True` everywhere and validate required fields explicitly at the top of each handler. This is the safer pattern — it never crashes on bad input and gives the route a chance to return a specific error message.
+2. Replace all `force=True` calls with `silent=True`.
+3. For routes that currently rely on `force=True` raising 400 on bad JSON (e.g. `settings.py`), add an explicit check: if the parsed result is `None` and the request body is non-empty, return `400 {'error': 'Invalid JSON'}`.
+4. Add a test verifying that each JSON-accepting endpoint returns 400 for malformed JSON, not 500.
 
 ---
 
-## Medium Priority
+## 2. `update_character` allows arbitrary key injection
 
-### [DONE] Duplicate icons in `static/js/state.js`
-- **Issue**: `icons.TRASH` and `icons.DELETE` are identical SVGs. `icons.EDIT` and `icons.PENCIL` differ only in size (14 vs 13).
-- **Fix**: Consolidate into one icon each; control size via CSS.
+**File**: `routes/characters.py:262-263`
 
-### [DONE] Duplicate download-trigger pattern in JS
-- **Files**: `static/js/api.js:56-66` (`exportCard`), `static/js/export.js:9-14` (`exportChat`)
-- **Pattern**: Create `<a>`, set `href`/`download`, append, click, remove.
-- **Fix**: Extract to `utils.js` as `downloadUrl(url, filename)`.
+**Problem**: `for key in data: existing_data[key] = data[key]` blindly merges every user-supplied key into the card's `data` dict. A client could inject or overwrite keys like `spec`, `spec_version`, `extensions`, or arbitrary fields that shouldn't be user-controlled.
 
-### [DONE] Duplicate filename sanitization regex
-- **Files**: `static/js/api.js:58`, `static/js/export.js:11`
-- **Pattern**: `/[\\/:*?"<>|]/g`
-- **Fix**: Extract to `utils.js` as `sanitizeFilename(name)`.
+**Plan**:
+1. Define an allowlist of updatable fields — use `CARD_DATA_DEFAULTS` keys from `card_store.py` as the canonical set: `name, description, personality, scenario, first_mes, mes_example, creator_notes, system_prompt, post_history_instructions, alternate_greetings, tags, creator, character_version`.
+2. In `update_character()`, filter `data` to only allowlisted keys before merging:
+   ```python
+   ALLOWED_UPDATE_KEYS = set(CARD_DATA_DEFAULTS) - {'character_book', 'extensions'}
+   for key in data:
+       if key in ALLOWED_UPDATE_KEYS:
+           existing_data[key] = data[key]
+   ```
+   (Exclude `character_book` because it has its own dedicated route; exclude `extensions` or handle it separately.)
+3. Add a test that PUTs a character with an injected `spec_version` key and asserts it's ignored.
 
-### [DONE] Duplicate avatar-setup logic
-- **Files**: `static/js/utils.js` (`applyAvatar`), `static/js/messages.js` (`buildMessageEl`), `static/js/personas.js` (`renderPersonaList`, `updateUserProfile`)
-- **Issue**: Manual reimplementation of `backgroundImage`, `dataset.hasImage`, `textContent` pattern.
-- **Fix**: Reuse `applyAvatar` or a shared helper.
+---
 
-### [DONE] Dead DOM reference in `static/js/state.js`
-- **Line**: 184
-- **Issue**: `el.lorebookConvert` targets `#settings-lorebook-convert` but no such element exists in `templates/index.html`.
+## 3. Inconsistent 404 error message formats
 
-### [DONE] Unused `icons.UPLOAD` in `static/js/state.js`
-- **Line**: 204
-- **Issue**: Defined but never referenced by any module. (Already absent from current file.)
+**Files**: All route files — 18 occurrences of `{'error': 'Not found'}`, no specific entity names.
 
-### [DONE] Unused import in `static/js/send.js`
-- **Line**: 2
-- **Issue**: `maybeScrollToBottom` is imported from `utils.js` but never called. (Already used at line 47 in current file.)
+**Problem**: Every 404 response uses the generic `"Not found"`. A client (or developer debugging) can't tell whether a character, chat, persona, lorebook, system prompt, or preset was missing. Other error messages in the same files are specific (e.g. `"No endpoint configured"`, `"name is required"`).
 
-### [DONE] Fragile message deletion in `static/js/main.js:640-654`
-- **Issue**: Matches messages by `rawText` content instead of `msgId`. Can fail with duplicate text. Should use `msgId`-based lookup (see `findStateMsg` in `messages.js`).
-- **Fix**: Replaced text-based lookup with `findStateMsg()` which uses `data-msg-id` with text fallback.
+**Plan**:
+1. Replace every `{'error': 'Not found'}` with a specific entity name:
+   - `characters.py` → `"Character not found"`
+   - `chats.py` → `"Chat not found"`
+   - `personas.py` → `"Persona not found"`
+   - `lorebooks.py` → `"Lorebook not found"`
+   - `settings.py` system prompts → `"System prompt not found"`
+   - `settings.py` presets → `"Preset not found"`
+2. Update any existing tests that assert on the exact `"Not found"` string.
+3. Consider extracting a shared `not_found(entity)` helper in a future pass if desired, but for now explicit strings are clearer.
 
-### [DONE] Dead condition in `static/js/messages.js:379`
-- **Code**: `if (!char || !state.activeChat)`
-- **Issue**: After two prior `!char` guards that return, `!char` is unreachable. Simplifies to `if (!state.activeChat)`.
-- **Fix**: Removed unreachable `!char` from condition.
+---
 
-### [DONE] Variable shadowing in `static/js/system-prompts.js:91`
-- **Code**: `const p = state.systemPrompts.find(p => ...)`
-- **Issue**: Inner `p` shadows outer `const p`. Rename inner to `sp`.
-- **Fix**: Renamed inner parameter to `sp`.
+## 4. Non-transactional `embed_in_character`
 
-### [DONE] `enforceAlternation` recreated every call in `static/js/request-builder.js:125-159`
-- **Issue**: Defined inside `buildChatPayload()`, so a new closure is created on every invocation. Has no dependency on local variables — should be hoisted to module scope.
-- **Fix**: Hoisted `enforceAlternation` to module scope.
+**File**: `routes/lorebooks.py:251-272`
 
-### [DONE] Signal not passed to non-streaming path in `static/js/request-builder.js:178`
-- **Code**: `return API.chatCompletion(payload)` ignores the `signal` parameter.
-- **Issue**: If `generateResponse` is called with a signal but no `onToken`, the abort signal is silently dropped. `API.chatCompletion` doesn't accept a signal parameter.
-- **Fix**: Added `signal` parameter to `API.chatCompletion()` and forwarded it from `generateResponse()`.
+**Problem**: `embed_in_character` opens two separate `get_db()` contexts. The first reads the lorebook, then `set_character_book(char_id, book)` writes the character card to disk (outside the DB context). If the second `get_db()` block (which deletes the standalone lorebook and clears FK references) fails, the character book has already been embedded on disk but the standalone lorebook row remains — an orphan.
 
-### [DONE] `API.chatCompletion()` in `static/js/api.js` never called at runtime
-- **Lines**: 142-152
-- **Issue**: Only reachable via a fallback path in `request-builder.js` that's never exercised. Add a comment if kept intentionally.
-- **Fix**: Added comment noting it's an unexercised fallback path kept as safety net.
+**Plan**:
+1. Restructure to use a single `get_db()` context that encompasses both the read and the deletion:
+   ```python
+   def embed_in_character(book_id, char_id):
+       delete_standalone = request.args.get('delete_standalone') == '1'
+       with get_db() as conn:
+           row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
+           if not row:
+               return jsonify({'error': 'Lorebook not found'}), 404
+           book = _parse_book(row['book'])
+           _, err = set_character_book(char_id, book)
+           if err:
+               return jsonify({'error': err}), 404
+           if delete_standalone:
+               conn.execute('UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?', (book_id,))
+               conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
+       return jsonify({'success': True, 'character_book': book})
+   ```
+2. The disk write (`set_character_book`) is non-transactional by nature (SQLite can't roll back file I/O), but at least the DB state will be consistent — if the write fails, we return early before deleting.
+3. Add a test: embed a lorebook with `delete_standalone=1`, verify the standalone row is gone and the character has the book.
 
-### [DONE] Duplicate imports (same module, split statements)
-- **Files**: `static/js/characters.js` (lines 3, 6), `static/js/chats.js` (lines 3, 5), `static/js/personas.js` (lines 3, 4), `static/js/send.js` (lines 4, 5)
-- **Fix**: Consolidated into a single import statement per module.
+---
 
-### [DONE] Settings `mask_secret()` edge case
-- **File**: `routes/settings.py:38`
-- **Issue**: For strings 4–8 chars long, `value[:3] + '…' + value[-4:]` produces an overlapping mask (e.g. `"abc…bcde"` for `"abcde"`).
-- **Fix**: Changed short-value mask to `'•••••'` to avoid overlap; the `> 8` threshold for partial masking remains.
+## 5. Two separate click handlers on `el.chatHistory`
 
-### [DONE] `persona_avatar_url` cross-module import
-- **File**: `routes/messages.py:6`
-- **Issue**: `from routes.personas import persona_avatar_url` creates coupling between route modules. Should live in a shared module.
-- **Fix**: Moved `persona_avatar_url` and `_avatar_cache_key` to `shared.py`; both `personas.py` and `messages.py` import from shared.
+**File**: `static/js/main.js:594-620` (avatar expand) and `:622-665` (message actions)
 
-### [DONE] Duplicate avatar file-type validation
-- **Files**: `routes/personas.py:97-99`, `routes/characters.py:310-312`
-- **Pattern**: `ext = (file.filename or '').rsplit('.', 1)[-1].lower(); if ext not in shared.ALLOWED_IMG`
-- **Fix**: Extracted `validate_image_extension()` to `shared.py`; both route files use it.
+**Problem**: Two independent `addEventListener('click', ...)` on the same element. They don't conflict because each checks for different targets (`.avatar` vs `.message` / toolbar buttons), but merging them into one handler would be cleaner and avoids dispatching two listener calls per click.
 
-### [DONE] `from pathlib import Path` in `routes/chats.py` (line 6)
-- **Issue**: Used only once (line 251: `Path(upload.filename or '').stem`). `os.path.splitext` could do the same with the already-imported `os` module.
-- **Fix**: Replaced `Path(...).stem` with `os.path.splitext(...)[0]`; removed `pathlib` import.
+**Plan**:
+1. Merge both listeners into a single `el.chatHistory.addEventListener('click', ...)` handler.
+2. Structure with clear early-returns:
+   ```js
+   el.chatHistory.addEventListener('click', async e => {
+       // Avatar expand/collapse
+       const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
+       if (avatar) { /* ... existing avatar logic ... */ return; }
 
-### [DONE] `_iso_from_sqlite()` in `routes/chats.py:45-51`
-- **Issue**: `fromisoformat`→`replace(tzinfo=timezone.utc)`→`isoformat()` round-trip is essentially a no-op plus timezone annotation for SQLite `CURRENT_TIMESTAMP` values. Somewhat misleading name.
-- **Fix**: Renamed to `_ensure_utc_iso()` with a docstring explaining the purpose.
+       // Message toolbar actions
+       let msgEl = e.target.closest('.message');
+       if (!msgEl) { const wrapper = e.target.closest('.message-wrapper'); if (wrapper) msgEl = wrapper.querySelector('.message'); }
+       if (!msgEl) return;
+       // ... existing message action logic ...
+   });
+   ```
+3. Delete the second `addEventListener` call entirely. No functional change.
 
-### [DONE] `_character_has_lorebook` and `_read_character_name` duplication in `routes/chats.py`
-- **Lines**: 26-42 and 54-62
-- **Issue**: Both query the `characters` table by `char_id` and read the character card from disk. Share the same preamble.
-- **Fix**: Resolved by earlier extraction of `get_character_card_data()` in `card_store.py`; both functions now call it directly.
+---
 
-### `update_character` allows arbitrary key injection
-- **File**: `routes/characters.py:268-269`
-- **Issue**: `for key in data` blindly merges user-supplied keys into `existing_data` without validation or allowlist. A client could inject arbitrary keys (e.g. `spec`, `spec_version`).
+## 6. Dynamic import for circular dependency in `sampler.js`
 
-### Inconsistent 404 error message formats
-- **Issue**: Some endpoints use generic `"Not found"`; others use specific entity names (`"Character not found"`, `"Chat not found"`, etc.). Should be consistent.
+**File**: `static/js/sampler.js:156`
 
-### [DONE] `bool()` wrapper redundancy in `routes/chats.py:273`
-- **Code**: `role = 'user' if bool(message.get('is_user')) else 'character'`
-- **Issue**: `bool()` wrapper is redundant; the ternary already handles truthiness.
-- **Fix**: Removed redundant `bool()` wrapper.
+**Problem**: `import('./llm-settings.js').then(mod => mod.saveLLMSettings(...))` uses a dynamic import to avoid a circular dependency. If the module fails to load (network error, syntax error), the `.then` never fires and there's no `.catch` — the save is silently dropped.
 
-### [DONE] Inconsistent persona update stripping
-- **File**: `routes/personas.py:54-69`
-- **Issue**: `name` is stripped, but `tagline` and `description` are not. In `create_persona` (lines 44-45), both are stripped. Should be consistent.
-- **Fix**: Added `.strip()` to `tagline` and `description` in the update path.
+**Plan**:
+1. Add a `.catch` handler:
+   ```js
+   import('./llm-settings.js')
+       .then(mod => mod.saveLLMSettings({ active_samplers: [...state.activeSamplers].join(',') }))
+       .catch(err => console.error('Failed to save sampler settings:', err));
+   ```
+2. Alternatively, consider a lightweight event bus: `sampler.js` dispatches a custom event on `document`, and `llm-settings.js` listens for it. This eliminates the dynamic import entirely:
+   ```js
+   // sampler.js
+   document.dispatchEvent(new CustomEvent('sampler-changed', { detail: { active_samplers: [...state.activeSamplers].join(',') } }));
 
-### [DONE] `_make_test_png()` wrapper in `tests/conftest.py:48-50`
-- **Issue**: Trivial one-liner wrapper around `make_minimal_png()` that adds no value. Use `make_minimal_png()` directly.
-- **Fix**: Removed wrapper; call `make_minimal_png()` directly.
+   // llm-settings.js (during init)
+   document.addEventListener('sampler-changed', e => saveLLMSettings(e.detail));
+   ```
+   The event bus approach is cleaner but touches two files. The `.catch` fix is minimal. Recommend `.catch` first, event bus as a follow-up if the circular dependency pattern appears elsewhere.
 
-### [DONE] `_v2_card()` helper only in `tests/test_characters.py`
-- **Issue**: Useful for building test data. Could benefit `test_lorebooks.py` which constructs card-like dicts manually.
-- **Fix**: Moved to `tests/helpers.py` as `v2_card()`; both `test_characters.py` and `test_lorebooks.py` import from it.
+---
 
-### [DONE] Inconsistent inline imports in tests
-- **Files**: `tests/test_lorebooks.py` (lines 504, 610), `tests/test_routes.py` (line 162)
-- **Issue**: Some test methods have inline imports while other files keep all imports at the module top.
-- **Fix**: Moved `from io import BytesIO` and `from png_utils import …` to module top; replaced `io.BytesIO` with `BytesIO` in `test_routes.py`.
+## 7. Modal delete handler duplicates `deleteCharacter`
 
-### Missing test coverage areas
+**Files**: `static/js/modal.js:302-334` vs `static/js/characters.js:111-131`
+
+**Problem**: The modal's delete button has its own inline character-deletion logic (API call, state cleanup, UI update, auto-select next character). This duplicates and diverges from `deleteCharacter()` in `characters.js` — e.g., the modal version doesn't reset `el.currentCharName.textContent` to `'Cozy'`, doesn't call `renderChats()`, and uses `el.chatHistory.innerHTML = ''` instead of `renderMessages()`. Over time these two paths will drift further.
+
+**Plan**:
+1. In `modal.js`, replace the inline delete logic with a call to the shared function:
+   ```js
+   import { deleteCharacter } from './characters.js';
+   // ...
+   deleteBtn.addEventListener('click', async () => {
+       if (!editingCharId) return;
+       close(); // close modal first so it doesn't block
+       await deleteCharacter(editingCharId);
+   });
+   ```
+2. Remove all the duplicated state-cleanup code from the modal handler (lines 308–333).
+3. If `deleteCharacter` needs the custom confirm message with the character's name, add an optional `name` parameter to `deleteCharacter(charId, name)` that overrides the default confirm text.
+4. Verify the modal's delete flow matches the sidebar delete flow end-to-end.
+
+---
+
+## 8. Missing test coverage
+
+**Areas**:
 - LLM streaming endpoint beyond basic content-type checks
 - Prompt-builder/resolver logic (`resolveTemplateVariables`)
 - `/api/llm/chat` prompt assembly route
@@ -162,104 +174,20 @@
 - Persona avatar deletion flow
 - Theme serving precedence (shadowing built-in with same filename)
 
-### [DONE] Production deps in `requirements.txt`
-- **Issue**: `livereload` and `pytest` are listed as production dependencies.
-- `livereload` is not used at runtime (app.py explicitly avoids it because it buffers SSE).
-- `pytest` should be a dev dependency.
-- **Fix**: Created `requirements-dev.txt` with `livereload` and `pytest`; removed them from `requirements.txt`.
+**Plan** (each as a separate test module or class):
 
-### [DONE] Docker `COZY_DATA_DIR` set in both Dockerfile and docker-compose.yml
-- **Issue**: Redundant. Compose value takes precedence, but duplication is confusing.
-- **Fix**: Removed `COZY_DATA_DIR` from `docker-compose.yml`; Dockerfile `ENV` is sufficient.
+1. **LLM streaming**: Mock `requests.post` to yield SSE lines; verify the `/api/llm/chat` endpoint returns `text/event-stream`, forwards `data:` lines, and emits `data: [DONE]` at the end. Test error path (upstream 502) yields an error event.
 
-### [DONE] Docker entrypoint missing `mkdir -p` for data subdirectories
-- **Issue**: If a host volume mount overlays the Dockerfile's pre-created dirs, they might not exist. Consider adding `mkdir -p /data/characters /data/personas /data/themes`.
-- **Fix**: Added `mkdir -p` to `docker/entrypoint.sh` before the `chown`.
+2. **`resolveTemplateVariables`**: Unit-test in `static/js/` via a Node runner or by porting the function to Python for test purposes. Cover: `{{var}}` substitution, `{{#var}}...{{/var}}` conditional blocks, missing variables, nested conditionals.
 
-### [DONE] CDN deps without SRI
-- **File**: `templates/index.html` (lines 1043-1044)
-- **Issue**: `marked.min.js` and `purify.min.js` loaded from CDN without `integrity` attributes or local fallbacks.
-- **Fix**: Added `integrity` (SHA-384) and `crossorigin="anonymous"` to both CDN `<script>` tags.
+3. **`/api/llm/chat` prompt assembly**: Post a valid payload with `model` and `messages`; verify the endpoint proxies to the configured URL and streams back. Test missing `model` returns 400. Test missing endpoint returns 400.
 
----
+4. **Settings whitelist**: PUT `/api/settings` with a known key (e.g. `api_endpoint`) — should succeed. PUT with an unknown key (e.g. `admin_mode`) — should be ignored or rejected.
 
-## Low Priority
+5. **Character update (PUT)**: After the key-injection fix (item 2 above), test that valid fields (`name`, `description`) are persisted and invalid keys (`spec`, `spec_version`) are ignored.
 
-### Two separate click handlers on `el.chatHistory` in `static/js/main.js`
-- **Lines**: 594 and 622
-- **Issue**: Both add click listeners on the same element. Could be consolidated into one handler with clear branching.
+6. **Chat rename**: PUT `/api/characters/:id/chats/:id` with `{"name": "New Name"}` — verify the response and a subsequent GET both reflect the new name. Test empty name, XSS attempts.
 
-### [DONE] Redundant `renderChats()` call in `static/js/chats.js:106`
-- **Issue**: Called after clearing state, then `loadChats()` calls it again after fetching. The first call renders an empty list. Harmless but slightly wasteful.
-- **Fix**: Removed redundant `renderChats()` call in `characters.js` that preceded `loadChats()`.
+7. **Persona avatar deletion**: Create a persona, upload an avatar, delete the persona — verify the avatar file is removed from disk. Delete a persona without an avatar — verify no error.
 
-### [DONE] Context-meter scrolls redundantly in `static/js/context-meter.js:37-41`
-- **Issue**: Duplicates scroll-to-bottom behavior in `utils.js` `scrollToBottom()`. Could call the utility instead.
-- **Fix**: Removed inline `requestAnimationFrame` scroll; `scrollToBottom()` in `utils.js` handles it.
-
-### [DONE] Unicode escapes undocumented in `static/js/main.js:289-291`
-- **Code**: `if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026'))`
-- **Issue**: Checks for masked password display (`\u2022` = bullet, `\u2026` = ellipsis). Not self-documenting. Add a comment or named constant.
-- **Fix**: Added inline comment explaining the masked API key checks.
-
-### [DONE] `estimateTextTokens` dead export in `static/js/tokenizer.js`
-- **Line**: 18
-- **Issue**: Exported but never imported by any other module. Could be made non-exported (private) since no other module calls it.
-- **Fix**: Removed `export` keyword; function is now module-private.
-
-### Dynamic import for circular dependency in `static/js/sampler.js:156-157`
-- **Code**: `import('./llm-settings.js').then(mod => mod.saveLLMSettings(...))`
-- **Issue**: Fragile. If the module fails to load, the error is silently swallowed. Consider a shared event bus or callback registration.
-
-### Modal delete handler duplicates `deleteCharacter` in `static/js/modal.js:307-333`
-- **Issue**: Manually deletes a character and refreshes state, overlapping with `deleteCharacter()` in `characters.js`. Risks divergent behavior.
-
-### [DONE] `_chat_jsonl()` iterates `data` twice in `routes/llm.py:36-37`
-- **Issue**: `models = sorted(m['id'] for m in data)` uses `m['id']` (will KeyError if missing), while `model_details` uses `m.get('context_length')` (safe). Inconsistent key access.
-- **Fix**: Changed to `m.get('id', '')` with a filter to skip entries missing an `id`.
-
-### [DONE] `model_details` possibly dead data in `routes/llm.py:37`
-- **Issue**: Computed and returned but may not be used by any frontend code. Worth verifying.
-- **Fix**: Verified — `model_details` is used by `llm-settings.js:99` for context-length display. Not dead.
-
-### [DONE] Inconsistent error response shape in `routes/llm.py`
-- **Lines**: 40 vs 64-66
-- **Issue**: `list_models()` returns `{'error': ...}` without an `ok` key. `test_llm()` returns `{'ok': False, 'error': ...}`. Inconsistent response shape within the same module.
-- **Fix**: Added `ok` key to all `list_models()` responses; success now includes `'ok': True`.
-
-### [DONE] Dead code in `routes/lorebooks.py:224-227`
-- **Code**: `name = (existing.get('name') or row['name'] or '').strip() or row['name']`
-- **Issue**: The final `or row['name']` is unreachable. If `row['name']` is truthy, the `.strip()` would never fall through. If falsy, `'' or row['name']` is also falsy.
-- **Fix**: Replaced unreachable `or row['name']` with `or 'Untitled'`.
-
-### Non-transactional `embed_in_character` in `routes/lorebooks.py:253-273`
-- **Issue**: Opens two separate `get_db()` contexts. If deletion fails, the character book has already been embedded but the standalone lorebook is orphaned.
-
-### [DONE] Space-aligned variable assignments in `routes/characters.py:159-161`
-- **Code**: `file      =`, `fname     =`, `raw_bytes =`
-- **Issue**: Unusual style. No other file uses this alignment.
-- **Fix**: Normalized spacing to standard single-space alignment.
-
-### [DONE] `_char_to_dict()` else branch potentially unreachable in `routes/characters.py:52-56`
-- **Issue**: `card_data_fields()` always returns a full dict with defaults, so `if card_data:` on line 52 is True for any dict. The `else` branch (line 55) is only reachable when `card_data` is explicitly `None` or `False`.
-- **Fix**: Removed the conditional; always call `card_data_fields(card_data or {})` and fallback-set `name` if empty.
-
-### [DONE] `os.remove()` without error handling in `routes/personas.py:83`, `routes/characters.py:292`
-- **Issue**: No handling if the file is locked or permissions prevent deletion. Not a Python-level bug on macOS/Linux, but worth noting.
-- **Fix**: Wrapped both `os.remove()` calls in `try/except OSError: pass`.
-
-### [DONE] Inconsistent SQL style (`WHERE id = ?` vs `WHERE id=?`)
-- **Files**: `routes/messages.py` uses spaces around `=`; all other route files do not.
-- **Fix**: Normalized to `WHERE id=?` / `SET content=?` style (no spaces around `=`) to match the rest of the codebase.
-
-### [DONE] Missing `<noscript>` fallback in `templates/index.html`
-- **Issue**: Entire app is an SPA with no content when JavaScript is disabled.
-- **Fix**: Added `<noscript>` message inside `<body>`.
-
-### [SKIPPED] Google Fonts external dependency
-- **File**: `templates/index.html` (lines 7-9)
-- **Issue**: Inter font loaded from Google Fonts. Fails offline. (Intentionally skipped — acceptable trade-off for now.)
-
-### [DONE] `updateContextSizeWarning()` called redundantly in `static/js/llm-settings.js:260`
-- **Issue**: Called from `applySettingsToUI()` and also from `loadSamplerSettings()` via init flow. Double-calling is harmless but indicates the init path could be streamlined.
-- **Fix**: Removed `updateContextSizeWarning()` from `applySettingsToUI()`; added it to `activatePreset()` which is the only caller that needs it outside the init path.
+8. **Theme serving precedence**: Place a theme file in both `static/themes/` and `$DATA_DIR/themes/` with the same filename. GET `/api/themes` should list only one entry. GET `/themes/<name>.css` should serve the data-dir version.
