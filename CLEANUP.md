@@ -34,32 +34,32 @@
 - **Issue**: `icons.TRASH` and `icons.DELETE` are identical SVGs. `icons.EDIT` and `icons.PENCIL` differ only in size (14 vs 13).
 - **Fix**: Consolidate into one icon each; control size via CSS.
 
-### Duplicate download-trigger pattern in JS
+### [DONE] Duplicate download-trigger pattern in JS
 - **Files**: `static/js/api.js:56-66` (`exportCard`), `static/js/export.js:9-14` (`exportChat`)
 - **Pattern**: Create `<a>`, set `href`/`download`, append, click, remove.
 - **Fix**: Extract to `utils.js` as `downloadUrl(url, filename)`.
 
-### Duplicate filename sanitization regex
+### [DONE] Duplicate filename sanitization regex
 - **Files**: `static/js/api.js:58`, `static/js/export.js:11`
 - **Pattern**: `/[\\/:*?"<>|]/g`
 - **Fix**: Extract to `utils.js` as `sanitizeFilename(name)`.
 
-### Duplicate avatar-setup logic
+### [DONE] Duplicate avatar-setup logic
 - **Files**: `static/js/utils.js` (`applyAvatar`), `static/js/messages.js` (`buildMessageEl`), `static/js/personas.js` (`renderPersonaList`, `updateUserProfile`)
 - **Issue**: Manual reimplementation of `backgroundImage`, `dataset.hasImage`, `textContent` pattern.
 - **Fix**: Reuse `applyAvatar` or a shared helper.
 
-### Dead DOM reference in `static/js/state.js`
+### [DONE] Dead DOM reference in `static/js/state.js`
 - **Line**: 184
 - **Issue**: `el.lorebookConvert` targets `#settings-lorebook-convert` but no such element exists in `templates/index.html`.
 
-### Unused `icons.UPLOAD` in `static/js/state.js`
+### [DONE] Unused `icons.UPLOAD` in `static/js/state.js`
 - **Line**: 204
-- **Issue**: Defined but never referenced by any module.
+- **Issue**: Defined but never referenced by any module. (Already absent from current file.)
 
-### Unused import in `static/js/send.js`
+### [DONE] Unused import in `static/js/send.js`
 - **Line**: 2
-- **Issue**: `maybeScrollToBottom` is imported from `utils.js` but never called.
+- **Issue**: `maybeScrollToBottom` is imported from `utils.js` but never called. (Already used at line 47 in current file.)
 
 ### Fragile message deletion in `static/js/main.js:640-654`
 - **Issue**: Matches messages by `rawText` content instead of `msgId`. Can fail with duplicate text. Should use `msgId`-based lookup (see `findStateMsg` in `messages.js`).

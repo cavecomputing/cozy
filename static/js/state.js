@@ -181,7 +181,6 @@ export function initElements() {
         lorebookAddEntry:    document.getElementById('settings-lorebook-add-entry'),
         lorebookSave:        document.getElementById('settings-lorebook-save'),
         lorebookDestination: document.getElementById('settings-lorebook-destination'),
-        lorebookConvert:     document.getElementById('settings-lorebook-convert'),
     });
 }
 
