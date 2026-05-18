@@ -1,7 +1,6 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { showToast } from './utils.js';
-import { savePrefs } from './utils.js';
+import { showToast, savePrefs, applyAvatar } from './utils.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PERSONAS
@@ -18,14 +17,7 @@ export function renderPersonaList() {
 
         const avatar = document.createElement('div');
         avatar.className = 'avatar small user-avatar';
-        if (p.avatar_url) {
-            avatar.style.backgroundImage = `url(${p.avatar_url})`;
-            avatar.dataset.hasImage = 'true';
-            avatar.textContent = '';
-        } else {
-            avatar.dataset.hasImage = 'false';
-            avatar.textContent = (p.name || '?').slice(0, 2).toUpperCase();
-        }
+        applyAvatar(avatar, p);
 
         const info = document.createElement('div');
         info.className = 'persona-info';
@@ -104,15 +96,7 @@ export function updateUserProfile() {
     if (el.userName) el.userName.textContent = p.name;
     if (el.userTagline) el.userTagline.textContent = p.tagline || p.description || '';
     if (el.userAvatar) {
-        if (p.avatar_url) {
-            el.userAvatar.style.backgroundImage = `url(${p.avatar_url})`;
-            el.userAvatar.dataset.hasImage = 'true';
-            el.userAvatar.textContent = '';
-        } else {
-            el.userAvatar.style.backgroundImage = '';
-            el.userAvatar.dataset.hasImage = 'false';
-            el.userAvatar.textContent = (p.name || '?').slice(0, 2).toUpperCase();
-        }
+        applyAvatar(el.userAvatar, p);
     }
 }
 
@@ -130,15 +114,7 @@ export function showPersonaForm(editPersona = null) {
     nameInput.value = editPersona?.name || '';
     taglineInput.value = editPersona?.tagline || '';
     descInput.value = editPersona?.description || '';
-    if (editPersona?.avatar_url) {
-        avatarPreview.style.backgroundImage = `url(${editPersona.avatar_url})`;
-        avatarPreview.dataset.hasImage = 'true';
-        avatarPreview.textContent = '';
-    } else {
-        avatarPreview.style.backgroundImage = '';
-        avatarPreview.dataset.hasImage = 'false';
-        avatarPreview.textContent = '?';
-    }
+    applyAvatar(avatarPreview, editPersona);
 
     let selectedFile = null;
     let objectUrl = null;

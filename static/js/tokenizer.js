@@ -15,7 +15,7 @@ import { parseThinkingContent } from './thinking.js';
 
 const MESSAGE_OVERHEAD = 4; // ChatML-ish per-message framing tokens
 
-export function estimateTextTokens(text) {
+function estimateTextTokens(text) {
     if (!text) return 0;
     const s = String(text);
     const words = s.trim().split(/\s+/).filter(Boolean).length;

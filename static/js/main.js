@@ -10,7 +10,7 @@ import {
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile } from './chats.js';
-import { startEditing, finishEditing, handleSwipeAction } from './messages.js';
+import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -287,6 +287,7 @@ function bindSettingsHandlers() {
     });
     el.apiKey?.addEventListener('change', () => {
         const v = el.apiKey.value;
+        // Skip masked API keys: bullet-prefixed ("\u2022\u2022…") or containing ellipsis mask ("\u2026")
         if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026')) {
             state.apiKeySet = true;
             clearModelListCache();
@@ -590,8 +591,7 @@ function bindLorebookHandlers() {
 }
 
 function bindMessageHandlers() {
-    // Avatar expand/collapse on click
-    el.chatHistory.addEventListener('click', e => {
+    el.chatHistory.addEventListener('click', async e => {
         const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
         if (avatar) {
             if (avatar.classList.contains('avatar-expanded')) {
@@ -616,12 +616,7 @@ function bindMessageHandlers() {
             }
             return;
         }
-    });
 
-    // Message area — floating action toolbar
-    el.chatHistory.addEventListener('click', async e => {
-        // The .msg-actions toolbar is a sibling of .message inside .message-wrapper,
-        // so we need to look for .message via the wrapper when clicking toolbar buttons.
         let msgEl = e.target.closest('.message');
         if (!msgEl) {
             const wrapper = e.target.closest('.message-wrapper');
@@ -638,14 +633,13 @@ function bindMessageHandlers() {
             finishEditing(false);
         } else if (e.target.closest('.delete-msg-btn')) {
             if (!isEditing) {
-                const rawText = msgEl.dataset.rawText;
-                const stateIdx = state.messages.findIndex(m =>
-                    m.text === rawText || (m.swipes && m.swipes.some(s => s.content === rawText))
-                );
-                if (stateIdx !== -1) {
-                    const removed = state.messages.splice(stateIdx, 1)[0];
-                    if (removed.id) {
-                        API.deleteMessage(removed.id).catch(err => {
+                const swipes = msgEl.dataset.swipes ? JSON.parse(msgEl.dataset.swipes) : [];
+                const stateMsg = findStateMsg(swipes, msgEl);
+                if (stateMsg) {
+                    const stateIdx = state.messages.indexOf(stateMsg);
+                    if (stateIdx !== -1) state.messages.splice(stateIdx, 1);
+                    if (stateMsg.id) {
+                        API.deleteMessage(stateMsg.id).catch(err => {
                             console.error('Message delete failed:', err);
                             showToast('Failed to delete message: ' + err.message);
                         });

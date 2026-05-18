@@ -3,12 +3,11 @@
 import json
 import os
 from datetime import datetime, timezone
-from pathlib import Path
 
 from flask import Blueprint, request, jsonify, Response
 
 import shared
-from card_store import read_character_card
+from card_store import get_character_card_data
 from shared import get_db, safe_download_name
 
 chats_bp = Blueprint('chats', __name__)
@@ -25,16 +24,7 @@ def _chat_to_dict(row):
 
 def _character_has_lorebook(conn, char_id):
     """True if the character's PNG card embeds a non-empty character_book."""
-    row = conn.execute(
-        'SELECT filename, missing FROM characters WHERE id=?', (char_id,)
-    ).fetchone()
-    if not row or row['missing']:
-        return False
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = read_character_card(filepath)
-    if not card:
-        return False
-    data = card.get('data', card)
+    data = get_character_card_data(conn, char_id)
     book = data.get('character_book')
     if not isinstance(book, dict):
         return False
@@ -42,7 +32,13 @@ def _character_has_lorebook(conn, char_id):
     return isinstance(entries, list) and len(entries) > 0
 
 
-def _iso_from_sqlite(value):
+def _ensure_utc_iso(value):
+    """Return a UTC-aware ISO-8601 string.
+
+    If *value* is falsy (NULL / empty) the current UTC time is used.
+    Otherwise the value is parsed, forced to UTC, and re-serialised so
+    callers always get a consistent ``+00:00``-suffixed string.
+    """
     if not value:
         return datetime.now(timezone.utc).isoformat()
     try:
@@ -52,13 +48,7 @@ def _iso_from_sqlite(value):
 
 
 def _read_character_name(conn, char_id):
-    row = conn.execute(
-        'SELECT filename, missing FROM characters WHERE id=?', (char_id,)
-    ).fetchone()
-    if not row or row['missing']:
-        return 'Character'
-    card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-    data = card.get('data', card) if card else {}
+    data = get_character_card_data(conn, char_id)
     return data.get('name') or 'Character'
 
 
@@ -89,7 +79,7 @@ def _chat_jsonl(conn, chat_id):
     lines = [{
         'user_name': user_name,
         'character_name': char_name,
-        'create_date': _iso_from_sqlite(chat['created_at']),
+        'create_date': _ensure_utc_iso(chat['created_at']),
         'chat_metadata': {},
     }]
 
@@ -126,7 +116,7 @@ def _chat_jsonl(conn, chat_id):
         item = {
             'name': (row['persona_name'] if is_user else char_name) or user_name,
             'is_user': is_user,
-            'send_date': _iso_from_sqlite(row['created_at']),
+            'send_date': _ensure_utc_iso(row['created_at']),
             'mes': row['content'],
         }
         if len(swipe_texts) > 1:
@@ -248,7 +238,7 @@ def import_chat():
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
             return jsonify({'error': 'Character not found'}), 404
 
-        name = Path(upload.filename or '').stem or 'Imported Chat'
+        name = os.path.splitext(upload.filename or '')[0] or 'Imported Chat'
         if header.get('create_date'):
             name = f'Imported {header["create_date"]}'
         cur = conn.execute(
@@ -270,7 +260,7 @@ def import_chat():
             if not content:
                 warnings.append(f'Line {line_no}: skipped empty message')
                 continue
-            role = 'user' if bool(message.get('is_user')) else 'character'
+            role = 'user' if message.get('is_user') else 'character'
             swipes, swipe_id = _normalise_swipes(message, warnings, line_no)
             selected = swipes[swipe_id] if swipes else content
 

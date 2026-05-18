@@ -1,6 +1,10 @@
 import os
+import sys
 import tempfile
 import pytest
+
+# Make test helpers importable (e.g. `from helpers import v2_card`)
+sys.path.insert(0, os.path.dirname(__file__))
 
 # Importing app.py initializes the database. Force that import-time work into
 # a temp data directory so pytest never touches a production checkout's data/.
@@ -45,17 +49,12 @@ def client():
         yield c
 
 
-def _make_test_png():
-    """Return minimal valid PNG bytes for testing."""
-    return make_minimal_png()
-
-
 @pytest.fixture
 def sample_character(client):
     """Create and return a test character with embedded card data."""
     import json
     from io import BytesIO
-    png = _make_test_png()
+    png = make_minimal_png()
     char_data = json.dumps({
         'name': 'TestChar',
         'description': 'A brave test character.',

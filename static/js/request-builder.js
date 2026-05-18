@@ -117,48 +117,38 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     }
     if (samplers.seed === -1) samplers.seed = Math.floor(Math.random() * 2147483647);
 
-    // Enforce strict user/assistant alternation (required by many LLM backends).
-    // 1. Merge consecutive same-role messages.
-    // 2. If the first non-system message is assistant, fold it into the system message
-    //    (or prepend a placeholder user message if there's no system message).
-    // 3. If alternation is still broken, merge adjacent same-role pairs.
-    const enforceAlternation = (arr) => {
-        // Step 1: merge consecutive same-role
-        let out = [];
-        for (const msg of arr) {
-            if (out.length > 0 && out[out.length - 1].role === msg.role) {
-                out[out.length - 1].content += '\n\n' + msg.content;
-            } else {
-                out.push({ ...msg });
-            }
-        }
-
-        // Step 2: first non-system message must be 'user'
-        const firstNonSys = out.findIndex(m => m.role !== 'system');
-        if (firstNonSys !== -1 && out[firstNonSys].role === 'assistant') {
-            if (firstNonSys > 0 && out[firstNonSys - 1].role === 'system') {
-                // Fold greeting into the system message
-                out[firstNonSys - 1].content += '\n\n[Character Greeting]\n' + out[firstNonSys].content;
-                out.splice(firstNonSys, 1);
-            } else {
-                // No system message — prepend a minimal user turn
-                out.splice(firstNonSys, 0, { role: 'user', content: '[Start]' });
-            }
-        }
-
-        // Step 3: final pass — merge any remaining violations
-        const final = [];
-        for (const msg of out) {
-            if (final.length > 0 && final[final.length - 1].role === msg.role) {
-                final[final.length - 1].content += '\n\n' + msg.content;
-            } else {
-                final.push(msg);
-            }
-        }
-        return final;
-    };
-
     return { model: state.apiModel || '', messages: enforceAlternation(messages), ...samplers };
+}
+
+function enforceAlternation(arr) {
+    let out = [];
+    for (const msg of arr) {
+        if (out.length > 0 && out[out.length - 1].role === msg.role) {
+            out[out.length - 1].content += '\n\n' + msg.content;
+        } else {
+            out.push({ ...msg });
+        }
+    }
+
+    const firstNonSys = out.findIndex(m => m.role !== 'system');
+    if (firstNonSys !== -1 && out[firstNonSys].role === 'assistant') {
+        if (firstNonSys > 0 && out[firstNonSys - 1].role === 'system') {
+            out[firstNonSys - 1].content += '\n\n[Character Greeting]\n' + out[firstNonSys].content;
+            out.splice(firstNonSys, 1);
+        } else {
+            out.splice(firstNonSys, 0, { role: 'user', content: '[Start]' });
+        }
+    }
+
+    const final = [];
+    for (const msg of out) {
+        if (final.length > 0 && final[final.length - 1].role === msg.role) {
+            final[final.length - 1].content += '\n\n' + msg.content;
+        } else {
+            final.push(msg);
+        }
+    }
+    return final;
 }
 
 /** Preview helper — returns the same payload buildChatPayload would send right now. */
@@ -175,5 +165,5 @@ export async function generateResponse(excludeLastN = 0, onToken = null, signal 
     if (!payload.model) throw new Error('No model configured \u2014 check Settings');
     if (payload.messages.length === 0) throw new Error('No messages to send');
     if (onToken) return API.streamChatCompletion(payload, onToken, signal);
-    return API.chatCompletion(payload);
+    return API.chatCompletion(payload, signal);
 }

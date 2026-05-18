@@ -11,6 +11,7 @@
 
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-dev.txt   # for running tests
 ```
 
 ### Start the app
@@ -42,7 +43,7 @@ cd docker
 docker compose up --build
 ```
 
-The app is available at `http://localhost:9002`. Data is stored in `data/` at the project root, mounted into the container at `/data`.
+The app is available at `http://localhost`. Data is stored in `data/` at the project root, mounted into the container at `/data`.
 
 ### Run in background
 
@@ -77,7 +78,7 @@ docker compose up
 
 ### Port mapping
 
-The default maps host port `9002` to container port `5001`. Edit `docker/docker-compose.yml` to change:
+The default maps host port `80` to container port `5001`. Edit `docker/docker-compose.yml` to change:
 
 ```yaml
 ports:

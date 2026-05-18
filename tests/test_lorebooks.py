@@ -2,8 +2,11 @@
 
 import json
 import os
+from io import BytesIO
 
 import shared
+from helpers import v2_card
+from png_utils import extract_png_chara, write_png_chara
 
 
 def _make_book(name='Test Book', entries=None):
@@ -415,17 +418,10 @@ class TestLorebookImport:
 
     def test_import_unwraps_full_character_card(self, client):
         """A full V2 card with `data.character_book` works too."""
-        payload = {
-            'spec': 'chara_card_v2',
-            'spec_version': '2.0',
-            'data': {
-                'name': 'Char',
-                'character_book': {
-                    'name': 'From Card',
-                    'entries': [{'keys': ['k'], 'content': 'v'}],
-                },
-            },
-        }
+        payload = v2_card(name='Char', character_book={
+            'name': 'From Card',
+            'entries': [{'keys': ['k'], 'content': 'v'}],
+        })
         r = client.post('/api/lorebooks/import', json=payload)
         assert r.status_code == 201
         body = r.get_json()
@@ -501,7 +497,6 @@ class TestLorebookImport:
 
     def test_import_via_multipart_upload(self, client):
         """Uploading a JSON file via multipart works the same as a JSON body."""
-        from io import BytesIO
         data = json.dumps({
             'name': 'Uploaded',
             'entries': [{'keys': ['u'], 'content': 'u-content'}],
@@ -607,7 +602,6 @@ class TestLorebookExport:
 
     def test_export_character_lorebook(self, client, sample_character):
         """Embedded books export the same way."""
-        from png_utils import extract_png_chara, write_png_chara
         # Embed a book in the character
         filepath = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
         with open(filepath, 'rb') as f:

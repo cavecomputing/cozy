@@ -206,7 +206,7 @@ function appendMessageActionButtons(bar) {
     bar.append(
         iconButton('msg-action-btn copy-msg-btn', 'Copy', 'Copy message', icons.COPY),
         iconButton('msg-action-btn edit-msg-btn', 'Edit', 'Edit message', icons.EDIT),
-        iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.DELETE),
+        iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.TRASH),
     );
 }
 
@@ -295,13 +295,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     const avatarDiv = document.createElement('div');
     if (role === 'user') {
         avatarDiv.className = 'avatar user-avatar';
-        if (p && p.avatar_url) {
-            avatarDiv.style.backgroundImage = `url('${p.avatar_url}')`;
-            avatarDiv.dataset.hasImage = 'true';
-        } else {
-            avatarDiv.dataset.hasImage = 'false';
-            avatarDiv.textContent = getInitials((p && p.name) || 'ME');
-        }
+        applyAvatar(avatarDiv, p, 'ME');
     } else {
         avatarDiv.className = 'avatar';
         applyAvatar(avatarDiv, char);
@@ -376,7 +370,7 @@ export function renderMessages() {
         updateComposerState();
         return;
     }
-    if (!char || !state.activeChat) {
+    if (!state.activeChat) {
         showEmptyState('No chat selected', 'Create or select a chat to start messaging this character.', false);
         updateComposerState();
         return;

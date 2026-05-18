@@ -18,6 +18,19 @@ export function getInitials(name) {
     return (name || '?').trim().substring(0, 2).toUpperCase();
 }
 
+export function downloadUrl(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+export function sanitizeFilename(name) {
+    return (name || '').replace(/[\\/:*?"<>|]/g, '_');
+}
+
 /** Syslog-style local timestamp: "Mar 22 20:06:42" */
 export function syslogStamp() {
     const now = new Date();
@@ -154,15 +167,15 @@ export function hideEmptyState() {
 }
 
 /** Set avatar element — background-image if URL, else initials. */
-export function applyAvatar(avatarEl, char) {
-    if (char && char.avatar_url) {
-        avatarEl.style.backgroundImage = `url('${char.avatar_url}')`;
+export function applyAvatar(avatarEl, obj, fallbackName = '?') {
+    if (obj && obj.avatar_url) {
+        avatarEl.style.backgroundImage = `url('${obj.avatar_url}')`;
         avatarEl.dataset.hasImage = 'true';
         avatarEl.textContent = '';
     } else {
         avatarEl.style.backgroundImage = '';
         avatarEl.dataset.hasImage = 'false';
-        avatarEl.textContent = char ? getInitials(char.name) : '?';
+        avatarEl.textContent = getInitials((obj && obj.name) || fallbackName);
     }
 }
 

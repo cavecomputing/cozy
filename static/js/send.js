@@ -1,7 +1,6 @@
 import { state, el, SEND_SVG, STOP_SVG, llm } from './state.js';
 import { autoResize, showToast, maybeScrollToBottom, setSendButtonMode, updateComposerState } from './utils.js';
-import { appendMessage } from './messages.js';
-import { renderMarkdown } from './messages.js';
+import { appendMessage, renderMarkdown } from './messages.js';
 import { generateResponse } from './request-builder.js';
 import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
 import { clearDraft } from './drafts.js';

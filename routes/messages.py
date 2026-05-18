@@ -2,8 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 
-from shared import get_db
-from routes.personas import persona_avatar_url
+from shared import get_db, persona_avatar_url
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -141,23 +140,25 @@ def add_swipe(msg_id):
 
 @messages_bp.route('/api/messages/<int:msg_id>', methods=['PUT'])
 def update_message(msg_id):
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     content = (data.get('content') or '').strip()
     if not content:
         return jsonify({'error': 'content required'}), 400
     with get_db() as conn:
-        row = conn.execute('SELECT id FROM messages WHERE id = ?', (msg_id,)).fetchone()
+        row = conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Message not found'}), 404
-        conn.execute('UPDATE messages SET content = ? WHERE id = ?', (content, msg_id))
-        return jsonify({'ok': True})
+
+        # Update the message's primary content
+        conn.execute('UPDATE messages SET content=? WHERE id=?', (content, msg_id))
+        return jsonify({'success': True})
 
 
 @messages_bp.route('/api/messages/<int:msg_id>', methods=['DELETE'])
 def delete_message(msg_id):
     with get_db() as conn:
-        row = conn.execute('SELECT id FROM messages WHERE id = ?', (msg_id,)).fetchone()
+        row = conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Message not found'}), 404
-        conn.execute('DELETE FROM messages WHERE id = ?', (msg_id,))
-        return jsonify({'ok': True})
+        conn.execute('DELETE FROM messages WHERE id=?', (msg_id,))
+        return jsonify({'success': True})

@@ -8,12 +8,11 @@ character update path.
 """
 
 import json
-import os
 
 from flask import Blueprint, request, jsonify, Response
 
 import shared
-from card_store import read_character_card, set_character_book
+from card_store import get_character_card, set_character_book
 from shared import get_db, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
@@ -202,7 +201,7 @@ def get_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
         return jsonify(_full_dict(row))
 
 
@@ -212,7 +211,7 @@ def update_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
 
         existing = _parse_book(row['book'])
         if isinstance(data.get('book'), dict):
@@ -223,7 +222,7 @@ def update_lorebook(book_id):
         # the existing column value.
         name = (data.get('name') or '').strip()
         if not name:
-            name = (existing.get('name') or row['name'] or '').strip() or row['name']
+            name = (existing.get('name') or row['name'] or '').strip() or 'Untitled'
         existing['name'] = name
 
         conn.execute(
@@ -239,14 +238,14 @@ def delete_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
         # Keep chat selections tidy when a standalone lorebook is removed.
         conn.execute(
             'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
             (book_id,)
         )
         conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
-        return jsonify({'ok': True})
+        return jsonify({'success': True})
 
 
 @lorebooks_bp.route('/api/lorebooks/<int:book_id>/embed-in-character/<int:char_id>', methods=['POST'])
@@ -258,32 +257,28 @@ def embed_in_character(book_id, char_id):
             return jsonify({'error': 'Lorebook not found'}), 404
         book = _parse_book(row['book'])
 
-    _, err = set_character_book(char_id, book)
-    if err:
-        return jsonify({'error': err}), 404
+        _, err = set_character_book(char_id, book)
+        if err:
+            return jsonify({'error': err}), 404
 
-    if delete_standalone:
-        with get_db() as conn:
+        if delete_standalone:
             conn.execute(
                 'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
                 (book_id,)
             )
             conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
 
-    return jsonify({'ok': True, 'character_book': book})
+    return jsonify({'success': True, 'character_book': book})
 
 
 @lorebooks_bp.route('/api/characters/<int:char_id>/extract-lorebook', methods=['POST'])
 def extract_from_character(char_id):
     clear_embedded = request.args.get('clear_embedded') == '1'
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if not row or row['missing']:
+        row, card = get_character_card(conn, char_id)
+        if not row:
             return jsonify({'error': 'Character not found'}), 404
-
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = read_character_card(filepath)
-    char_data = (card or {}).get('data', card or {})
+        char_data = (card or {}).get('data', card or {})
     book = char_data.get('character_book')
     if not isinstance(book, dict) or not book.get('entries'):
         return jsonify({'error': 'This character has no embedded lorebook to extract'}), 400
@@ -353,7 +348,7 @@ def export_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Lorebook not found'}), 404
         book = _parse_book(row['book'])
 
     filename = f"{safe_download_name(row['name'], 'lorebook')}.json"
@@ -368,13 +363,10 @@ def export_lorebook(book_id):
 def export_character_lorebook(char_id):
     """Download a character's embedded lorebook as JSON."""
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if not row or row['missing']:
+        row, card = get_character_card(conn, char_id)
+        if not row:
             return jsonify({'error': 'Character not found'}), 404
-
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card = read_character_card(filepath)
-    char_data = (card or {}).get('data', card or {})
+        char_data = (card or {}).get('data', card or {})
     book = char_data.get('character_book')
     if not isinstance(book, dict) or not book.get('entries'):
         return jsonify({'error': 'This character has no embedded lorebook'}), 400

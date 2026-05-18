@@ -1,9 +1,8 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, showToast, updateComposerState, showEmptyState } from './utils.js';
+import { applyAvatar, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages } from './messages.js';
-import { savePrefs, closeMobileSidebar } from './utils.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHARACTER LIST
@@ -51,7 +50,7 @@ export function renderCharList() {
             `;
         } else {
             actions.innerHTML = `
-                <button class="icon-btn char-edit-btn" title="Edit character" aria-label="Edit character">${icons.PENCIL}</button>
+                <button class="icon-btn char-edit-btn" title="Edit character" aria-label="Edit character">${icons.EDIT}</button>
                 <button class="icon-btn char-delete-btn" title="Delete character" aria-label="Delete character">${icons.TRASH}</button>
             `;
         }
@@ -103,15 +102,15 @@ export async function selectCharacter(charId) {
     state.chats    = [];
     state.activeChat = null;
     state.messages  = [];
-    renderChats();
     el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
 
     await loadChats(charId);
     savePrefs();
 }
 
-export async function deleteCharacter(charId) {
-    if (!confirm('Delete this character and all their chats? This cannot be undone.')) return;
+export async function deleteCharacter(charId, name) {
+    const label = name || 'this character';
+    if (!confirm(`Delete ${label} and all their chats? This cannot be undone.`)) return;
     try {
         await API.deleteCharacter(charId);
         showToast('Character deleted', 'success');

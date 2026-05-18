@@ -23,7 +23,7 @@ def _llm_settings():
 def list_models():
     endpoint, api_key, _ = _llm_settings()
     if not endpoint:
-        return jsonify({'error': 'No endpoint configured'}), 400
+        return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
     url = endpoint.rstrip('/') + '/models'
     headers = {}
     if api_key:
@@ -33,11 +33,11 @@ def list_models():
         r.raise_for_status()
         body = r.json()
         data = body.get('data', [])
-        models = sorted(m['id'] for m in data)
+        models = sorted(m.get('id', '') for m in data if m.get('id'))
         model_details = {m['id']: m['context_length'] for m in data if m.get('context_length')}
-        return jsonify({'models': models, 'model_details': model_details})
+        return jsonify({'ok': True, 'models': models, 'model_details': model_details})
     except http_requests.RequestException as e:
-        return jsonify({'error': str(e)}), 502
+        return jsonify({'ok': False, 'error': str(e)}), 502
 
 
 @llm_bp.route('/api/llm/test', methods=['POST'])
@@ -71,7 +71,9 @@ def llm_chat():
     endpoint, api_key, _ = _llm_settings()
     if not endpoint:
         return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'ok': False, 'error': 'Invalid or missing JSON body'}), 400
     if not data.get('model'):
         return jsonify({'ok': False, 'error': 'No model specified'}), 400
 

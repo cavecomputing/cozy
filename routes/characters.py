@@ -8,13 +8,15 @@ from werkzeug.utils import secure_filename
 
 import shared
 from card_store import (
-    card_data_fields, ensure_png, file_crc, normalize_to_v2, read_character_card,
-    write_character_card,
+    CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, get_character_card, normalize_to_v2,
+    read_character_card, write_character_card,
 )
 from shared import get_db
 from png_utils import make_minimal_png, write_png_chara, extract_png_chara
 
 characters_bp = Blueprint('characters', __name__)
+
+ALLOWED_UPDATE_KEYS = set(CARD_DATA_DEFAULTS)
 
 
 def _unique_filename(name):
@@ -49,9 +51,8 @@ def _char_to_dict(row, card_data=None):
         'created_at': row['created_at'],
         'avatar_url': f"/characters/{row['filename']}?v={row['crc']}",
     }
-    if card_data:
-        d.update(card_data_fields(card_data))
-    else:
+    d.update(card_data_fields(card_data or {}))
+    if not d.get('name'):
         d['name'] = row['filename'].rsplit('.', 1)[0]
     return d
 
@@ -156,8 +157,8 @@ def import_character():
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
 
-    file      = request.files['file']
-    fname     = (file.filename or '')
+    file = request.files['file']
+    fname = (file.filename or '')
     raw_bytes = file.read()
     card_data = None
 
@@ -206,7 +207,7 @@ def get_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Character not found'}), 404
         if row['missing']:
             return jsonify(_char_to_dict(row))
         card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
@@ -221,14 +222,13 @@ def export_character(char_id):
     ?fmt=json -> extract card JSON from the PNG and return it
     """
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if not row or row['missing']:
-            return jsonify({'error': 'Not found'}), 404
+        row, card_data = get_character_card(conn, char_id)
+        if not row:
+            return jsonify({'error': 'Character not found'}), 404
 
-    filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-    card_data = read_character_card(filepath)
-    data = card_data.get('data', card_data) if card_data else {}
-    safe = shared.safe_download_name(data.get('name'), 'character')
+        filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
+        data = card_data.get('data', card_data) if card_data else {}
+        safe = shared.safe_download_name(data.get('name'), 'character')
 
     fmt = request.args.get('fmt', 'json').lower()
 
@@ -256,17 +256,15 @@ def update_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row or row['missing']:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Character not found'}), 404
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-        with open(filepath, 'rb') as f:
-            png_bytes = f.read()
-
-        existing_card = extract_png_chara(png_bytes) or {'data': {}}
+        existing_card = read_character_card(filepath) or {'data': {}}
         existing_data = existing_card.get('data', existing_card)
 
         for key in data:
-            existing_data[key] = data[key]
+            if key in ALLOWED_UPDATE_KEYS:
+                existing_data[key] = data[key]
 
         card = {
             'spec': 'chara_card_v2',
@@ -285,11 +283,14 @@ def delete_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Character not found'}), 404
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         if os.path.exists(filepath):
-            os.remove(filepath)
+            try:
+                os.remove(filepath)
+            except OSError:
+                pass
 
         conn.execute('DELETE FROM characters WHERE id=?', (char_id,))
         return jsonify({'success': True})
@@ -301,14 +302,14 @@ def upload_avatar(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row or row['missing']:
-            return jsonify({'error': 'Not found'}), 404
+            return jsonify({'error': 'Character not found'}), 404
 
         if 'avatar' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
 
         file = request.files['avatar']
-        ext  = (file.filename or '').rsplit('.', 1)[-1].lower()
-        if ext not in shared.ALLOWED_IMG:
+        ext = shared.validate_image_extension(file)
+        if not ext:
             return jsonify({'error': f'File type not allowed (use {", ".join(shared.ALLOWED_IMG)})'}), 400
 
         # Read card data from current file

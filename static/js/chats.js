@@ -1,8 +1,7 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
-import { syslogStamp, showToast, updateComposerState } from './utils.js';
+import { syslogStamp, showToast, updateComposerState, savePrefs } from './utils.js';
 import { renderMessages, appendMessage } from './messages.js';
-import { savePrefs } from './utils.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
 import { updateContextMeter } from './context-meter.js';
@@ -34,7 +33,7 @@ function buildChatItem(chat) {
     actions.className = 'chat-item-actions';
     actions.innerHTML = `
         <button class="icon-btn chat-export-btn" title="Export chat" aria-label="Export chat">${icons.DOWNLOAD}</button>
-        <button class="icon-btn chat-rename-btn" title="Rename chat" aria-label="Rename chat">${icons.PENCIL}</button>
+        <button class="icon-btn chat-rename-btn" title="Rename chat" aria-label="Rename chat">${icons.EDIT}</button>
         <button class="icon-btn chat-delete-btn" title="Delete chat" aria-label="Delete chat">${icons.TRASH}</button>
     `;
 

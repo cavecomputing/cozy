@@ -88,7 +88,7 @@ export async function updateSystemPromptContent() {
     if (!state.activeSystemPromptId || !el.syspromptContent) return;
     const content = el.syspromptContent.value;
     // Update in-memory state immediately so buildChatPayload always sees the latest
-    const p = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
+    const p = state.systemPrompts.find(sp => sp.id === state.activeSystemPromptId);
     if (p) p.content = content;
     try {
         await fetch(`/api/system-prompts/${state.activeSystemPromptId}`, {
