@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { downloadUrl, sanitizeFilename } from './utils.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CHAT EXPORT
@@ -6,10 +7,5 @@ import { state } from './state.js';
 export function exportChat(chatId) {
     const chat = state.chats.find(c => c.id === chatId);
     if (!chat) return;
-    const a = document.createElement('a');
-    a.href = `/api/chats/${chatId}/export`;
-    a.download = `${(chat.name || 'chat').replace(/[\\/:*?"<>|]/g, '_')}.jsonl`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    downloadUrl(`/api/chats/${chatId}/export`, `${sanitizeFilename(chat.name || 'chat')}.jsonl`);
 }

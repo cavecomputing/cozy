@@ -295,13 +295,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     const avatarDiv = document.createElement('div');
     if (role === 'user') {
         avatarDiv.className = 'avatar user-avatar';
-        if (p && p.avatar_url) {
-            avatarDiv.style.backgroundImage = `url('${p.avatar_url}')`;
-            avatarDiv.dataset.hasImage = 'true';
-        } else {
-            avatarDiv.dataset.hasImage = 'false';
-            avatarDiv.textContent = getInitials((p && p.name) || 'ME');
-        }
+        applyAvatar(avatarDiv, p, 'ME');
     } else {
         avatarDiv.className = 'avatar';
         applyAvatar(avatarDiv, char);

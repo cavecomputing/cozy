@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // API LAYER
 // ═══════════════════════════════════════════════════════════════════════════
+import { downloadUrl, sanitizeFilename } from './utils.js';
+
 export async function apiError(r, fallback) {
     try { const e = await r.json(); return e.error || fallback; } catch { return fallback; }
 }
@@ -55,14 +57,9 @@ export const API = {
     },
     exportCard(id, name, fmt = 'json') {
         // Trigger a browser download — fmt is 'json' or 'png'
-        const safeName = (name || 'character').replace(/[\\/:*?"<>|]/g, '_');
+        const safeName = sanitizeFilename(name || 'character');
         const ext      = fmt === 'png' ? 'png' : 'json';
-        const a = document.createElement('a');
-        a.href     = `/api/characters/${id}/export?fmt=${fmt}`;
-        a.download = `${safeName}.${ext}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        downloadUrl(`/api/characters/${id}/export?fmt=${fmt}`, `${safeName}.${ext}`);
     },
 
     // Chats
