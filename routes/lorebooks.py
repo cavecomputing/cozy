@@ -222,7 +222,7 @@ def update_lorebook(book_id):
         # the existing column value.
         name = (data.get('name') or '').strip()
         if not name:
-            name = (existing.get('name') or row['name'] or '').strip() or row['name']
+            name = (existing.get('name') or row['name'] or '').strip() or 'Untitled'
         existing['name'] = name
 
         conn.execute(

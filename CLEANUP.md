@@ -76,9 +76,9 @@
 - **Issue**: Inner `p` shadows outer `const p`. Rename inner to `sp`.
 - **Fix**: Renamed inner parameter to `sp`.
 
-### `enforceAlternation` recreated every call in `static/js/request-builder.js:125-159`
+### [DONE] `enforceAlternation` recreated every call in `static/js/request-builder.js:125-159`
 - **Issue**: Defined inside `buildChatPayload()`, so a new closure is created on every invocation. Has no dependency on local variables — should be hoisted to module scope.
-- **Phase**: 2
+- **Fix**: Hoisted `enforceAlternation` to module scope.
 
 ### Signal not passed to non-streaming path in `static/js/request-builder.js:178`
 - **Code**: `return API.chatCompletion(payload)` ignores the `signal` parameter.
@@ -108,13 +108,13 @@
 - **Fix**: Extract to a shared helper.
 - **Phase**: 2
 
-### `from pathlib import Path` in `routes/chats.py` (line 6)
+### [DONE] `from pathlib import Path` in `routes/chats.py` (line 6)
 - **Issue**: Used only once (line 251: `Path(upload.filename or '').stem`). `os.path.splitext` could do the same with the already-imported `os` module.
-- **Phase**: 2
+- **Fix**: Replaced `Path(...).stem` with `os.path.splitext(...)[0]`; removed `pathlib` import.
 
-### `_iso_from_sqlite()` in `routes/chats.py:45-51`
+### [DONE] `_iso_from_sqlite()` in `routes/chats.py:45-51`
 - **Issue**: `fromisoformat`→`replace(tzinfo=timezone.utc)`→`isoformat()` round-trip is essentially a no-op plus timezone annotation for SQLite `CURRENT_TIMESTAMP` values. Somewhat misleading name.
-- **Phase**: 2
+- **Fix**: Renamed to `_ensure_utc_iso()` with a docstring explaining the purpose.
 
 ### `_character_has_lorebook` and `_read_character_name` duplication in `routes/chats.py`
 - **Lines**: 26-42 and 54-62
@@ -133,10 +133,10 @@
 - **Issue**: `bool()` wrapper is redundant; the ternary already handles truthiness.
 - **Fix**: Removed redundant `bool()` wrapper.
 
-### Inconsistent persona update stripping
+### [DONE] Inconsistent persona update stripping
 - **File**: `routes/personas.py:54-69`
 - **Issue**: `name` is stripped, but `tagline` and `description` are not. In `create_persona` (lines 44-45), both are stripped. Should be consistent.
-- **Phase**: 2
+- **Fix**: Added `.strip()` to `tagline` and `description` in the update path.
 
 ### [DONE] `_make_test_png()` wrapper in `tests/conftest.py:48-50`
 - **Issue**: Trivial one-liner wrapper around `make_minimal_png()` that adds no value. Use `make_minimal_png()` directly.
@@ -228,10 +228,10 @@
 - **Issue**: `list_models()` returns `{'error': ...}` without an `ok` key. `test_llm()` returns `{'ok': False, 'error': ...}`. Inconsistent response shape within the same module.
 - **Phase**: 2
 
-### Dead code in `routes/lorebooks.py:224-227`
+### [DONE] Dead code in `routes/lorebooks.py:224-227`
 - **Code**: `name = (existing.get('name') or row['name'] or '').strip() or row['name']`
 - **Issue**: The final `or row['name']` is unreachable. If `row['name']` is truthy, the `.strip()` would never fall through. If falsy, `'' or row['name']` is also falsy.
-- **Phase**: 2
+- **Fix**: Replaced unreachable `or row['name']` with `or 'Untitled'`.
 
 ### Non-transactional `embed_in_character` in `routes/lorebooks.py:253-273`
 - **Issue**: Opens two separate `get_db()` contexts. If deletion fails, the character book has already been embedded but the standalone lorebook is orphaned.

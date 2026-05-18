@@ -59,8 +59,8 @@ def update_persona(persona_id):
             return jsonify({'error': 'Not found'}), 404
         data = request.get_json(silent=True) or {}
         name = (data.get('name') or '').strip() or row['name']
-        tagline = data.get('tagline', row['tagline'])
-        description = data.get('description', row['description'])
+        tagline = (data.get('tagline') or row['tagline'] or '').strip()
+        description = (data.get('description') or row['description'] or '').strip()
         conn.execute(
             'UPDATE personas SET name=?, tagline=?, description=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
             (name, tagline, description, persona_id)

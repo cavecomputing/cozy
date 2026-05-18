@@ -1,8 +1,8 @@
 """Chat CRUD routes."""
 
 import json
+import os
 from datetime import datetime, timezone
-from pathlib import Path
 
 from flask import Blueprint, request, jsonify, Response
 
@@ -32,7 +32,13 @@ def _character_has_lorebook(conn, char_id):
     return isinstance(entries, list) and len(entries) > 0
 
 
-def _iso_from_sqlite(value):
+def _ensure_utc_iso(value):
+    """Return a UTC-aware ISO-8601 string.
+
+    If *value* is falsy (NULL / empty) the current UTC time is used.
+    Otherwise the value is parsed, forced to UTC, and re-serialised so
+    callers always get a consistent ``+00:00``-suffixed string.
+    """
     if not value:
         return datetime.now(timezone.utc).isoformat()
     try:
@@ -73,7 +79,7 @@ def _chat_jsonl(conn, chat_id):
     lines = [{
         'user_name': user_name,
         'character_name': char_name,
-        'create_date': _iso_from_sqlite(chat['created_at']),
+        'create_date': _ensure_utc_iso(chat['created_at']),
         'chat_metadata': {},
     }]
 
@@ -110,7 +116,7 @@ def _chat_jsonl(conn, chat_id):
         item = {
             'name': (row['persona_name'] if is_user else char_name) or user_name,
             'is_user': is_user,
-            'send_date': _iso_from_sqlite(row['created_at']),
+            'send_date': _ensure_utc_iso(row['created_at']),
             'mes': row['content'],
         }
         if len(swipe_texts) > 1:
@@ -232,7 +238,7 @@ def import_chat():
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
             return jsonify({'error': 'Character not found'}), 404
 
-        name = Path(upload.filename or '').stem or 'Imported Chat'
+        name = os.path.splitext(upload.filename or '')[0] or 'Imported Chat'
         if header.get('create_date'):
             name = f'Imported {header["create_date"]}'
         cur = conn.execute(
