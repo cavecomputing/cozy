@@ -107,6 +107,7 @@ export function startChatRename(li, chat) {
                 if (state.activeChat?.id === chat.id) state.activeChat = updated;
                 li.dataset.chatId = updated.id;
                 newButton.setAttribute('aria-label', `Select chat ${updated.name}`);
+                updateComposerState();
                 showToast('Chat renamed', 'success');
             } catch (err) {
                 const restoredButton = buildChatSelectButton(chat);

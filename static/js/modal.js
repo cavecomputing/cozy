@@ -2,6 +2,7 @@ import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { applyAvatar, sanitize, showToast, Flyouts, updateComposerState } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
+import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -236,11 +237,15 @@ async function save() {
         if (idx >= 0) state.characters[idx] = char;
         else          state.characters.push(char);
         renderCharList();
+        renderLorebookList();
 
         if (state.activeCharacter?.id === char.id) {
             state.activeCharacter = char;
             el.currentCharName.textContent = char.name;
             renderMessages();
+            renderLorebookFlyout();
+            renderLorebookNotice();
+            updateComposerState();
         } else if (!editingCharId) {
             await selectCharacter(char.id);
         }
@@ -264,6 +269,7 @@ importInput.addEventListener('change', async () => {
         const char = await API.importCard(file);
         state.characters.push(char);
         renderCharList();
+        renderLorebookList();
         await selectCharacter(char.id);
         close();
         showToast('Character imported', 'success');

@@ -21,7 +21,7 @@ import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
 import { saveDraft } from './drafts.js';
-import { initSlashCommands, updateSlashCommands, handleSlashKeydown } from './slash-commands.js';
+import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
 import { updateContextMeter } from './context-meter.js';
 
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
@@ -484,6 +484,7 @@ function bindChatHandlers() {
     // Chat flyout — toggle open/close
     el.chatFlyoutBtn.addEventListener('click', e => {
         e.stopPropagation();
+        closeSlashCommands();
         const isOpen = !el.chatFlyout.hidden;
         Flyouts.closeAllExcept('chat');
         el.chatFlyout.hidden = isOpen;
@@ -550,6 +551,7 @@ function bindLorebookHandlers() {
     // Lorebook flyout — toggle, render fresh on each open, close on outside click
     el.lorebookFlyoutBtn?.addEventListener('click', e => {
         e.stopPropagation();
+        closeSlashCommands();
         const isOpen = !el.lorebookFlyout.hidden;
         Flyouts.closeAllExcept('lorebook');
         if (!isOpen) renderLorebookFlyout();

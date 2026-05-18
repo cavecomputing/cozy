@@ -167,6 +167,27 @@ class TestImport:
         assert body['name'] == 'PngCard'
         assert body['character_book']['entries'][0]['content'] == 'v'
 
+    def test_import_embedded_lorebook_with_object_entries_is_api_visible(self, client):
+        card = v2_card(name='ObjectBook', character_book={
+            'name': 'Embedded Object Book',
+            'entries': {
+                '2': {'key': ['later'], 'content': 'Second', 'order': 20},
+                '1': {'key': 'first, alpha', 'keysecondary': ['beta'], 'content': 'First', 'disable': True},
+            },
+        })
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(json.dumps(card).encode('utf-8')), 'object-book.json', 'application/json'),
+        }, content_type='multipart/form-data')
+
+        assert r.status_code == 201
+        book = r.get_json()['character_book']
+        assert isinstance(book['entries'], list)
+        assert [e['content'] for e in book['entries']] == ['First', 'Second']
+        assert book['entries'][0]['keys'] == ['first', 'alpha']
+        assert book['entries'][0]['secondary_keys'] == ['beta']
+        assert book['entries'][0]['enabled'] is False
+        assert book['entries'][1]['insertion_order'] == 20
+
     def test_import_png_without_embedded_card_rejected(self, client):
         png = make_minimal_png()
         r = client.post('/api/characters/import', data={
@@ -383,6 +404,24 @@ class TestCharacterBookUpdate:
         assert char['description'] == 'Changed description'
         # character_book must survive an unrelated field update
         assert char['character_book']['entries'][0]['content'] == 'persist'
+
+    def test_update_normalizes_object_keyed_character_book(self, client, sample_character):
+        r = client.put(f'/api/characters/{sample_character["id"]}', json={
+            'character_book': {
+                'name': 'Object keyed',
+                'entries': {
+                    '10': {'key': ['ten'], 'content': 'Ten', 'order': 10},
+                    '2': {'key': 'two', 'content': 'Two', 'disable': True},
+                },
+            }
+        })
+
+        assert r.status_code == 200
+        book = r.get_json()['character_book']
+        assert [e['content'] for e in book['entries']] == ['Two', 'Ten']
+        assert book['entries'][0]['keys'] == ['two']
+        assert book['entries'][0]['enabled'] is False
+        assert book['entries'][1]['insertion_order'] == 10
 
     def test_update_ignores_disallowed_keys(self, client, sample_character):
         r = client.put(f'/api/characters/{sample_character["id"]}', json={

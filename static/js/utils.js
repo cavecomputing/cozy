@@ -112,6 +112,55 @@ export function setSendButtonMode(mode) {
     el.sendBtn.classList.toggle('stop-mode', isStop);
 }
 
+function activeChatLabel() {
+    return state.activeChat?.name?.trim() || 'Untitled chat';
+}
+
+function activeLorebookLabel() {
+    const chat = state.activeChat;
+    if (!chat) return 'Book';
+    if (chat.active_lorebook_embedded) {
+        const charName = state.activeCharacter?.name || 'Character';
+        return `${charName}'s book`;
+    }
+    if (chat.active_lorebook_id != null) {
+        const book = state.lorebooks.find(b => b.id === chat.active_lorebook_id);
+        return book?.name || 'Missing book';
+    }
+    return 'None';
+}
+
+function updateComposerContextControls(hasChat, hasCharacter) {
+    if (el.chatFlyoutBtn) {
+        const label = hasChat ? activeChatLabel() : 'Chats';
+        if (el.chatContextLabel) el.chatContextLabel.textContent = hasChat ? `# ${label}` : 'Chats';
+        el.chatFlyoutBtn.disabled = !hasChat;
+        el.chatFlyoutBtn.title = hasChat ? `Chats: ${label}` : 'Select a character to manage chats';
+        el.chatFlyoutBtn.setAttribute(
+            'aria-label',
+            hasChat ? `Open chats. Current chat: ${label}` : 'Select a character to manage chats'
+        );
+        if (!hasChat && el.chatFlyout) {
+            el.chatFlyout.hidden = true;
+            el.chatFlyoutBtn.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    if (el.lorebookFlyoutBtn) {
+        const label = hasChat ? activeLorebookLabel() : 'Book';
+        if (el.lorebookContextLabel) el.lorebookContextLabel.textContent = hasChat ? `Book: ${label}` : 'Book';
+        el.lorebookFlyoutBtn.disabled = !hasChat;
+        el.lorebookFlyoutBtn.title = hasChat
+            ? `Lorebook for this chat: ${label}`
+            : (hasCharacter ? 'Create or select a chat to use lorebooks' : 'Select a character to use lorebooks');
+        el.lorebookFlyoutBtn.setAttribute('aria-label', el.lorebookFlyoutBtn.title);
+        if (!hasChat && el.lorebookFlyout) {
+            el.lorebookFlyout.hidden = true;
+            el.lorebookFlyoutBtn.setAttribute('aria-expanded', 'false');
+        }
+    }
+}
+
 export function updateComposerState() {
     if (!el.userInput || !el.sendBtn) return;
     const hasChat = !!state.activeCharacter && !!state.activeChat;
@@ -132,26 +181,7 @@ export function updateComposerState() {
             : 'Select a character to start chatting';
     }
     if (!llm.abortController) el.sendBtn.disabled = !hasChat;
-
-    if (el.chatFlyoutBtn) {
-        el.chatFlyoutBtn.disabled = !hasChat;
-        el.chatFlyoutBtn.title = hasChat ? 'Chats' : 'Select a character to manage chats';
-        el.chatFlyoutBtn.setAttribute('aria-label', hasChat ? 'Open chats' : 'Select a character to manage chats');
-        if (!hasChat && el.chatFlyout) {
-            el.chatFlyout.hidden = true;
-            el.chatFlyoutBtn.setAttribute('aria-expanded', 'false');
-        }
-    }
-
-    if (el.lorebookFlyoutBtn) {
-        el.lorebookFlyoutBtn.disabled = !hasChat;
-        el.lorebookFlyoutBtn.title = hasChat ? 'Lorebook for this chat' : (hasCharacter ? 'Create or select a chat to use lorebooks' : 'Select a character to use lorebooks');
-        el.lorebookFlyoutBtn.setAttribute('aria-label', el.lorebookFlyoutBtn.title);
-        if (!hasChat && el.lorebookFlyout) {
-            el.lorebookFlyout.hidden = true;
-            el.lorebookFlyoutBtn.setAttribute('aria-expanded', 'false');
-        }
-    }
+    updateComposerContextControls(hasChat, hasCharacter);
 }
 
 export function showEmptyState(title, text, showCreate = false) {

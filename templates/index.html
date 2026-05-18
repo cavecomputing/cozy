@@ -809,16 +809,20 @@
                     <div class="panel-divider"></div>
                     <button id="lorebook-flyout-manage" class="lorebook-flyout-manage">Manage lorebooks…</button>
                 </div>
-                <button id="chat-flyout-btn" class="icon-btn" title="Chats" aria-label="Open chats" aria-haspopup="dialog" aria-expanded="false">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                </button>
-                <button id="lorebook-flyout-btn" class="icon-btn" title="Lorebook for this chat" aria-label="Lorebook for this chat" aria-haspopup="dialog" aria-expanded="false">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                    </svg>
-                </button>
+                <div class="composer-context-controls" aria-label="Chat context controls">
+                    <button id="chat-flyout-btn" class="icon-btn composer-context-btn" title="Chats" aria-label="Open chats" aria-haspopup="dialog" aria-expanded="false">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span id="chat-context-label" class="composer-context-label">Chats</span>
+                    </button>
+                    <button id="lorebook-flyout-btn" class="icon-btn composer-context-btn" title="Lorebook for this chat" aria-label="Lorebook for this chat" aria-haspopup="dialog" aria-expanded="false">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                        <span id="lorebook-context-label" class="composer-context-label">Book</span>
+                    </button>
+                </div>
                 <textarea id="user-input" placeholder="Select a character to start chatting" rows="1" disabled></textarea>
                 <button id="send-btn" title="Send message" aria-label="Send message" disabled>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

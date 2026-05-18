@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { showToast } from './utils.js';
+import { showToast, updateComposerState } from './utils.js';
 
 // Editor state — purely local, swapped wholesale on selection change.
 // `kind` is 'standalone' or 'embedded'. `id` is the lorebook id (standalone)
@@ -39,27 +39,32 @@ export async function loadLorebooks() {
         console.warn('Failed to load lorebooks:', e);
         state.lorebooks = [];
     }
+    updateComposerState();
 }
 
 /** List items: every standalone book + every character whose card embeds a non-empty book. */
 function listEntries() {
     const out = [];
     for (const lb of state.lorebooks) {
+        const entries = Array.isArray(lb.book?.entries) ? lb.book.entries : [];
         out.push({
             kind: 'standalone',
             id: lb.id,
             name: lb.name || '(unnamed)',
-            sub: `${lb.entry_count} entries`,
+            badge: 'Global',
+            sub: `${lb.entry_count ?? entries.length} entries`,
         });
     }
     for (const c of state.characters) {
         const book = c.character_book || c.data?.character_book;
-        if (book && Array.isArray(book.entries) && book.entries.length > 0) {
+        const entries = Array.isArray(book?.entries) ? book.entries : [];
+        if (entries.length > 0) {
             out.push({
                 kind: 'embedded',
                 id: c.id,
                 name: book.name || c.name,
-                sub: `Embedded in ${c.name} · ${book.entries.length} entries`,
+                badge: 'Embedded',
+                sub: `${c.name} character card · ${entries.length} entries`,
             });
         }
     }
@@ -87,13 +92,19 @@ export function renderLorebookList() {
         }
         const text = document.createElement('div');
         text.className = 'lorebook-list-text';
+        const title = document.createElement('div');
+        title.className = 'lorebook-list-title';
         const name = document.createElement('div');
         name.className = 'lorebook-list-name';
         name.textContent = e.name;
+        const badge = document.createElement('span');
+        badge.className = `lorebook-source-badge lorebook-source-badge--${e.kind}`;
+        badge.textContent = e.badge;
+        title.append(name, badge);
         const sub = document.createElement('div');
         sub.className = 'lorebook-list-sub';
         sub.textContent = e.sub;
-        text.append(name, sub);
+        text.append(title, sub);
 
         const actions = document.createElement('div');
         actions.className = 'lorebook-list-actions';
@@ -379,6 +390,8 @@ export async function saveLorebook() {
         }
         showToast('Saved', 'success');
         renderLorebookList();
+        renderLorebookFlyout();
+        updateComposerState();
         fillDestinationOptions();
     } catch (e) {
         showToast('Save failed: ' + e.message);
@@ -402,6 +415,8 @@ export async function deleteLorebook(kind, id) {
             await loadLorebooks();
             if (isEditing) clearEditor();
             else renderLorebookList();
+            renderLorebookFlyout();
+            updateComposerState();
             showToast('Lorebook deleted', 'success');
         } catch (e) {
             showToast('Delete failed: ' + e.message);
@@ -415,6 +430,8 @@ export async function deleteLorebook(kind, id) {
             if (state.activeCharacter?.id === id) state.activeCharacter.character_book = null;
             if (isEditing) clearEditor();
             else renderLorebookList();
+            renderLorebookFlyout();
+            updateComposerState();
             showToast('Embedded lorebook removed', 'success');
         } catch (e) {
             showToast('Remove failed: ' + e.message);
@@ -548,6 +565,7 @@ async function setActiveLorebook(sel) {
         if (idx >= 0) state.chats[idx] = updated;
         renderLorebookFlyout();
         renderLorebookNotice();
+        updateComposerState();
     } catch (e) {
         showToast('Failed to set lorebook: ' + e.message);
     }

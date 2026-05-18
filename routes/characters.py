@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 import shared
 from card_store import (
     CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, get_character_card, normalize_to_v2,
-    read_character_card, write_character_card,
+    normalize_character_book, read_character_card, write_character_card,
 )
 from shared import get_db
 from png_utils import make_minimal_png, write_png_chara, extract_png_chara
@@ -290,7 +290,11 @@ def update_character(char_id):
 
         for key in data:
             if key in ALLOWED_UPDATE_KEYS:
-                existing_data[key] = data[key]
+                existing_data[key] = (
+                    normalize_character_book(data[key])
+                    if key == 'character_book'
+                    else data[key]
+                )
 
         card = {
             'spec': 'chara_card_v2',

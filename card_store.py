@@ -72,13 +72,92 @@ def normalize_to_v2(card_data):
     }
 
 
+def _safe_int(value, default):
+    try:
+        return int(value) if value is not None and value != '' else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_keys(value):
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [k.strip() for k in value.split(',') if k.strip()]
+    if isinstance(value, list):
+        return [str(k) for k in value if k is not None and str(k) != '']
+    return []
+
+
+def _book_entries_as_list(entries):
+    if isinstance(entries, dict):
+        try:
+            keys = sorted(entries.keys(), key=lambda k: int(k))
+        except (TypeError, ValueError):
+            keys = list(entries.keys())
+        entries = [entries[k] for k in keys]
+    if not isinstance(entries, list):
+        return []
+
+    out = []
+    for raw_entry in entries:
+        if not isinstance(raw_entry, dict):
+            continue
+        entry = deepcopy(raw_entry)
+        entry['keys'] = _coerce_keys(
+            raw_entry.get('keys') if 'keys' in raw_entry else raw_entry.get('key')
+        )
+        entry['secondary_keys'] = _coerce_keys(
+            raw_entry.get('secondary_keys') if 'secondary_keys' in raw_entry else raw_entry.get('keysecondary')
+        )
+        if 'enabled' in raw_entry:
+            entry['enabled'] = bool(raw_entry['enabled'])
+        elif 'disable' in raw_entry:
+            entry['enabled'] = not bool(raw_entry['disable'])
+        else:
+            entry.setdefault('enabled', True)
+        if 'insertion_order' not in raw_entry and 'order' in raw_entry:
+            entry['insertion_order'] = _safe_int(raw_entry.get('order'), 100)
+        else:
+            entry['insertion_order'] = _safe_int(raw_entry.get('insertion_order'), 100)
+        if not isinstance(entry.get('extensions'), dict):
+            entry['extensions'] = {}
+        out.append(entry)
+    return out
+
+
+def normalize_character_book(raw_book):
+    """Return a UI/editor-friendly V2 character_book dict.
+
+    Imported cards sometimes carry SillyTavern world-info style entries as an
+    object keyed by numeric strings, while Cozy's editor and prompt resolver
+    expect a list. Preserve unknown fields, but normalize the common entry
+    aliases so embedded books behave like standalone lorebooks.
+    """
+    if not isinstance(raw_book, dict):
+        return None
+    book = deepcopy(raw_book)
+    book.setdefault('name', '')
+    book.setdefault('description', '')
+    book['scan_depth'] = _safe_int(book.get('scan_depth'), 20)
+    book['max_entries'] = _safe_int(book.get('max_entries'), 20)
+    book['recursive_scanning'] = bool(book.get('recursive_scanning', False))
+    if not isinstance(book.get('extensions'), dict):
+        book['extensions'] = {}
+    book['entries'] = _book_entries_as_list(book.get('entries'))
+    return book
+
+
 def card_data_fields(card_data):
     """Return API-facing character data fields with V2 defaults applied."""
     data = card_data.get('data', card_data) if isinstance(card_data, dict) else {}
-    return {
+    fields = {
         key: data[key] if key in data else deepcopy(default)
         for key, default in CARD_DATA_DEFAULTS.items()
     }
+    fields['character_book'] = normalize_character_book(fields.get('character_book'))
+    return fields
+
 
 
 def ensure_png(image_bytes):
@@ -116,7 +195,7 @@ def set_character_book(char_id, new_book):
 
         existing_card = extract_png_chara(png_bytes) or {'data': {}}
         existing_data = existing_card.get('data', existing_card)
-        existing_data['character_book'] = new_book
+        existing_data['character_book'] = normalize_character_book(new_book)
 
         card = {
             'spec': 'chara_card_v2',

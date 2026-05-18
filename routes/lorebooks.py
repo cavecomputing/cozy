@@ -12,7 +12,7 @@ import json
 from flask import Blueprint, request, jsonify, Response
 
 import shared
-from card_store import get_character_card, set_character_book
+from card_store import get_character_card, normalize_character_book, set_character_book
 from shared import get_db, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
@@ -33,7 +33,7 @@ def _empty_book(name=''):
 def _parse_book(raw):
     try:
         b = json.loads(raw or '{}')
-        return b if isinstance(b, dict) else _empty_book()
+        return normalize_character_book(b) or _empty_book()
     except (TypeError, ValueError):
         return _empty_book()
 
@@ -279,7 +279,7 @@ def extract_from_character(char_id):
         if not row:
             return jsonify({'error': 'Character not found'}), 404
         char_data = (card or {}).get('data', card or {})
-    book = char_data.get('character_book')
+    book = normalize_character_book(char_data.get('character_book'))
     if not isinstance(book, dict) or not book.get('entries'):
         return jsonify({'error': 'This character has no embedded lorebook to extract'}), 400
 
@@ -367,7 +367,7 @@ def export_character_lorebook(char_id):
         if not row:
             return jsonify({'error': 'Character not found'}), 404
         char_data = (card or {}).get('data', card or {})
-    book = char_data.get('character_book')
+    book = normalize_character_book(char_data.get('character_book'))
     if not isinstance(book, dict) or not book.get('entries'):
         return jsonify({'error': 'This character has no embedded lorebook'}), 400
 

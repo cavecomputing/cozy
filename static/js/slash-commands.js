@@ -90,6 +90,14 @@ export function executeSlashCommand(rawText) {
 }
 
 function renderMenu() {
+    if (el.chatFlyout) {
+        el.chatFlyout.hidden = true;
+        el.chatFlyoutBtn?.setAttribute('aria-expanded', 'false');
+    }
+    if (el.lorebookFlyout) {
+        el.lorebookFlyout.hidden = true;
+        el.lorebookFlyoutBtn?.setAttribute('aria-expanded', 'false');
+    }
     menuEl.innerHTML = '';
     visibleCommands.forEach((cmd, index) => {
         const button = document.createElement('button');
