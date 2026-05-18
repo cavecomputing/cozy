@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 
 import shared
+from helpers import v2_card
 from png_utils import extract_png_chara, write_png_chara
 
 
@@ -417,17 +418,10 @@ class TestLorebookImport:
 
     def test_import_unwraps_full_character_card(self, client):
         """A full V2 card with `data.character_book` works too."""
-        payload = {
-            'spec': 'chara_card_v2',
-            'spec_version': '2.0',
-            'data': {
-                'name': 'Char',
-                'character_book': {
-                    'name': 'From Card',
-                    'entries': [{'keys': ['k'], 'content': 'v'}],
-                },
-            },
-        }
+        payload = v2_card(name='Char', character_book={
+            'name': 'From Card',
+            'entries': [{'keys': ['k'], 'content': 'v'}],
+        })
         r = client.post('/api/lorebooks/import', json=payload)
         assert r.status_code == 201
         body = r.get_json()

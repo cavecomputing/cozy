@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 
 import shared
+from helpers import v2_card
 from png_utils import extract_png_chara, write_png_chara, make_minimal_png
 
 
@@ -13,27 +14,6 @@ from png_utils import extract_png_chara, write_png_chara, make_minimal_png
 def _png_with_card(card):
     """Return PNG bytes with the given V2 card embedded."""
     return write_png_chara(make_minimal_png(), card)
-
-
-def _v2_card(name='Char', **fields):
-    data = {
-        'name': name,
-        'description': fields.get('description', ''),
-        'personality': fields.get('personality', ''),
-        'scenario': fields.get('scenario', ''),
-        'first_mes': fields.get('first_mes', ''),
-        'mes_example': fields.get('mes_example', ''),
-        'creator_notes': fields.get('creator_notes', ''),
-        'system_prompt': fields.get('system_prompt', ''),
-        'post_history_instructions': fields.get('post_history_instructions', ''),
-        'alternate_greetings': fields.get('alternate_greetings', []),
-        'character_book': fields.get('character_book'),
-        'tags': fields.get('tags', []),
-        'creator': fields.get('creator', ''),
-        'character_version': fields.get('character_version', ''),
-        'extensions': fields.get('extensions', {}),
-    }
-    return {'spec': 'chara_card_v2', 'spec_version': '2.0', 'data': data}
 
 
 # ── Create endpoint validation ────────────────────────────────────────────
@@ -76,7 +56,7 @@ class TestCreate:
 
 class TestPngRoundtrip:
     def test_basic_roundtrip(self):
-        card = _v2_card(name='Basic', description='A simple character.')
+        card = v2_card(name='Basic', description='A simple character.')
         png = _png_with_card(card)
         extracted = extract_png_chara(png)
         assert extracted['data']['name'] == 'Basic'
@@ -84,7 +64,7 @@ class TestPngRoundtrip:
 
     def test_unicode_roundtrip(self):
         """Emoji + CJK + accented latin must survive PNG embed/extract."""
-        card = _v2_card(
+        card = v2_card(
             name='ユウキ',
             description='Brave 🗡️ adventurer with a café past — naïve but résilient.',
             personality='热情 and 好奇',
@@ -110,7 +90,7 @@ class TestPngRoundtrip:
              'enabled': True, 'constant': False, 'insertion_order': i}
             for i in range(50)
         ]
-        card = _v2_card(name='Big')
+        card = v2_card(name='Big')
         card['data']['character_book'] = {'name': 'Big', 'entries': entries}
         png = _png_with_card(card)
         extracted = extract_png_chara(png)
@@ -121,9 +101,9 @@ class TestPngRoundtrip:
 
     def test_replacing_existing_chara_chunk_does_not_duplicate(self):
         """Writing the same PNG twice must not stack two chara chunks."""
-        card1 = _v2_card(name='First')
+        card1 = v2_card(name='First')
         png1 = _png_with_card(card1)
-        card2 = _v2_card(name='Second')
+        card2 = v2_card(name='Second')
         png2 = write_png_chara(png1, card2)
         # Only the second card should be readable
         extracted = extract_png_chara(png2)
@@ -166,7 +146,7 @@ class TestImport:
         assert card['data']['name'] == 'V1Char'
 
     def test_import_v2_json(self, client):
-        v2 = _v2_card(name='V2Char', description='Already V2')
+        v2 = v2_card(name='V2Char', description='Already V2')
         r = client.post('/api/characters/import', data={
             'file': (BytesIO(json.dumps(v2).encode('utf-8')), 'v2.json', 'application/json'),
         }, content_type='multipart/form-data')
@@ -174,7 +154,7 @@ class TestImport:
         assert r.get_json()['name'] == 'V2Char'
 
     def test_import_png_with_embedded_card(self, client):
-        card = _v2_card(name='PngCard', description='From PNG.',
+        card = v2_card(name='PngCard', description='From PNG.',
                         character_book={'name': 'BK', 'entries': [
                             {'keys': ['k'], 'content': 'v', 'enabled': True}
                         ]})
@@ -355,7 +335,7 @@ class TestSync:
 
     def test_new_file_on_disk_creates_row(self, client):
         # Drop a fresh card directly into the dir — list endpoint should pick it up
-        card = _v2_card(name='WalkIn')
+        card = v2_card(name='WalkIn')
         png = _png_with_card(card)
         path = os.path.join(shared.CHARACTERS_DIR, 'walkin.png')
         with open(path, 'wb') as f:

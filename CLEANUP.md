@@ -143,10 +143,9 @@
 - **Issue**: Trivial one-liner wrapper around `make_minimal_png()` that adds no value. Use `make_minimal_png()` directly.
 - **Fix**: Removed wrapper; call `make_minimal_png()` directly.
 
-### `_v2_card()` helper only in `tests/test_characters.py`
+### [DONE] `_v2_card()` helper only in `tests/test_characters.py`
 - **Issue**: Useful for building test data. Could benefit `test_lorebooks.py` which constructs card-like dicts manually.
-- **Fix**: Move to `conftest.py` or a shared helper module.
-- **Phase**: 3
+- **Fix**: Moved to `tests/helpers.py` as `v2_card()`; both `test_characters.py` and `test_lorebooks.py` import from it.
 
 ### [DONE] Inconsistent inline imports in tests
 - **Files**: `tests/test_lorebooks.py` (lines 504, 610), `tests/test_routes.py` (line 162)
@@ -163,25 +162,24 @@
 - Persona avatar deletion flow
 - Theme serving precedence (shadowing built-in with same filename)
 
-### Production deps in `requirements.txt`
+### [DONE] Production deps in `requirements.txt`
 - **Issue**: `livereload` and `pytest` are listed as production dependencies.
 - `livereload` is not used at runtime (app.py explicitly avoids it because it buffers SSE).
 - `pytest` should be a dev dependency.
-- **Fix**: Move to a separate dev-requirements file or `pyproject.toml` dev group.
-- **Phase**: 3
+- **Fix**: Created `requirements-dev.txt` with `livereload` and `pytest`; removed them from `requirements.txt`.
 
-### Docker `COZY_DATA_DIR` set in both Dockerfile and docker-compose.yml
+### [DONE] Docker `COZY_DATA_DIR` set in both Dockerfile and docker-compose.yml
 - **Issue**: Redundant. Compose value takes precedence, but duplication is confusing.
-- **Phase**: 3
+- **Fix**: Removed `COZY_DATA_DIR` from `docker-compose.yml`; Dockerfile `ENV` is sufficient.
 
-### Docker entrypoint missing `mkdir -p` for data subdirectories
+### [DONE] Docker entrypoint missing `mkdir -p` for data subdirectories
 - **Issue**: If a host volume mount overlays the Dockerfile's pre-created dirs, they might not exist. Consider adding `mkdir -p /data/characters /data/personas /data/themes`.
-- **Phase**: 3
+- **Fix**: Added `mkdir -p` to `docker/entrypoint.sh` before the `chown`.
 
-### CDN deps without SRI
+### [DONE] CDN deps without SRI
 - **File**: `templates/index.html` (lines 1043-1044)
 - **Issue**: `marked.min.js` and `purify.min.js` loaded from CDN without `integrity` attributes or local fallbacks.
-- **Phase**: 3
+- **Fix**: Added `integrity` (SHA-384) and `crossorigin="anonymous"` to both CDN `<script>` tags.
 
 ---
 
@@ -254,9 +252,9 @@
 - **Files**: `routes/messages.py` uses spaces around `=`; all other route files do not.
 - **Fix**: Normalized to `WHERE id=?` / `SET content=?` style (no spaces around `=`) to match the rest of the codebase.
 
-### Missing `<noscript>` fallback in `templates/index.html`
+### [DONE] Missing `<noscript>` fallback in `templates/index.html`
 - **Issue**: Entire app is an SPA with no content when JavaScript is disabled.
-- **Phase**: 3 (template/structural)
+- **Fix**: Added `<noscript>` message inside `<body>`.
 
 ### [SKIPPED] Google Fonts external dependency
 - **File**: `templates/index.html` (lines 7-9)

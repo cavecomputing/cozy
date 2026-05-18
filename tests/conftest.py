@@ -1,6 +1,10 @@
 import os
+import sys
 import tempfile
 import pytest
+
+# Make test helpers importable (e.g. `from helpers import v2_card`)
+sys.path.insert(0, os.path.dirname(__file__))
 
 # Importing app.py initializes the database. Force that import-time work into
 # a temp data directory so pytest never touches a production checkout's data/.
