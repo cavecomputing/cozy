@@ -14,8 +14,6 @@ const gallery = {
     selectedId: null,
     view: 'all',
     query: '',
-    sort: 'name-asc',
-    collectionFilter: 'all',
     dirty: false,
     pendingAvatarFile: null,
 };
@@ -34,8 +32,6 @@ function getEls() {
         closeBtn: q('gallery-close-btn'),
         collapseBtn: q('gallery-collapse-btn'),
         search: q('gallery-search'),
-        sort: q('gallery-sort'),
-        collectionFilter: q('gallery-collection-filter'),
         addBtn: q('gallery-add-btn'),
         importFile: q('gallery-import-file'),
         nav: document.querySelector('.gallery-nav'),
@@ -67,6 +63,7 @@ function getEls() {
         duplicateBtn: q('gallery-duplicate-btn'),
         archiveBtn: q('gallery-archive-btn'),
         deleteBtn: q('gallery-delete-btn'),
+        startChatBtn: q('gallery-start-chat-btn'),
         saveBtn: q('gallery-save-btn'),
         fields: {
             name: q('gallery-field-name'),
@@ -139,11 +136,6 @@ function visibleCharacters() {
         chars = chars.filter(char => !isArchived(char));
     }
 
-    if (gallery.collectionFilter !== 'all') {
-        const collectionId = Number(gallery.collectionFilter);
-        chars = chars.filter(char => (char.collections || []).some(c => c.id === collectionId));
-    }
-
     const query = gallery.query.trim().toLowerCase();
     if (query) {
         chars = chars.filter(char => {
@@ -156,12 +148,8 @@ function visibleCharacters() {
     }
 
     chars.sort((a, b) => {
-        if (gallery.sort === 'name-desc') return (b.name || '').localeCompare(a.name || '');
-        if (gallery.sort === 'newest') return (b.created_at || '').localeCompare(a.created_at || '');
-        if (gallery.sort === 'favorites') {
-            if (a.pinned && !b.pinned) return -1;
-            if (!a.pinned && b.pinned) return 1;
-        }
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
         return (a.name || '').localeCompare(b.name || '');
     });
     return chars;
@@ -191,8 +179,7 @@ function confirmDiscard() {
 function renderCollectionControls() {
     const e = getEls();
     e.collectionList.innerHTML = '';
-    e.collectionFilter.innerHTML = '<option value="all">Collection: All</option>';
-    e.collectionAdd.innerHTML = '<option value="">Add to collection...</option>';
+    e.collectionAdd.innerHTML = '<option value="">+ Add</option>';
 
     gallery.collections.forEach(collection => {
         const count = collectionCount(collection.id);
@@ -208,17 +195,11 @@ function renderCollectionControls() {
         btn.querySelector('span:nth-of-type(2)').textContent = collection.name;
         e.collectionList.appendChild(btn);
 
-        const filterOption = document.createElement('option');
-        filterOption.value = String(collection.id);
-        filterOption.textContent = `Collection: ${collection.name}`;
-        e.collectionFilter.appendChild(filterOption);
-
         const addOption = document.createElement('option');
         addOption.value = String(collection.id);
         addOption.textContent = collection.name;
         e.collectionAdd.appendChild(addOption);
     });
-    e.collectionFilter.value = gallery.collectionFilter;
 }
 
 function renderRail() {
@@ -468,6 +449,23 @@ async function setArchived(archived) {
     }
 }
 
+async function startChatWithSelected() {
+    const char = selectedCharacter();
+    if (!char) return;
+    if (isArchived(char)) {
+        showToast('Unarchive this character before starting a chat', 'error');
+        return;
+    }
+    if (!confirmDiscard()) return;
+    try {
+        await selectCharacter(char.id);
+        getEls().root.hidden = true;
+        gallery.open = false;
+    } catch (err) {
+        showToast('Could not open chat: ' + err.message, 'error');
+    }
+}
+
 async function duplicateSelected() {
     const char = selectedCharacter();
     if (!char) return;
@@ -547,14 +545,6 @@ function bindEvents() {
         gallery.query = e.search.value;
         renderGrid();
     });
-    e.sort.addEventListener('change', () => {
-        gallery.sort = e.sort.value;
-        renderGrid();
-    });
-    e.collectionFilter.addEventListener('change', () => {
-        gallery.collectionFilter = e.collectionFilter.value;
-        renderGrid();
-    });
     e.addBtn.addEventListener('click', () => Modal.open());
     e.importFile.addEventListener('change', () => importFromGallery(e.importFile.files[0]));
 
@@ -562,7 +552,6 @@ function bindEvents() {
         const btn = event.target.closest('.gallery-nav-item');
         if (!btn || !confirmDiscard()) return;
         gallery.view = btn.dataset.view;
-        gallery.collectionFilter = 'all';
         const visible = visibleCharacters();
         gallery.selectedId = visible[0]?.id || null;
         render();
@@ -571,7 +560,6 @@ function bindEvents() {
         const btn = event.target.closest('.gallery-nav-item');
         if (!btn || !confirmDiscard()) return;
         gallery.view = `collection:${btn.dataset.collectionId}`;
-        gallery.collectionFilter = 'all';
         const visible = visibleCharacters();
         gallery.selectedId = visible[0]?.id || null;
         render();
@@ -636,6 +624,7 @@ function bindEvents() {
         const char = selectedCharacter();
         if (char) setArchived(!isArchived(char));
     });
+    e.startChatBtn.addEventListener('click', startChatWithSelected);
     e.deleteBtn.addEventListener('click', async () => {
         const char = selectedCharacter();
         if (!char) return;
