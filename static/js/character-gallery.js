@@ -511,10 +511,6 @@ async function setArchived(archived) {
         const updated = await API.archiveCharacter(char.id, archived);
         replaceCharacter(updated);
         await loadCharacters();
-        if (state.activeCharacter?.id === updated.id && archived) {
-            const next = state.characters.find(c => !c.missing);
-            if (next) await selectCharacter(next.id);
-        }
         await refreshData({ keepSelection: true });
         showToast(archived ? 'Character archived' : 'Character unarchived', 'success');
     } catch (err) {

@@ -509,6 +509,28 @@ class TestCharacterOrganization:
         assert r2.status_code == 200
         assert r2.get_json()['archived_at'] is None
 
+    def test_default_listing_empty_when_all_characters_are_archived(self, client, sample_character):
+        png = make_minimal_png()
+        r = client.post('/api/characters', data={
+            'data': json.dumps({'name': 'SecondChar'}),
+            'image': (BytesIO(png), 'second.png', 'image/png'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 201
+        second_character = r.get_json()
+
+        for char in (sample_character, second_character):
+            archived = client.post(f'/api/characters/{char["id"]}/archive', json={'archived': True})
+            assert archived.status_code == 200
+
+        default_listing = client.get('/api/characters').get_json()
+        assert default_listing == []
+
+        archived_listing = client.get('/api/characters?archived=1').get_json()
+        assert sorted(c['id'] for c in archived_listing) == sorted([
+            sample_character['id'],
+            second_character['id'],
+        ])
+
     def test_collection_crud_and_membership(self, client, sample_character):
         created = client.post('/api/character-collections', json={'name': 'Story Crew'})
         assert created.status_code == 201
