@@ -35,9 +35,12 @@ def _unique_filename(name):
 
 
 def _collection_to_dict(row):
+    keys = row.keys() if hasattr(row, 'keys') else []
+    icon = (row['icon'] or '') if 'icon' in keys else ''
     return {
         'id': row['id'],
         'name': row['name'],
+        'icon': icon,
         'created_at': row['created_at'],
         'updated_at': row['updated_at'],
     }
@@ -491,11 +494,15 @@ def list_character_collections():
 def create_character_collection():
     data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
+    icon = (data.get('icon') or '').strip()[:16]
     if not name:
         return jsonify({'error': 'name is required'}), 400
     with get_db() as conn:
         try:
-            cur = conn.execute('INSERT INTO character_collections (name) VALUES (?)', (name,))
+            cur = conn.execute(
+                'INSERT INTO character_collections (name, icon) VALUES (?, ?)',
+                (name, icon),
+            )
         except sqlite3.IntegrityError:
             return jsonify({'error': 'Collection name already exists'}), 400
         row = conn.execute(
@@ -507,19 +514,31 @@ def create_character_collection():
 @characters_bp.route('/api/character-collections/<int:collection_id>', methods=['PUT'])
 def update_character_collection(collection_id):
     data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
-    if not name:
-        return jsonify({'error': 'name is required'}), 400
     with get_db() as conn:
         row = conn.execute(
             'SELECT * FROM character_collections WHERE id=?', (collection_id,)
         ).fetchone()
         if not row:
             return jsonify({'error': 'Collection not found'}), 404
+
+        sets, params = [], []
+        if 'name' in data:
+            name = (data.get('name') or '').strip()
+            if not name:
+                return jsonify({'error': 'name is required'}), 400
+            sets.append('name=?')
+            params.append(name)
+        if 'icon' in data:
+            sets.append('icon=?')
+            params.append((data.get('icon') or '').strip()[:16])
+        if not sets:
+            return jsonify(_collection_to_dict(row))
+        sets.append('updated_at=CURRENT_TIMESTAMP')
+        params.append(collection_id)
         try:
             conn.execute(
-                'UPDATE character_collections SET name=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
-                (name, collection_id),
+                f'UPDATE character_collections SET {", ".join(sets)} WHERE id=?',
+                params,
             )
         except sqlite3.IntegrityError:
             return jsonify({'error': 'Collection name already exists'}), 400

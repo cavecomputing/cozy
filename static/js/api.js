@@ -84,18 +84,18 @@ export const API = {
     async getCharacterCollections() {
         return jsonRequest('/api/character-collections', { fallback: 'Failed to load collections' });
     },
-    async createCharacterCollection(name) {
+    async createCharacterCollection(name, icon = '') {
         return jsonRequest('/api/character-collections', {
             method: 'POST',
-            body: { name },
+            body: { name, icon },
             fallback: 'Create collection failed',
         });
     },
-    async renameCharacterCollection(id, name) {
+    async updateCharacterCollection(id, fields) {
         return jsonRequest(`/api/character-collections/${id}`, {
             method: 'PUT',
-            body: { name },
-            fallback: 'Rename collection failed',
+            body: fields,
+            fallback: 'Update collection failed',
         });
     },
     async deleteCharacterCollection(id) {

@@ -109,6 +109,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS character_collections (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 name       TEXT    NOT NULL UNIQUE,
+                icon       TEXT    NOT NULL DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
@@ -212,6 +213,10 @@ def init_db():
             conn.execute('ALTER TABLE characters ADD COLUMN pinned_at DATETIME DEFAULT NULL')
         if 'archived_at' not in cols:
             conn.execute('ALTER TABLE characters ADD COLUMN archived_at DATETIME DEFAULT NULL')
+
+        collection_cols = [c[1] for c in conn.execute('PRAGMA table_info(character_collections)').fetchall()]
+        if collection_cols and 'icon' not in collection_cols:
+            conn.execute("ALTER TABLE character_collections ADD COLUMN icon TEXT NOT NULL DEFAULT ''")
 
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "

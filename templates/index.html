@@ -781,13 +781,17 @@
                 </button>
             </div>
             <form id="gallery-new-collection-form" class="gallery-inline-form" hidden>
-                <input id="gallery-new-collection-name" class="form-input" type="text" placeholder="Collection name" autocomplete="off">
+                <div class="gallery-name-row">
+                    <button type="button" id="gallery-new-collection-icon" class="gallery-icon-trigger" title="Pick icon" aria-label="Pick icon">◇</button>
+                    <input id="gallery-new-collection-name" class="form-input" type="text" placeholder="Collection name" autocomplete="off">
+                </div>
                 <div class="gallery-inline-actions">
                     <button type="button" id="gallery-new-collection-cancel" class="btn btn-secondary btn-sm">Cancel</button>
                     <button type="submit" class="btn btn-primary btn-sm">Create</button>
                 </div>
             </form>
             <div id="gallery-collection-list" class="gallery-collection-list"></div>
+            <div id="gallery-icon-picker" class="gallery-icon-picker" hidden role="dialog" aria-label="Pick collection icon"></div>
             <div class="gallery-rail-footer">
                 <span id="gallery-footer-count">0 characters</span>
             </div>
@@ -802,7 +806,7 @@
                     </svg>
                     <input id="gallery-search" class="form-input" type="search" placeholder="Search characters..." autocomplete="off">
                 </div>
-                <button id="gallery-add-btn" class="btn btn-secondary">
+                <button id="gallery-add-btn" class="btn btn-primary">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     Add
                 </button>
@@ -833,6 +837,7 @@
                 </div>
                 <aside class="gallery-inspector">
                     <div id="gallery-inspector-empty" class="gallery-inspector-empty">
+                        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
                         <h3>Select a character</h3>
                         <p>Choose a card to inspect and edit it here.</p>
                     </div>

@@ -6,6 +6,15 @@ import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from
 import { renderLorebookList } from './lorebooks.js';
 
 const DESKTOP_QUERY = '(min-width: 769px)';
+const DEFAULT_COLLECTION_ICON = '◇';
+const COLLECTION_ICONS = [
+    '◇', '★', '✦', '✪', '❖', '✺',
+    '🎭', '🚀', '⚔️', '🧪', '🏰', '🌌',
+    '🔮', '📖', '🎬', '🎮', '🌸', '🐉',
+    '👻', '🌊', '⚡', '🌙', '☀️', '🍵',
+    '🎨', '🎤', '🍷', '🗡️', '🪐', '🌹',
+    '💎', '🔥', '❄️', '🌿', '🦋', '🐺',
+];
 
 const gallery = {
     open: false,
@@ -16,6 +25,8 @@ const gallery = {
     query: '',
     dirty: false,
     pendingAvatarFile: null,
+    pendingNewIcon: '',
+    iconPickerTarget: null,
 };
 
 let els = null;
@@ -43,7 +54,9 @@ function getEls() {
         newCollectionForm: q('gallery-new-collection-form'),
         newCollectionName: q('gallery-new-collection-name'),
         newCollectionCancel: q('gallery-new-collection-cancel'),
+        newCollectionIcon: q('gallery-new-collection-icon'),
         collectionList: q('gallery-collection-list'),
+        iconPicker: q('gallery-icon-picker'),
         grid: q('gallery-grid'),
         empty: q('gallery-empty'),
         viewTitle: q('gallery-view-title'),
@@ -183,21 +196,40 @@ function renderCollectionControls() {
 
     gallery.collections.forEach(collection => {
         const count = collectionCount(collection.id);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `gallery-nav-item${gallery.view === `collection:${collection.id}` ? ' active' : ''}`;
-        btn.dataset.collectionId = collection.id;
-        btn.innerHTML = `
-            <span class="gallery-nav-icon">◇</span>
-            <span></span>
-            <strong>${count}</strong>
-        `;
-        btn.querySelector('span:nth-of-type(2)').textContent = collection.name;
-        e.collectionList.appendChild(btn);
+        const row = document.createElement('div');
+        row.className = `gallery-collection-row${gallery.view === `collection:${collection.id}` ? ' active' : ''}`;
+        row.dataset.collectionId = collection.id;
+
+        const iconBtn = document.createElement('button');
+        iconBtn.type = 'button';
+        iconBtn.className = 'gallery-nav-icon gallery-collection-icon-btn';
+        iconBtn.dataset.iconEditCollectionId = collection.id;
+        iconBtn.title = 'Change icon';
+        iconBtn.setAttribute('aria-label', 'Change icon');
+        iconBtn.textContent = collection.icon || DEFAULT_COLLECTION_ICON;
+
+        const selectBtn = document.createElement('button');
+        selectBtn.type = 'button';
+        selectBtn.className = 'gallery-collection-select';
+        selectBtn.dataset.collectionId = collection.id;
+        selectBtn.innerHTML = '<span class="gallery-collection-name"></span><strong></strong>';
+        selectBtn.querySelector('.gallery-collection-name').textContent = collection.name;
+        selectBtn.querySelector('strong').textContent = count;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'gallery-collection-delete';
+        deleteBtn.dataset.deleteCollectionId = collection.id;
+        deleteBtn.title = `Delete ${collection.name}`;
+        deleteBtn.setAttribute('aria-label', `Delete ${collection.name}`);
+        deleteBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+        row.append(iconBtn, selectBtn, deleteBtn);
+        e.collectionList.appendChild(row);
 
         const addOption = document.createElement('option');
         addOption.value = String(collection.id);
-        addOption.textContent = collection.name;
+        addOption.textContent = `${collection.icon || DEFAULT_COLLECTION_ICON} ${collection.name}`;
         e.collectionAdd.appendChild(addOption);
     });
 }
@@ -229,19 +261,33 @@ function renderGrid() {
         card.className = `gallery-card${char.id === gallery.selectedId ? ' selected' : ''}${isArchived(char) ? ' archived' : ''}`;
         card.dataset.charId = char.id;
 
+        const avatarWrap = document.createElement('div');
+        avatarWrap.className = 'gallery-card-avatar-wrap';
         const avatar = document.createElement('div');
         avatar.className = 'gallery-card-avatar avatar';
         applyAvatar(avatar, char);
+        avatarWrap.appendChild(avatar);
 
         const star = document.createElement('span');
         star.className = `gallery-card-star${char.pinned ? ' pinned' : ''}`;
         star.innerHTML = char.pinned ? icons.STAR_FILLED : icons.STAR;
+        avatarWrap.appendChild(star);
 
+        if (isArchived(char)) {
+            const badge = document.createElement('span');
+            badge.className = 'gallery-card-archive-badge';
+            badge.textContent = 'Archived';
+            avatarWrap.appendChild(badge);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'gallery-card-body';
         const name = document.createElement('strong');
         name.textContent = char.name || 'Unnamed';
-
         const subtitle = document.createElement('span');
+        subtitle.className = 'gallery-card-subtitle';
         subtitle.textContent = characterSubtitle(char);
+        body.append(name, subtitle);
 
         const meta = document.createElement('div');
         meta.className = 'gallery-card-meta';
@@ -249,14 +295,19 @@ function renderGrid() {
         if (firstCollection) {
             const chip = document.createElement('span');
             chip.className = 'gallery-card-chip';
-            chip.textContent = firstCollection.name;
+            chip.innerHTML = `<span class="gallery-card-chip-icon"></span><span class="gallery-card-chip-name"></span>`;
+            chip.querySelector('.gallery-card-chip-icon').textContent = firstCollection.icon || DEFAULT_COLLECTION_ICON;
+            chip.querySelector('.gallery-card-chip-name').textContent = firstCollection.name;
             meta.appendChild(chip);
+        } else {
+            meta.appendChild(document.createElement('span'));
         }
         const dot = document.createElement('span');
         dot.className = `gallery-card-dot${isArchived(char) ? ' archived' : ''}`;
+        dot.title = isArchived(char) ? 'Archived' : 'Active';
         meta.appendChild(dot);
 
-        card.append(avatar, star, name, subtitle, meta);
+        card.append(avatarWrap, body, meta);
         e.grid.appendChild(card);
     });
 }
@@ -315,7 +366,9 @@ function renderEditorCollections(char = selectedCharacter()) {
     (char?.collections || []).forEach(collection => {
         const chip = document.createElement('span');
         chip.className = 'gallery-chip';
-        chip.textContent = collection.name;
+        chip.innerHTML = '<span class="gallery-chip-icon"></span><span class="gallery-chip-name"></span>';
+        chip.querySelector('.gallery-chip-icon').textContent = collection.icon || DEFAULT_COLLECTION_ICON;
+        chip.querySelector('.gallery-chip-name').textContent = collection.name;
         const remove = document.createElement('button');
         remove.type = 'button';
         remove.title = `Remove ${collection.name}`;
@@ -480,17 +533,79 @@ async function duplicateSelected() {
     }
 }
 
-async function addCollection(name) {
+async function addCollection(name, icon = '') {
     try {
-        const collection = await API.createCharacterCollection(name);
+        const collection = await API.createCharacterCollection(name, icon);
         gallery.collections.push(collection);
         gallery.view = `collection:${collection.id}`;
         getEls().newCollectionForm.hidden = true;
+        gallery.pendingNewIcon = '';
         await refreshData({ keepSelection: true });
         showToast('Collection created', 'success');
     } catch (err) {
         showToast('Could not create collection: ' + err.message, 'error');
     }
+}
+
+async function deleteCollectionById(collectionId) {
+    const collection = gallery.collections.find(c => c.id === collectionId);
+    if (!collection) return;
+    if (!confirm(`Delete collection "${collection.name}"? Characters are not deleted.`)) return;
+    try {
+        await API.deleteCharacterCollection(collectionId);
+        if (gallery.view === `collection:${collectionId}`) gallery.view = 'all';
+        await refreshData({ keepSelection: true });
+        showToast('Collection deleted', 'success');
+    } catch (err) {
+        showToast('Could not delete collection: ' + err.message, 'error');
+    }
+}
+
+async function setCollectionIcon(collectionId, icon) {
+    try {
+        const updated = await API.updateCharacterCollection(collectionId, { icon });
+        const idx = gallery.collections.findIndex(c => c.id === collectionId);
+        if (idx !== -1) gallery.collections[idx] = { ...gallery.collections[idx], ...updated };
+        await refreshData({ keepSelection: true });
+    } catch (err) {
+        showToast('Could not update icon: ' + err.message, 'error');
+    }
+}
+
+function openIconPicker(target, anchorEl) {
+    const e = getEls();
+    gallery.iconPickerTarget = target;
+    e.iconPicker.innerHTML = '';
+    COLLECTION_ICONS.forEach(icon => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'gallery-icon-choice';
+        btn.dataset.icon = icon;
+        btn.textContent = icon;
+        e.iconPicker.appendChild(btn);
+    });
+    const rect = anchorEl.getBoundingClientRect();
+    e.iconPicker.style.top = `${rect.bottom + 6}px`;
+    e.iconPicker.style.left = `${rect.left}px`;
+    e.iconPicker.hidden = false;
+}
+
+function closeIconPicker() {
+    const e = getEls();
+    e.iconPicker.hidden = true;
+    gallery.iconPickerTarget = null;
+}
+
+function pickIcon(icon) {
+    const target = gallery.iconPickerTarget;
+    if (!target) return;
+    if (target.type === 'new') {
+        gallery.pendingNewIcon = icon;
+        getEls().newCollectionIcon.textContent = icon;
+    } else if (target.type === 'existing') {
+        setCollectionIcon(target.collectionId, icon);
+    }
+    closeIconPicker();
 }
 
 async function addSelectedToCollection(collectionId) {
@@ -557,9 +672,19 @@ function bindEvents() {
         render();
     });
     e.collectionList.addEventListener('click', event => {
-        const btn = event.target.closest('.gallery-nav-item');
-        if (!btn || !confirmDiscard()) return;
-        gallery.view = `collection:${btn.dataset.collectionId}`;
+        const deleteBtn = event.target.closest('[data-delete-collection-id]');
+        if (deleteBtn) {
+            deleteCollectionById(Number(deleteBtn.dataset.deleteCollectionId));
+            return;
+        }
+        const iconBtn = event.target.closest('[data-icon-edit-collection-id]');
+        if (iconBtn) {
+            openIconPicker({ type: 'existing', collectionId: Number(iconBtn.dataset.iconEditCollectionId) }, iconBtn);
+            return;
+        }
+        const selectBtn = event.target.closest('.gallery-collection-select');
+        if (!selectBtn || !confirmDiscard()) return;
+        gallery.view = `collection:${selectBtn.dataset.collectionId}`;
         const visible = visibleCharacters();
         gallery.selectedId = visible[0]?.id || null;
         render();
@@ -568,15 +693,34 @@ function bindEvents() {
     e.newCollectionBtn.addEventListener('click', () => {
         e.newCollectionForm.hidden = false;
         e.newCollectionName.value = '';
+        gallery.pendingNewIcon = '';
+        e.newCollectionIcon.textContent = DEFAULT_COLLECTION_ICON;
         e.newCollectionName.focus();
     });
     e.newCollectionCancel.addEventListener('click', () => {
         e.newCollectionForm.hidden = true;
+        closeIconPicker();
+    });
+    e.newCollectionIcon.addEventListener('click', () => {
+        openIconPicker({ type: 'new' }, e.newCollectionIcon);
     });
     e.newCollectionForm.addEventListener('submit', event => {
         event.preventDefault();
         const name = e.newCollectionName.value.trim();
-        if (name) addCollection(name);
+        if (name) addCollection(name, gallery.pendingNewIcon);
+    });
+    e.iconPicker.addEventListener('click', event => {
+        const btn = event.target.closest('.gallery-icon-choice');
+        if (btn) pickIcon(btn.dataset.icon);
+    });
+    document.addEventListener('click', event => {
+        if (gallery.iconPickerTarget && !e.iconPicker.hidden) {
+            if (!event.target.closest('.gallery-icon-picker') &&
+                !event.target.closest('[data-icon-edit-collection-id]') &&
+                event.target.id !== 'gallery-new-collection-icon') {
+                closeIconPicker();
+            }
+        }
     });
 
     e.grid.addEventListener('click', event => {
