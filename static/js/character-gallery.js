@@ -255,8 +255,9 @@ function renderGrid() {
     e.empty.hidden = chars.length !== 0;
 
     chars.forEach(char => {
-        const card = document.createElement('button');
-        card.type = 'button';
+        const card = document.createElement('div');
+        card.setAttribute('role', 'button');
+        card.tabIndex = 0;
         card.className = `gallery-card${char.id === gallery.selectedId ? ' selected' : ''}${isArchived(char) ? ' archived' : ''}`;
         card.dataset.charId = char.id;
 
@@ -267,8 +268,13 @@ function renderGrid() {
         applyAvatar(avatar, char);
         avatarWrap.appendChild(avatar);
 
-        const star = document.createElement('span');
+        const star = document.createElement('button');
+        star.type = 'button';
         star.className = `gallery-card-star${char.pinned ? ' pinned' : ''}`;
+        star.dataset.pinCharId = char.id;
+        star.title = char.pinned ? 'Unfavorite' : 'Favorite';
+        star.setAttribute('aria-label', char.pinned ? 'Unfavorite character' : 'Favorite character');
+        star.setAttribute('aria-pressed', char.pinned ? 'true' : 'false');
         star.innerHTML = char.pinned ? icons.STAR_FILLED : icons.STAR;
         avatarWrap.appendChild(star);
 
@@ -354,7 +360,7 @@ function fillEditor(char) {
     gallery.pendingAvatarFile = null;
     e.avatarInput.value = '';
     setDirty(false);
-    switchTab('profile');
+    switchTab('basic');
     renderEditorCollections(char);
 }
 
@@ -494,8 +500,14 @@ async function saveSelected() {
 async function togglePin() {
     const char = selectedCharacter();
     if (!char) return;
+    await togglePinForCharId(char.id);
+}
+
+async function togglePinForCharId(charId) {
+    const char = gallery.characters.find(c => c.id === charId);
+    if (!char) return;
     try {
-        const updated = await API.toggleCharacterPin(char.id);
+        const updated = await API.toggleCharacterPin(charId);
         replaceCharacter(updated);
         renderCharList();
         render();
@@ -723,8 +735,23 @@ function bindEvents() {
     });
 
     e.grid.addEventListener('click', event => {
+        const starBtn = event.target.closest('[data-pin-char-id]');
+        if (starBtn) {
+            event.stopPropagation();
+            togglePinForCharId(Number(starBtn.dataset.pinCharId));
+            return;
+        }
         const card = event.target.closest('.gallery-card');
         if (!card || !confirmDiscard()) return;
+        gallery.selectedId = Number(card.dataset.charId);
+        render();
+    });
+    e.grid.addEventListener('keydown', event => {
+        const card = event.target.closest('.gallery-card');
+        if (!card || event.target !== card) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        if (!confirmDiscard()) return;
         gallery.selectedId = Number(card.dataset.charId);
         render();
     });

@@ -664,6 +664,7 @@
                     <button class="tab-btn active" data-tab="basic" role="tab" aria-selected="true">Basic</button>
                     <button class="tab-btn" data-tab="messages" role="tab" aria-selected="false">Messages</button>
                     <button class="tab-btn" data-tab="advanced" role="tab" aria-selected="false">Advanced</button>
+                    <button class="tab-btn" data-tab="metadata" role="tab" aria-selected="false">Metadata</button>
                 </div>
                 <div class="modal-body">
                     <div class="tab-panel active" id="tab-basic" role="tabpanel">
@@ -711,6 +712,15 @@
                             <label class="form-label" for="cf-creator-notes">Creator Notes</label>
                             <textarea id="cf-creator-notes" class="form-textarea" rows="3" placeholder="Notes for people using this character card…"></textarea>
                         </div>
+                    </div>
+                    <div class="tab-panel" id="tab-metadata" role="tabpanel" hidden>
+                        <div class="form-group">
+                            <label class="form-label">Tags</label>
+                            <div class="tags-input-wrap" id="tags-input-wrap">
+                                <div id="tags-chip-list" class="tags-chip-list"></div>
+                                <input type="text" id="tags-text-input" class="tags-text-input" placeholder="Type a tag and press Enter…">
+                            </div>
+                        </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label" for="cf-creator">Creator</label>
@@ -719,13 +729,6 @@
                             <div class="form-group">
                                 <label class="form-label" for="cf-version">Version</label>
                                 <input type="text" id="cf-version" class="form-input" placeholder="e.g. 1.0">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Tags</label>
-                            <div class="tags-input-wrap" id="tags-input-wrap">
-                                <div id="tags-chip-list" class="tags-chip-list"></div>
-                                <input type="text" id="tags-text-input" class="tags-text-input" placeholder="Type a tag and press Enter…">
                             </div>
                         </div>
                     </div>
@@ -867,56 +870,55 @@
                             </div>
                         </div>
                         <div class="gallery-tabs" role="tablist">
-                            <button type="button" class="gallery-tab active" data-tab="profile">Profile</button>
-                            <button type="button" class="gallery-tab" data-tab="prompt">Prompt</button>
-                            <button type="button" class="gallery-tab" data-tab="first">First Message</button>
-                            <button type="button" class="gallery-tab" data-tab="avatar">Avatar</button>
+                            <button type="button" class="gallery-tab active" data-tab="basic">Basic</button>
+                            <button type="button" class="gallery-tab" data-tab="messages">Messages</button>
+                            <button type="button" class="gallery-tab" data-tab="advanced">Advanced</button>
+                            <button type="button" class="gallery-tab" data-tab="metadata">Metadata</button>
                         </div>
                         <div class="gallery-editor-body">
-                            <div class="gallery-tab-panel active" data-panel="profile">
+                            <div class="gallery-tab-panel active" data-panel="basic">
                                 <div class="form-group">
                                     <label class="form-label" for="gallery-field-name">Name</label>
                                     <input id="gallery-field-name" class="form-input" type="text" autocomplete="off">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-tags">Tags</label>
-                                    <input id="gallery-field-tags" class="form-input" type="text" placeholder="pilot, ace, medic">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="gallery-field-description">Description</label>
                                     <textarea id="gallery-field-description" class="form-textarea" rows="5"></textarea>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label" for="gallery-field-notes">Notes</label>
-                                    <textarea id="gallery-field-notes" class="form-textarea" rows="4"></textarea>
-                                </div>
-                            </div>
-                            <div class="gallery-tab-panel" data-panel="prompt" hidden>
-                                <div class="form-group">
                                     <label class="form-label" for="gallery-field-personality">Personality</label>
-                                    <textarea id="gallery-field-personality" class="form-textarea" rows="4"></textarea>
+                                    <textarea id="gallery-field-personality" class="form-textarea" rows="3"></textarea>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="gallery-field-scenario">Scenario</label>
-                                    <textarea id="gallery-field-scenario" class="form-textarea" rows="4"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-system">System Prompt</label>
-                                    <textarea id="gallery-field-system" class="form-textarea" rows="4"></textarea>
+                                    <textarea id="gallery-field-scenario" class="form-textarea" rows="3"></textarea>
                                 </div>
                             </div>
-                            <div class="gallery-tab-panel" data-panel="first" hidden>
+                            <div class="gallery-tab-panel" data-panel="messages" hidden>
                                 <div class="form-group">
                                     <label class="form-label" for="gallery-field-first">First Message</label>
-                                    <textarea id="gallery-field-first" class="form-textarea" rows="8"></textarea>
+                                    <textarea id="gallery-field-first" class="form-textarea" rows="6"></textarea>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="gallery-field-example">Example Messages</label>
                                     <textarea id="gallery-field-example" class="form-textarea" rows="6"></textarea>
                                 </div>
                             </div>
-                            <div class="gallery-tab-panel" data-panel="avatar" hidden>
-                                <p class="settings-hint">Click the avatar preview above to upload a new image. The new avatar is written only when you save changes.</p>
+                            <div class="gallery-tab-panel" data-panel="advanced" hidden>
+                                <div class="form-group">
+                                    <label class="form-label" for="gallery-field-system">System Prompt</label>
+                                    <textarea id="gallery-field-system" class="form-textarea" rows="4"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="gallery-field-notes">Creator Notes</label>
+                                    <textarea id="gallery-field-notes" class="form-textarea" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="gallery-tab-panel" data-panel="metadata" hidden>
+                                <div class="form-group">
+                                    <label class="form-label" for="gallery-field-tags">Tags</label>
+                                    <input id="gallery-field-tags" class="form-input" type="text" placeholder="pilot, ace, medic">
+                                </div>
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label class="form-label" for="gallery-field-creator">Creator</label>
