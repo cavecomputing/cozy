@@ -4040,7 +4040,10 @@ input[type="checkbox"]:disabled {
 }
 
 .gallery-avatar-upload {
+    position: relative;
+    display: inline-block;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .gallery-editor-avatar {
@@ -4049,6 +4052,29 @@ input[type="checkbox"]:disabled {
     border-radius: var(--radius-md, 12px);
     background-size: cover;
     background-position: center;
+}
+
+/* Hover overlay — same pattern as .avatar-change-label on the main
+   modal: a dim wash with an upload glyph fades in when the user
+   hovers the avatar, making it discoverable that clicking it picks a
+   new image. */
+.gallery-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-md, 12px);
+    background: var(--overlay-bg, rgba(0, 0, 0, 0.5));
+    color: var(--overlay-color, #fff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+
+.gallery-avatar-upload:hover .gallery-avatar-overlay,
+.gallery-avatar-upload:focus-within .gallery-avatar-overlay {
+    opacity: 1;
 }
 
 .gallery-inspector-title {
