@@ -48,7 +48,6 @@ function getEls() {
         countAll: q('gallery-count-all'),
         countFavorites: q('gallery-count-favorites'),
         countArchived: q('gallery-count-archived'),
-        footerCount: q('gallery-footer-count'),
         newCollectionBtn: q('gallery-new-collection-btn'),
         newCollectionForm: q('gallery-new-collection-form'),
         newCollectionName: q('gallery-new-collection-name'),
@@ -238,7 +237,6 @@ function renderRail() {
     e.countAll.textContent = gallery.characters.filter(c => !isArchived(c)).length;
     e.countFavorites.textContent = gallery.characters.filter(c => c.pinned && !isArchived(c)).length;
     e.countArchived.textContent = gallery.characters.filter(isArchived).length;
-    e.footerCount.textContent = `${gallery.characters.length} character${gallery.characters.length === 1 ? '' : 's'}`;
 
     document.querySelectorAll('.gallery-nav .gallery-nav-item').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === gallery.view);

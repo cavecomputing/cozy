@@ -3430,7 +3430,9 @@ input[type="checkbox"]:disabled {
     inset: 0;
     z-index: 700;
     display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
+    /* Match the main app's --sidebar-width (240px) so the rail lines
+       up with the regular sidebar when the gallery opens. */
+    grid-template-columns: var(--sidebar-width, 240px) minmax(0, 1fr);
     gap: 0.5rem;
     padding: 0.625rem;
     background:
@@ -3456,7 +3458,6 @@ input[type="checkbox"]:disabled {
     overflow: hidden;
 }
 
-.gallery-rail-header,
 .gallery-toolbar {
     display: flex;
     align-items: center;
@@ -3466,10 +3467,14 @@ input[type="checkbox"]:disabled {
     border-bottom: 1px solid var(--gallery-border-color, var(--border-color));
 }
 
-.gallery-rail-header h2 {
-    flex: 1;
-    font-size: 1.25rem;
-    line-height: 1;
+/* The rail header inherits its size from .panel-header (44px tall,
+   centered uppercase label) so it visually matches the main sidebar's
+   header. A right-side spacer mirrors the close button's width so the
+   centered title sits dead-center, not pushed right by the lone
+   left-side button. */
+.gallery-rail-header .panel-header-spacer {
+    width: 32px;
+    flex-shrink: 0;
 }
 
 .gallery-nav,
@@ -3703,13 +3708,6 @@ input[type="checkbox"]:disabled {
 
 .gallery-icon-choice:hover {
     background: var(--hover-bg);
-}
-
-.gallery-rail-footer {
-    border-top: 1px solid var(--gallery-border-color, var(--border-color));
-    padding: 0.7rem 0.85rem;
-    color: var(--text-secondary);
-    font-size: 0.78rem;
 }
 
 .gallery-main {
