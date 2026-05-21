@@ -113,7 +113,7 @@ export async function selectCharacter(charId) {
 
 export async function deleteCharacter(charId, name) {
     const label = name || 'this character';
-    if (!confirm(`Delete ${label} and all their chats? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${label} and all their chats? This cannot be undone.`)) return false;
     try {
         await API.deleteCharacter(charId);
         showToast('Character deleted', 'success');
@@ -132,7 +132,9 @@ export async function deleteCharacter(charId, name) {
         }
         renderCharList();
         document.dispatchEvent(new CustomEvent('cozy:characters-changed', { detail: { deletedId: charId } }));
+        return true;
     } catch (err) {
         showToast('Could not delete character: ' + err.message, 'error');
+        return false;
     }
 }

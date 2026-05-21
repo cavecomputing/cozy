@@ -775,7 +775,8 @@ function bindEvents() {
     e.deleteBtn.addEventListener('click', async () => {
         const char = selectedCharacter();
         if (!char) return;
-        await deleteCharacter(char.id, char.name);
+        const deleted = await deleteCharacter(char.id, char.name);
+        if (!deleted) return;
         gallery.characters = gallery.characters.filter(c => c.id !== char.id);
         gallery.selectedId = visibleCharacters()[0]?.id || null;
         render();
