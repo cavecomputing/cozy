@@ -3959,6 +3959,11 @@ input[type="checkbox"]:disabled {
     padding: 1rem;
 }
 
+.gallery-inspector-empty {
+    flex: 1;
+    width: 100%;
+}
+
 .gallery-inspector-empty svg {
     opacity: 0.5;
     margin-bottom: 0.25rem;
