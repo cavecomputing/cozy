@@ -1916,6 +1916,7 @@ body.gallery-open #char-modal.modal-overlay {
 }
 
 body.gallery-open #char-modal.modal-overlay > .modal {
+    width: min(92vw, 720px);
     height: min(92vh, 820px);
     max-height: 92vh;
 }

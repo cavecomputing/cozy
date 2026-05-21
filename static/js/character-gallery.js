@@ -44,7 +44,6 @@ function getEls() {
         collapseBtn: q('gallery-collapse-btn'),
         search: q('gallery-search'),
         addBtn: q('gallery-add-btn'),
-        importFile: q('gallery-import-file'),
         nav: document.querySelector('.gallery-nav'),
         countAll: q('gallery-count-all'),
         countFavorites: q('gallery-count-favorites'),
@@ -655,24 +654,6 @@ async function removeSelectedFromCollection(collectionId) {
     }
 }
 
-async function importFromGallery(file) {
-    if (!file) return;
-    try {
-        const char = await API.importCard(file);
-        gallery.selectedId = char.id;
-        state.characters.push(char);
-        renderCharList();
-        renderLorebookList();
-        await selectCharacter(char.id);
-        await refreshData({ keepSelection: true });
-        showToast('Character imported', 'success');
-    } catch (err) {
-        showToast('Import failed: ' + err.message, 'error');
-    } finally {
-        getEls().importFile.value = '';
-    }
-}
-
 function bindEvents() {
     const e = getEls();
     e.openBtn?.addEventListener('click', openGallery);
@@ -684,7 +665,6 @@ function bindEvents() {
         renderGrid();
     });
     e.addBtn.addEventListener('click', () => Modal.open());
-    e.importFile.addEventListener('change', () => importFromGallery(e.importFile.files[0]));
 
     e.nav.addEventListener('click', event => {
         const btn = event.target.closest('.gallery-nav-item');
