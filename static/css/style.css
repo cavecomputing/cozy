@@ -1811,13 +1811,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 
 /* Avatar with image background */
 .avatar[data-has-image="true"] {
-    --avatar-soften-filter: blur(0.15px);
     font-size: 0;
     image-rendering: auto;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    filter: var(--avatar-soften-filter);
 }
 
 /* Expandable message avatars */
@@ -3478,11 +3476,12 @@ input[type="checkbox"]:disabled {
         transition: none;
     }
 
-    /* Override collapsed state on mobile — always show full sidebar when open */
-    #sidebar.collapsed.mobile-open {
+    /* Mobile always uses the full drawer, even if desktop prefs remember
+       a collapsed sidebar. This avoids stale hidden labels on iOS reloads. */
+    #sidebar.collapsed {
         width: min(88vw, 360px);
     }
-    #sidebar.collapsed.mobile-open .hide-on-collapse {
+    #sidebar.collapsed .hide-on-collapse {
         opacity: 1;
         visibility: visible;
         width: auto;
@@ -3492,24 +3491,27 @@ input[type="checkbox"]:disabled {
         flex: revert;
         overflow: visible;
     }
-    #sidebar.collapsed.mobile-open .sidebar-header {
+    #sidebar.collapsed .sidebar-header {
         justify-content: initial;
         padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.75rem 0.35rem;
         gap: initial;
     }
-    #sidebar.collapsed.mobile-open .char-item,
-    #sidebar.collapsed.mobile-open .char-select-btn,
-    #sidebar.collapsed.mobile-open #user-profile {
+    #sidebar.collapsed .char-item,
+    #sidebar.collapsed .char-select-btn,
+    #sidebar.collapsed #user-profile {
         justify-content: initial;
         gap: 0.75rem;
     }
-    #sidebar.collapsed.mobile-open .char-select-btn {
+    #sidebar.collapsed .char-select-btn {
         padding-left: 0.75rem;
         padding-right: 0.75rem;
     }
-    #sidebar.collapsed.mobile-open #user-profile-container {
+    #sidebar.collapsed #user-profile-container {
         margin: 0 0.6rem calc(env(safe-area-inset-bottom, 0px) + 0.6rem);
         padding: 0.3rem;
+    }
+    #sidebar.collapsed .collapsed-new-char-btn {
+        display: none;
     }
 
     #mobile-backdrop.show { display: block; }
