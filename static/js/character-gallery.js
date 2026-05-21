@@ -404,11 +404,30 @@ async function refreshData({ keepSelection = true } = {}) {
     render();
 }
 
+let charModalOriginalParent = null;
+const charModalEl = () => document.getElementById('char-modal');
+
+function lockModalAboveGallery() {
+    const modal = charModalEl();
+    if (!modal || charModalOriginalParent) return;
+    charModalOriginalParent = modal.parentElement;
+    document.body.appendChild(modal);
+}
+
+function restoreModalParent() {
+    const modal = charModalEl();
+    if (!modal || !charModalOriginalParent) return;
+    charModalOriginalParent.appendChild(modal);
+    charModalOriginalParent = null;
+}
+
 async function openGallery() {
     if (!isDesktop()) return;
     const e = getEls();
     e.root.hidden = false;
     gallery.open = true;
+    document.body.classList.add('gallery-open');
+    lockModalAboveGallery();
     await refreshData({ keepSelection: true });
     e.search.focus();
 }
@@ -418,6 +437,8 @@ function closeGallery() {
     const e = getEls();
     e.root.hidden = true;
     gallery.open = false;
+    document.body.classList.remove('gallery-open');
+    restoreModalParent();
 }
 
 function collectEditorData() {
@@ -514,6 +535,8 @@ async function startChatWithSelected() {
         await selectCharacter(char.id);
         getEls().root.hidden = true;
         gallery.open = false;
+        document.body.classList.remove('gallery-open');
+        restoreModalParent();
     } catch (err) {
         showToast('Could not open chat: ' + err.message, 'error');
     }

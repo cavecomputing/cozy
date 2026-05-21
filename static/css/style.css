@@ -1903,6 +1903,23 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     bottom: var(--modal-bottom-offset, 4.25rem);
 }
 
+body.gallery-open #char-modal.modal-overlay {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    z-index: 750;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: auto;
+}
+
+body.gallery-open #char-modal.modal-overlay > .modal {
+    height: min(92vh, 820px);
+    max-height: 92vh;
+}
+
 /* Preview / Help stack above the settings flyout they were opened from */
 #prompt-preview-modal.modal-overlay,
 #prompt-help-modal.modal-overlay { z-index: 600; }
