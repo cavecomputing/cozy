@@ -63,19 +63,34 @@ export function renderCharList() {
     });
 }
 
+function clearActiveCharacterState() {
+    state.activeCharacter = null;
+    state.chats = [];
+    state.activeChat = null;
+    state.messages = [];
+    el.currentCharName.textContent = 'Cozy';
+    el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
+    updateComposerState();
+    renderChats();
+    renderMessages();
+}
+
 export async function loadCharacters() {
     try {
         state.characters = await API.getCharacters();
         renderCharList();
         const available = state.characters.filter(c => !c.missing);
         if (available.length === 0) {
+            clearActiveCharacterState();
             showEmptyState('No characters yet', 'Create a character to start your first conversation.', true);
-            updateComposerState();
+            savePrefs();
             return;
         }
-        const target = state._savedActiveId
-            ? available.find(c => c.id === state._savedActiveId)
-            : available[0];
+        const target = (
+            state._savedActiveId
+                ? available.find(c => c.id === state._savedActiveId)
+                : null
+        ) || available[0];
         if (target) await selectCharacter(target.id);
     } catch (err) {
         console.error('Could not load characters:', err);
@@ -113,25 +128,21 @@ export async function selectCharacter(charId) {
 
 export async function deleteCharacter(charId, name) {
     const label = name || 'this character';
-    if (!confirm(`Delete ${label} and all their chats? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${label} and all their chats? This cannot be undone.`)) return false;
     try {
         await API.deleteCharacter(charId);
         showToast('Character deleted', 'success');
         state.characters = state.characters.filter(c => c.id !== charId);
         if (state.activeCharacter?.id === charId) {
-            state.activeCharacter = null;
-            state.chats           = [];
-            state.activeChat      = null;
-            state.messages        = [];
-            el.currentCharName.textContent = 'Cozy';
-            updateComposerState();
-            renderChats();
-            renderMessages();
+            clearActiveCharacterState();
             const next = state.characters.find(c => !c.missing);
             if (next) await selectCharacter(next.id);
         }
         renderCharList();
+        document.dispatchEvent(new CustomEvent('cozy:characters-changed', { detail: { deletedId: charId } }));
+        return true;
     } catch (err) {
         showToast('Could not delete character: ' + err.message, 'error');
+        return false;
     }
 }

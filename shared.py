@@ -102,7 +102,25 @@ def init_db():
                 crc        TEXT    NOT NULL,
                 missing    INTEGER DEFAULT 0,
                 pinned_at  DATETIME DEFAULT NULL,
+                archived_at DATETIME DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS character_collections (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT    NOT NULL UNIQUE,
+                icon       TEXT    NOT NULL DEFAULT '',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS character_collection_members (
+                collection_id INTEGER NOT NULL,
+                character_id  INTEGER NOT NULL,
+                created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (collection_id, character_id),
+                FOREIGN KEY (collection_id) REFERENCES character_collections(id) ON DELETE CASCADE,
+                FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS chats (
@@ -181,6 +199,8 @@ def init_db():
 
             CREATE INDEX IF NOT EXISTS idx_chats_character_created
                 ON chats(character_id, created_at, id);
+            CREATE INDEX IF NOT EXISTS idx_char_members_character
+                ON character_collection_members(character_id);
             CREATE INDEX IF NOT EXISTS idx_messages_chat_id
                 ON messages(chat_id, id);
             CREATE INDEX IF NOT EXISTS idx_message_swipes_message
@@ -191,6 +211,12 @@ def init_db():
         cols = [c[1] for c in conn.execute('PRAGMA table_info(characters)').fetchall()]
         if 'pinned_at' not in cols:
             conn.execute('ALTER TABLE characters ADD COLUMN pinned_at DATETIME DEFAULT NULL')
+        if 'archived_at' not in cols:
+            conn.execute('ALTER TABLE characters ADD COLUMN archived_at DATETIME DEFAULT NULL')
+
+        collection_cols = [c[1] for c in conn.execute('PRAGMA table_info(character_collections)').fetchall()]
+        if collection_cols and 'icon' not in collection_cols:
+            conn.execute("ALTER TABLE character_collections ADD COLUMN icon TEXT NOT NULL DEFAULT ''")
 
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "

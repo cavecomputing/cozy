@@ -28,6 +28,16 @@
     --accent-edit-bg:     rgba(38, 139, 210, 0.1);
     --accent-border-light: rgba(38, 139, 210, 0.3);
 
+    /* Character gallery */
+    --gallery-panel-bg:       var(--sidebar-bg);
+    --gallery-toolbar-bg:     var(--sidebar-bg);
+    --gallery-card-bg:        var(--bg-color);
+    --gallery-active-bg:      var(--active-bg);
+    --gallery-selected-bg:    var(--active-bg);
+    --gallery-selected-border:var(--accent-color);
+    --gallery-star-color:     #b58900;
+    --gallery-chip-color:     var(--accent-color);
+
     /* Design tokens */
     --radius-sm:  8px;
     --radius-md:  8px;

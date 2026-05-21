@@ -30,8 +30,12 @@ async function formRequest(url, fields, fallback) {
 
 export const API = {
     // Characters
-    async getCharacters() {
-        return jsonRequest('/api/characters', { fallback: 'Failed to load characters' });
+    async getCharacters(options = {}) {
+        const params = new URLSearchParams();
+        if (options.includeArchived) params.set('include_archived', '1');
+        if (options.archivedOnly) params.set('archived', '1');
+        const query = params.toString();
+        return jsonRequest(`/api/characters${query ? `?${query}` : ''}`, { fallback: 'Failed to load characters' });
     },
     async createCharacter(data, imageFile) {
         return formRequest('/api/characters', {
@@ -52,6 +56,19 @@ export const API = {
     async toggleCharacterPin(id) {
         return jsonRequest(`/api/characters/${id}/pin`, { method: 'POST', fallback: 'Pin toggle failed' });
     },
+    async archiveCharacter(id, archived = true) {
+        return jsonRequest(`/api/characters/${id}/archive`, {
+            method: 'POST',
+            body: { archived },
+            fallback: archived ? 'Archive failed' : 'Unarchive failed',
+        });
+    },
+    async duplicateCharacter(id) {
+        return jsonRequest(`/api/characters/${id}/duplicate`, {
+            method: 'POST',
+            fallback: 'Duplicate failed',
+        });
+    },
     async uploadAvatar(id, file) {
         return formRequest(`/api/characters/${id}/avatar`, { avatar: file }, 'Upload failed');
     },
@@ -63,6 +80,41 @@ export const API = {
         const safeName = sanitizeFilename(name || 'character');
         const ext      = fmt === 'png' ? 'png' : 'json';
         downloadUrl(`/api/characters/${id}/export?fmt=${fmt}`, `${safeName}.${ext}`);
+    },
+    async getCharacterCollections() {
+        return jsonRequest('/api/character-collections', { fallback: 'Failed to load collections' });
+    },
+    async createCharacterCollection(name, icon = '') {
+        return jsonRequest('/api/character-collections', {
+            method: 'POST',
+            body: { name, icon },
+            fallback: 'Create collection failed',
+        });
+    },
+    async updateCharacterCollection(id, fields) {
+        return jsonRequest(`/api/character-collections/${id}`, {
+            method: 'PUT',
+            body: fields,
+            fallback: 'Update collection failed',
+        });
+    },
+    async deleteCharacterCollection(id) {
+        return jsonRequest(`/api/character-collections/${id}`, {
+            method: 'DELETE',
+            fallback: 'Delete collection failed',
+        });
+    },
+    async addCharacterToCollection(collectionId, charId) {
+        return jsonRequest(`/api/character-collections/${collectionId}/characters/${charId}`, {
+            method: 'POST',
+            fallback: 'Add to collection failed',
+        });
+    },
+    async removeCharacterFromCollection(collectionId, charId) {
+        return jsonRequest(`/api/character-collections/${collectionId}/characters/${charId}`, {
+            method: 'DELETE',
+            fallback: 'Remove from collection failed',
+        });
     },
 
     // Chats

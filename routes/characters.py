@@ -1,7 +1,9 @@
 """Character routes — file-based character card storage with PNG embedding."""
 
-import os
 import json
+import os
+import shutil
+import sqlite3
 
 from flask import Blueprint, request, jsonify, Response
 from werkzeug.utils import secure_filename
@@ -32,9 +34,56 @@ def _unique_filename(name):
     return candidate
 
 
-def _char_to_dict(row, card_data=None):
+def _collection_to_dict(row):
+    keys = row.keys() if hasattr(row, 'keys') else []
+    icon = (row['icon'] or '') if 'icon' in keys else ''
+    return {
+        'id': row['id'],
+        'name': row['name'],
+        'icon': icon,
+        'created_at': row['created_at'],
+        'updated_at': row['updated_at'],
+    }
+
+
+def _collections_for_char(conn, char_id):
+    rows = conn.execute(
+        '''
+        SELECT c.*
+        FROM character_collections c
+        JOIN character_collection_members m ON m.collection_id = c.id
+        WHERE m.character_id=?
+        ORDER BY c.name COLLATE NOCASE
+        ''',
+        (char_id,),
+    ).fetchall()
+    return [_collection_to_dict(row) for row in rows]
+
+
+def _collections_by_char(conn, char_ids):
+    if not char_ids:
+        return {}
+    placeholders = ','.join('?' for _ in char_ids)
+    rows = conn.execute(
+        f'''
+        SELECT m.character_id, c.*
+        FROM character_collection_members m
+        JOIN character_collections c ON c.id = m.collection_id
+        WHERE m.character_id IN ({placeholders})
+        ORDER BY c.name COLLATE NOCASE
+        ''',
+        tuple(char_ids),
+    ).fetchall()
+    by_char = {char_id: [] for char_id in char_ids}
+    for row in rows:
+        by_char.setdefault(row['character_id'], []).append(_collection_to_dict(row))
+    return by_char
+
+
+def _char_to_dict(row, card_data=None, collections=None):
     """Merge a DB character row with parsed card data into an API response dict."""
     pinned = row['pinned_at'] is not None
+    archived_at = row['archived_at'] if 'archived_at' in row.keys() else None
     if row['missing']:
         return {
             'id': row['id'],
@@ -44,7 +93,9 @@ def _char_to_dict(row, card_data=None):
             'avatar_url': None,
             'pinned': pinned,
             'pinned_at': row['pinned_at'],
+            'archived_at': archived_at,
             'created_at': row['created_at'],
+            'collections': collections or [],
         }
 
     d = {
@@ -55,6 +106,8 @@ def _char_to_dict(row, card_data=None):
         'avatar_url': f"/characters/{row['filename']}?v={row['crc']}",
         'pinned': pinned,
         'pinned_at': row['pinned_at'],
+        'archived_at': archived_at,
+        'collections': collections or [],
     }
     d.update(card_data_fields(card_data or {}))
     if not d.get('name'):
@@ -115,16 +168,24 @@ def _sync_characters(conn):
 def list_characters():
     with get_db() as conn:
         _sync_characters(conn)
+        include_archived = request.args.get('include_archived') in ('1', 'true', 'yes')
+        archived_only = request.args.get('archived') in ('1', 'true', 'yes')
+        where = ''
+        if archived_only:
+            where = 'WHERE archived_at IS NOT NULL'
+        elif not include_archived:
+            where = 'WHERE archived_at IS NULL'
         rows = conn.execute(
-            'SELECT * FROM characters ORDER BY pinned_at DESC NULLS LAST, created_at ASC'
+            f'SELECT * FROM characters {where} ORDER BY pinned_at DESC NULLS LAST, created_at ASC'
         ).fetchall()
+        collections = _collections_by_char(conn, [row['id'] for row in rows])
         result = []
         for row in rows:
             if row['missing']:
-                result.append(_char_to_dict(row))
+                result.append(_char_to_dict(row, collections=collections.get(row['id'], [])))
             else:
                 card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-                result.append(_char_to_dict(row, card))
+                result.append(_char_to_dict(row, card, collections.get(row['id'], [])))
         return jsonify(result)
 
 
@@ -155,7 +216,7 @@ def create_character():
             'INSERT INTO characters (filename, crc) VALUES (?, ?)', (filename, crc)
         )
         row = conn.execute('SELECT * FROM characters WHERE id=?', (cur.lastrowid,)).fetchone()
-        return jsonify(_char_to_dict(row, extract_png_chara(png_bytes))), 201
+        return jsonify(_char_to_dict(row, extract_png_chara(png_bytes), [])), 201
 
 
 # -- Import (must be registered before /<int:char_id> routes) ----------------
@@ -205,7 +266,7 @@ def import_character():
             'INSERT INTO characters (filename, crc) VALUES (?, ?)', (filename, crc)
         )
         row = conn.execute('SELECT * FROM characters WHERE id=?', (cur.lastrowid,)).fetchone()
-        return jsonify(_char_to_dict(row, extract_png_chara(png_bytes))), 201
+        return jsonify(_char_to_dict(row, extract_png_chara(png_bytes), [])), 201
 
 
 # -- Single character CRUD ---------------------------------------------------
@@ -216,9 +277,9 @@ def get_character(char_id):
         if not row:
             return jsonify({'error': 'Character not found'}), 404
         if row['missing']:
-            return jsonify(_char_to_dict(row))
+            return jsonify(_char_to_dict(row, collections=_collections_for_char(conn, char_id)))
         card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-        return jsonify(_char_to_dict(row, card))
+        return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
 
 
 @characters_bp.route('/api/characters/<int:char_id>/pin', methods=['POST'])
@@ -235,9 +296,57 @@ def toggle_pin_character(char_id):
             )
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if row['missing']:
-            return jsonify(_char_to_dict(row))
+            return jsonify(_char_to_dict(row, collections=_collections_for_char(conn, char_id)))
         card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-        return jsonify(_char_to_dict(row, card))
+        return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
+
+
+@characters_bp.route('/api/characters/<int:char_id>/archive', methods=['POST'])
+def archive_character(char_id):
+    data = request.get_json(silent=True) or {}
+    archived = bool(data.get('archived', True))
+    with get_db() as conn:
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        if not row:
+            return jsonify({'error': 'Character not found'}), 404
+        if archived:
+            conn.execute('UPDATE characters SET archived_at=CURRENT_TIMESTAMP WHERE id=?', (char_id,))
+        else:
+            conn.execute('UPDATE characters SET archived_at=NULL WHERE id=?', (char_id,))
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        if row['missing']:
+            return jsonify(_char_to_dict(row, collections=_collections_for_char(conn, char_id)))
+        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+        return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
+
+
+@characters_bp.route('/api/characters/<int:char_id>/duplicate', methods=['POST'])
+def duplicate_character(char_id):
+    with get_db() as conn:
+        row, card_data = get_character_card(conn, char_id)
+        if not row:
+            return jsonify({'error': 'Character not found'}), 404
+
+        source_path = os.path.join(shared.CHARACTERS_DIR, row['filename'])
+        data = card_data.get('data', card_data) if card_data else {}
+        copy_name = f"{data.get('name') or row['filename'].rsplit('.', 1)[0]} Copy"
+        filename = _unique_filename(copy_name)
+        target_path = os.path.join(shared.CHARACTERS_DIR, filename)
+        shutil.copyfile(source_path, target_path)
+
+        if card_data:
+            card = normalize_to_v2(card_data)
+            card.setdefault('data', {})
+            card['data']['name'] = copy_name
+            write_character_card(target_path, card)
+
+        crc = file_crc(target_path)
+        cur = conn.execute(
+            'INSERT INTO characters (filename, crc) VALUES (?, ?)', (filename, crc)
+        )
+        new_row = conn.execute('SELECT * FROM characters WHERE id=?', (cur.lastrowid,)).fetchone()
+        new_card = read_character_card(target_path)
+        return jsonify(_char_to_dict(new_row, new_card, [])), 201
 
 
 @characters_bp.route('/api/characters/<int:char_id>/export', methods=['GET'])
@@ -305,7 +414,7 @@ def update_character(char_id):
         png_bytes, crc = write_character_card(filepath, card)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        return jsonify(_char_to_dict(row, card))
+        return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
 
 
 @characters_bp.route('/api/characters/<int:char_id>', methods=['DELETE'])
@@ -358,4 +467,137 @@ def upload_avatar(char_id):
         crc = file_crc(filepath)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        return jsonify(_char_to_dict(row, extract_png_chara(png_bytes)))
+        return jsonify(_char_to_dict(row, extract_png_chara(png_bytes), _collections_for_char(conn, char_id)))
+
+
+# -- Character collections ---------------------------------------------------
+@characters_bp.route('/api/character-collections', methods=['GET'])
+def list_character_collections():
+    with get_db() as conn:
+        rows = conn.execute(
+            '''
+            SELECT c.*, COUNT(ch.id) AS character_count
+            FROM character_collections c
+            LEFT JOIN character_collection_members m ON m.collection_id = c.id
+            LEFT JOIN characters ch ON ch.id = m.character_id AND ch.archived_at IS NULL
+            GROUP BY c.id
+            ORDER BY c.name COLLATE NOCASE
+            '''
+        ).fetchall()
+        return jsonify([
+            {**_collection_to_dict(row), 'character_count': row['character_count']}
+            for row in rows
+        ])
+
+
+@characters_bp.route('/api/character-collections', methods=['POST'])
+def create_character_collection():
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    icon = (data.get('icon') or '').strip()[:16]
+    if not name:
+        return jsonify({'error': 'name is required'}), 400
+    with get_db() as conn:
+        try:
+            cur = conn.execute(
+                'INSERT INTO character_collections (name, icon) VALUES (?, ?)',
+                (name, icon),
+            )
+        except sqlite3.IntegrityError:
+            return jsonify({'error': 'Collection name already exists'}), 400
+        row = conn.execute(
+            'SELECT * FROM character_collections WHERE id=?', (cur.lastrowid,)
+        ).fetchone()
+        return jsonify({**_collection_to_dict(row), 'character_count': 0}), 201
+
+
+@characters_bp.route('/api/character-collections/<int:collection_id>', methods=['PUT'])
+def update_character_collection(collection_id):
+    data = request.get_json(silent=True) or {}
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT * FROM character_collections WHERE id=?', (collection_id,)
+        ).fetchone()
+        if not row:
+            return jsonify({'error': 'Collection not found'}), 404
+
+        sets, params = [], []
+        if 'name' in data:
+            name = (data.get('name') or '').strip()
+            if not name:
+                return jsonify({'error': 'name is required'}), 400
+            sets.append('name=?')
+            params.append(name)
+        if 'icon' in data:
+            sets.append('icon=?')
+            params.append((data.get('icon') or '').strip()[:16])
+        if not sets:
+            return jsonify(_collection_to_dict(row))
+        sets.append('updated_at=CURRENT_TIMESTAMP')
+        params.append(collection_id)
+        try:
+            conn.execute(
+                f'UPDATE character_collections SET {", ".join(sets)} WHERE id=?',
+                params,
+            )
+        except sqlite3.IntegrityError:
+            return jsonify({'error': 'Collection name already exists'}), 400
+        row = conn.execute(
+            'SELECT * FROM character_collections WHERE id=?', (collection_id,)
+        ).fetchone()
+        return jsonify(_collection_to_dict(row))
+
+
+@characters_bp.route('/api/character-collections/<int:collection_id>', methods=['DELETE'])
+def delete_character_collection(collection_id):
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT * FROM character_collections WHERE id=?', (collection_id,)
+        ).fetchone()
+        if not row:
+            return jsonify({'error': 'Collection not found'}), 404
+        conn.execute('DELETE FROM character_collections WHERE id=?', (collection_id,))
+        return jsonify({'success': True})
+
+
+@characters_bp.route('/api/character-collections/<int:collection_id>/characters/<int:char_id>', methods=['POST'])
+def add_character_to_collection(collection_id, char_id):
+    with get_db() as conn:
+        collection = conn.execute(
+            'SELECT * FROM character_collections WHERE id=?', (collection_id,)
+        ).fetchone()
+        character = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        if not collection:
+            return jsonify({'error': 'Collection not found'}), 404
+        if not character:
+            return jsonify({'error': 'Character not found'}), 404
+        conn.execute(
+            '''
+            INSERT OR IGNORE INTO character_collection_members (collection_id, character_id)
+            VALUES (?, ?)
+            ''',
+            (collection_id, char_id),
+        )
+        if character['missing']:
+            return jsonify(_char_to_dict(character, collections=_collections_for_char(conn, char_id)))
+        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, character['filename']))
+        return jsonify(_char_to_dict(character, card, _collections_for_char(conn, char_id)))
+
+
+@characters_bp.route('/api/character-collections/<int:collection_id>/characters/<int:char_id>', methods=['DELETE'])
+def remove_character_from_collection(collection_id, char_id):
+    with get_db() as conn:
+        conn.execute(
+            '''
+            DELETE FROM character_collection_members
+            WHERE collection_id=? AND character_id=?
+            ''',
+            (collection_id, char_id),
+        )
+        character = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        if not character:
+            return jsonify({'error': 'Character not found'}), 404
+        if character['missing']:
+            return jsonify(_char_to_dict(character, collections=_collections_for_char(conn, char_id)))
+        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, character['filename']))
+        return jsonify(_char_to_dict(character, card, _collections_for_char(conn, char_id)))
