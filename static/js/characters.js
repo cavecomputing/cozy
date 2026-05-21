@@ -131,6 +131,7 @@ export async function deleteCharacter(charId, name) {
             if (next) await selectCharacter(next.id);
         }
         renderCharList();
+        document.dispatchEvent(new CustomEvent('cozy:characters-changed', { detail: { deletedId: charId } }));
     } catch (err) {
         showToast('Could not delete character: ' + err.message, 'error');
     }

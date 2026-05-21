@@ -486,3 +486,89 @@ class TestPin:
     def test_pin_404_for_missing_character(self, client):
         r = client.post('/api/characters/99999/pin')
         assert r.status_code == 404
+
+
+# ── Gallery organization: archive + collections ───────────────────────────
+
+class TestCharacterOrganization:
+    def test_archive_excluded_by_default_and_included_when_requested(self, client, sample_character):
+        r = client.post(f'/api/characters/{sample_character["id"]}/archive', json={'archived': True})
+        assert r.status_code == 200
+        assert r.get_json()['archived_at'] is not None
+
+        default_listing = client.get('/api/characters').get_json()
+        assert [c['id'] for c in default_listing] == []
+
+        all_listing = client.get('/api/characters?include_archived=1').get_json()
+        assert [c['id'] for c in all_listing] == [sample_character['id']]
+
+        archived_listing = client.get('/api/characters?archived=1').get_json()
+        assert [c['id'] for c in archived_listing] == [sample_character['id']]
+
+        r2 = client.post(f'/api/characters/{sample_character["id"]}/archive', json={'archived': False})
+        assert r2.status_code == 200
+        assert r2.get_json()['archived_at'] is None
+
+    def test_collection_crud_and_membership(self, client, sample_character):
+        created = client.post('/api/character-collections', json={'name': 'Story Crew'})
+        assert created.status_code == 201
+        collection = created.get_json()
+        assert collection['name'] == 'Story Crew'
+        assert collection['character_count'] == 0
+
+        added = client.post(
+            f'/api/character-collections/{collection["id"]}/characters/{sample_character["id"]}'
+        )
+        assert added.status_code == 200
+        assert added.get_json()['collections'][0]['name'] == 'Story Crew'
+
+        collections = client.get('/api/character-collections').get_json()
+        assert collections[0]['character_count'] == 1
+
+        renamed = client.put(
+            f'/api/character-collections/{collection["id"]}',
+            json={'name': 'Bridge Crew'},
+        )
+        assert renamed.status_code == 200
+        assert renamed.get_json()['name'] == 'Bridge Crew'
+
+        removed = client.delete(
+            f'/api/character-collections/{collection["id"]}/characters/{sample_character["id"]}'
+        )
+        assert removed.status_code == 200
+        assert removed.get_json()['collections'] == []
+
+    def test_delete_collection_clears_membership(self, client, sample_character):
+        collection = client.post('/api/character-collections', json={'name': 'Doctors'}).get_json()
+        client.post(f'/api/character-collections/{collection["id"]}/characters/{sample_character["id"]}')
+
+        r = client.delete(f'/api/character-collections/{collection["id"]}')
+        assert r.status_code == 200
+
+        char = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert char['collections'] == []
+
+    def test_delete_character_cascades_membership(self, client, sample_character):
+        collection = client.post('/api/character-collections', json={'name': 'Spaceport'}).get_json()
+        client.post(f'/api/character-collections/{collection["id"]}/characters/{sample_character["id"]}')
+
+        r = client.delete(f'/api/characters/{sample_character["id"]}')
+        assert r.status_code == 200
+
+        collections = client.get('/api/character-collections').get_json()
+        assert collections[0]['character_count'] == 0
+
+    def test_collection_and_archive_do_not_rewrite_png_card(self, client, sample_character):
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        with open(path, 'rb') as f:
+            before = f.read()
+
+        collection = client.post('/api/character-collections', json={'name': 'Local Only'}).get_json()
+        client.post(f'/api/character-collections/{collection["id"]}/characters/{sample_character["id"]}')
+        client.post(f'/api/characters/{sample_character["id"]}/archive', json={'archived': True})
+        client.post(f'/api/characters/{sample_character["id"]}/archive', json={'archived': False})
+        client.delete(f'/api/character-collections/{collection["id"]}/characters/{sample_character["id"]}')
+
+        with open(path, 'rb') as f:
+            after = f.read()
+        assert after == before

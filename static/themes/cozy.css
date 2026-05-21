@@ -30,6 +30,16 @@
     --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.3);
     --input-focus-shadow: 0 0 0 2px rgba(240, 230, 208, 0.22);
 
+    /* Character gallery */
+    --gallery-panel-bg:       #182142;
+    --gallery-toolbar-bg:     #182142;
+    --gallery-card-bg:        #1a2444;
+    --gallery-active-bg:      rgba(61, 95, 168, 0.32);
+    --gallery-selected-bg:    rgba(61, 95, 168, 0.28);
+    --gallery-selected-border:#4f7ee6;
+    --gallery-star-color:     #f3b84f;
+    --gallery-chip-color:     #9dbbff;
+
     /* Design tokens */
     --radius-sm:  8px;
     --radius-md:  8px;
