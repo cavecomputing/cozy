@@ -61,7 +61,7 @@ function getEls() {
         viewCount: q('gallery-view-count'),
         inspectorEmpty: q('gallery-inspector-empty'),
         editor: q('gallery-editor'),
-        avatar: q('gallery-editor-avatar'),
+        heroBg: q('gallery-hero-bg'),
         avatarInput: q('gallery-avatar-input'),
         heading: q('gallery-editor-heading'),
         subtitle: q('gallery-editor-subtitle'),
@@ -336,7 +336,7 @@ function fillEditor(char) {
     }
     e.inspectorEmpty.hidden = true;
     e.editor.hidden = false;
-    applyAvatar(e.avatar, char);
+    applyAvatar(e.heroBg, char);
     e.heading.textContent = char.name || 'Unnamed';
     e.subtitle.textContent = characterSubtitle(char);
     e.status.textContent = isArchived(char) ? 'Archived' : 'Active';
@@ -767,9 +767,8 @@ function bindEvents() {
         gallery.pendingAvatarFile = file;
         const reader = new FileReader();
         reader.onload = event => {
-            e.avatar.style.backgroundImage = `url('${event.target.result}')`;
-            e.avatar.dataset.hasImage = 'true';
-            e.avatar.textContent = '';
+            e.heroBg.style.backgroundImage = `url('${event.target.result}')`;
+            e.heroBg.dataset.hasImage = 'true';
         };
         reader.readAsDataURL(file);
         setDirty(true);

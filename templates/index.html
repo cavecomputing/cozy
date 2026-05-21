@@ -839,42 +839,36 @@
                         <p>Choose a card to inspect and edit it here.</p>
                     </div>
                     <form id="gallery-editor" hidden>
-                        <header class="gallery-inspector-top">
-                            <label class="gallery-avatar-upload" title="Upload avatar" aria-label="Upload avatar">
-                                <div id="gallery-editor-avatar" class="avatar gallery-editor-avatar">?</div>
-                                <span class="gallery-avatar-overlay" aria-hidden="true">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="17 8 12 3 7 8"></polyline>
-                                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                                    </svg>
-                                </span>
+                        <header class="gallery-hero">
+                            <div id="gallery-hero-bg" class="gallery-hero-bg" aria-hidden="true"></div>
+                            <div class="gallery-hero-scrim" aria-hidden="true"></div>
+                            <label class="gallery-hero-upload" title="Change image" aria-label="Change image">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
                                 <input id="gallery-avatar-input" type="file" accept="image/*" hidden>
                             </label>
-                            <div class="gallery-inspector-title">
-                                <div class="gallery-inspector-name-row">
+                            <button id="gallery-pin-btn" class="icon-btn gallery-hero-pin" type="button" title="Favorite" aria-label="Favorite"></button>
+                            <div class="gallery-hero-content">
+                                <div class="gallery-hero-text">
                                     <h3 id="gallery-editor-heading">Character</h3>
-                                    <button id="gallery-pin-btn" class="icon-btn gallery-pin-btn" type="button" title="Favorite" aria-label="Favorite"></button>
-                                </div>
-                                <p id="gallery-editor-subtitle">No description yet.</p>
-                                <div class="gallery-inspector-meta">
+                                    <p id="gallery-editor-subtitle">No description yet.</p>
                                     <span id="gallery-editor-status" class="gallery-status-pill">Active</span>
+                                </div>
+                                <div class="gallery-hero-actions">
                                     <button id="gallery-start-chat-btn" type="button" class="btn btn-primary btn-sm">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                         Start Chat
                                     </button>
+                                    <button id="gallery-duplicate-btn" type="button" class="btn btn-secondary btn-sm">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        Duplicate
+                                    </button>
                                 </div>
                             </div>
                         </header>
-                        <div class="gallery-chip-section">
-                            <div class="gallery-chip-row">
-                                <span class="section-label">Collections</span>
-                                <div id="gallery-editor-collections" class="gallery-chip-list"></div>
-                                <select id="gallery-collection-add" class="form-input gallery-collection-add">
-                                    <option value="">+ Add</option>
-                                </select>
-                            </div>
-                        </div>
                         <div class="gallery-tabs" role="tablist">
                             <button type="button" class="gallery-tab active" data-tab="basic">Basic</button>
                             <button type="button" class="gallery-tab" data-tab="messages">Messages</button>
@@ -922,6 +916,18 @@
                             </div>
                             <div class="gallery-tab-panel" data-panel="metadata" hidden>
                                 <div class="form-group">
+                                    <label class="form-label">
+                                        Collections
+                                        <span class="help-tip" tabindex="0" aria-label="Collections help" data-tip="Collections are a Cozy-only way to organize characters in your library. They aren't part of the character card V2 spec, so they're stored in Cozy's database and won't be included when you export this card.">?</span>
+                                    </label>
+                                    <div class="gallery-chip-row">
+                                        <div id="gallery-editor-collections" class="gallery-chip-list"></div>
+                                        <select id="gallery-collection-add" class="form-input gallery-collection-add">
+                                            <option value="">+ Add</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
                                     <label class="form-label" for="gallery-field-tags">Tags</label>
                                     <input id="gallery-field-tags" class="form-input" type="text" placeholder="pilot, ace, medic">
                                 </div>
@@ -939,10 +945,6 @@
                         </div>
                         <div class="gallery-editor-footer">
                             <div class="gallery-footer-actions">
-                                <button id="gallery-duplicate-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                    Duplicate
-                                </button>
                                 <button id="gallery-archive-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><line x1="10" y1="12" x2="14" y2="12"></line></svg>
                                     Archive
