@@ -1,7 +1,7 @@
 import { state, icons } from './state.js';
 import { API } from './api.js';
 import { Modal } from './modal.js';
-import { applyAvatar, showToast } from './utils.js';
+import { applyAvatar, showToast, sanitize } from './utils.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
 import { renderLorebookList } from './lorebooks.js';
 
@@ -30,6 +30,7 @@ const gallery = {
 };
 
 let els = null;
+let galleryTags = [];
 
 function q(id) {
     return document.getElementById(id);
@@ -76,9 +77,11 @@ function getEls() {
         deleteBtn: q('gallery-delete-btn'),
         startChatBtn: q('gallery-start-chat-btn'),
         saveBtn: q('gallery-save-btn'),
+        tagsWrap: q('gallery-tags-input-wrap'),
+        tagsChipList: q('gallery-tags-chip-list'),
+        tagsTextInput: q('gallery-tags-text-input'),
         fields: {
             name: q('gallery-field-name'),
-            tags: q('gallery-field-tags'),
             description: q('gallery-field-description'),
             notes: q('gallery-field-notes'),
             personality: q('gallery-field-personality'),
@@ -345,7 +348,8 @@ function fillEditor(char) {
     e.pinBtn.classList.toggle('pinned', !!char.pinned);
     e.archiveBtn.textContent = isArchived(char) ? 'Unarchive' : 'Archive';
     e.fields.name.value = char.name || '';
-    e.fields.tags.value = Array.isArray(char.tags) ? char.tags.join(', ') : '';
+    galleryTags = Array.isArray(char.tags) ? [...char.tags] : [];
+    renderGalleryTags();
     e.fields.description.value = char.description || '';
     e.fields.notes.value = char.creator_notes || '';
     e.fields.personality.value = char.personality || '';
@@ -385,6 +389,22 @@ function renderEditorCollections(char = selectedCharacter()) {
         option.disabled = option.value && assignedIds.has(Number(option.value));
     });
     e.collectionAdd.value = '';
+}
+
+function renderGalleryTags() {
+    const e = getEls();
+    e.tagsChipList.innerHTML = '';
+    galleryTags.forEach((tag, idx) => {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.innerHTML = `${sanitize(tag)}<button class="tag-chip-remove" title="Remove tag" aria-label="Remove tag">\u00d7</button>`;
+        chip.querySelector('.tag-chip-remove').addEventListener('click', () => {
+            galleryTags.splice(idx, 1);
+            renderGalleryTags();
+            setDirty(true);
+        });
+        e.tagsChipList.appendChild(chip);
+    });
 }
 
 function render() {
@@ -448,7 +468,7 @@ function collectEditorData() {
     const { fields } = getEls();
     return {
         name: fields.name.value.trim(),
-        tags: fields.tags.value.split(',').map(t => t.trim()).filter(Boolean),
+        tags: [...galleryTags],
         description: fields.description.value,
         creator_notes: fields.notes.value,
         personality: fields.personality.value,
@@ -778,6 +798,17 @@ function bindEvents() {
         const value = Number(e.collectionAdd.value);
         if (value) addSelectedToCollection(value);
     });
+    e.tagsTextInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ',') {
+            event.preventDefault();
+            const val = e.tagsTextInput.value.trim().replace(/,/g, '');
+            if (val && !galleryTags.includes(val)) { galleryTags.push(val); renderGalleryTags(); setDirty(true); }
+            e.tagsTextInput.value = '';
+        } else if (event.key === 'Backspace' && e.tagsTextInput.value === '' && galleryTags.length) {
+            galleryTags.pop(); renderGalleryTags(); setDirty(true);
+        }
+    });
+    e.tagsWrap.addEventListener('click', () => e.tagsTextInput.focus());
     e.collections.addEventListener('click', event => {
         const btn = event.target.closest('[data-remove-collection-id]');
         if (btn) removeSelectedFromCollection(Number(btn.dataset.removeCollectionId));
