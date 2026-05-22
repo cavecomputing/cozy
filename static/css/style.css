@@ -4192,12 +4192,31 @@ input[type="checkbox"]:disabled {
 
 /* Collections row inside the Metadata tab — chips sit alongside the
    "+ Add" select. The .form-group label above provides the heading
-   that the old standalone section used to render. */
+   that the old standalone section used to render. When the chip list
+   is empty we hide it so the flex `gap` doesn't push "+ Add" right of
+   the other inputs' left edge. */
 .gallery-chip-row {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.4rem;
+}
+
+.gallery-chip-row .gallery-chip-list:empty {
+    display: none;
+}
+
+/* When a .form-label contains a help-tip badge, render the label as
+   an inline-flex row so the `?` glyph centers vertically against the
+   label text instead of dropping below the baseline. */
+.form-label:has(.help-tip) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.form-label:has(.help-tip) .help-tip {
+    margin-left: 0;
 }
 
 .gallery-chip-list {
