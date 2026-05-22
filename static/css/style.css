@@ -231,12 +231,15 @@ body {
 .swipe-btn:focus-visible,
 .greeting-nav-btn:focus-visible,
 .settings-nav-item:focus-visible,
-.form-input:focus-visible,
-.form-textarea:focus-visible,
-.settings-select:focus-visible,
 #send-btn:focus-visible {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
+}
+
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.settings-select:focus-visible {
+    outline: none;
 }
 
 .icon-btn svg,
@@ -3009,8 +3012,10 @@ input[type="checkbox"]:disabled {
 .form-input:focus,
 .form-textarea:focus,
 .settings-select:focus {
-    border-color: var(--accent-color);
-    box-shadow: var(--input-focus-shadow, none);
+    border-color: color-mix(in srgb, var(--accent-color) 46%, var(--border-color));
+    box-shadow:
+        var(--shadow-md),
+        0 0 0 2px color-mix(in srgb, var(--accent-color) 14%, transparent);
 }
 
 .form-textarea {
@@ -3072,8 +3077,10 @@ input[type="checkbox"]:disabled {
 }
 
 .tags-input-wrap:focus-within {
-    border-color: var(--accent-color);
-    box-shadow: var(--input-focus-shadow, none);
+    border-color: color-mix(in srgb, var(--accent-color) 46%, var(--border-color));
+    box-shadow:
+        var(--shadow-md),
+        0 0 0 2px color-mix(in srgb, var(--accent-color) 14%, transparent);
 }
 
 .tags-chip-list {
@@ -3776,6 +3783,10 @@ input[type="checkbox"]:disabled {
 .gallery-search-wrap .form-input {
     height: 2.4rem;
     padding-left: 2.15rem;
+}
+
+#gallery-add-btn {
+    height: 2.4rem;
 }
 
 .gallery-select {
