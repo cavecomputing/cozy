@@ -42,7 +42,6 @@ function getEls() {
     els = {
         root: q('character-gallery'),
         openBtn: q('character-gallery-open'),
-        closeBtn: q('gallery-close-btn'),
         collapseBtn: q('gallery-collapse-btn'),
         search: q('gallery-search'),
         addBtn: q('gallery-add-btn'),
@@ -719,7 +718,6 @@ async function removeSelectedFromCollection(collectionId) {
 function bindEvents() {
     const e = getEls();
     e.openBtn?.addEventListener('click', openGallery);
-    e.closeBtn?.addEventListener('click', closeGallery);
     e.collapseBtn?.addEventListener('click', closeGallery);
 
     e.search.addEventListener('input', () => {

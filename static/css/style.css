@@ -3784,10 +3784,6 @@ input[type="checkbox"]:disabled {
     height: 2.4rem;
 }
 
-.gallery-close-btn {
-    margin-left: auto;
-}
-
 .gallery-content {
     display: grid;
     grid-template-columns: minmax(460px, 1fr) minmax(360px, 30vw);
