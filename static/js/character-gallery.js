@@ -31,6 +31,7 @@ const gallery = {
 
 let els = null;
 let galleryTags = [];
+let galleryAltGreetings = [];
 
 function q(id) {
     return document.getElementById(id);
@@ -80,6 +81,10 @@ function getEls() {
         tagsWrap: q('gallery-tags-input-wrap'),
         tagsChipList: q('gallery-tags-chip-list'),
         tagsTextInput: q('gallery-tags-text-input'),
+        altGreetingsList: q('gallery-alt-greetings-list'),
+        addGreetingBtn: q('gallery-add-greeting-btn'),
+        exportTrigger: q('gallery-export-card-btn'),
+        exportMenu: q('gallery-export-menu'),
         fields: {
             name: q('gallery-field-name'),
             description: q('gallery-field-description'),
@@ -87,6 +92,7 @@ function getEls() {
             personality: q('gallery-field-personality'),
             scenario: q('gallery-field-scenario'),
             system: q('gallery-field-system'),
+            post_history: q('gallery-field-post-history'),
             first: q('gallery-field-first'),
             example: q('gallery-field-example'),
             creator: q('gallery-field-creator'),
@@ -350,6 +356,9 @@ function fillEditor(char) {
     e.fields.name.value = char.name || '';
     galleryTags = Array.isArray(char.tags) ? [...char.tags] : [];
     renderGalleryTags();
+    galleryAltGreetings = Array.isArray(char.alternate_greetings) ? [...char.alternate_greetings] : [];
+    renderGalleryAltGreetings();
+    e.fields.post_history.value = char.post_history_instructions || '';
     e.fields.description.value = char.description || '';
     e.fields.notes.value = char.creator_notes || '';
     e.fields.personality.value = char.personality || '';
@@ -361,6 +370,8 @@ function fillEditor(char) {
     e.fields.version.value = char.character_version || '';
     gallery.pendingAvatarFile = null;
     e.avatarInput.value = '';
+    e.exportMenu.hidden = true;
+    e.exportTrigger.setAttribute('aria-expanded', 'false');
     setDirty(false);
     switchTab('basic');
     renderEditorCollections(char);
@@ -404,6 +415,29 @@ function renderGalleryTags() {
             setDirty(true);
         });
         e.tagsChipList.appendChild(chip);
+    });
+}
+
+function renderGalleryAltGreetings() {
+    const e = getEls();
+    e.altGreetingsList.innerHTML = '';
+    galleryAltGreetings.forEach((text, idx) => {
+        const row = document.createElement('div');
+        row.className = 'alt-greeting-item';
+        const ta = document.createElement('textarea');
+        ta.className = 'form-textarea';
+        ta.rows = 3;
+        ta.value = text;
+        ta.placeholder = 'Alternate greeting text\u2026';
+        ta.addEventListener('input', () => { galleryAltGreetings[idx] = ta.value; setDirty(true); });
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'icon-btn remove-greeting-btn';
+        rm.title = 'Remove greeting';
+        rm.innerHTML = icons.TRASH;
+        rm.addEventListener('click', () => { galleryAltGreetings.splice(idx, 1); renderGalleryAltGreetings(); setDirty(true); });
+        row.append(ta, rm);
+        e.altGreetingsList.appendChild(row);
     });
 }
 
@@ -474,8 +508,10 @@ function collectEditorData() {
         personality: fields.personality.value,
         scenario: fields.scenario.value,
         system_prompt: fields.system.value,
+        post_history_instructions: fields.post_history.value,
         first_mes: fields.first.value,
         mes_example: fields.example.value,
+        alternate_greetings: [...galleryAltGreetings],
         creator: fields.creator.value,
         character_version: fields.version.value,
     };
@@ -750,6 +786,12 @@ function bindEvents() {
                 closeIconPicker();
             }
         }
+        if (!e.exportMenu.hidden) {
+            if (!event.target.closest('#gallery-export-card-btn') && !event.target.closest('#gallery-export-menu')) {
+                e.exportMenu.hidden = true;
+                e.exportTrigger.setAttribute('aria-expanded', 'false');
+            }
+        }
     });
 
     e.grid.addEventListener('click', event => {
@@ -809,6 +851,33 @@ function bindEvents() {
         }
     });
     e.tagsWrap.addEventListener('click', () => e.tagsTextInput.focus());
+    e.addGreetingBtn.addEventListener('click', () => {
+        galleryAltGreetings.push('');
+        renderGalleryAltGreetings();
+        setDirty(true);
+        const tas = e.altGreetingsList.querySelectorAll('textarea');
+        if (tas.length) tas[tas.length - 1].focus();
+    });
+    e.exportTrigger.addEventListener('click', event => {
+        event.stopPropagation();
+        const opening = e.exportMenu.hidden;
+        e.exportMenu.hidden = !opening;
+        e.exportTrigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) {
+            const rect = e.exportTrigger.getBoundingClientRect();
+            e.exportMenu.style.top = `${rect.bottom + 6}px`;
+            e.exportMenu.style.left = `${rect.left}px`;
+        }
+    });
+    e.exportMenu.addEventListener('click', event => {
+        const btn = event.target.closest('[data-fmt]');
+        if (!btn) return;
+        const char = selectedCharacter();
+        if (!char) return;
+        API.exportCard(char.id, e.fields.name.value.trim(), btn.dataset.fmt);
+        e.exportMenu.hidden = true;
+        e.exportTrigger.setAttribute('aria-expanded', 'false');
+    });
     e.collections.addEventListener('click', event => {
         const btn = event.target.closest('[data-remove-collection-id]');
         if (btn) removeSelectedFromCollection(Number(btn.dataset.removeCollectionId));

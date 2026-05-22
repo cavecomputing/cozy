@@ -797,6 +797,10 @@
             </form>
             <div id="gallery-collection-list" class="gallery-collection-list"></div>
             <div id="gallery-icon-picker" class="gallery-icon-picker" hidden role="dialog" aria-label="Pick collection icon"></div>
+            <ul id="gallery-export-menu" class="gallery-export-menu" hidden role="menu">
+                <li><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
+                <li><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
+            </ul>
         </aside>
 
         <div class="gallery-main">
@@ -862,9 +866,9 @@
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                         Start Chat
                                     </button>
-                                    <button id="gallery-duplicate-btn" type="button" class="btn btn-secondary btn-sm">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                        Duplicate
+                                    <button id="gallery-export-card-btn" type="button" class="btn btn-secondary btn-sm" aria-haspopup="true" aria-expanded="false">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        Export
                                     </button>
                                 </div>
                             </div>
@@ -878,7 +882,7 @@
                         <div class="gallery-editor-body">
                             <div class="gallery-tab-panel active" data-panel="basic">
                                 <div class="form-group">
-                                    <label class="form-label" for="gallery-field-name">Name</label>
+                                    <label class="form-label" for="gallery-field-name">Name <span class="required">*</span></label>
                                     <input id="gallery-field-name" class="form-input" type="text" autocomplete="off">
                                 </div>
                                 <div class="form-group">
@@ -900,6 +904,14 @@
                                     <textarea id="gallery-field-first" class="form-textarea" rows="6"></textarea>
                                 </div>
                                 <div class="form-group">
+                                    <label class="form-label">Alternate Greetings</label>
+                                    <div id="gallery-alt-greetings-list" class="alt-greetings-list"></div>
+                                    <button type="button" id="gallery-add-greeting-btn" class="btn btn-secondary btn-sm add-btn">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        Add Greeting
+                                    </button>
+                                </div>
+                                <div class="form-group">
                                     <label class="form-label" for="gallery-field-example">Example Messages</label>
                                     <textarea id="gallery-field-example" class="form-textarea" rows="6"></textarea>
                                 </div>
@@ -908,6 +920,10 @@
                                 <div class="form-group">
                                     <label class="form-label" for="gallery-field-system">System Prompt</label>
                                     <textarea id="gallery-field-system" class="form-textarea" rows="4"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="gallery-field-post-history">Post History Instructions</label>
+                                    <textarea id="gallery-field-post-history" class="form-textarea" rows="3"></textarea>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="gallery-field-notes">Creator Notes</label>
@@ -951,6 +967,10 @@
                                 <button id="gallery-archive-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><line x1="10" y1="12" x2="14" y2="12"></line></svg>
                                     Archive
+                                </button>
+                                <button id="gallery-duplicate-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    Duplicate
                                 </button>
                                 <button id="gallery-delete-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn danger" title="Delete character">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
