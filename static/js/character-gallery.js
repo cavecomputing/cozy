@@ -352,7 +352,7 @@ function fillEditor(char) {
     e.status.classList.toggle('archived', isArchived(char));
     e.pinBtn.innerHTML = char.pinned ? icons.STAR_FILLED : icons.STAR;
     e.pinBtn.classList.toggle('pinned', !!char.pinned);
-    e.archiveBtn.textContent = isArchived(char) ? 'Unarchive' : 'Archive';
+    e.archiveBtn.querySelector('.archive-btn-text').textContent = isArchived(char) ? 'Unarchive' : 'Archive';
     e.fields.name.value = char.name || '';
     galleryTags = Array.isArray(char.tags) ? [...char.tags] : [];
     renderGalleryTags();
