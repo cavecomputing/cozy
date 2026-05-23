@@ -546,7 +546,7 @@ async function saveSelected() {
         showToast('Could not save character: ' + err.message, 'error');
     } finally {
         e.saveBtn.disabled = false;
-        e.saveBtn.textContent = 'Save Changes';
+        e.saveBtn.textContent = 'Save';
     }
 }
 
