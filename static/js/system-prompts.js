@@ -4,8 +4,52 @@ import { showToast } from './utils.js';
 import { previewChatPayload } from './request-builder.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SYSTEM PROMPTS
+// PAIRED PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
+
+function activePrompt() {
+    return state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
+}
+
+function syncActivePromptFromEditors() {
+    const p = activePrompt();
+    if (!p) return null;
+    if (el.syspromptContent) p.content = el.syspromptContent.value;
+    if (el.postHistoryContent) p.post_history_content = el.postHistoryContent.value;
+    return p;
+}
+
+function setEditorValues(prompt) {
+    if (el.syspromptContent) el.syspromptContent.value = prompt ? prompt.content : '';
+    if (el.postHistoryContent) {
+        el.postHistoryContent.value = prompt ? (prompt.post_history_content || '') : '';
+    }
+}
+
+function activeEditorMode() {
+    const active = document.querySelector('[data-prompt-builder-tab].active');
+    return active?.dataset.promptBuilderTab === 'post-history' ? 'post-history' : 'system';
+}
+
+async function savePromptFields({ showSuccess = false } = {}) {
+    if (!state.activeSystemPromptId) return;
+    const p = syncActivePromptFromEditors();
+    if (!p) return;
+    try {
+        await fetch(`/api/system-prompts/${state.activeSystemPromptId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: p.content || '',
+                post_history_content: p.post_history_content || '',
+            }),
+        });
+        if (showSuccess) showToast('Prompt saved', 'success');
+    } catch (e) {
+        if (showSuccess) showToast('Failed to save prompt');
+        console.warn('Failed to update prompt:', e);
+    }
+}
 
 export async function loadSystemPrompts(existingSettings = null) {
     try {
@@ -15,7 +59,6 @@ export async function loadSystemPrompts(existingSettings = null) {
         state.activeSystemPromptId = settings.active_system_prompt
             ? Number(settings.active_system_prompt) : null;
 
-        // Populate dropdown
         if (!el.syspromptSelect) return;
         el.syspromptSelect.innerHTML = '';
         if (state.systemPrompts.length === 0) {
@@ -23,9 +66,9 @@ export async function loadSystemPrompts(existingSettings = null) {
             opt.value = '';
             opt.disabled = true;
             opt.selected = true;
-            opt.textContent = 'No prompts \u2014 create one';
+            opt.textContent = 'No prompts - create one';
             el.syspromptSelect.appendChild(opt);
-            if (el.syspromptContent) el.syspromptContent.value = '';
+            setEditorValues(null);
             return;
         }
         state.systemPrompts.forEach(p => {
@@ -35,23 +78,19 @@ export async function loadSystemPrompts(existingSettings = null) {
             opt.selected = p.id === state.activeSystemPromptId;
             el.syspromptSelect.appendChild(opt);
         });
-        // If no active prompt set, select the first one
         if (!state.activeSystemPromptId || !state.systemPrompts.find(p => p.id === state.activeSystemPromptId)) {
             state.activeSystemPromptId = state.systemPrompts[0].id;
             el.syspromptSelect.value = state.activeSystemPromptId;
             saveLLMSettings({ active_system_prompt: String(state.activeSystemPromptId) });
         }
-        // Load content of the active prompt
-        const active = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
-        if (el.syspromptContent) el.syspromptContent.value = active ? active.content : '';
+        setEditorValues(activePrompt());
     } catch (e) { console.warn('Failed to load system prompts:', e); }
 }
 
 export async function selectSystemPrompt(id) {
     state.activeSystemPromptId = Number(id);
     saveLLMSettings({ active_system_prompt: String(id) });
-    const active = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
-    if (el.syspromptContent) el.syspromptContent.value = active ? active.content : '';
+    setEditorValues(activePrompt());
 }
 
 export async function createSystemPrompt() {
@@ -74,7 +113,7 @@ export async function createSystemPrompt() {
 
 export async function deleteSystemPrompt() {
     if (!state.activeSystemPromptId) return;
-    const active = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
+    const active = activePrompt();
     if (!confirm(`Delete prompt "${active?.name || ''}"?`)) return;
     try {
         await fetch(`/api/system-prompts/${state.activeSystemPromptId}`, { method: 'DELETE' });
@@ -85,49 +124,48 @@ export async function deleteSystemPrompt() {
 }
 
 export async function updateSystemPromptContent() {
-    if (!state.activeSystemPromptId || !el.syspromptContent) return;
-    const content = el.syspromptContent.value;
-    // Update in-memory state immediately so buildChatPayload always sees the latest
-    const p = state.systemPrompts.find(sp => sp.id === state.activeSystemPromptId);
-    if (p) p.content = content;
-    try {
-        await fetch(`/api/system-prompts/${state.activeSystemPromptId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content }),
-        });
-    } catch (e) { console.warn('Failed to update system prompt:', e); }
+    await savePromptFields();
 }
 
-/** Explicit save (button-driven) — same write as the auto-save-on-blur, with a confirmation toast. */
 export async function saveActiveSystemPrompt() {
-    if (!state.activeSystemPromptId) return;
-    try {
-        await updateSystemPromptContent();
-        showToast('Prompt saved', 'success');
-    } catch (e) {
-        showToast('Failed to save prompt');
-        console.warn(e);
-    }
+    await savePromptFields({ showSuccess: true });
 }
 
 let _defaultTemplate = null;
-async function getDefaultTemplate() {
-    if (_defaultTemplate !== null) return _defaultTemplate;
+let _defaultPostHistoryTemplate = null;
+async function getDefaultTemplates() {
+    if (_defaultTemplate !== null && _defaultPostHistoryTemplate !== null) {
+        return {
+            template: _defaultTemplate,
+            postHistoryTemplate: _defaultPostHistoryTemplate,
+        };
+    }
     const res = await fetch('/api/system-prompts/default-template');
     const data = await res.json();
     _defaultTemplate = data.template || '';
-    return _defaultTemplate;
+    _defaultPostHistoryTemplate = data.post_history_template || '';
+    return {
+        template: _defaultTemplate,
+        postHistoryTemplate: _defaultPostHistoryTemplate,
+    };
 }
 
 export async function resetSystemPromptToDefault() {
     if (!state.activeSystemPromptId) return;
-    if (!confirm('Reset prompt content to the default template?')) return;
-    const tpl = await getDefaultTemplate();
-    if (el.syspromptContent) el.syspromptContent.value = tpl;
-    const sp = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
-    if (sp) sp.content = tpl;
-    await updateSystemPromptContent();
+    const mode = activeEditorMode();
+    const label = mode === 'post-history' ? 'post-history prompt' : 'system prompt';
+    if (!confirm(`Reset ${label} content to the default template?`)) return;
+    const defaults = await getDefaultTemplates();
+    const p = activePrompt();
+    if (!p) return;
+    if (mode === 'post-history') {
+        p.post_history_content = defaults.postHistoryTemplate;
+        if (el.postHistoryContent) el.postHistoryContent.value = defaults.postHistoryTemplate;
+    } else {
+        p.content = defaults.template;
+        if (el.syspromptContent) el.syspromptContent.value = defaults.template;
+    }
+    await savePromptFields();
     showToast('Reset to default', 'success');
 }
 
@@ -164,19 +202,26 @@ export function exportSystemPrompt() {
         showToast('No prompt selected');
         return;
     }
-    // Server emits the file with a Content-Disposition header.
     window.location.href = `/api/system-prompts/${state.activeSystemPromptId}/export`;
 }
 
 export function previewSystemPrompt() {
-    // Reflect any unsaved textarea edits into the in-memory active prompt so
-    // the preview matches what the user is currently looking at.
-    const sp = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
-    if (sp && el.syspromptContent) sp.content = el.syspromptContent.value;
+    syncActivePromptFromEditors();
 
     const payload = previewChatPayload();
     if (el.promptPreviewContent) {
         el.promptPreviewContent.textContent = JSON.stringify(payload, null, 2);
     }
     if (el.promptPreviewModal) el.promptPreviewModal.hidden = false;
+}
+
+export function switchPromptBuilderMode(mode) {
+    const selected = mode === 'post-history' ? 'post-history' : 'system';
+    document.querySelectorAll('[data-prompt-builder-tab]').forEach(btn => {
+        const active = btn.dataset.promptBuilderTab === selected;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', String(active));
+    });
+    if (el.syspromptContent) el.syspromptContent.hidden = selected !== 'system';
+    if (el.postHistoryContent) el.postHistoryContent.hidden = selected !== 'post-history';
 }

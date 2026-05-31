@@ -71,6 +71,10 @@ DEFAULT_PROMPT_TEMPLATE = """{{#system_prompt}}[System Instructions]
 {{lorebook}}{{/lorebook}}"""
 
 
+DEFAULT_POST_HISTORY_TEMPLATE = """{{#post_history_instructions}}[Post-History Instructions]
+{{post_history_instructions}}{{/post_history_instructions}}"""
+
+
 # ── Database helpers ────────────────────────────────────────────────────────
 @contextmanager
 def get_db():
@@ -173,6 +177,7 @@ def init_db():
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 name       TEXT NOT NULL,
                 content    TEXT NOT NULL DEFAULT '',
+                post_history_content TEXT NOT NULL DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
@@ -218,6 +223,15 @@ def init_db():
         if collection_cols and 'icon' not in collection_cols:
             conn.execute("ALTER TABLE character_collections ADD COLUMN icon TEXT NOT NULL DEFAULT ''")
 
+        system_prompt_cols = [c[1] for c in conn.execute('PRAGMA table_info(system_prompts)').fetchall()]
+        if system_prompt_cols and 'post_history_content' not in system_prompt_cols:
+            conn.execute("ALTER TABLE system_prompts ADD COLUMN post_history_content TEXT NOT NULL DEFAULT ''")
+            conn.execute(
+                'UPDATE system_prompts SET post_history_content = ? '
+                "WHERE post_history_content = ''",
+                (DEFAULT_POST_HISTORY_TEMPLATE,)
+            )
+
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "
             "ON CONFLICT(key) DO NOTHING"
@@ -259,6 +273,6 @@ def init_db():
         # per-character system_prompt field can fill it.
         if conn.execute('SELECT COUNT(*) FROM system_prompts').fetchone()[0] == 0:
             conn.execute(
-                "INSERT INTO system_prompts (name, content) VALUES (?, ?)",
-                ('Default', DEFAULT_PROMPT_TEMPLATE)
+                "INSERT INTO system_prompts (name, content, post_history_content) VALUES (?, ?, ?)",
+                ('Default', DEFAULT_PROMPT_TEMPLATE, DEFAULT_POST_HISTORY_TEMPLATE)
             )

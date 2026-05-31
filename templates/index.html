@@ -307,7 +307,7 @@
                                             <button id="settings-sysprompt-preview" class="icon-btn" title="Preview rendered prompt" aria-label="Preview prompt">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                             </button>
-                                            <button id="settings-sysprompt-reset" class="icon-btn" title="Reset to default template" aria-label="Reset to default">
+                                            <button id="settings-sysprompt-reset" class="icon-btn" title="Reset visible editor to default template" aria-label="Reset visible editor to default">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-4.5"></path></svg>
                                             </button>
                                             <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help" aria-label="Template syntax help">
@@ -315,11 +315,16 @@
                                             </button>
                                         </div>
                                     </div>
+                                    <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
+                                        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system">System</button>
+                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">Post-History</button>
+                                    </div>
                                 </div>
                                 <div class="prompt-vars-panel">
                                     <div class="prompt-vars-title">Available variables</div>
                                     <dl class="settings-help-vars">
                                         <dt><code>&#123;&#123;system_prompt&#125;&#125;</code></dt><dd>Per-character instructions (from the card's system_prompt field).</dd>
+                                        <dt><code>&#123;&#123;post_history_instructions&#125;&#125;</code></dt><dd>Per-character post-history instructions from the card.</dd>
                                         <dt><code>&#123;&#123;description&#125;&#125;</code></dt><dd>Character description.</dd>
                                         <dt><code>&#123;&#123;personality&#125;&#125;</code></dt><dd>Character personality.</dd>
                                         <dt><code>&#123;&#123;scenario&#125;&#125;</code></dt><dd>Scenario from the card.</dd>
@@ -335,6 +340,7 @@
                             </div>
                             <div class="prompt-section-right settings-card">
                                 <textarea id="settings-sysprompt-content" class="form-textarea" placeholder="Enter prompt template…"></textarea>
+                                <textarea id="settings-posthistory-content" class="form-textarea" placeholder="Enter post-history prompt template…" hidden></textarea>
                             </div>
                         </div>
                     </div>
@@ -1101,7 +1107,7 @@
             <div class="modal-body prompt-help-body">
                 <p class="prompt-help-callout"><strong>You don't need to change anything here.</strong> The default template already produces a sensible system message for every character. Only edit the template if you specifically want to change <em>how</em> the prompt is assembled — re-order sections, rename labels, drop a section entirely, add custom instructions, etc.</p>
 
-                <p>The textarea is a <strong>template</strong>. When a message is sent, it's resolved into the system message that goes to the model. Whatever you write here, character data and persona data is folded into, gets sent.</p>
+                <p>The textarea is a <strong>template</strong>. When a message is sent, it's resolved into either the system message or the post-history message that goes to the model. Whatever you write here, character data and persona data is folded into, gets sent.</p>
 
                 <h3>Variables — <code>&#123;&#123;name&#125;&#125;</code></h3>
                 <p>Each <code>&#123;&#123;name&#125;&#125;</code> is replaced with the corresponding value at send time.</p>
@@ -1169,8 +1175,8 @@ Calm and patient.</pre>
                 <p>Picks one of the comma-separated options at random each time the prompt is built.</p>
                 <pre class="prompt-help-example">The weather is &#123;&#123;random:sunny,rainy,foggy,stormy&#125;&#125;.</pre>
 
-                <h3>Per-character override</h3>
-                <p>If a character card has a <code>system_prompt</code> field, that text fills <code>&#123;&#123;system_prompt&#125;&#125;</code>. If you remove the variable from your template, the per-character field has no effect.</p>
+                <h3>Per-character fields</h3>
+                <p>If a character card has a <code>system_prompt</code> field, that text fills <code>&#123;&#123;system_prompt&#125;&#125;</code>. If a character card has a <code>post_history_instructions</code> field, that text fills <code>&#123;&#123;post_history_instructions&#125;&#125;</code>. If you remove either variable from its template, that per-character field has no effect.</p>
 
                 <h3>Tips</h3>
                 <ul class="prompt-help-tips">

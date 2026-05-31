@@ -72,7 +72,9 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         mesExamples:   c.mes_example || '',
         lorebook:      lorebookText,
         system_prompt: c.system_prompt || '',
+        post_history_instructions: c.post_history_instructions || '',
     };
+    ctx.post_history_instructions = resolveTemplateVariables(ctx.post_history_instructions, ctx);
 
     // 4. Resolve the active prompt-builder template into the system message.
     const template = sp ? sp.content : '';
@@ -95,10 +97,11 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         });
     }
 
-    // 6. Post-history instructions — injected as user role to avoid mid-conversation system messages
-    if (c.post_history_instructions) {
-        const resolved = resolveTemplateVariables(c.post_history_instructions, ctx);
-        messages.push({ role: 'user', content: '[Post-History Instructions]\n' + resolved });
+    // 6. Post-history prompt — injected as user role to avoid mid-conversation system messages
+    const postHistoryTemplate = sp ? (sp.post_history_content || '') : '';
+    const postHistoryContent = resolveTemplateVariables(postHistoryTemplate, ctx);
+    if (postHistoryContent) {
+        messages.push({ role: 'user', content: postHistoryContent });
     }
 
     // 7. Nudge — hidden continuation prompt, not persisted to chat

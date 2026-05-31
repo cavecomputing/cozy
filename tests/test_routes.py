@@ -91,16 +91,22 @@ class TestSystemPrompts:
         # builder variables and conditional blocks.
         assert '{{description}}' in prompts[0]['content']
         assert '{{#system_prompt}}' in prompts[0]['content']
+        assert prompts[0]['post_history_content'] == (
+            '{{#post_history_instructions}}[Post-History Instructions]\n'
+            '{{post_history_instructions}}{{/post_history_instructions}}'
+        )
 
     def test_create_prompt(self, client):
         r = client.post('/api/system-prompts', json={
             'name': 'Custom RP',
             'content': 'You are {{char}}.',
+            'post_history_content': '((OOC: Keep it moving.))',
         })
         assert r.status_code == 201
         data = r.get_json()
         assert data['name'] == 'Custom RP'
         assert data['content'] == 'You are {{char}}.'
+        assert data['post_history_content'] == '((OOC: Keep it moving.))'
         assert 'id' in data
 
     def test_update_prompt(self, client):
@@ -109,9 +115,12 @@ class TestSystemPrompts:
         pid = prompts[0]['id']
         r = client.put(f'/api/system-prompts/{pid}', json={
             'content': 'Updated content.',
+            'post_history_content': 'Updated post history.',
         })
         assert r.status_code == 200
-        assert r.get_json()['content'] == 'Updated content.'
+        body = r.get_json()
+        assert body['content'] == 'Updated content.'
+        assert body['post_history_content'] == 'Updated post history.'
 
     def test_delete_prompt(self, client):
         # Create then delete
@@ -132,7 +141,9 @@ class TestSystemPrompts:
     def test_export_prompt_round_trips_through_import(self, client):
         import json as _json
         created = client.post('/api/system-prompts', json={
-            'name': 'Roundtrip', 'content': 'You are {{char}}. End.'
+            'name': 'Roundtrip',
+            'content': 'You are {{char}}. End.',
+            'post_history_content': '((OOC: End with motion.))',
         }).get_json()
 
         # Export
@@ -141,7 +152,11 @@ class TestSystemPrompts:
         assert r.headers['Content-Type'].startswith('application/json')
         assert 'attachment' in r.headers['Content-Disposition']
         body = _json.loads(r.data.decode('utf-8'))
-        assert body == {'name': 'Roundtrip', 'content': 'You are {{char}}. End.'}
+        assert body == {
+            'name': 'Roundtrip',
+            'content': 'You are {{char}}. End.',
+            'post_history_content': '((OOC: End with motion.))',
+        }
 
         # Re-import the same payload — name collision should suffix " (2)"
         r = client.post(
@@ -153,6 +168,7 @@ class TestSystemPrompts:
         imported = r.get_json()
         assert imported['name'] == 'Roundtrip (2)'
         assert imported['content'] == 'You are {{char}}. End.'
+        assert imported['post_history_content'] == '((OOC: End with motion.))'
         assert imported['id'] != created['id']
 
     def test_import_prompt_rejects_non_json(self, client):
@@ -170,7 +186,24 @@ class TestSystemPrompts:
             content_type='multipart/form-data',
         )
         assert r.status_code == 201
-        assert r.get_json()['name'] == 'Imported Prompt'
+        body = r.get_json()
+        assert body['name'] == 'Imported Prompt'
+        assert body['post_history_content'] == (
+            '{{#post_history_instructions}}[Post-History Instructions]\n'
+            '{{post_history_instructions}}{{/post_history_instructions}}'
+        )
+
+    def test_import_prompt_accepts_legacy_system_only_json(self, client):
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (BytesIO(b'{"name":"Legacy","content":"system only"}'), 'legacy.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        body = r.get_json()
+        assert body['name'] == 'Legacy'
+        assert body['content'] == 'system only'
+        assert body['post_history_content'].startswith('{{#post_history_instructions}}')
 
     def test_export_missing_prompt_returns_404(self, client):
         r = client.get('/api/system-prompts/99999/export')
@@ -181,10 +214,12 @@ class TestSystemPrompts:
         assert r.status_code == 200
         data = r.get_json()
         assert 'template' in data
+        assert 'post_history_template' in data
         # The default template uses conditional blocks for every assembled section
         for var in ('{{#system_prompt}}', '{{#description}}', '{{#personality}}',
                     '{{#scenario}}', '{{#persona}}', '{{#mesExamples}}', '{{#lorebook}}'):
             assert var in data['template']
+        assert '{{#post_history_instructions}}' in data['post_history_template']
 
 class TestMessages:
     def test_add_message_creates_swipe(self, client, sample_chat):
@@ -403,6 +438,62 @@ class TestLLMProxy:
             'messages': [{'role': 'user', 'content': 'hi'}],
         })
         assert r.content_type.startswith('text/event-stream')
+
+    def test_chat_forwards_system_prompt_unchanged(self, client, monkeypatch):
+        """The proxy should not replace the frontend-built system message."""
+        import routes.llm as llm_module
+
+        captured = {}
+
+        class UpstreamResponse:
+            encoding = 'utf-8'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def raise_for_status(self):
+                return None
+
+            def iter_lines(self, decode_unicode=True):
+                yield 'data: {"choices":[{"delta":{"content":"ok"}}]}'
+                yield 'data: [DONE]'
+
+        def fake_post(url, json, headers, timeout, stream=False):
+            captured['url'] = url
+            captured['json'] = json
+            captured['headers'] = headers
+            captured['stream'] = stream
+            return UpstreamResponse()
+
+        monkeypatch.setattr(llm_module.http_requests, 'post', fake_post)
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://upstream.test/v1',
+            'api_model': 'test-model',
+            'api_key': 'sk-test-key',
+        })
+        custom_system = 'CUSTOM SYSTEM PROMPT: stay in character.'
+
+        r = client.post('/api/llm/chat', json={
+            'model': 'test-model',
+            'messages': [
+                {'role': 'system', 'content': custom_system},
+                {'role': 'user', 'content': 'hi'},
+            ],
+        })
+
+        assert r.content_type.startswith('text/event-stream')
+        assert 'data: [DONE]' in r.get_data(as_text=True)
+        assert captured['url'] == 'http://upstream.test/v1/chat/completions'
+        assert captured['headers']['Authorization'] == 'Bearer sk-test-key'
+        assert captured['stream'] is True
+        assert captured['json']['stream'] is True
+        assert captured['json']['messages'][0] == {
+            'role': 'system',
+            'content': custom_system,
+        }
 
     def test_models_endpoint_requires_endpoint(self, client):
         r = client.get('/api/llm/models')

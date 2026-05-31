@@ -49,7 +49,7 @@ export function syslogStamp() {
  * @param {string} template — the raw template with {{var}} placeholders
  * @param {object} context  — { user, char, personality, scenario, description,
  *                              persona, mesExamples, lorebook, system_prompt,
- *                              idle_duration }
+ *                              post_history_instructions, idle_duration }
  * @returns {string} the resolved string
  */
 export function resolveTemplateVariables(template, context) {
@@ -72,6 +72,8 @@ export function resolveTemplateVariables(template, context) {
         .replace(/\{\{mesExamples\}\}/gi,    context.mesExamples || '')
         .replace(/\{\{lorebook\}\}/gi,       context.lorebook || '')
         .replace(/\{\{system_prompt\}\}/gi,  context.system_prompt || '')
+        .replace(/\{\{post_history_instructions\}\}/gi,
+                                                context.post_history_instructions || '')
         .replace(/\{\{time\}\}/gi,           new Date().toLocaleTimeString())
         .replace(/\{\{date\}\}/gi,           new Date().toLocaleDateString())
         .replace(/\{\{idle_duration\}\}/gi,  context.idle_duration || '0')

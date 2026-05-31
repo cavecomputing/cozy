@@ -15,7 +15,12 @@ import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
 import { loadLLMSettings, saveLLMSettings, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, saveActivePreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
-import { loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt, updateSystemPromptContent, saveActiveSystemPrompt, resetSystemPromptToDefault, previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile, exportSystemPrompt } from './system-prompts.js';
+import {
+    loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
+    updateSystemPromptContent, saveActiveSystemPrompt, resetSystemPromptToDefault,
+    previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
+    exportSystemPrompt, switchPromptBuilderMode,
+} from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook } from './lorebooks.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
@@ -317,10 +322,15 @@ function bindSettingsHandlers() {
     el.presetDelete?.addEventListener('click', deletePreset);
 
     // System prompt settings
+    el.promptBuilderTabs?.addEventListener('click', e => {
+        const btn = e.target.closest('[data-prompt-builder-tab]');
+        if (btn) switchPromptBuilderMode(btn.dataset.promptBuilderTab);
+    });
     el.syspromptSelect?.addEventListener('change', () => {
         selectSystemPrompt(el.syspromptSelect.value);
     });
     el.syspromptContent?.addEventListener('change', updateSystemPromptContent);
+    el.postHistoryContent?.addEventListener('change', updateSystemPromptContent);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
     el.syspromptSave?.addEventListener('click', saveActiveSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);

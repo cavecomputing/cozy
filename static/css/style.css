@@ -2253,6 +2253,21 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     align-items: center;
     gap: 0.25rem;
 }
+.prompt-builder-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+}
+.prompt-builder-tabs .tab-btn {
+    padding: 0.25rem 0.55rem;
+}
+.prompt-builder-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.prompt-builder-panel[hidden] {
+    display: none;
+}
 .prompt-vars-panel {
     grid-column: 1;
     grid-row: 2;

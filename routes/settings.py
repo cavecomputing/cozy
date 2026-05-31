@@ -4,7 +4,12 @@ import json
 
 from flask import Blueprint, request, jsonify, Response
 
-from shared import get_db, safe_download_name, DEFAULT_PROMPT_TEMPLATE
+from shared import (
+    get_db,
+    safe_download_name,
+    DEFAULT_PROMPT_TEMPLATE,
+    DEFAULT_POST_HISTORY_TEMPLATE,
+)
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -91,7 +96,10 @@ def write_settings():
 
 @settings_bp.route('/api/system-prompts/default-template', methods=['GET'])
 def get_default_template():
-    return jsonify({'template': DEFAULT_PROMPT_TEMPLATE})
+    return jsonify({
+        'template': DEFAULT_PROMPT_TEMPLATE,
+        'post_history_template': DEFAULT_POST_HISTORY_TEMPLATE,
+    })
 
 
 @settings_bp.route('/api/system-prompts', methods=['GET'])
@@ -108,10 +116,13 @@ def create_system_prompt():
     if not name:
         return jsonify({'error': 'name is required'}), 400
     content = (data.get('content') or '').strip()
+    post_history_content = data.get('post_history_content', DEFAULT_POST_HISTORY_TEMPLATE)
+    if not isinstance(post_history_content, str):
+        return jsonify({'error': '"post_history_content" must be a string'}), 400
     with get_db() as conn:
         cur = conn.execute(
-            'INSERT INTO system_prompts (name, content) VALUES (?, ?)',
-            (name, content)
+            'INSERT INTO system_prompts (name, content, post_history_content) VALUES (?, ?, ?)',
+            (name, content, post_history_content)
         )
         row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)).fetchone()
         return jsonify(dict(row)), 201
@@ -126,9 +137,13 @@ def update_system_prompt(prompt_id):
             return jsonify({'error': 'System prompt not found'}), 404
         name = (data.get('name') or '').strip() or row['name']
         content = data.get('content', row['content'])
+        post_history_content = data.get('post_history_content', row['post_history_content'])
+        if not isinstance(post_history_content, str):
+            return jsonify({'error': '"post_history_content" must be a string'}), 400
         conn.execute(
-            'UPDATE system_prompts SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            (name, content, prompt_id)
+            'UPDATE system_prompts SET name = ?, content = ?, post_history_content = ?, '
+            'updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (name, content, post_history_content, prompt_id)
         )
         updated = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         return jsonify(dict(updated))
@@ -161,11 +176,12 @@ def _unique_prompt_name(conn, base):
 
 @settings_bp.route('/api/system-prompts/import', methods=['POST'])
 def import_system_prompt():
-    """Create a new system prompt from an uploaded JSON file.
+    """Create a paired prompt from an uploaded JSON file.
 
     Expects multipart upload with a ``file`` field whose contents parse as
-    ``{"name": str, "content": str}``. Name collisions get a " (n)" suffix
-    appended so import never overwrites an existing prompt.
+    ``{"name": str, "content": str, "post_history_content": str}``.
+    Legacy system-only prompt JSON is accepted and gets the default
+    post-history template.
     """
     if not request.files or 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
@@ -179,14 +195,17 @@ def import_system_prompt():
     content = payload.get('content', '')
     if not isinstance(content, str):
         return jsonify({'error': '"content" must be a string'}), 400
+    post_history_content = payload.get('post_history_content', DEFAULT_POST_HISTORY_TEMPLATE)
+    if not isinstance(post_history_content, str):
+        return jsonify({'error': '"post_history_content" must be a string'}), 400
     raw_name = payload.get('name')
     base_name = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else 'Imported Prompt'
 
     with get_db() as conn:
         name = _unique_prompt_name(conn, base_name)
         cur = conn.execute(
-            'INSERT INTO system_prompts (name, content) VALUES (?, ?)',
-            (name, content)
+            'INSERT INTO system_prompts (name, content, post_history_content) VALUES (?, ?, ?)',
+            (name, content, post_history_content)
         )
         row = conn.execute(
             'SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)
@@ -196,15 +215,19 @@ def import_system_prompt():
 
 @settings_bp.route('/api/system-prompts/<int:prompt_id>/export', methods=['GET'])
 def export_system_prompt(prompt_id):
-    """Download a system prompt as a {name, content} JSON file."""
+    """Download a paired prompt as a {name, content, post_history_content} JSON file."""
     with get_db() as conn:
         row = conn.execute(
-            'SELECT name, content FROM system_prompts WHERE id = ?', (prompt_id,)
+            'SELECT name, content, post_history_content FROM system_prompts WHERE id = ?', (prompt_id,)
         ).fetchone()
         if not row:
             return jsonify({'error': 'System prompt not found'}), 404
 
-    body = {'name': row['name'], 'content': row['content']}
+    body = {
+        'name': row['name'],
+        'content': row['content'],
+        'post_history_content': row['post_history_content'],
+    }
     filename = f"{safe_download_name(row['name'], 'prompt')}.json"
     return Response(
         json.dumps(body, indent=2, ensure_ascii=False),

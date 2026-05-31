@@ -105,6 +105,8 @@ export function initElements() {
         syspromptImport:     document.getElementById('settings-sysprompt-import'),
         syspromptExport:     document.getElementById('settings-sysprompt-export'),
         syspromptImportFile: document.getElementById('settings-sysprompt-import-file'),
+        promptBuilderTabs:   document.getElementById('prompt-builder-tabs'),
+        postHistoryContent:  document.getElementById('settings-posthistory-content'),
         promptPreviewModal:   document.getElementById('prompt-preview-modal'),
         promptPreviewContent: document.getElementById('prompt-preview-content'),
         promptPreviewClose:   document.getElementById('prompt-preview-close'),
