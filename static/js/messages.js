@@ -131,6 +131,7 @@ function showSwipe(msgEl, swipes, idx) {
         if (stateMsg.id) {
             API.updateMessage(stateMsg.id, newText).catch(err => {
                 console.error('Failed to persist swipe selection:', err);
+                showToast('Swipe selection failed to save: ' + err.message);
             });
         }
     }
@@ -419,6 +420,7 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
             });
         } catch (err) {
             console.error('Could not save message:', err);
+            showToast('Message failed to save: ' + err.message);
             state.messages.push({ role, text, swipes: [{ content: text }], activeSwipeIndex: 0,
                 persona: p ? { name: p.name, avatar_url: p.avatar_url } : null });
         }

@@ -13,7 +13,7 @@ from card_store import (
     CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, get_character_card, normalize_to_v2,
     normalize_character_book, read_character_card, write_character_card,
 )
-from shared import get_db
+from shared import get_db, not_found
 from png_utils import make_minimal_png, write_png_chara, extract_png_chara
 
 characters_bp = Blueprint('characters', __name__)
@@ -284,7 +284,7 @@ def get_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         return _char_json(conn, row)
 
 
@@ -293,7 +293,7 @@ def toggle_pin_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         if row['pinned_at']:
             conn.execute('UPDATE characters SET pinned_at=NULL WHERE id=?', (char_id,))
         else:
@@ -311,7 +311,7 @@ def archive_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         if archived:
             conn.execute('UPDATE characters SET archived_at=CURRENT_TIMESTAMP WHERE id=?', (char_id,))
         else:
@@ -325,7 +325,7 @@ def duplicate_character(char_id):
     with get_db() as conn:
         row, card_data = get_character_card(conn, char_id)
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
 
         source_path = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         data = card_data.get('data', card_data) if card_data else {}
@@ -359,7 +359,7 @@ def export_character(char_id):
     with get_db() as conn:
         row, card_data = get_character_card(conn, char_id)
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         data = card_data.get('data', card_data) if card_data else {}
@@ -391,7 +391,7 @@ def update_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row or row['missing']:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         existing_card = read_character_card(filepath) or {'data': {}}
@@ -422,7 +422,7 @@ def delete_character(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         if os.path.exists(filepath):
@@ -441,7 +441,7 @@ def upload_avatar(char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row or row['missing']:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
 
         if 'avatar' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -519,7 +519,7 @@ def update_character_collection(collection_id):
             'SELECT * FROM character_collections WHERE id=?', (collection_id,)
         ).fetchone()
         if not row:
-            return jsonify({'error': 'Collection not found'}), 404
+            return not_found('Collection')
 
         sets, params = [], []
         if 'name' in data:
@@ -555,7 +555,7 @@ def delete_character_collection(collection_id):
             'SELECT * FROM character_collections WHERE id=?', (collection_id,)
         ).fetchone()
         if not row:
-            return jsonify({'error': 'Collection not found'}), 404
+            return not_found('Collection')
         conn.execute('DELETE FROM character_collections WHERE id=?', (collection_id,))
         return jsonify({'success': True})
 
@@ -568,9 +568,9 @@ def add_character_to_collection(collection_id, char_id):
         ).fetchone()
         character = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not collection:
-            return jsonify({'error': 'Collection not found'}), 404
+            return not_found('Collection')
         if not character:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         conn.execute(
             '''
             INSERT OR IGNORE INTO character_collection_members (collection_id, character_id)
@@ -593,5 +593,5 @@ def remove_character_from_collection(collection_id, char_id):
         )
         character = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not character:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         return _char_json(conn, character)

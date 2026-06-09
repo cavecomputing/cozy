@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify, Response
 
 import shared
 from card_store import get_character_card_data
-from shared import get_db, safe_download_name
+from shared import get_db, not_found, safe_download_name
 
 chats_bp = Blueprint('chats', __name__)
 
@@ -175,7 +175,7 @@ def _normalise_swipes(message, warnings, line_no):
 def list_chats(char_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         rows = conn.execute(
             'SELECT * FROM chats WHERE character_id=? ORDER BY created_at ASC, id ASC', (char_id,)
         ).fetchall()
@@ -186,7 +186,7 @@ def list_chats(char_id):
 def create_chat(char_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         data = request.get_json(silent=True) or {}
         name = (data.get('name') or '').strip() or 'New Chat'
         embedded_default = 1 if _character_has_lorebook(conn, char_id) else 0
@@ -205,7 +205,7 @@ def export_chat(chat_id):
     with get_db() as conn:
         chat, body = _chat_jsonl(conn, chat_id)
         if chat is None:
-            return jsonify({'error': 'Chat not found'}), 404
+            return not_found('Chat')
         filename = f"{safe_download_name(chat['name'], 'chat')}.jsonl"
         return Response(
             body,
@@ -236,7 +236,7 @@ def import_chat():
     warnings = []
     with get_db() as conn:
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
 
         name = os.path.splitext(upload.filename or '')[0] or 'Imported Chat'
         if header.get('create_date'):
@@ -288,7 +288,7 @@ def update_chat(chat_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Chat not found'}), 404
+            return not_found('Chat')
         data = request.get_json(silent=True) or {}
 
         name = (data.get('name') or '').strip() or row['name']
@@ -310,7 +310,7 @@ def update_chat(chat_id):
                     'SELECT 1 FROM lorebooks WHERE id=?', (new_id,)
                 ).fetchone()
                 if not exists:
-                    return jsonify({'error': 'Lorebook not found'}), 404
+                    return not_found('Lorebook')
                 cur_lb_id = new_id
 
         if 'active_lorebook_embedded' in data:
@@ -333,9 +333,9 @@ def update_chat(chat_id):
 
 
 @chats_bp.route('/api/chats/<int:chat_id>', methods=['DELETE'])
-def delete_chat_route(chat_id):
+def delete_chat(chat_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM chats WHERE id=?', (chat_id,)).fetchone():
-            return jsonify({'error': 'Chat not found'}), 404
+            return not_found('Chat')
         conn.execute('DELETE FROM chats WHERE id=?', (chat_id,))
         return jsonify({'success': True})

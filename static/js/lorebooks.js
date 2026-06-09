@@ -37,6 +37,7 @@ export async function loadLorebooks() {
         state.lorebooks = await API.getLorebooks();
     } catch (e) {
         console.warn('Failed to load lorebooks:', e);
+        showToast('Failed to load lorebooks: ' + e.message);
         state.lorebooks = [];
     }
     updateComposerState();

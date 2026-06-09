@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, Response
 
 from shared import (
     get_db,
+    not_found,
     safe_download_name,
     DEFAULT_PROMPT_TEMPLATE,
     DEFAULT_POST_HISTORY_TEMPLATE,
@@ -138,7 +139,7 @@ def update_system_prompt(prompt_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'System prompt not found'}), 404
+            return not_found('System prompt')
         name = (data.get('name') or '').strip() or row['name']
         content = data.get('content', row['content'])
         post_history_content = data.get('post_history_content', row['post_history_content'])
@@ -158,7 +159,7 @@ def delete_system_prompt(prompt_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'System prompt not found'}), 404
+            return not_found('System prompt')
         conn.execute('DELETE FROM system_prompts WHERE id = ?', (prompt_id,))
         return jsonify({'success': True})
 
@@ -225,7 +226,7 @@ def export_system_prompt(prompt_id):
             'SELECT name, content, post_history_content FROM system_prompts WHERE id = ?', (prompt_id,)
         ).fetchone()
         if not row:
-            return jsonify({'error': 'System prompt not found'}), 404
+            return not_found('System prompt')
 
     body = {
         'name': row['name'],
@@ -295,7 +296,7 @@ def update_preset(preset_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Preset not found'}), 404
+            return not_found('Preset')
         name = (data.get('name') or '').strip() or row['name']
         endpoint = data.get('api_endpoint', row['api_endpoint'])
         model = data.get('api_model', row['api_model'])
@@ -320,7 +321,7 @@ def delete_preset(preset_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Preset not found'}), 404
+            return not_found('Preset')
         active = conn.execute(
             'SELECT value FROM settings WHERE key = ?',
             ('active_api_preset',)
@@ -336,7 +337,7 @@ def activate_preset(preset_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Preset not found'}), 404
+            return not_found('Preset')
         # Write preset fields into the settings table
         for key in PRESET_FIELDS:
             upsert_setting(conn, key, row[key])

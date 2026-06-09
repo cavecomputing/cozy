@@ -94,6 +94,7 @@ export async function loadCharacters() {
         if (target) await selectCharacter(target.id);
     } catch (err) {
         console.error('Could not load characters:', err);
+        showToast('Failed to load characters: ' + err.message);
     }
 }
 

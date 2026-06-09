@@ -5,7 +5,7 @@ import os
 from flask import Blueprint, request, jsonify
 
 import shared
-from shared import get_db, persona_avatar_url
+from shared import get_db, not_found, persona_avatar_url
 
 personas_bp = Blueprint('personas', __name__)
 
@@ -44,7 +44,7 @@ def update_persona(persona_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Persona not found'}), 404
+            return not_found('Persona')
         data = request.get_json(silent=True) or {}
         name = (data.get('name') or '').strip() or row['name']
         # Fall back only when the key is absent — an explicit '' clears the field
@@ -63,7 +63,7 @@ def delete_persona(persona_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Persona not found'}), 404
+            return not_found('Persona')
         if row['is_default']:
             return jsonify({'error': 'Cannot delete the default persona'}), 400
         if row['avatar_path']:
@@ -82,7 +82,7 @@ def upload_persona_avatar(persona_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Persona not found'}), 404
+            return not_found('Persona')
         if 'avatar' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
         file = request.files['avatar']

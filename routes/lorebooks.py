@@ -16,7 +16,7 @@ from card_store import (
     coerce_keys, get_character_card, normalize_character_book, safe_int,
     set_character_book,
 )
-from shared import get_db, safe_download_name
+from shared import get_db, not_found, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
 
@@ -187,7 +187,7 @@ def get_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Lorebook not found'}), 404
+            return not_found('Lorebook')
         return jsonify(_full_dict(row))
 
 
@@ -197,7 +197,7 @@ def update_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Lorebook not found'}), 404
+            return not_found('Lorebook')
 
         existing = _parse_book(row['book'])
         if isinstance(data.get('book'), dict):
@@ -224,7 +224,7 @@ def delete_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Lorebook not found'}), 404
+            return not_found('Lorebook')
         # Keep chat selections tidy when a standalone lorebook is removed.
         conn.execute(
             'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
@@ -240,7 +240,7 @@ def embed_in_character(book_id, char_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Lorebook not found'}), 404
+            return not_found('Lorebook')
         book = _parse_book(row['book'])
 
         _, err = set_character_book(char_id, book)
@@ -263,7 +263,7 @@ def extract_from_character(char_id):
     with get_db() as conn:
         row, card = get_character_card(conn, char_id)
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         char_data = (card or {}).get('data', card or {})
     book = normalize_character_book(char_data.get('character_book'))
     if not isinstance(book, dict) or not book.get('entries'):
@@ -334,7 +334,7 @@ def export_lorebook(book_id):
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Lorebook not found'}), 404
+            return not_found('Lorebook')
         book = _parse_book(row['book'])
 
     filename = f"{safe_download_name(row['name'], 'lorebook')}.json"
@@ -351,7 +351,7 @@ def export_character_lorebook(char_id):
     with get_db() as conn:
         row, card = get_character_card(conn, char_id)
         if not row:
-            return jsonify({'error': 'Character not found'}), 404
+            return not_found('Character')
         char_data = (card or {}).get('data', card or {})
     book = normalize_character_book(char_data.get('character_book'))
     if not isinstance(book, dict) or not book.get('entries'):

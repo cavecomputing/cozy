@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 
-from shared import get_db, persona_avatar_url
+from shared import get_db, not_found, persona_avatar_url
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -40,7 +40,7 @@ def _message_to_dict(row, swipes=None):
 def list_messages(chat_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM chats WHERE id=?', (chat_id,)).fetchone():
-            return jsonify({'error': 'Chat not found'}), 404
+            return not_found('Chat')
         rows = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
             WHERE m.chat_id=?
             ORDER BY m.id ASC
@@ -70,7 +70,7 @@ def list_messages(chat_id):
 def add_message(chat_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM chats WHERE id=?', (chat_id,)).fetchone():
-            return jsonify({'error': 'Chat not found'}), 404
+            return not_found('Chat')
         data       = request.get_json(silent=True) or {}
         role       = data.get('role', '')
         content    = (data.get('content') or '').strip()
@@ -113,7 +113,7 @@ def add_swipe(msg_id):
     with get_db() as conn:
         msg = conn.execute('SELECT * FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not msg:
-            return jsonify({'error': 'Message not found'}), 404
+            return not_found('Message')
         data = request.get_json(silent=True) or {}
         content = (data.get('content') or '').strip()
         if not content:
@@ -147,7 +147,7 @@ def update_message(msg_id):
     with get_db() as conn:
         row = conn.execute('SELECT id, content FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Message not found'}), 404
+            return not_found('Message')
 
         # Update the message's primary content
         conn.execute('UPDATE messages SET content=? WHERE id=?', (content, msg_id))
@@ -168,6 +168,6 @@ def delete_message(msg_id):
     with get_db() as conn:
         row = conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not row:
-            return jsonify({'error': 'Message not found'}), 404
+            return not_found('Message')
         conn.execute('DELETE FROM messages WHERE id=?', (msg_id,))
         return jsonify({'success': True})

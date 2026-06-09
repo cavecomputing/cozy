@@ -29,7 +29,10 @@ export async function loadLLMSettings() {
 export async function saveLLMSettings(fields) {
     try {
         await API.saveSettings(fields);
-    } catch (e) { console.warn('Failed to save LLM settings:', e); }
+    } catch (e) {
+        console.warn('Failed to save LLM settings:', e);
+        showToast('Failed to save settings: ' + e.message);
+    }
 }
 
 function setModelMenuOpen(open) {

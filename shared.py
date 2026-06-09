@@ -4,6 +4,8 @@ import os
 import sqlite3
 from contextlib import contextmanager
 
+from flask import jsonify
+
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR     = os.environ.get('COZY_DATA_DIR', os.path.join(BASE_DIR, 'data'))
@@ -34,6 +36,11 @@ def persona_avatar_url(avatar_path, updated_at):
 os.makedirs(CHARACTERS_DIR, exist_ok=True)
 os.makedirs(PERSONAS_DIR, exist_ok=True)
 os.makedirs(THEMES_DIR, exist_ok=True)
+
+
+def not_found(resource):
+    """Standard 404 JSON response used by all route modules."""
+    return jsonify({'error': f'{resource} not found'}), 404
 
 
 def safe_download_name(name, fallback='download'):
@@ -92,8 +99,6 @@ def get_db():
 
 
 def init_db():
-    os.makedirs(CHARACTERS_DIR, exist_ok=True)
-    os.makedirs(PERSONAS_DIR, exist_ok=True)
     with get_db() as conn:
         # WAL and synchronous are file-level settings that persist once set.
         conn.execute('PRAGMA journal_mode=WAL')

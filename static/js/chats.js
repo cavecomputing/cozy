@@ -116,6 +116,7 @@ export function startChatRename(li, chat) {
                 }
                 newButton.replaceWith(restoredButton);
                 console.error('Rename failed:', err);
+                showToast('Failed to rename chat: ' + err.message);
             }
         }
     };
@@ -145,6 +146,7 @@ export async function loadChats(charId) {
         }
     } catch (err) {
         console.error('Could not load chats:', err);
+        showToast('Failed to load chats: ' + err.message);
     }
 }
 
@@ -191,6 +193,7 @@ export async function selectChat(chat) {
     } catch (err) {
         state.messages = [];
         console.error('Could not load messages:', err);
+        showToast('Failed to load messages: ' + err.message);
     }
 
     // Seed the character's greeting into the DB if the chat is brand-new

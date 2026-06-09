@@ -73,7 +73,10 @@ export function renderPersonaList() {
                         savePrefs();
                     }
                     renderPersonaList();
-                } catch (err) { console.error(err); }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Failed to delete persona: ' + err.message);
+                }
             });
             actions.appendChild(del);
         }
@@ -191,5 +194,8 @@ export async function loadPersonas() {
         }
         renderPersonaList();
         updateUserProfile();
-    } catch (err) { console.error('Failed to load personas:', err); }
+    } catch (err) {
+        console.error('Failed to load personas:', err);
+        showToast('Failed to load personas: ' + err.message);
+    }
 }

@@ -16,7 +16,7 @@ uv run pytest                                 # full suite
 uv run pytest tests/test_characters.py        # one file
 uv run pytest tests/test_characters.py::test_name -x   # one test, stop on fail
 
-# Docker (port 9002 -> container 5001 per docs/run.md; compose file currently maps 80:5001)
+# Docker (host port 80 -> container 5001)
 cd docker && docker compose up --build
 ```
 
@@ -44,19 +44,19 @@ Single-process Flask app. Entry point [app.py](app.py) registers seven blueprint
 
 Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`). Routes that need card data read it from the PNG via [png_utils.py](png_utils.py) at request time.
 
-Everything else (chats, messages, message_swipes, personas, settings, system_prompts, api_presets, lorebooks) lives in `data/cozy_chat.db`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py:64). Keep startup idempotent so calling `init_db()` repeatedly is safe.
+Everything else (chats, messages, message_swipes, personas, settings, system_prompts, api_presets, lorebooks) lives in `data/cozy_chat.db`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py). Keep startup idempotent so calling `init_db()` repeatedly is safe.
 
 ### Prompt template system
 
-System prompts are not plain text — they are Mustache-ish templates with `{{variable}}` and `{{#var}}…{{/var}}` conditional sections (see `DEFAULT_PROMPT_TEMPLATE` in [shared.py](shared.py:26)). Fresh databases seed the default template directly, with `{{system_prompt}}` left as a live variable for per-character instructions.
+System prompts are not plain text — they are Mustache-ish templates with `{{variable}}` and `{{#var}}…{{/var}}` conditional sections (see `DEFAULT_PROMPT_TEMPLATE` in [shared.py](shared.py)). Fresh databases seed the default template directly, with `{{system_prompt}}` left as a live variable for per-character instructions.
 
 ### LLM proxy and streaming
 
-[routes/llm.py](routes/llm.py) proxies to any OpenAI-compatible endpoint configured in settings. `/api/llm/chat` always streams SSE (`text/event-stream`). Don't introduce middleware that buffers responses (this is also why `app.py` uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE — see the comment in [app.py:97](app.py)).
+[routes/llm.py](routes/llm.py) proxies to any OpenAI-compatible endpoint configured in settings. `/api/llm/chat` always streams SSE (`text/event-stream`). Don't introduce middleware that buffers responses (this is also why `app.py` uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE — see the comment in the `__main__` block of [app.py](app.py)).
 
 ### Themes
 
-CSS files in [static/themes/](static/themes/) are built-in; user-added themes live in `$DATA_DIR/themes/` and **take precedence** over built-ins with the same filename — see `serve_theme()` in [app.py:58](app.py). `/api/themes` returns the merged set.
+CSS files in [static/themes/](static/themes/) are built-in; user-added themes live in `$DATA_DIR/themes/` and **take precedence** over built-ins with the same filename — see `serve_theme()` in [app.py](app.py). `/api/themes` returns the merged set.
 
 ## Testing gotchas
 
