@@ -437,12 +437,13 @@ export function startEditing(messageEl) {
     const contentDiv = messageEl.querySelector('.message-content');
     const actionsBar = messageEl.closest('.message-wrapper').querySelector('.msg-actions');
 
-    // Show raw markdown for editing
+    // Show raw markdown for editing — response only, thinking stays in its block
     messageEl.dataset.originalText = messageEl.dataset.rawText;
     messageEl.classList.add('editing');
     state.currentEdit = { element: messageEl, contentDiv, actionsBar };
 
-    contentDiv.textContent = messageEl.dataset.rawText;  // raw markdown
+    const editParsed = parseThinkingContent(messageEl.dataset.rawText);
+    contentDiv.textContent = editParsed.thinking ? editParsed.response : messageEl.dataset.rawText;
     contentDiv.contentEditable = 'plaintext-only';
     contentDiv.focus();
     // Place cursor at end
@@ -468,8 +469,16 @@ export function finishEditing(save) {
     if (!state.currentEdit) return;
     const { element: messageEl, contentDiv, actionsBar } = state.currentEdit;
 
-    const rawText = save ? contentDiv.textContent.trim() : messageEl.dataset.originalText;
-    if (save && !rawText) { state.currentEdit = null; return; }
+    const originalText = messageEl.dataset.originalText;
+    const originalParsed = parseThinkingContent(originalText);
+    const editedResponse = save ? contentDiv.textContent.trim() : null;
+    if (save && !editedResponse) { state.currentEdit = null; return; }
+    // Reattach the original thinking segment so it persists through the edit
+    const rawText = save
+        ? (originalParsed.thinkingSegment
+            ? originalParsed.thinkingSegment + '\n\n' + editedResponse
+            : editedResponse)
+        : originalText;
 
     messageEl.classList.remove('editing');
     contentDiv.removeAttribute('contenteditable');
@@ -505,9 +514,10 @@ export function finishEditing(save) {
         }
     }
 
-    // Re-render markdown with updated text
+    // Re-render markdown with updated text (response only — thinking stays in its block)
     messageEl.dataset.rawText = rawText;
-    renderMarkdown(contentDiv, rawText);
+    const finalParsed = parseThinkingContent(rawText);
+    renderMarkdown(contentDiv, finalParsed.thinking ? finalParsed.response : rawText);
     delete messageEl.dataset.originalText;
 
     // Restore the correct toolbar (preserve swipe state)

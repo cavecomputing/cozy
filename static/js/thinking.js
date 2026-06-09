@@ -33,7 +33,9 @@ export function parseThinkingContent(text) {
     }
     const thinking = text.slice(bestOpen + matched.open.length, closeIdx);
     const response = text.slice(0, bestOpen) + text.slice(closeIdx + matched.close.length);
-    return { thinking: thinking.trim(), response: response.trim() };
+    // thinkingSegment keeps the tags so callers can reassemble the full text
+    const thinkingSegment = text.slice(bestOpen, closeIdx + matched.close.length);
+    return { thinking: thinking.trim(), response: response.trim(), thinkingSegment };
 }
 
 /** Render or update the thinking block above message content. */
