@@ -1,4 +1,5 @@
 import { state, el } from './state.js';
+import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
 import { showToast } from './utils.js';
 import { previewChatPayload } from './request-builder.js';
@@ -36,13 +37,9 @@ async function savePromptFields({ showSuccess = false } = {}) {
     const p = syncActivePromptFromEditors();
     if (!p) return;
     try {
-        await fetch(`/api/system-prompts/${state.activeSystemPromptId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                content: p.content || '',
-                post_history_content: p.post_history_content || '',
-            }),
+        await API.updateSystemPrompt(state.activeSystemPromptId, {
+            content: p.content || '',
+            post_history_content: p.post_history_content || '',
         });
         if (showSuccess) showToast('Prompt saved', 'success');
     } catch (e) {
@@ -53,9 +50,8 @@ async function savePromptFields({ showSuccess = false } = {}) {
 
 export async function loadSystemPrompts(existingSettings = null) {
     try {
-        const promptsRes = await fetch('/api/system-prompts');
-        state.systemPrompts = await promptsRes.json();
-        const settings = existingSettings || await fetch('/api/settings').then(r => r.json());
+        state.systemPrompts = await API.getSystemPrompts();
+        const settings = existingSettings || await API.getSettings();
         state.activeSystemPromptId = settings.active_system_prompt
             ? Number(settings.active_system_prompt) : null;
 
@@ -97,18 +93,15 @@ export async function createSystemPrompt() {
     const name = prompt('New prompt name:');
     if (!name || !name.trim()) return;
     try {
-        const res = await fetch('/api/system-prompts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name.trim() }),
-        });
-        if (!res.ok) return;
-        const created = await res.json();
+        const created = await API.createSystemPrompt({ name: name.trim() });
         await loadSystemPrompts();
         selectSystemPrompt(created.id);
         if (el.syspromptSelect) el.syspromptSelect.value = created.id;
         showToast('Prompt created', 'success');
-    } catch (e) { console.warn('Failed to create system prompt:', e); }
+    } catch (e) {
+        showToast('Failed to create prompt: ' + e.message);
+        console.warn('Failed to create system prompt:', e);
+    }
 }
 
 export async function deleteSystemPrompt() {
@@ -116,11 +109,14 @@ export async function deleteSystemPrompt() {
     const active = activePrompt();
     if (!confirm(`Delete prompt "${active?.name || ''}"?`)) return;
     try {
-        await fetch(`/api/system-prompts/${state.activeSystemPromptId}`, { method: 'DELETE' });
+        await API.deleteSystemPrompt(state.activeSystemPromptId);
         state.activeSystemPromptId = null;
         await loadSystemPrompts();
         showToast('Prompt deleted', 'success');
-    } catch (e) { console.warn('Failed to delete system prompt:', e); }
+    } catch (e) {
+        showToast('Failed to delete prompt: ' + e.message);
+        console.warn('Failed to delete system prompt:', e);
+    }
 }
 
 export async function updateSystemPromptContent() {
@@ -140,8 +136,7 @@ async function getDefaultTemplates() {
             postHistoryTemplate: _defaultPostHistoryTemplate,
         };
     }
-    const res = await fetch('/api/system-prompts/default-template');
-    const data = await res.json();
+    const data = await API.getDefaultPromptTemplates();
     _defaultTemplate = data.template || '';
     _defaultPostHistoryTemplate = data.post_history_template || '';
     return {
@@ -180,14 +175,7 @@ export async function handleSystemPromptImportFile(e) {
     if (!file) return;
     e.target.value = '';
     try {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch('/api/system-prompts/import', { method: 'POST', body: fd });
-        if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            throw new Error(body.error || 'Import failed');
-        }
-        const created = await res.json();
+        const created = await API.importSystemPrompt(file);
         await loadSystemPrompts();
         await selectSystemPrompt(created.id);
         if (el.syspromptSelect) el.syspromptSelect.value = created.id;

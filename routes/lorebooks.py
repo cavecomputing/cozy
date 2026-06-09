@@ -12,7 +12,10 @@ import json
 from flask import Blueprint, request, jsonify, Response
 
 import shared
-from card_store import get_character_card, normalize_character_book, set_character_book
+from card_store import (
+    coerce_keys, get_character_card, normalize_character_book, safe_int,
+    set_character_book,
+)
 from shared import get_db, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
@@ -64,13 +67,6 @@ def _full_dict(row):
     }
 
 
-def _safe_int(v, default):
-    try:
-        return int(v) if v is not None and v != '' else default
-    except (TypeError, ValueError):
-        return default
-
-
 def _normalize_imported_book(raw):
     """Normalize an imported lorebook JSON into V2 ``character_book`` shape.
 
@@ -100,14 +96,14 @@ def _normalize_imported_book(raw):
     book = {
         'name': str(raw.get('name', '')).strip(),
         'description': str(raw.get('description', '') or ''),
-        'scan_depth': _safe_int(raw.get('scan_depth'), 20),
+        'scan_depth': safe_int(raw.get('scan_depth'), 20),
         'recursive_scanning': bool(raw.get('recursive_scanning', False)),
         'extensions': raw['extensions'] if isinstance(raw.get('extensions'), dict) else {},
         'entries': [],
     }
     if 'token_budget' in raw:
-        book['token_budget'] = _safe_int(raw.get('token_budget'), 0)
-    book['max_entries'] = _safe_int(raw.get('max_entries'), 20)
+        book['token_budget'] = safe_int(raw.get('token_budget'), 0)
+    book['max_entries'] = safe_int(raw.get('max_entries'), 20)
 
     raw_entries = raw['entries']
     if isinstance(raw_entries, dict):
@@ -120,21 +116,11 @@ def _normalize_imported_book(raw):
     if not isinstance(raw_entries, list):
         raise ValueError('Lorebook "entries" must be an array or object')
 
-    def _coerce_keys(v):
-        if v is None:
-            return []
-        if isinstance(v, str):
-            # ST sometimes stores keys as a comma-separated string
-            return [k.strip() for k in v.split(',') if k.strip()]
-        if isinstance(v, list):
-            return [str(k) for k in v if k is not None and str(k) != '']
-        return []
-
     for re in raw_entries:
         if not isinstance(re, dict):
             continue
-        keys = _coerce_keys(re.get('keys') if 'keys' in re else re.get('key'))
-        secondary = _coerce_keys(
+        keys = coerce_keys(re.get('keys') if 'keys' in re else re.get('key'))
+        secondary = coerce_keys(
             re.get('secondary_keys') if 'secondary_keys' in re else re.get('keysecondary')
         )
 
@@ -154,7 +140,7 @@ def _normalize_imported_book(raw):
             'constant': bool(re.get('constant', False)),
             'selective': bool(re.get('selective', False)),
             'case_sensitive': bool(re.get('case_sensitive', False)),
-            'insertion_order': _safe_int(
+            'insertion_order': safe_int(
                 re.get('insertion_order') if 'insertion_order' in re else re.get('order'),
                 100,
             ),

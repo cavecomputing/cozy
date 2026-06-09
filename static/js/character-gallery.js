@@ -1,9 +1,10 @@
 import { state, icons } from './state.js';
 import { API } from './api.js';
 import { Modal } from './modal.js';
-import { applyAvatar, showToast, sanitize } from './utils.js';
+import { applyAvatar, showToast } from './utils.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
 import { renderLorebookList } from './lorebooks.js';
+import { createTagEditor, createGreetingEditor } from './field-editors.js';
 
 const DESKTOP_QUERY = '(min-width: 769px)';
 const DEFAULT_COLLECTION_ICON = '◇';
@@ -30,8 +31,8 @@ const gallery = {
 };
 
 let els = null;
-let galleryTags = [];
-let galleryAltGreetings = [];
+let tagEditor = null;
+let greetingEditor = null;
 
 function q(id) {
     return document.getElementById(id);
@@ -353,10 +354,8 @@ function fillEditor(char) {
     e.pinBtn.classList.toggle('pinned', !!char.pinned);
     e.archiveBtn.querySelector('.archive-btn-text').textContent = isArchived(char) ? 'Unarchive' : 'Archive';
     e.fields.name.value = char.name || '';
-    galleryTags = Array.isArray(char.tags) ? [...char.tags] : [];
-    renderGalleryTags();
-    galleryAltGreetings = Array.isArray(char.alternate_greetings) ? [...char.alternate_greetings] : [];
-    renderGalleryAltGreetings();
+    tagEditor?.set(char.tags);
+    greetingEditor?.set(char.alternate_greetings);
     e.fields.post_history.value = char.post_history_instructions || '';
     e.fields.description.value = char.description || '';
     e.fields.notes.value = char.creator_notes || '';
@@ -399,45 +398,6 @@ function renderEditorCollections(char = selectedCharacter()) {
         option.disabled = option.value && assignedIds.has(Number(option.value));
     });
     e.collectionAdd.value = '';
-}
-
-function renderGalleryTags() {
-    const e = getEls();
-    e.tagsChipList.innerHTML = '';
-    galleryTags.forEach((tag, idx) => {
-        const chip = document.createElement('span');
-        chip.className = 'tag-chip';
-        chip.innerHTML = `${sanitize(tag)}<button class="tag-chip-remove" title="Remove tag" aria-label="Remove tag">\u00d7</button>`;
-        chip.querySelector('.tag-chip-remove').addEventListener('click', () => {
-            galleryTags.splice(idx, 1);
-            renderGalleryTags();
-            setDirty(true);
-        });
-        e.tagsChipList.appendChild(chip);
-    });
-}
-
-function renderGalleryAltGreetings() {
-    const e = getEls();
-    e.altGreetingsList.innerHTML = '';
-    galleryAltGreetings.forEach((text, idx) => {
-        const row = document.createElement('div');
-        row.className = 'alt-greeting-item';
-        const ta = document.createElement('textarea');
-        ta.className = 'form-textarea';
-        ta.rows = 3;
-        ta.value = text;
-        ta.placeholder = 'Alternate greeting text\u2026';
-        ta.addEventListener('input', () => { galleryAltGreetings[idx] = ta.value; setDirty(true); });
-        const rm = document.createElement('button');
-        rm.type = 'button';
-        rm.className = 'icon-btn remove-greeting-btn';
-        rm.title = 'Remove greeting';
-        rm.innerHTML = icons.TRASH;
-        rm.addEventListener('click', () => { galleryAltGreetings.splice(idx, 1); renderGalleryAltGreetings(); setDirty(true); });
-        row.append(ta, rm);
-        e.altGreetingsList.appendChild(row);
-    });
 }
 
 function render() {
@@ -488,20 +448,23 @@ async function openGallery() {
     e.search.focus();
 }
 
-function closeGallery() {
-    if (!confirmDiscard()) return;
-    const e = getEls();
-    e.root.hidden = true;
+function hideGallery() {
+    getEls().root.hidden = true;
     gallery.open = false;
     document.body.classList.remove('gallery-open');
     restoreModalParent();
+}
+
+function closeGallery() {
+    if (!confirmDiscard()) return;
+    hideGallery();
 }
 
 function collectEditorData() {
     const { fields } = getEls();
     return {
         name: fields.name.value.trim(),
-        tags: [...galleryTags],
+        tags: tagEditor.get(),
         description: fields.description.value,
         creator_notes: fields.notes.value,
         personality: fields.personality.value,
@@ -510,7 +473,7 @@ function collectEditorData() {
         post_history_instructions: fields.post_history.value,
         first_mes: fields.first.value,
         mes_example: fields.example.value,
-        alternate_greetings: [...galleryAltGreetings],
+        alternate_greetings: greetingEditor.get(),
         creator: fields.creator.value,
         character_version: fields.version.value,
     };
@@ -593,10 +556,7 @@ async function startChatWithSelected() {
     if (!confirmDiscard()) return;
     try {
         await selectCharacter(char.id);
-        getEls().root.hidden = true;
-        gallery.open = false;
-        document.body.classList.remove('gallery-open');
-        restoreModalParent();
+        hideGallery();
     } catch (err) {
         showToast('Could not open chat: ' + err.message, 'error');
     }
@@ -838,23 +798,16 @@ function bindEvents() {
         const value = Number(e.collectionAdd.value);
         if (value) addSelectedToCollection(value);
     });
-    e.tagsTextInput.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ',') {
-            event.preventDefault();
-            const val = e.tagsTextInput.value.trim().replace(/,/g, '');
-            if (val && !galleryTags.includes(val)) { galleryTags.push(val); renderGalleryTags(); setDirty(true); }
-            e.tagsTextInput.value = '';
-        } else if (event.key === 'Backspace' && e.tagsTextInput.value === '' && galleryTags.length) {
-            galleryTags.pop(); renderGalleryTags(); setDirty(true);
-        }
+    tagEditor = createTagEditor({
+        chipList: e.tagsChipList,
+        textInput: e.tagsTextInput,
+        wrap: e.tagsWrap,
+        onChange: () => setDirty(true),
     });
-    e.tagsWrap.addEventListener('click', () => e.tagsTextInput.focus());
-    e.addGreetingBtn.addEventListener('click', () => {
-        galleryAltGreetings.push('');
-        renderGalleryAltGreetings();
-        setDirty(true);
-        const tas = e.altGreetingsList.querySelectorAll('textarea');
-        if (tas.length) tas[tas.length - 1].focus();
+    greetingEditor = createGreetingEditor({
+        listEl: e.altGreetingsList,
+        addBtn: e.addGreetingBtn,
+        onChange: () => setDirty(true),
     });
     e.exportTrigger.addEventListener('click', event => {
         event.stopPropagation();

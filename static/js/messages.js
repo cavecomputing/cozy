@@ -1,4 +1,4 @@
-import { state, el, icons, SEND_SVG, STOP_SVG, llm } from './state.js';
+import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
     applyAvatar, getInitials, resolveTemplateVariables, showToast,
@@ -63,7 +63,6 @@ async function generateSwipe(msgEl, swipes, idx) {
     contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
     llm.abortController = new AbortController();
     const regenSignal = llm.abortController.signal;
-    el.sendBtn.innerHTML = STOP_SVG;
     setSendButtonMode('stop');
     el.sendBtn.disabled = false;
     updateComposerState();
@@ -86,7 +85,6 @@ async function generateSwipe(msgEl, swipes, idx) {
         return null;
     } finally {
         llm.abortController = null;
-        el.sendBtn.innerHTML = SEND_SVG;
         setSendButtonMode('send');
         updateComposerState();
     }
@@ -485,12 +483,25 @@ export function finishEditing(save) {
         const stateMsg = id
             ? state.messages.find(m => String(m.id) === String(id))
             : state.messages.find(m => m.text === originalText);
-        if (stateMsg?.id) {
+
+        // Sync the active swipe so swiping away and back keeps the edit
+        const editSwipes = JSON.parse(messageEl.dataset.swipes || '[]');
+        const editIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
+        if (editSwipes[editIdx]) {
+            editSwipes[editIdx] = { ...editSwipes[editIdx], content: rawText };
+            messageEl.dataset.swipes = JSON.stringify(editSwipes);
+        }
+        if (stateMsg) {
             stateMsg.text = rawText;
-            API.updateMessage(stateMsg.id, rawText).catch(err => {
-                console.error('Edit save failed:', err);
-                showToast('Edit failed to save: ' + err.message);
-            });
+            if (stateMsg.swipes?.[editIdx]) {
+                stateMsg.swipes[editIdx] = { ...stateMsg.swipes[editIdx], content: rawText };
+            }
+            if (stateMsg.id) {
+                API.updateMessage(stateMsg.id, rawText, true).catch(err => {
+                    console.error('Edit save failed:', err);
+                    showToast('Edit failed to save: ' + err.message);
+                });
+            }
         }
     }
 

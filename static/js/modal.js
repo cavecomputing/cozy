@@ -1,9 +1,10 @@
-import { state, el, icons } from './state.js';
+import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, sanitize, showToast, Flyouts, updateComposerState } from './utils.js';
+import { applyAvatar, showToast, Flyouts, updateComposerState } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
+import { createTagEditor, createGreetingEditor } from './field-editors.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CHARACTER MODAL
@@ -48,8 +49,16 @@ const tagsWrap         = document.getElementById('tags-input-wrap');
 
 let editingCharId     = null;
 let pendingAvatarFile = null;
-let tags              = [];
-let altGreetings      = [];
+
+const tagEditor = createTagEditor({
+    chipList: tagsChipList,
+    textInput: tagsTextInput,
+    wrap: tagsWrap,
+});
+const greetingEditor = createGreetingEditor({
+    listEl: altGreetingsList,
+    addBtn: addGreetingBtn,
+});
 
 function switchTab(tabId) {
     tabBtns.forEach(b => {
@@ -80,58 +89,6 @@ avatarInput.addEventListener('change', () => {
     reader.readAsDataURL(file);
 });
 
-function renderAltGreetings() {
-    altGreetingsList.innerHTML = '';
-    altGreetings.forEach((text, idx) => {
-        const row = document.createElement('div');
-        row.className = 'alt-greeting-item';
-        const ta = document.createElement('textarea');
-        ta.className = 'form-textarea';
-        ta.rows = 3;
-        ta.value = text;
-        ta.placeholder = 'Alternate greeting text\u2026';
-        ta.addEventListener('input', () => { altGreetings[idx] = ta.value; });
-        const rm = document.createElement('button');
-        rm.type = 'button';
-        rm.className = 'icon-btn remove-greeting-btn';
-        rm.title = 'Remove greeting';
-        rm.innerHTML = icons.TRASH;
-        rm.addEventListener('click', () => { altGreetings.splice(idx, 1); renderAltGreetings(); });
-        row.append(ta, rm);
-        altGreetingsList.appendChild(row);
-    });
-}
-addGreetingBtn.addEventListener('click', () => {
-    altGreetings.push('');
-    renderAltGreetings();
-    const tas = altGreetingsList.querySelectorAll('textarea');
-    if (tas.length) tas[tas.length - 1].focus();
-});
-
-function renderTags() {
-    tagsChipList.innerHTML = '';
-    tags.forEach((tag, idx) => {
-        const chip = document.createElement('span');
-        chip.className = 'tag-chip';
-        chip.innerHTML = `${sanitize(tag)}<button class="tag-chip-remove" title="Remove tag" aria-label="Remove tag">\u00d7</button>`;
-        chip.querySelector('.tag-chip-remove').addEventListener('click', () => {
-            tags.splice(idx, 1); renderTags();
-        });
-        tagsChipList.appendChild(chip);
-    });
-}
-tagsTextInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ',') {
-        e.preventDefault();
-        const val = tagsTextInput.value.trim().replace(/,/g, '');
-        if (val && !tags.includes(val)) { tags.push(val); renderTags(); }
-        tagsTextInput.value = '';
-    } else if (e.key === 'Backspace' && tagsTextInput.value === '' && tags.length) {
-        tags.pop(); renderTags();
-    }
-});
-tagsWrap.addEventListener('click', () => tagsTextInput.focus());
-
 function populate(char) {
     fields.name.value          = char.name                      || '';
     fields.description.value   = char.description               || '';
@@ -144,17 +101,15 @@ function populate(char) {
     fields.creator_notes.value = char.creator_notes             || '';
     fields.creator.value       = char.creator                   || '';
     fields.version.value       = char.character_version         || '';
-    tags         = Array.isArray(char.tags)                ? [...char.tags]                : [];
-    altGreetings = Array.isArray(char.alternate_greetings)  ? [...char.alternate_greetings]  : [];
-    renderTags();
-    renderAltGreetings();
+    tagEditor.set(char.tags);
+    greetingEditor.set(char.alternate_greetings);
     applyAvatar(avatarPreview, char);
 }
 
 function clearForm() {
     Object.values(fields).forEach(f => { f.value = ''; });
-    tags = []; altGreetings = [];
-    renderTags(); renderAltGreetings();
+    tagEditor.set([]);
+    greetingEditor.set([]);
     avatarPreview.style.backgroundImage = '';
     avatarPreview.dataset.hasImage = 'false';
     avatarPreview.textContent = '?';
@@ -173,8 +128,8 @@ function collect() {
         creator_notes:             fields.creator_notes.value,
         creator:                   fields.creator.value,
         character_version:         fields.version.value,
-        tags,
-        alternate_greetings: altGreetings,
+        tags:                      tagEditor.get(),
+        alternate_greetings:       greetingEditor.get(),
     };
 }
 

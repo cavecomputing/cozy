@@ -260,15 +260,72 @@ export const API = {
         fullText += content;
         return fullText;
     },
-    async updateMessage(msgId, content) {
+    // `updateSwipe` rewrites the matching swipe row too (message edits);
+    // swipe *selection* leaves it false so existing swipes aren't overwritten.
+    async updateMessage(msgId, content, updateSwipe = false) {
+        const body = { content };
+        if (updateSwipe) body.update_swipe = true;
         return jsonRequest(`/api/messages/${msgId}`, {
             method: 'PUT',
-            body: { content },
+            body,
             fallback: 'Update failed',
         });
     },
     async deleteMessage(msgId) {
         return jsonRequest(`/api/messages/${msgId}`, { method: 'DELETE', fallback: 'Delete failed' });
+    },
+
+    // Settings
+    async getSettings() {
+        return jsonRequest('/api/settings', { fallback: 'Failed to load settings' });
+    },
+    async saveSettings(fields) {
+        return jsonRequest('/api/settings', {
+            method: 'PUT',
+            body: fields,
+            fallback: 'Failed to save settings',
+        });
+    },
+
+    // System prompts
+    async getSystemPrompts() {
+        return jsonRequest('/api/system-prompts', { fallback: 'Failed to load prompts' });
+    },
+    async createSystemPrompt(data) {
+        return jsonRequest('/api/system-prompts', {
+            method: 'POST',
+            body: data,
+            fallback: 'Create prompt failed',
+        });
+    },
+    async updateSystemPrompt(id, data) {
+        return jsonRequest(`/api/system-prompts/${id}`, {
+            method: 'PUT',
+            body: data,
+            fallback: 'Update prompt failed',
+        });
+    },
+    async deleteSystemPrompt(id) {
+        return jsonRequest(`/api/system-prompts/${id}`, {
+            method: 'DELETE',
+            fallback: 'Delete prompt failed',
+        });
+    },
+    async importSystemPrompt(file) {
+        return formRequest('/api/system-prompts/import', { file }, 'Import failed');
+    },
+    async getDefaultPromptTemplates() {
+        return jsonRequest('/api/system-prompts/default-template', {
+            fallback: 'Failed to load default template',
+        });
+    },
+
+    // LLM utility endpoints
+    async getModels() {
+        return jsonRequest('/api/llm/models', { fallback: 'Failed to fetch models' });
+    },
+    async testLLM() {
+        return jsonRequest('/api/llm/test', { method: 'POST', fallback: 'Connection test failed' });
     },
 
     // Presets

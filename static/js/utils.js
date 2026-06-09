@@ -1,4 +1,4 @@
-import { state, el, llm } from './state.js';
+import { state, el, llm, SEND_SVG, STOP_SVG } from './state.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // UTILITY
@@ -109,6 +109,7 @@ export function maybeScrollToBottom() {
 
 export function setSendButtonMode(mode) {
     const isStop = mode === 'stop';
+    el.sendBtn.innerHTML = isStop ? STOP_SVG : SEND_SVG;
     el.sendBtn.title = isStop ? 'Stop generation' : 'Send message';
     el.sendBtn.setAttribute('aria-label', el.sendBtn.title);
     el.sendBtn.classList.toggle('stop-mode', isStop);

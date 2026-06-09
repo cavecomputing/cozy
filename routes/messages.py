@@ -145,12 +145,21 @@ def update_message(msg_id):
     if not content:
         return jsonify({'error': 'content required'}), 400
     with get_db() as conn:
-        row = conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone()
+        row = conn.execute('SELECT id, content FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Message not found'}), 404
 
         # Update the message's primary content
         conn.execute('UPDATE messages SET content=? WHERE id=?', (content, msg_id))
+        # On edit (update_swipe), rewrite the matching swipe too so swiping
+        # away and back doesn't resurrect the pre-edit text. Swipe *selection*
+        # omits the flag — there the content must keep pointing at an existing
+        # swipe row, not overwrite it.
+        if data.get('update_swipe'):
+            conn.execute(
+                'UPDATE message_swipes SET content=? WHERE message_id=? AND content=?',
+                (content, msg_id, row['content'])
+            )
         return jsonify({'success': True})
 
 

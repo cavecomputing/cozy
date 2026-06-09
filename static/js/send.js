@@ -1,4 +1,4 @@
-import { state, el, SEND_SVG, STOP_SVG, llm } from './state.js';
+import { state, el, llm } from './state.js';
 import { autoResize, showToast, maybeScrollToBottom, setSendButtonMode, updateComposerState } from './utils.js';
 import { appendMessage, renderMarkdown } from './messages.js';
 import { generateResponse } from './request-builder.js';
@@ -20,7 +20,6 @@ export async function handleSend() {
 
     llm.abortController = new AbortController();
     const { signal } = llm.abortController;
-    el.sendBtn.innerHTML = STOP_SVG;
     setSendButtonMode('stop');
     el.sendBtn.disabled = false;
     updateComposerState();
@@ -58,7 +57,6 @@ export async function handleSend() {
         }
     } finally {
         llm.abortController = null;
-        el.sendBtn.innerHTML = SEND_SVG;
         setSendButtonMode('send');
         updateComposerState();
     }

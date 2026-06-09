@@ -42,6 +42,23 @@ class TestPersonaCRUD:
         assert body['tagline'] == 'new tagline'
         assert body['description'] == 'updated desc'
 
+    def test_update_with_empty_string_clears_tagline_and_description(self, client):
+        created = client.post('/api/personas', json={
+            'name': 'Clearable', 'tagline': 'old tag', 'description': 'old desc',
+        }).get_json()
+        r = client.put(f'/api/personas/{created["id"]}', json={
+            'tagline': '', 'description': '',
+        })
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body['tagline'] == ''
+        assert body['description'] == ''
+        # Omitting the keys leaves existing values untouched
+        r = client.put(f'/api/personas/{created["id"]}', json={'name': 'Clearable 2'})
+        body = r.get_json()
+        assert body['tagline'] == ''
+        assert body['name'] == 'Clearable 2'
+
     def test_update_404(self, client):
         r = client.put('/api/personas/99999', json={'name': 'Ghost'})
         assert r.status_code == 404

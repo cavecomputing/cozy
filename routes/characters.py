@@ -115,6 +115,15 @@ def _char_to_dict(row, card_data=None, collections=None):
     return d
 
 
+def _char_json(conn, row):
+    """JSON response for a single character row: card data + collections."""
+    collections = _collections_for_char(conn, row['id'])
+    if row['missing']:
+        return jsonify(_char_to_dict(row, collections=collections))
+    card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+    return jsonify(_char_to_dict(row, card, collections))
+
+
 def _sync_characters(conn):
     """Reconcile data/characters/ folder with the DB index."""
     # Scan disk
@@ -276,10 +285,7 @@ def get_character(char_id):
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
             return jsonify({'error': 'Character not found'}), 404
-        if row['missing']:
-            return jsonify(_char_to_dict(row, collections=_collections_for_char(conn, char_id)))
-        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-        return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
+        return _char_json(conn, row)
 
 
 @characters_bp.route('/api/characters/<int:char_id>/pin', methods=['POST'])
@@ -295,10 +301,7 @@ def toggle_pin_character(char_id):
                 'UPDATE characters SET pinned_at=CURRENT_TIMESTAMP WHERE id=?', (char_id,)
             )
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if row['missing']:
-            return jsonify(_char_to_dict(row, collections=_collections_for_char(conn, char_id)))
-        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-        return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
+        return _char_json(conn, row)
 
 
 @characters_bp.route('/api/characters/<int:char_id>/archive', methods=['POST'])
@@ -314,10 +317,7 @@ def archive_character(char_id):
         else:
             conn.execute('UPDATE characters SET archived_at=NULL WHERE id=?', (char_id,))
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        if row['missing']:
-            return jsonify(_char_to_dict(row, collections=_collections_for_char(conn, char_id)))
-        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
-        return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
+        return _char_json(conn, row)
 
 
 @characters_bp.route('/api/characters/<int:char_id>/duplicate', methods=['POST'])
@@ -578,10 +578,7 @@ def add_character_to_collection(collection_id, char_id):
             ''',
             (collection_id, char_id),
         )
-        if character['missing']:
-            return jsonify(_char_to_dict(character, collections=_collections_for_char(conn, char_id)))
-        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, character['filename']))
-        return jsonify(_char_to_dict(character, card, _collections_for_char(conn, char_id)))
+        return _char_json(conn, character)
 
 
 @characters_bp.route('/api/character-collections/<int:collection_id>/characters/<int:char_id>', methods=['DELETE'])
@@ -597,7 +594,4 @@ def remove_character_from_collection(collection_id, char_id):
         character = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not character:
             return jsonify({'error': 'Character not found'}), 404
-        if character['missing']:
-            return jsonify(_char_to_dict(character, collections=_collections_for_char(conn, char_id)))
-        card = read_character_card(os.path.join(shared.CHARACTERS_DIR, character['filename']))
-        return jsonify(_char_to_dict(character, card, _collections_for_char(conn, char_id)))
+        return _char_json(conn, character)

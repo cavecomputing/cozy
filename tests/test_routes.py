@@ -316,6 +316,42 @@ class TestMessages:
         assert r.status_code == 200
         assert r.get_json()['success'] is True
 
+    def test_edit_with_update_swipe_rewrites_matching_swipe(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        # addSwipe seeds 'First take' as swipe 1 and makes 'Second take' the content
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
+
+        r = client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Second take (edited)', 'update_swipe': True,
+        })
+        assert r.status_code == 200
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        edited = next(m for m in listed if m['id'] == msg['id'])
+        assert edited['content'] == 'Second take (edited)'
+        swipe_texts = [s['content'] for s in edited['swipes']]
+        assert swipe_texts == ['First take', 'Second take (edited)']
+
+    def test_swipe_selection_without_flag_leaves_swipes_alone(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
+
+        # Swiping back to the first swipe persists content only — both swipes survive
+        r = client.put(f'/api/messages/{msg["id"]}', json={'content': 'First take'})
+        assert r.status_code == 200
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        selected = next(m for m in listed if m['id'] == msg['id'])
+        assert selected['content'] == 'First take'
+        swipe_texts = [s['content'] for s in selected['swipes']]
+        assert swipe_texts == ['First take', 'Second take']
+
 
 class TestChatJsonlImportExport:
     def test_export_chat_as_sillytavern_jsonl(self, client, sample_chat):

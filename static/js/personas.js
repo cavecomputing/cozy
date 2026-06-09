@@ -146,12 +146,16 @@ export function showPersonaForm(editPersona = null) {
         cleanup();
     }, { once: true });
 
+    // Not `{ once: true }` — a validation early-return must leave the listener
+    // alive so Save still works after the user fills in the name. cleanup()
+    // strips listeners by cloning the button on every exit path.
     saveBtnEl.addEventListener('click', async () => {
         const name = nameInput.value.trim();
         if (!name) { nameInput.focus(); return; }
         const tagline = taglineInput.value.trim();
         const desc = descInput.value.trim();
 
+        saveBtnEl.disabled = true;
         try {
             let persona;
             if (editPersona) {
@@ -169,8 +173,9 @@ export function showPersonaForm(editPersona = null) {
             renderPersonaList();
             savePrefs();
         } catch (err) { console.error(err); showToast(err.message || 'Connection failed', 'error'); }
+        saveBtnEl.disabled = false;
         cleanup();
-    }, { once: true });
+    });
 
     nameInput.focus();
 }

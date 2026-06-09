@@ -14,8 +14,7 @@ let modelListLoaded = false;
 
 export async function loadLLMSettings() {
     try {
-        const res = await fetch('/api/settings');
-        const s = await res.json();
+        const s = await API.getSettings();
         applySettingsToUI(s);
         // Load sampler settings from the same response
         loadSamplerSettings(s);
@@ -29,11 +28,7 @@ export async function loadLLMSettings() {
 
 export async function saveLLMSettings(fields) {
     try {
-        await fetch('/api/settings', {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(fields),
-        });
+        await API.saveSettings(fields);
     } catch (e) { console.warn('Failed to save LLM settings:', e); }
 }
 
@@ -91,9 +86,7 @@ function filterModels(query) {
 
 async function loadModels() {
     const requestId = ++modelFetchRequestId;
-    const res = await fetch('/api/llm/models');
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || 'Failed');
+    const body = await API.getModels();
     if (requestId !== modelFetchRequestId) return false;
     state.modelList = body.models || [];
     state.modelDetails = body.model_details || {};
@@ -177,17 +170,11 @@ export async function testLLMConnection() {
     el.testResult.textContent = 'Testing\u2026';
     el.testResult.className = 'settings-test-result';
     try {
-        const res = await fetch('/api/llm/test', {method: 'POST'});
-        const body = await res.json();
-        if (body.ok) {
-            el.testResult.textContent = 'Connected! Reply: ' + body.reply;
-            el.testResult.className = 'settings-test-result success';
-        } else {
-            el.testResult.textContent = body.error || 'Failed';
-            el.testResult.className = 'settings-test-result error';
-        }
+        const body = await API.testLLM();
+        el.testResult.textContent = 'Connected! Reply: ' + body.reply;
+        el.testResult.className = 'settings-test-result success';
     } catch (e) {
-        el.testResult.textContent = 'Error: ' + e.message;
+        el.testResult.textContent = e.message || 'Failed';
         el.testResult.className = 'settings-test-result error';
     } finally {
         el.testApi.disabled = false;

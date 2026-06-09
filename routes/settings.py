@@ -63,6 +63,14 @@ def _setting_value(value):
     return '' if value is None else str(value).strip()
 
 
+def upsert_setting(conn, key, value):
+    conn.execute(
+        'INSERT INTO settings (key, value) VALUES (?, ?) '
+        'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+        (key, value)
+    )
+
+
 @settings_bp.route('/api/settings', methods=['GET'])
 def read_settings():
     s = get_settings()
@@ -84,11 +92,7 @@ def write_settings():
                 # For api_key, skip if the placeholder/masked value is sent back
                 if key == 'api_key' and is_masked_secret(val):
                     continue
-                conn.execute(
-                    'INSERT INTO settings (key, value) VALUES (?, ?) '
-                    'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-                    (key, val)
-                )
+                upsert_setting(conn, key, val)
     return read_settings()
 
 
@@ -323,11 +327,7 @@ def delete_preset(preset_id):
         ).fetchone()
         conn.execute('DELETE FROM api_presets WHERE id = ?', (preset_id,))
         if active and active['value'] == str(preset_id):
-            conn.execute(
-                'INSERT INTO settings (key, value) VALUES (?, ?) '
-                'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-                ('active_api_preset', '')
-            )
+            upsert_setting(conn, 'active_api_preset', '')
         return jsonify({'success': True})
 
 
@@ -339,14 +339,6 @@ def activate_preset(preset_id):
             return jsonify({'error': 'Preset not found'}), 404
         # Write preset fields into the settings table
         for key in PRESET_FIELDS:
-            conn.execute(
-                'INSERT INTO settings (key, value) VALUES (?, ?) '
-                'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-                (key, row[key])
-            )
-        conn.execute(
-            'INSERT INTO settings (key, value) VALUES (?, ?) '
-            'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-            ('active_api_preset', str(preset_id))
-        )
+            upsert_setting(conn, key, row[key])
+        upsert_setting(conn, 'active_api_preset', str(preset_id))
     return read_settings()

@@ -72,14 +72,14 @@ def normalize_to_v2(card_data):
     }
 
 
-def _safe_int(value, default):
+def safe_int(value, default):
     try:
         return int(value) if value is not None and value != '' else default
     except (TypeError, ValueError):
         return default
 
 
-def _coerce_keys(value):
+def coerce_keys(value):
     if value is None:
         return []
     if isinstance(value, str):
@@ -104,10 +104,10 @@ def _book_entries_as_list(entries):
         if not isinstance(raw_entry, dict):
             continue
         entry = deepcopy(raw_entry)
-        entry['keys'] = _coerce_keys(
+        entry['keys'] = coerce_keys(
             raw_entry.get('keys') if 'keys' in raw_entry else raw_entry.get('key')
         )
-        entry['secondary_keys'] = _coerce_keys(
+        entry['secondary_keys'] = coerce_keys(
             raw_entry.get('secondary_keys') if 'secondary_keys' in raw_entry else raw_entry.get('keysecondary')
         )
         if 'enabled' in raw_entry:
@@ -117,9 +117,9 @@ def _book_entries_as_list(entries):
         else:
             entry.setdefault('enabled', True)
         if 'insertion_order' not in raw_entry and 'order' in raw_entry:
-            entry['insertion_order'] = _safe_int(raw_entry.get('order'), 100)
+            entry['insertion_order'] = safe_int(raw_entry.get('order'), 100)
         else:
-            entry['insertion_order'] = _safe_int(raw_entry.get('insertion_order'), 100)
+            entry['insertion_order'] = safe_int(raw_entry.get('insertion_order'), 100)
         if not isinstance(entry.get('extensions'), dict):
             entry['extensions'] = {}
         out.append(entry)
@@ -139,8 +139,8 @@ def normalize_character_book(raw_book):
     book = deepcopy(raw_book)
     book.setdefault('name', '')
     book.setdefault('description', '')
-    book['scan_depth'] = _safe_int(book.get('scan_depth'), 20)
-    book['max_entries'] = _safe_int(book.get('max_entries'), 20)
+    book['scan_depth'] = safe_int(book.get('scan_depth'), 20)
+    book['max_entries'] = safe_int(book.get('max_entries'), 20)
     book['recursive_scanning'] = bool(book.get('recursive_scanning', False))
     if not isinstance(book.get('extensions'), dict):
         book['extensions'] = {}
