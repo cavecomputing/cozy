@@ -12,8 +12,10 @@ RUN groupadd -g "${GID}" cozy \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
 COPY . .
 
@@ -21,6 +23,7 @@ RUN mkdir -p /data/characters /data/personas /data/themes \
  && chown -R cozy:cozy /app /data
 
 ENV COZY_DATA_DIR=/data
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 5001
 

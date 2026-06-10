@@ -4,20 +4,20 @@
 
 ### Prerequisites
 
-- Python 3.10+
-- pip
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/)
 
 ### Install dependencies
 
 ```bash
-pip install -r requirements.txt
-pip install -r requirements-dev.txt   # for running tests
+uv sync            # runtime deps
+uv sync --dev      # include test deps (pytest)
 ```
 
 ### Start the app
 
 ```bash
-python app.py
+uv run python app.py
 ```
 
 This starts Flask's dev server on **port 5001** with auto-reload. Open `http://localhost:5001` in your browser.
@@ -93,7 +93,7 @@ Pull the latest code and reinstall dependencies:
 
 ```bash
 git pull
-pip install -r requirements.txt
+uv sync
 ```
 
 Then restart the app. Current schema setup and seed data run automatically on startup.

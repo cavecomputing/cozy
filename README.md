@@ -17,8 +17,7 @@ and any OpenAI-compatible LLM endpoint.
 ### Python
 
 ```bash
-uv venv
-uv pip install -r requirements.txt
+uv sync
 uv run python app.py
 ```
 
