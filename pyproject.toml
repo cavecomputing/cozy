@@ -1,6 +1,6 @@
 [project]
 name = "cozy"
-version = "0.1.0"
+version = "1.1.0"
 description = "A single-user Flask web app for chatting with LLM character cards."
 readme = "README.md"
 requires-python = ">=3.12"
