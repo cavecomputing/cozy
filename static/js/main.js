@@ -589,6 +589,17 @@ function bindLorebookHandlers() {
     // Inline notice — dismiss
     el.lorebookNoticeDismiss?.addEventListener('click', dismissLorebookNotice);
 
+    // "No API configured" notice — deep-link to the API settings section
+    el.apiNoticeSettings?.addEventListener('click', e => {
+        e.stopPropagation();
+        if (el.apiNotice) el.apiNotice.hidden = true;
+        if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
+        applySettingsSection('api', { drillIntoOnMobile: true });
+    });
+    el.apiNoticeDismiss?.addEventListener('click', () => {
+        if (el.apiNotice) el.apiNotice.hidden = true;
+    });
+
     // Lorebook list (settings panel) — select / export / delete per row
     el.lorebookList?.addEventListener('click', e => {
         const item = e.target.closest('.lorebook-list-item');

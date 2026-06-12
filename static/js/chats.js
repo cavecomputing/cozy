@@ -233,6 +233,35 @@ export async function selectChat(chat) {
     savePrefs();
 }
 
+// Matches the syslogStamp() default name ("May 18 16:54:17") given to new chats.
+const DEFAULT_CHAT_NAME_RE = /^[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2}:\d{2}$/;
+
+/**
+ * Name a still-default-named chat after its first user message.
+ * Fire-and-forget: failures only log — the chat keeps its timestamp name.
+ */
+export async function maybeAutoNameChat(text) {
+    const chat = state.activeChat;
+    if (!chat || !text) return;
+    if (!DEFAULT_CHAT_NAME_RE.test(chat.name || '') && chat.name !== 'New Chat') return;
+    if (state.messages.filter(m => m.role === 'user').length !== 1) return;
+
+    let name = text.replace(/\s+/g, ' ').trim();
+    if (name.length > 40) name = name.slice(0, 40).replace(/\s+\S*$/, '') + '…';
+    if (!name) return;
+
+    try {
+        const updated = await API.renameChat(chat.id, name);
+        const idx = state.chats.findIndex(c => c.id === chat.id);
+        if (idx >= 0) state.chats[idx] = updated;
+        if (state.activeChat?.id === chat.id) state.activeChat = updated;
+        renderChats();
+        updateComposerState();
+    } catch (err) {
+        console.warn('Chat auto-name failed:', err);
+    }
+}
+
 export async function createNewChat(autoSelect = true, silent = false) {
     if (!state.activeCharacter) return;
     const name = syslogStamp();

@@ -1,7 +1,7 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
-    applyAvatar, getInitials, resolveTemplateVariables, showToast,
+    applyAvatar, getInitials, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode,
 } from './utils.js';
@@ -53,6 +53,10 @@ function updateSwipeNav(msgEl, swipes, idx, isGreeting) {
 }
 
 async function generateSwipe(msgEl, swipes, idx) {
+    if (!state.apiModel) {
+        showApiNotice();
+        return null;
+    }
     const stateMsg = findStateMsg(swipes, msgEl);
     const msgId = stateMsg?.id;
     const contentEl = msgEl.querySelector('.message-content');

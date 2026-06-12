@@ -88,14 +88,32 @@ export function resolveTemplateVariables(template, context) {
 // ═══════════════════════════════════════════════════════════════════════════
 // TOAST NOTIFICATIONS
 // ═══════════════════════════════════════════════════════════════════════════
-export function showToast(message, type = 'error', duration = 5000) {
+export function showToast(message, type = 'error', duration = 5000, action = null) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.setAttribute('role', 'alert');
     toast.textContent = message;
+    if (action) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'toast-action';
+        btn.textContent = action.label;
+        btn.addEventListener('click', () => { toast.remove(); action.onClick(); });
+        toast.appendChild(btn);
+    }
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, duration);
+}
+
+// Inline "no API configured" notice above the composer. Shown when a send is
+// attempted without a model; cleared on dismiss or once a model is set.
+export function showApiNotice() {
+    if (el.apiNotice) el.apiNotice.hidden = false;
+}
+
+export function hideApiNotice() {
+    if (el.apiNotice) el.apiNotice.hidden = true;
 }
 
 export function scrollToBottom() {
@@ -166,6 +184,7 @@ function updateComposerContextControls(hasChat, hasCharacter) {
 
 export function updateComposerState() {
     if (!el.userInput || !el.sendBtn) return;
+    if (state.apiModel) hideApiNotice();
     const hasChat = !!state.activeCharacter && !!state.activeChat;
     const hasCharacter = !!state.activeCharacter;
     el.inputContainer?.classList.toggle('composer-no-character', !hasCharacter);

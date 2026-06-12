@@ -1101,6 +1101,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .message-container {
     display: flex;
     width: 100%;
+    /* Cap line length for readability on wide viewports; the scroll
+       container stays full-width so the scrollbar hugs the window edge. */
+    max-width: var(--chat-max-width, 56rem);
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .message-wrapper {
@@ -1599,6 +1604,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 
 #input-wrapper {
     order: 2;
+    width: 100%;
+    max-width: var(--chat-max-width, 56rem);
+    margin-left: auto;
+    margin-right: auto;
     position: relative;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
@@ -1707,7 +1716,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     align-items: center;
     gap: 0.55rem;
     width: 100%;
-    margin: 0 0 0.28rem;
+    max-width: var(--chat-max-width, 56rem);
+    margin: 0 auto 0.28rem;
     padding: 0;
     color: var(--text-secondary);
     font-size: 0.72rem;
@@ -3374,6 +3384,20 @@ input[type="checkbox"]:disabled {
 .toast.error   { background-color: var(--danger-color);  color: var(--toast-color, white); }
 .toast.success { background-color: var(--success-color); color: var(--toast-color, white); }
 
+.toast-action {
+    display: block;
+    margin-top: 0.45rem;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 0.15rem 0.55rem;
+    cursor: pointer;
+}
+.toast-action:hover { background: rgba(255, 255, 255, 0.15); }
+
 @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
@@ -3812,10 +3836,23 @@ input[type="checkbox"]:disabled {
 
 .gallery-content {
     display: grid;
-    grid-template-columns: minmax(460px, 1fr) minmax(360px, 30vw);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 30vw);
     gap: 0.5rem;
     min-height: 0;
     padding: 0.5rem;
+}
+
+/* Below ~1150px the rail + card grid + 360px inspector exceed the viewport
+   and the right edge clipped (no horizontal scroll). Let the inspector and
+   toolbar give ground instead. */
+@media (max-width: 900px) {
+    .gallery-content {
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 36vw);
+    }
+
+    .gallery-toolbar {
+        flex-wrap: wrap;
+    }
 }
 
 .gallery-grid-pane {
@@ -5036,7 +5073,9 @@ input[type="checkbox"]:disabled {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin: 0 0 0.5rem;
+    width: 100%;
+    max-width: var(--chat-max-width, 56rem);
+    margin: 0 auto 0.5rem;
     padding: 0.4rem 0.75rem;
     background-color: var(--hover-bg);
     border: 1px solid var(--border-color);
@@ -5057,6 +5096,24 @@ input[type="checkbox"]:disabled {
     opacity: 0.7;
 }
 .lorebook-notice-dismiss:hover { opacity: 1; color: var(--text-color); }
+
+.api-notice svg { color: var(--danger-color); }
+
+.notice-action-btn {
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--accent-color);
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+}
+.notice-action-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-color);
+}
 
 /* Active-lorebook flyout (next to composer) */
 .lorebook-flyout {
