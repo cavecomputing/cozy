@@ -1,4 +1,5 @@
 import { state, el } from './state.js';
+import { scrollToBottom } from './utils.js';
 import { estimateMessagesTokens, estimateMessageTokens, selectContextMessages } from './tokenizer.js';
 
 export function getContextMaxTokens() {
@@ -14,6 +15,7 @@ export function updateContextMeter() {
         el.contextTokenMeter.hidden = true;
         return;
     }
+    const wasHidden = el.contextTokenMeter.hidden;
 
     const maxTokens = getContextMaxTokens();
     const stripThinking = !el.sendThinking?.checked;
@@ -34,4 +36,14 @@ export function updateContextMeter() {
         el.contextTokenMeter.dataset.level = pct >= 90 ? 'danger' : (pct >= 70 ? 'warn' : 'ok');
     }
     el.contextTokenMeter.hidden = false;
+
+    // Revealing the meter grows the composer and shrinks the chat area, which
+    // strands a bottom-anchored scroll ~20px short and clips the last message
+    // (chat load and the settings toggle both reveal it after messages render).
+    // Re-anchor when the view was at the bottom; 60px matches the autoScroll
+    // threshold in bindScrollHandlers.
+    if (wasHidden && el.chatHistory) {
+        const sc = el.chatHistory;
+        if (sc.scrollHeight - sc.scrollTop - sc.clientHeight < 60) scrollToBottom();
+    }
 }
