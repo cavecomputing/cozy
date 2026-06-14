@@ -25,6 +25,7 @@ const gallery = {
     view: 'all',
     query: '',
     dirty: false,
+    heroPos: 10,
     pendingAvatarFile: null,
     pendingNewIcon: '',
     iconPickerTarget: null,
@@ -63,6 +64,7 @@ function getEls() {
         viewCount: q('gallery-view-count'),
         inspectorEmpty: q('gallery-inspector-empty'),
         editor: q('gallery-editor'),
+        hero: document.querySelector('.gallery-hero'),
         heroBg: q('gallery-hero-bg'),
         avatarInput: q('gallery-avatar-input'),
         heading: q('gallery-editor-heading'),
@@ -336,6 +338,19 @@ function switchTab(tab) {
     });
 }
 
+function clampHeroPos(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 10;
+}
+
+function applyHeroPosition(char) {
+    const e = getEls();
+    const hasImage = !!char?.avatar_url || gallery.pendingAvatarFile;
+    gallery.heroPos = clampHeroPos(char?.extensions?.cozy_hero_position ?? 10);
+    e.heroBg.style.backgroundPosition = `center ${gallery.heroPos}%`;
+    e.hero?.classList.toggle('repositionable', !!hasImage);
+}
+
 function fillEditor(char) {
     const e = getEls();
     if (!char) {
@@ -346,6 +361,7 @@ function fillEditor(char) {
     e.inspectorEmpty.hidden = true;
     e.editor.hidden = false;
     applyAvatar(e.heroBg, char);
+    applyHeroPosition(char);
     e.heading.textContent = char.name || 'Unnamed';
     e.subtitle.textContent = characterSubtitle(char);
     e.status.textContent = isArchived(char) ? 'Archived' : 'Active';
@@ -476,6 +492,10 @@ function collectEditorData() {
         alternate_greetings: greetingEditor.get(),
         creator: fields.creator.value,
         character_version: fields.version.value,
+        extensions: {
+            ...(selectedCharacter()?.extensions || {}),
+            cozy_hero_position: gallery.heroPos,
+        },
     };
 }
 
@@ -675,6 +695,45 @@ async function removeSelectedFromCollection(collectionId) {
     }
 }
 
+function bindHeroDrag(e) {
+    if (!e.hero) return;
+    let startY = 0;
+    let startPos = 10;
+    let dragging = false;
+
+    e.hero.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        if (event.target.closest('button, label, a')) return;
+        const char = selectedCharacter();
+        if (!char?.avatar_url && !gallery.pendingAvatarFile) return;
+        dragging = true;
+        startY = event.clientY;
+        startPos = gallery.heroPos;
+        e.hero.classList.add('dragging');
+        e.hero.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    });
+
+    e.hero.addEventListener('pointermove', event => {
+        if (!dragging) return;
+        const height = e.hero.offsetHeight || 1;
+        gallery.heroPos = clampHeroPos(startPos - ((event.clientY - startY) / height) * 100);
+        e.heroBg.style.backgroundPosition = `center ${gallery.heroPos}%`;
+        setDirty(true);
+    });
+
+    const endDrag = event => {
+        if (!dragging) return;
+        dragging = false;
+        e.hero.classList.remove('dragging');
+        if (e.hero.hasPointerCapture?.(event.pointerId)) {
+            e.hero.releasePointerCapture(event.pointerId);
+        }
+    };
+    e.hero.addEventListener('pointerup', endDrag);
+    e.hero.addEventListener('pointercancel', endDrag);
+}
+
 function bindEvents() {
     const e = getEls();
     e.openBtn?.addEventListener('click', openGallery);
@@ -789,10 +848,12 @@ function bindEvents() {
         reader.onload = event => {
             e.heroBg.style.backgroundImage = `url('${event.target.result}')`;
             e.heroBg.dataset.hasImage = 'true';
+            e.hero?.classList.add('repositionable');
         };
         reader.readAsDataURL(file);
         setDirty(true);
     });
+    bindHeroDrag(e);
     e.pinBtn.addEventListener('click', togglePin);
     e.collectionAdd.addEventListener('change', () => {
         const value = Number(e.collectionAdd.value);

@@ -4139,12 +4139,21 @@ input[type="checkbox"]:disabled {
     isolation: isolate;
 }
 
+.gallery-hero.repositionable {
+    cursor: grab;
+}
+
+.gallery-hero.repositionable.dragging {
+    cursor: grabbing;
+}
+
 .gallery-hero-bg {
     position: absolute;
     inset: 0;
     background-size: cover;
     background-position: center 10%;
     background-repeat: no-repeat;
+    touch-action: none;
 }
 
 .gallery-hero-scrim {

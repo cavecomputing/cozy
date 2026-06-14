@@ -438,6 +438,15 @@ class TestCharacterBookUpdate:
         assert card.get('spec') == 'chara_card_v2'
         assert card.get('spec_version') == '2.0'
 
+    def test_update_persists_extensions(self, client, sample_character):
+        r = client.put(f'/api/characters/{sample_character["id"]}', json={
+            'extensions': {'cozy_hero_position': 60, 'foo': 'bar'},
+        })
+        assert r.status_code == 200
+        char = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert char['extensions']['cozy_hero_position'] == 60
+        assert char['extensions']['foo'] == 'bar'
+
 
 # ── Pin / favourite ────────────────────────────────────────────────────────
 
