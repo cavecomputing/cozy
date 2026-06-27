@@ -21,7 +21,7 @@ SETTINGS_KEYS = {
     'sampler_temperature', 'sampler_top_p', 'sampler_top_k',
     'sampler_min_p', 'sampler_max_tokens', 'sampler_repetition_penalty',
     'sampler_dynatemp_range', 'sampler_dynatemp_exponent',
-    'sampler_typical_p', 'sampler_top_n_sigma', 'sampler_tfs_z',
+    'sampler_typical_p', 'sampler_top_n_sigma',
     'sampler_repeat_last_n',
     'sampler_presence_penalty', 'sampler_frequency_penalty',
     'sampler_dry_multiplier', 'sampler_dry_base',

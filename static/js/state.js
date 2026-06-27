@@ -123,7 +123,6 @@ export function initElements() {
         samplerMinP:           document.getElementById('settings-sampler-min-p'),
         samplerTypicalP:       document.getElementById('settings-sampler-typical-p'),
         samplerTopNSigma:      document.getElementById('settings-sampler-top-n-sigma'),
-        samplerTfsZ:           document.getElementById('settings-sampler-tfs-z'),
         samplerRepPenalty:     document.getElementById('settings-sampler-rep-penalty'),
         samplerRepeatLastN:    document.getElementById('settings-sampler-repeat-last-n'),
         samplerPresencePen:    document.getElementById('settings-sampler-presence-penalty'),

@@ -544,11 +544,6 @@
                                 <label class="settings-row-label" for="settings-sampler-top-n-sigma">Top-N Sigma</label>
                                 <input type="number" id="settings-sampler-top-n-sigma" class="form-input" step="0.1" min="-1" max="10" value="-1">
                             </div>
-                            <!-- TFS-Z -->
-                            <div class="settings-row" data-sampler="tfs_z">
-                                <label class="settings-row-label" for="settings-sampler-tfs-z">TFS-Z</label>
-                                <input type="number" id="settings-sampler-tfs-z" class="form-input" step="0.01" min="0" max="1" value="1.0">
-                            </div>
                             <!-- Presence Penalty -->
                             <div class="settings-row" data-sampler="presence_penalty">
                                 <label class="settings-row-label" for="settings-sampler-presence-penalty">Presence Penalty</label>
@@ -1252,10 +1247,6 @@ Calm and patient.</pre>
                         <div class="sampler-help-row">
                             <dt>Top-N Sigma</dt>
                             <dd>Filters tokens by their distance from the mean (in standard deviations) of the model's logit scores. -1 = off. Newer alternative to Top-P/Min-P.</dd>
-                        </div>
-                        <div class="sampler-help-row">
-                            <dt>TFS-Z (Tail-Free Sampling)</dt>
-                            <dd>Trims the long flat tail of low-probability tokens by looking at the curve's second derivative. 1.0 = off. Lower = more aggressive trimming.</dd>
                         </div>
                         <div class="sampler-help-row">
                             <dt>Presence Penalty</dt>

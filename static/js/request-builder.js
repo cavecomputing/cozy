@@ -3,7 +3,7 @@ import { resolveTemplateVariables } from './utils.js';
 import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import { API } from './api.js';
-import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, SAMPLER_GROUPS, FIELD_TO_GROUP, INT_PARAMS } from './sampler.js';
+import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, SAMPLER_GROUPS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
 import { selectContextMessages } from './tokenizer.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -120,7 +120,8 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         const group = FIELD_TO_GROUP[key];
         if (state.activeSamplers && group && !state.activeSamplers.has(group)) continue;
         const val = el[elName]?.value || SAMPLER_DEFAULTS[key];
-        const paramName = key.replace('sampler_', '');
+        let paramName = key.replace('sampler_', '');
+        paramName = API_PARAM_ALIASES[paramName] || paramName;
         const num = INT_PARAMS.has(paramName)
             ? parseInt(val, 10) : parseFloat(val);
         if (!isNaN(num)) samplers[paramName] = num;

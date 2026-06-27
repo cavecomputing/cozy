@@ -13,7 +13,6 @@ export const SAMPLER_DEFAULTS = {
     sampler_min_p:              '0',
     sampler_typical_p:          '1.0',
     sampler_top_n_sigma:        '-1',
-    sampler_tfs_z:              '1.0',
     sampler_repetition_penalty: '1.0',
     sampler_repeat_last_n:      '64',
     sampler_presence_penalty:   '0',
@@ -45,7 +44,6 @@ export const SAMPLER_FIELDS = {
     sampler_min_p:              'samplerMinP',
     sampler_typical_p:          'samplerTypicalP',
     sampler_top_n_sigma:        'samplerTopNSigma',
-    sampler_tfs_z:              'samplerTfsZ',
     sampler_repetition_penalty: 'samplerRepPenalty',
     sampler_repeat_last_n:      'samplerRepeatLastN',
     sampler_presence_penalty:   'samplerPresencePen',
@@ -71,7 +69,6 @@ export const SAMPLER_GROUPS = {
     min_p:              { label: 'Min-P',              fields: ['sampler_min_p'] },
     typical_p:          { label: 'Typical-P',          fields: ['sampler_typical_p'] },
     top_n_sigma:        { label: 'Top-N Sigma',        fields: ['sampler_top_n_sigma'] },
-    tfs_z:              { label: 'TFS-Z',              fields: ['sampler_tfs_z'] },
     repetition_penalty: { label: 'Rep. Penalty',       fields: ['sampler_repetition_penalty', 'sampler_repeat_last_n'] },
     presence_penalty:   { label: 'Presence Penalty',   fields: ['sampler_presence_penalty'] },
     frequency_penalty:  { label: 'Frequency Penalty',  fields: ['sampler_frequency_penalty'] },
@@ -99,6 +96,10 @@ export const INT_PARAMS = new Set([
     'max_tokens', 'top_k', 'repeat_last_n', 'dry_allowed_length',
     'dry_penalty_last_n', 'mirostat', 'seed',
 ]);
+
+// Internal sampler key -> llama.cpp API parameter name (when they differ).
+// llama.cpp only recognizes `repeat_penalty`, not `repetition_penalty`.
+export const API_PARAM_ALIASES = { repetition_penalty: 'repeat_penalty' };
 
 function getActiveSamplers(settings) {
     const raw = settings.active_samplers;
