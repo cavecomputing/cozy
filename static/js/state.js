@@ -61,7 +61,6 @@ export function initElements() {
         flyoutNewChatBtn:document.getElementById('flyout-new-chat-btn'),
         flyoutImportChatBtn: document.getElementById('flyout-import-chat-btn'),
         flyoutImportChatFile: document.getElementById('flyout-import-chat-file'),
-        newCharBtn:      document.getElementById('new-char-btn'),
         collapsedNewCharBtn: document.getElementById('collapsed-new-char-btn'),
         emptyNewCharBtn: document.getElementById('empty-new-char-btn'),
         currentCharName: document.getElementById('current-char-name'),
