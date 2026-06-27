@@ -271,12 +271,8 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Extra Request Parameters</h4>
-                                    <p>Additional JSON fields merged into every chat completion request. Useful for backend-specific parameters not exposed in the sampler controls.</p>
+                                    <p>Additional JSON fields merged into every chat completion request. Useful for backend-specific parameters not exposed in the sampler controls. <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;">?</span></p>
                                 </header>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-extra-params">Extra Parameters</label>
-                                    <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;">?</span>
-                                </div>
                                 <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"top_a": 0.5, "min_p": 0.05}'></textarea>
                                 <p class="settings-hint">Enter valid JSON. Each key-value pair is merged into the LLM request body. Invalid JSON is silently ignored. Overrides generated values if keys conflict.</p>
                             </section>
