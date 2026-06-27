@@ -401,6 +401,12 @@ function bindSettingsHandlers() {
         });
     }
 
+    // Extra request params — save on blur
+    el.extraParams?.addEventListener('change', () => {
+        state.extraRequestParams = el.extraParams.value;
+        queueSettingsSave({ extra_request_params: el.extraParams.value });
+    });
+
     // Context budget — save on change and update warning + meter
     el.settingsContextTokens?.addEventListener('change', () => {
         state.contextMaxTokens = el.settingsContextTokens.value || '0';

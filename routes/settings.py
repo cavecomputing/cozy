@@ -35,6 +35,7 @@ SETTINGS_KEYS = {
     'context_max_tokens',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
+    'extra_request_params',
 }
 
 

@@ -245,6 +245,10 @@ def init_db():
             "INSERT INTO settings (key, value) VALUES ('show_context_token_meter', '1') "
             "ON CONFLICT(key) DO NOTHING"
         )
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('extra_request_params', '') "
+            "ON CONFLICT(key) DO NOTHING"
+        )
 
         # One-shot cleanup: a previous bug re-seeded character greetings into
         # the END of long chats whenever the messages GET failed. Remove any

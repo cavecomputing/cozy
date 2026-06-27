@@ -35,6 +35,7 @@ export const state = {
     lorebooks:           [],     // standalone DB lorebooks (summary list)
     lorebookScanDepthOverride: 0,
     lorebookAlwaysInjectAll: false,
+    extraRequestParams: '',
 };
 
 // Active LLM request controller — mutable ref shared across modules
@@ -184,6 +185,7 @@ export function initElements() {
         lorebookAddEntry:    document.getElementById('settings-lorebook-add-entry'),
         lorebookSave:        document.getElementById('settings-lorebook-save'),
         lorebookDestination: document.getElementById('settings-lorebook-destination'),
+        extraParams: document.getElementById('settings-extra-params'),
     });
 }
 

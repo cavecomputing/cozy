@@ -128,7 +128,20 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     }
     if (samplers.seed === -1) samplers.seed = Math.floor(Math.random() * 2147483647);
 
-    return { model: state.apiModel || '', messages: enforceAlternation(messages), ...samplers };
+    const payload = { model: state.apiModel || '', messages: enforceAlternation(messages), ...samplers };
+
+    if (state.extraRequestParams) {
+        try {
+            const extra = JSON.parse(state.extraRequestParams);
+            if (extra && typeof extra === 'object' && !Array.isArray(extra)) {
+                Object.assign(payload, extra);
+            }
+        } catch (e) {
+            console.warn('Invalid extra_request_params JSON:', e.message);
+        }
+    }
+
+    return payload;
 }
 
 function enforceAlternation(arr) {
