@@ -105,6 +105,12 @@ def llm_chat():
     def generate():
         nonlocal token_count
         full_response = []
+        # Diagnostics for truncation reports: why did the stream stop?
+        #   finish_reason 'length' -> hit max_tokens (raise it / reasoning ate it)
+        #   finish_reason 'stop'   -> model decided it was done
+        #   saw_done False         -> upstream/proxy severed the stream early
+        finish_reason = None
+        saw_done = False
         try:
             # (connect, read) tuple: bound the connection attempt at 10s, but
             # never time out waiting for tokens. Slow local backends (llama.cpp
@@ -118,17 +124,21 @@ def llm_chat():
                     if not line:
                         continue
                     if line.startswith('data: [DONE]'):
+                        saw_done = True
                         yield 'data: [DONE]\n\n'
                         break
                     if line.startswith('data: '):
                         yield line + '\n\n'
-                        # Collect tokens for response log
+                        # Collect tokens + finish_reason for response log
                         try:
                             chunk = json.loads(line[6:])
-                            tok = chunk.get('choices', [{}])[0].get('delta', {}).get('content', '')
+                            choice = chunk.get('choices', [{}])[0]
+                            tok = choice.get('delta', {}).get('content', '')
                             if tok:
                                 full_response.append(tok)
                                 token_count += 1
+                            if choice.get('finish_reason'):
+                                finish_reason = choice['finish_reason']
                         except (json.JSONDecodeError, IndexError):
                             pass
         except http_requests.RequestException as e:
@@ -137,6 +147,17 @@ def llm_chat():
         finally:
             log.info('── LLM RESPONSE ──')
             log.info('  Tokens: %d chunks', token_count)
+            log.info('  Finish: %s', finish_reason or '(none)')
+            if not saw_done and finish_reason is None:
+                # No [DONE] and no finish_reason: the upstream connection ended
+                # mid-stream. Usually a reverse proxy / load balancer timeout or
+                # response buffering in front of the endpoint. Surfaces to the
+                # user as a silently truncated reply.
+                log.warning('  Stream ended without [DONE] or finish_reason '
+                            '(upstream proxy closed/buffered the connection early?)')
+            elif finish_reason == 'length':
+                log.info('  Note: hit max_tokens — raise sampler_max_tokens, or '
+                         'reasoning output is consuming the token budget.')
             if log.isEnabledFor(logging.DEBUG):
                 text = ''.join(full_response)
                 preview = (text[:200] + '\u2026') if len(text) > 200 else text
