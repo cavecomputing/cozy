@@ -1565,15 +1565,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 .composer-context-btn {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 13rem;
-    gap: 0.4rem;
-    padding: 0.35rem 0.55rem;
+    flex: 0 0 auto;
+    max-width: none;
+    gap: 0;
+    padding: 0.5rem;
     border: 1px solid transparent;
-    background-color: color-mix(in srgb, var(--hover-bg) 62%, transparent);
     color: var(--text-secondary);
-    white-space: nowrap;
 }
 
 .composer-context-btn:hover,
@@ -1586,15 +1583,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .composer-context-btn:disabled:hover {
     border-color: transparent;
     background-color: color-mix(in srgb, var(--hover-bg) 62%, transparent);
-}
-
-.composer-context-label {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.78rem;
-    font-weight: 500;
 }
 
 #input-wrapper {
@@ -4901,10 +4889,6 @@ input[type="checkbox"]:disabled {
     .composer-context-btn:hover,
     .composer-context-btn[aria-expanded="true"] {
         border-color: transparent;
-    }
-
-    .composer-context-label {
-        display: none;
     }
 
     #user-input {

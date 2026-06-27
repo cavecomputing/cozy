@@ -154,7 +154,6 @@ function activeLorebookLabel() {
 function updateComposerContextControls(hasChat, hasCharacter) {
     if (el.chatFlyoutBtn) {
         const label = hasChat ? activeChatLabel() : 'Chats';
-        if (el.chatContextLabel) el.chatContextLabel.textContent = hasChat ? `# ${label}` : 'Chats';
         el.chatFlyoutBtn.disabled = !hasChat;
         el.chatFlyoutBtn.title = hasChat ? `Chats: ${label}` : 'Select a character to manage chats';
         el.chatFlyoutBtn.setAttribute(
@@ -169,7 +168,6 @@ function updateComposerContextControls(hasChat, hasCharacter) {
 
     if (el.lorebookFlyoutBtn) {
         const label = hasChat ? activeLorebookLabel() : 'Book';
-        if (el.lorebookContextLabel) el.lorebookContextLabel.textContent = hasChat ? `Book: ${label}` : 'Book';
         el.lorebookFlyoutBtn.disabled = !hasChat;
         el.lorebookFlyoutBtn.title = hasChat
             ? `Lorebook for this chat: ${label}`
