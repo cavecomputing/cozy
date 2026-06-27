@@ -444,8 +444,9 @@ function bindCharacterHandlers() {
         Modal.open(char);
     };
 
-    // New character - only from collapsed sidebar (gallery is primary)
+    // New character - collapsed sidebar button + empty-state CTA (gallery is primary)
     el.collapsedNewCharBtn?.addEventListener('click', () => openCharacterModal());
+    el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
     // Character list — select / edit / delete / pin
     el.charList.addEventListener('click', e => {
