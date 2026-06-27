@@ -42,8 +42,15 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     //    template resolution.
     let msgs = excludeLastN > 0 ? state.messages.slice(0, -excludeLastN) : state.messages;
     // 0 = no cap (entire history sent). Otherwise, fill back-to-front until the
-    // approximate token budget is hit.
-    const tokenLimit = parseInt(el.settingsContextTokens?.value || state.contextMaxTokens || '0', 10) || 0;
+    // approximate token budget is hit — but first carve out room for the reply.
+    // The configured budget is the whole context window; if history is allowed
+    // to fill all of it the model has no space left to answer and llama.cpp
+    // truncates the response mid-sentence (truncated=1). Reserve Max Response
+    // Tokens so prompt + reply fit the window.
+    const ctxBudget = parseInt(el.settingsContextTokens?.value || state.contextMaxTokens || '0', 10) || 0;
+    const maxResponseTokens = parseInt(
+        el.samplerMaxTokens?.value || SAMPLER_DEFAULTS.sampler_max_tokens, 10) || 0;
+    const tokenLimit = ctxBudget > 0 ? Math.max(1, ctxBudget - maxResponseTokens) : 0;
     const stripThinking = !el.sendThinking?.checked;
     msgs = selectContextMessages(msgs, {
         maxTokens: tokenLimit,

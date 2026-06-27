@@ -261,8 +261,14 @@
                                     <input type="number" id="settings-context-tokens" class="form-input"
                                            min="0" step="256" value="32768" placeholder="0 = no cap">
                                 </div>
-                                <p class="settings-hint">Approximate chat-history budget — Cozy fills messages from newest to oldest until the budget is hit. <strong>0 = no cap</strong> (send the whole history, useful for very large context models). Token counts are estimates marked with <code>≈</code> in the meter.</p>
+                                <p class="settings-hint">Total context-window budget — set this to your model's context size. Cozy fills chat history newest-to-oldest until the budget is hit, after first reserving <strong>Max Response Tokens</strong> below so the reply has room. <strong>0 = no cap</strong> (send the whole history, useful for very large context models). Token counts are estimates marked with <code>≈</code> in the meter.</p>
                                 <span id="context-size-warning" class="settings-warning" hidden></span>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-sampler-max-tokens">Max Response Tokens</label>
+                                    <input type="number" id="settings-sampler-max-tokens" class="form-input"
+                                           step="1" min="1" max="32768" value="512">
+                                </div>
+                                <p class="settings-hint">Most tokens the model may generate per reply (OpenAI <code>max_tokens</code>). Cozy subtracts this from the context budget above so the prompt and the reply fit the window together.</p>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-send-thinking">Send thinking in context</label>
                                     <input type="checkbox" id="settings-send-thinking">
@@ -520,11 +526,6 @@
                                     <label class="settings-row-label" for="settings-sampler-repeat-last-n">Last N Tokens</label>
                                     <input type="number" id="settings-sampler-repeat-last-n" class="form-input" step="1" min="-1" max="4096" value="64">
                                 </div>
-                            </div>
-                            <!-- Max Tokens -->
-                            <div class="settings-row" data-sampler="max_tokens">
-                                <label class="settings-row-label" for="settings-sampler-max-tokens">Max Tokens</label>
-                                <input type="number" id="settings-sampler-max-tokens" class="form-input" step="1" min="1" max="32768" value="512">
                             </div>
                             </section>
                             <section class="settings-card sampler-advanced-card">
@@ -1237,10 +1238,6 @@ Calm and patient.</pre>
                         <div class="sampler-help-row">
                             <dt>Rep. Penalty</dt>
                             <dd>Discourages the model from repeating tokens it has recently used. 1.0 = off; 1.1–1.15 nudges it to use fresh words. <em>Last N</em> = how far back to look.</dd>
-                        </div>
-                        <div class="sampler-help-row">
-                            <dt>Max Tokens</dt>
-                            <dd>Hard cap on how many tokens (~words) the model is allowed to generate in one reply.</dd>
                         </div>
                     </dl>
                 </div>

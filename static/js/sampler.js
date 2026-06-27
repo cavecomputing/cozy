@@ -31,6 +31,11 @@ export const SAMPLER_DEFAULTS = {
     sampler_seed:               '-1',
 };
 
+// `sampler_max_tokens` stays in these field maps (so it loads, saves, and is
+// always sent in the payload) but is deliberately absent from SAMPLER_GROUPS —
+// it's surfaced as "Max Response Tokens" in the Model and context settings card,
+// not as a toggleable sampler. With no group, buildChatPayload always includes
+// it (FIELD_TO_GROUP lookup is undefined → never skipped).
 export const SAMPLER_FIELDS = {
     sampler_temperature:        'samplerTemperature',
     sampler_dynatemp_range:     'samplerDyntempRange',
@@ -73,7 +78,6 @@ export const SAMPLER_GROUPS = {
     dry:                { label: 'DRY',                fields: ['sampler_dry_multiplier', 'sampler_dry_base', 'sampler_dry_allowed_length', 'sampler_dry_penalty_last_n'] },
     mirostat:           { label: 'Mirostat',           fields: ['sampler_mirostat', 'sampler_mirostat_tau', 'sampler_mirostat_eta'] },
     xtc:                { label: 'XTC',                fields: ['sampler_xtc_probability', 'sampler_xtc_threshold'] },
-    max_tokens:         { label: 'Max Tokens',         fields: ['sampler_max_tokens'] },
     seed:               { label: 'Seed',               fields: ['sampler_seed'] },
 };
 
@@ -84,11 +88,11 @@ for (const [group, info] of Object.entries(SAMPLER_GROUPS)) {
 }
 
 export const DEFAULT_ACTIVE_GROUPS = new Set([
-    'temperature', 'top_p', 'top_k', 'min_p', 'max_tokens', 'repetition_penalty',
+    'temperature', 'top_p', 'top_k', 'min_p', 'repetition_penalty',
 ]);
 
 export const CORE_GROUPS = new Set([
-    'temperature', 'dynatemp', 'top_p', 'top_k', 'min_p', 'max_tokens', 'repetition_penalty',
+    'temperature', 'dynatemp', 'top_p', 'top_k', 'min_p', 'repetition_penalty',
 ]);
 
 export const INT_PARAMS = new Set([
