@@ -280,6 +280,11 @@ def create_preset():
         s = get_settings()
         key_val = s.get('api_key', '')
     with get_db() as conn:
+        existing = conn.execute(
+            'SELECT 1 FROM api_presets WHERE name = ?', (name,)
+        ).fetchone()
+        if existing:
+            return jsonify({'error': f'A preset named "{name}" already exists'}), 409
         cur = conn.execute(
             'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, context_max_tokens) '
             'VALUES (?, ?, ?, ?, ?)',
@@ -298,6 +303,13 @@ def update_preset(preset_id):
         if not row:
             return not_found('Preset')
         name = (data.get('name') or '').strip() or row['name']
+        if name != row['name']:
+            clash = conn.execute(
+                'SELECT 1 FROM api_presets WHERE name = ? AND id != ?',
+                (name, preset_id)
+            ).fetchone()
+            if clash:
+                return jsonify({'error': f'A preset named "{name}" already exists'}), 409
         endpoint = data.get('api_endpoint', row['api_endpoint'])
         model = data.get('api_model', row['api_model'])
         ctx_tokens = data.get('context_max_tokens', row['context_max_tokens'])

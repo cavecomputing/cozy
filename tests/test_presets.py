@@ -130,3 +130,23 @@ class TestPresetDelete:
     def test_create_requires_name(self, client):
         r = client.post('/api/presets', json={'api_endpoint': 'http://x/v1'})
         assert r.status_code == 400
+
+
+class TestPresetDuplicateName:
+    def test_create_duplicate_name_returns_409(self, client):
+        client.post('/api/presets', json={'name': 'Dupe'})
+        r = client.post('/api/presets', json={'name': 'Dupe'})
+        assert r.status_code == 409
+        assert 'Dupe' in r.get_json()['error']
+
+    def test_update_to_existing_name_returns_409(self, client):
+        client.post('/api/presets', json={'name': 'First'})
+        second = client.post('/api/presets', json={'name': 'Second'}).get_json()
+        r = client.put(f'/api/presets/{second["id"]}', json={'name': 'First'})
+        assert r.status_code == 409
+        assert 'First' in r.get_json()['error']
+
+    def test_update_keeping_own_name_succeeds(self, client):
+        created = client.post('/api/presets', json={'name': 'Keep'}).get_json()
+        r = client.put(f'/api/presets/{created["id"]}', json={'name': 'Keep'})
+        assert r.status_code == 200

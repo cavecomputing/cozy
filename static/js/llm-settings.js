@@ -283,7 +283,7 @@ export async function createNewPreset() {
         }
         showToast('Preset created', 'success');
     } catch (e) {
-        showToast('Failed to create preset');
+        showToast(e?.message || 'Failed to create preset');
         console.warn(e);
     }
 }
@@ -300,7 +300,7 @@ export async function saveActivePreset() {
         });
         showToast('Preset updated', 'success');
     } catch (e) {
-        showToast('Failed to update preset');
+        showToast(e?.message || 'Failed to update preset');
         console.warn(e);
     }
 }
