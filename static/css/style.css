@@ -3845,35 +3845,6 @@ input[type="checkbox"]:disabled {
     min-height: 0;
 }
 
-.gallery-grid-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.65rem 0.6rem 0.75rem;
-}
-
-.gallery-grid-header h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.15rem;
-}
-
-.gallery-grid-header span {
-    color: var(--text-secondary);
-    font-size: 0.82rem;
-}
-
-.gallery-density-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-
-.gallery-density-controls .icon-btn.active {
-    color: var(--accent-color);
-    background: var(--accent-edit-bg, var(--active-bg));
-}
-
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));

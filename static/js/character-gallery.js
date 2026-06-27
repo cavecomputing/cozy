@@ -60,8 +60,6 @@ function getEls() {
         iconPicker: q('gallery-icon-picker'),
         grid: q('gallery-grid'),
         empty: q('gallery-empty'),
-        viewTitle: q('gallery-view-title'),
-        viewCount: q('gallery-view-count'),
         inspectorEmpty: q('gallery-inspector-empty'),
         editor: q('gallery-editor'),
         hero: document.querySelector('.gallery-hero'),
@@ -177,16 +175,6 @@ function visibleCharacters() {
     return chars;
 }
 
-function viewTitle() {
-    if (gallery.view === 'favorites') return 'Favorites';
-    if (gallery.view === 'archived') return 'Archived';
-    if (gallery.view.startsWith('collection:')) {
-        const id = Number(gallery.view.split(':')[1]);
-        return gallery.collections.find(c => c.id === id)?.name || 'Collection';
-    }
-    return 'All Characters';
-}
-
 function setDirty(dirty) {
     gallery.dirty = dirty;
     const { saveBtn, editor } = getEls();
@@ -259,8 +247,6 @@ function renderGrid() {
     const e = getEls();
     const chars = visibleCharacters();
     e.grid.innerHTML = '';
-    e.viewTitle.textContent = viewTitle();
-    e.viewCount.textContent = `${chars.length} character${chars.length === 1 ? '' : 's'}`;
     e.empty.hidden = chars.length !== 0;
 
     chars.forEach(char => {
