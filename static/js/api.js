@@ -224,35 +224,45 @@ export const API = {
         let content = '';
         let buffer = '';
 
+        const processLine = (line) => {
+            if (line === 'data: [DONE]' || !line.startsWith('data: ')) return;
+            try {
+                const json = JSON.parse(line.slice(6));
+                if (json.error) throw new Error(json.error);
+                const delta = json.choices?.[0]?.delta || {};
+                const reasonTok = delta.reasoning_content || delta.reasoning || '';
+                const contentTok = delta.content || '';
+                if (reasonTok) reasoning += reasonTok;
+                if (contentTok) content += contentTok;
+                if (reasonTok || contentTok) {
+                    // Build combined text: wrap reasoning in thinking tags
+                    let fullText = '';
+                    if (reasoning) {
+                        fullText += '<think>' + reasoning + (content ? '</think>' : '');
+                    }
+                    fullText += content;
+                    onToken(fullText);
+                }
+            } catch (e) {
+                if (e.message && !e.message.startsWith('Unexpected')) throw e;
+            }
+        };
+
         while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+                // Flush any trailing data left in the buffer. A stream that ends
+                // without a final newline (e.g. a cut-off llama.cpp response)
+                // strands its last `data:` event here; without this the tail of
+                // the message is silently dropped. See issue #7.
+                buffer += decoder.decode();
+                if (buffer) processLine(buffer);
+                break;
+            }
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop();
-            for (const line of lines) {
-                if (line === 'data: [DONE]' || !line.startsWith('data: ')) continue;
-                try {
-                    const json = JSON.parse(line.slice(6));
-                    if (json.error) throw new Error(json.error);
-                    const delta = json.choices?.[0]?.delta || {};
-                    const reasonTok = delta.reasoning_content || delta.reasoning || '';
-                    const contentTok = delta.content || '';
-                    if (reasonTok) reasoning += reasonTok;
-                    if (contentTok) content += contentTok;
-                    if (reasonTok || contentTok) {
-                        // Build combined text: wrap reasoning in thinking tags
-                        let fullText = '';
-                        if (reasoning) {
-                            fullText += '<think>' + reasoning + (content ? '</think>' : '');
-                        }
-                        fullText += content;
-                        onToken(fullText);
-                    }
-                } catch (e) {
-                    if (e.message && !e.message.startsWith('Unexpected')) throw e;
-                }
-            }
+            for (const line of lines) processLine(line);
         }
         // Build final combined text
         let fullText = '';

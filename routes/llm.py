@@ -106,7 +106,12 @@ def llm_chat():
         nonlocal token_count
         full_response = []
         try:
-            with http_requests.post(url, json=data, headers=headers, timeout=120, stream=True) as r:
+            # (connect, read) tuple: bound the connection attempt at 10s, but
+            # never time out waiting for tokens. Slow local backends (llama.cpp
+            # on weak hardware) can take minutes on prompt prefill before the
+            # first token; the user stops a runaway generation with the Stop
+            # button instead. See issue #6.
+            with http_requests.post(url, json=data, headers=headers, timeout=(10, None), stream=True) as r:
                 r.raise_for_status()
                 r.encoding = 'utf-8'
                 for line in r.iter_lines(decode_unicode=True):
