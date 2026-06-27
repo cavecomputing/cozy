@@ -385,9 +385,21 @@ body {
 }
 
 .char-item:hover .char-item-actions,
-.char-item:focus-within .char-item-actions,
-.char-item.pinned .char-item-actions {
+.char-item:focus-within .char-item-actions {
     display: flex;
+}
+
+/* A favorited row keeps its star visible at rest; edit/delete still
+   appear only on hover or focus, like any other row. (Desktop only —
+   on touch the whole group stays visible, see the max-width block.) */
+@media (min-width: 769px) {
+    .char-item.pinned .char-item-actions {
+        display: flex;
+    }
+    .char-item.pinned:not(:hover):not(:focus-within) .char-edit-btn,
+    .char-item.pinned:not(:hover):not(:focus-within) .char-delete-btn {
+        display: none;
+    }
 }
 
 .char-item-actions .icon-btn {
