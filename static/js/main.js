@@ -9,7 +9,7 @@ import {
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
-import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile } from './chats.js';
+import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
