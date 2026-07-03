@@ -3,7 +3,7 @@ import { resolveTemplateVariables } from './utils.js';
 import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import { API } from './api.js';
-import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, SAMPLER_GROUPS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
+import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
 import { selectContextMessages } from './tokenizer.js';
 
 // ═══════════════════════════════════════════════════════════════════════════

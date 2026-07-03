@@ -1,7 +1,7 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
-    applyAvatar, getInitials, resolveTemplateVariables, showToast, showApiNotice,
+    applyAvatar, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode,
 } from './utils.js';

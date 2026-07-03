@@ -8,10 +8,6 @@
     --mobile-composer-gap: 0.5rem;
 }
 
-body:has(#sidebar.collapsed) {
-    --sidebar-width: 64px;
-}
-
 * {
     box-sizing: border-box;
     margin: 0;
@@ -112,79 +108,95 @@ body {
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#sidebar.collapsed {
-    width: 64px;
-}
-
 .hide-on-collapse {
-    transition: opacity 0.15s ease, visibility 0.15s ease;
     overflow: hidden;
     white-space: nowrap;
 }
-
-#sidebar.collapsed .hide-on-collapse {
-    opacity: 0;
-    visibility: hidden;
-    width: 0;
-    min-width: 0;
-    padding: 0;
-    margin: 0;
-    flex: 0;
-    overflow: hidden;
-}
-
-#sidebar.collapsed .char-item,
-#sidebar.collapsed .char-select-btn,
-#sidebar.collapsed #user-profile {
-    justify-content: center;
-    padding-left: 0;
-    padding-right: 0;
-    gap: 0;
-}
-
-#sidebar.collapsed .sidebar-header {
-    justify-content: center;
-    padding: 0;
-    gap: 0;
-}
-
-/* collapsed: profile card becomes a compact centred icon button */
-#sidebar.collapsed #user-profile-container {
-    margin: 0 0.375rem 0.375rem;
-    padding: 0.2rem;
-}
-
-#sidebar.collapsed .profile-settings-row {
-    border-top: none;
-    margin-top: 0;
-    padding-top: 0;
-    height: 0;
-}
-
-/* Persona flyout positioning is set on #persona-dropup itself —
-   it always flies out to the right of the sidebar, collapsed or not. */
 
 /* Gear icon visible only when sidebar is collapsed */
 #collapsed-settings-btn {
     display: none;
 }
-#sidebar.collapsed #collapsed-settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    width: 100%;
-    padding: 8px 0;
-    border-radius: var(--radius-sm);
-    margin-top: 0.35rem;
-    transition: background 0.2s, color 0.2s;
-}
-#sidebar.collapsed #collapsed-settings-btn:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
+
+/* ── Sidebar collapse — desktop only ──────────────────────────────────
+   On mobile the sidebar is an off-canvas drawer that never collapses,
+   so none of these rules apply there. In particular the visibility
+   transition must stay out of mobile: the drawer itself toggles
+   visibility, and transitioning the inherited change on every label
+   leaves them stuck invisible on iOS Safari until the next repaint. */
+@media (min-width: 769px) {
+    body:has(#sidebar.collapsed) {
+        --sidebar-width: 64px;
+    }
+
+    #sidebar.collapsed {
+        width: 64px;
+    }
+
+    .hide-on-collapse {
+        transition: opacity 0.15s ease, visibility 0.15s ease;
+    }
+
+    #sidebar.collapsed .hide-on-collapse {
+        opacity: 0;
+        visibility: hidden;
+        width: 0;
+        min-width: 0;
+        padding: 0;
+        margin: 0;
+        flex: 0;
+        overflow: hidden;
+    }
+
+    #sidebar.collapsed .char-item,
+    #sidebar.collapsed .char-select-btn,
+    #sidebar.collapsed #user-profile {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+        gap: 0;
+    }
+
+    #sidebar.collapsed .sidebar-header {
+        justify-content: center;
+        padding: 0;
+        gap: 0;
+    }
+
+    /* collapsed: profile card becomes a compact centred icon button */
+    #sidebar.collapsed #user-profile-container {
+        margin: 0 0.375rem 0.375rem;
+        padding: 0.2rem;
+    }
+
+    #sidebar.collapsed .profile-settings-row {
+        border-top: none;
+        margin-top: 0;
+        padding-top: 0;
+        height: 0;
+    }
+
+    /* Persona flyout positioning is set on #persona-dropup itself —
+       it always flies out to the right of the sidebar, collapsed or not. */
+
+    #sidebar.collapsed #collapsed-settings-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        width: 100%;
+        padding: 8px 0;
+        border-radius: var(--radius-sm);
+        margin-top: 0.35rem;
+        transition: background 0.2s, color 0.2s;
+    }
+    #sidebar.collapsed #collapsed-settings-btn:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
 }
 
 .icon-btn {
@@ -438,21 +450,23 @@ body {
     display: none;
 }
 
-#sidebar.collapsed .collapsed-new-char-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    margin: 0 auto 0.4rem;
-}
+@media (min-width: 769px) {
+    #sidebar.collapsed .collapsed-new-char-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        margin: 0 auto 0.4rem;
+    }
 
-/* When the list is empty AND collapsed, the empty-state copy + full button
-   are hidden via .hide-on-collapse on their children, but the <li> itself
-   would still take padding and leave a gap. Collapse it to nothing so the
-   "+" button sits right under the chevron. */
-#sidebar.collapsed .char-list-empty {
-    display: none;
+    /* When the list is empty AND collapsed, the empty-state copy + full button
+       are hidden via .hide-on-collapse on their children, but the <li> itself
+       would still take padding and leave a gap. Collapse it to nothing so the
+       "+" button sits right under the chevron. */
+    #sidebar.collapsed .char-list-empty {
+        display: none;
+    }
 }
 
 /* Sidebar Sections (Chats) */
@@ -837,38 +851,6 @@ body {
     color: var(--accent-color);
 }
 
-/* ── Theme option items (used in settings flyout) ───────────────────────── */
-.theme-picker-option {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.6rem;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--text-color);
-    text-transform: capitalize;
-    transition: background 0.15s;
-}
-
-.theme-picker-option:hover {
-    background-color: var(--hover-bg);
-}
-
-.theme-picker-option.active {
-    background-color: var(--active-bg);
-    color: var(--accent-color);
-    font-weight: 600;
-}
-
-.theme-picker-option .theme-swatch {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid var(--border-color);
-    flex-shrink: 0;
-}
-
 /* ── Persona inline form ─────────────────────────────────────────────────── */
 .persona-inline-form {
     padding: 0.5rem;
@@ -996,12 +978,6 @@ body {
 .persona-option.active {
     background-color: var(--active-bg);
     color: var(--accent-color);
-}
-
-.dropup-divider {
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 0.25rem 0.5rem;
 }
 
 #main-content {
@@ -1426,7 +1402,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .msg-action-btn:hover                { background-color: var(--hover-bg); color: var(--text-color); }
 .msg-action-btn.delete-msg-btn:hover { color: var(--danger-color); }
 .msg-action-btn.save-msg-btn:hover   { color: var(--success-color); }
-.msg-action-btn.regen-msg-btn:hover  { color: var(--accent-color); }
 
 .message.user .msg-action-btn        { color: var(--user-action-color, rgba(255, 255, 255, 0.5)); }
 .message.user .msg-action-btn:hover  { background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15)); color: var(--user-action-hover-color, white); }
@@ -2265,14 +2240,6 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 .prompt-builder-tabs .tab-btn {
     padding: 0.25rem 0.55rem;
 }
-.prompt-builder-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-.prompt-builder-panel[hidden] {
-    display: none;
-}
 .prompt-vars-panel {
     grid-column: 1;
     grid-row: 2;
@@ -2361,49 +2328,6 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 
 .settings-section[hidden] { display: none; }
 
-.settings-section-note {
-    margin: 0;
-    padding: 0.5rem 0.6rem;
-    font-size: 0.72rem;
-    color: var(--text-secondary);
-}
-
-.settings-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 3rem 1.5rem;
-    color: var(--text-secondary);
-    gap: 0.5rem;
-}
-.settings-placeholder svg {
-    opacity: 0.5;
-    margin-bottom: 0.4rem;
-}
-.settings-placeholder h3 {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-color);
-}
-.settings-placeholder p {
-    margin: 0;
-    max-width: 28rem;
-    font-size: 0.82rem;
-    line-height: 1.5;
-}
-.settings-placeholder code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 0.75rem;
-    background: var(--code-bg);
-    border: 1px solid var(--code-border);
-    border-radius: 4px;
-    padding: 0.05rem 0.3rem;
-    color: var(--text-color);
-}
-
 .settings-hint {
     font-size: 0.7rem;
     color: var(--text-secondary);
@@ -2478,10 +2402,6 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     border-color: var(--accent-color);
     outline: none;
 }
-
-/* The inline .help-tip-bubble nodes (from older markup) are vestigial when
-   data-tip is present; tooltip text is rendered by tooltips.js into a portal. */
-.help-tip-bubble { display: none; }
 
 .help-tip-portal {
     position: fixed;
@@ -3823,12 +3743,6 @@ input[type="checkbox"]:disabled {
     height: 2.4rem;
 }
 
-.gallery-select {
-    width: auto;
-    min-width: 10rem;
-    height: 2.4rem;
-}
-
 .gallery-content {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(360px, 30vw);
@@ -4505,43 +4419,10 @@ input[type="checkbox"]:disabled {
         transition: none;
     }
 
-    /* Mobile always uses the full drawer, even if desktop prefs remember
-       a collapsed sidebar. This avoids stale hidden labels on iOS reloads. */
-    #sidebar.collapsed {
-        width: min(88vw, 360px);
-    }
-    #sidebar.collapsed .hide-on-collapse {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-        min-width: unset;
-        padding: revert;
-        margin: revert;
-        flex: revert;
-        overflow: visible;
-    }
-    #sidebar.collapsed .sidebar-header {
-        justify-content: initial;
-        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.75rem 0.35rem;
-        gap: initial;
-    }
-    #sidebar.collapsed .char-item,
-    #sidebar.collapsed .char-select-btn,
-    #sidebar.collapsed #user-profile {
-        justify-content: initial;
-        gap: 0.75rem;
-    }
-    #sidebar.collapsed .char-select-btn {
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-    }
-    #sidebar.collapsed #user-profile-container {
-        margin: 0 0.6rem calc(env(safe-area-inset-bottom, 0px) + 0.6rem);
-        padding: 0.3rem;
-    }
-    #sidebar.collapsed .collapsed-new-char-btn {
-        display: none;
-    }
+    /* No collapse overrides needed here — the collapse machinery
+       (.collapsed rules + .hide-on-collapse transitions) is scoped to
+       desktop widths, so a stale desktop "collapsed" pref has no effect
+       on the mobile drawer. */
 
     #mobile-backdrop.show { display: block; }
 

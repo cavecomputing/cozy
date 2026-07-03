@@ -446,9 +446,11 @@ function bindCharacterHandlers() {
         Modal.open(char);
     };
 
-    // New character - collapsed sidebar button + empty-state CTA (gallery is primary)
+    // New character — collapsed sidebar button, empty-state CTA, and the
+    // mobile header "+" (the gallery, the primary entry point, is desktop-only)
     el.collapsedNewCharBtn?.addEventListener('click', () => openCharacterModal());
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
+    el.mobileNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
     // Character list — select / edit / delete / pin
     el.charList.addEventListener('click', e => {
@@ -491,7 +493,7 @@ function bindCharacterHandlers() {
             if (char) openCharacterModal(char);
         } else if (deleteBtn) {
             e.stopPropagation();
-            deleteCharacter(id);
+            deleteCharacter(id, char?.name);
         } else if (selectBtn) {
             selectCharacter(id);
         }

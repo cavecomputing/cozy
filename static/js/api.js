@@ -226,25 +226,23 @@ export const API = {
 
         const processLine = (line) => {
             if (line === 'data: [DONE]' || !line.startsWith('data: ')) return;
-            try {
-                const json = JSON.parse(line.slice(6));
-                if (json.error) throw new Error(json.error);
-                const delta = json.choices?.[0]?.delta || {};
-                const reasonTok = delta.reasoning_content || delta.reasoning || '';
-                const contentTok = delta.content || '';
-                if (reasonTok) reasoning += reasonTok;
-                if (contentTok) content += contentTok;
-                if (reasonTok || contentTok) {
-                    // Build combined text: wrap reasoning in thinking tags
-                    let fullText = '';
-                    if (reasoning) {
-                        fullText += '<think>' + reasoning + (content ? '</think>' : '');
-                    }
-                    fullText += content;
-                    onToken(fullText);
+            let json;
+            // Ignore unparseable fragments (e.g. a line truncated mid-stream)
+            try { json = JSON.parse(line.slice(6)); } catch { return; }
+            if (json.error) throw new Error(json.error);
+            const delta = json.choices?.[0]?.delta || {};
+            const reasonTok = delta.reasoning_content || delta.reasoning || '';
+            const contentTok = delta.content || '';
+            if (reasonTok) reasoning += reasonTok;
+            if (contentTok) content += contentTok;
+            if (reasonTok || contentTok) {
+                // Build combined text: wrap reasoning in thinking tags
+                let fullText = '';
+                if (reasoning) {
+                    fullText += '<think>' + reasoning + (content ? '</think>' : '');
                 }
-            } catch (e) {
-                if (e.message && !e.message.startsWith('Unexpected')) throw e;
+                fullText += content;
+                onToken(fullText);
             }
         };
 
