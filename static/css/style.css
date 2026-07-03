@@ -2230,6 +2230,7 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 }
 .prompt-action-group {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.25rem;
 }
