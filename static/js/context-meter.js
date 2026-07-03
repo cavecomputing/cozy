@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { scrollToBottom } from './utils.js';
-import { estimateMessagesTokens, estimateMessageTokens, selectContextMessages } from './tokenizer.js';
+import { estimateMessagesTokens, estimateMessageTokens, selectContextMessages, getContextBoundaryMsgId } from './tokenizer.js';
 
 export function getContextMaxTokens() {
     const raw = el.settingsContextTokens?.value ?? state.contextMaxTokens ?? '32768';
@@ -45,5 +45,35 @@ export function updateContextMeter() {
     if (wasHidden && el.chatHistory) {
         const sc = el.chatHistory;
         if (sc.scrollHeight - sc.scrollTop - sc.clientHeight < 60) scrollToBottom();
+    }
+}
+
+export function updateContextBoundary() {
+    const existing = el.chatHistory?.querySelector('.context-boundary');
+    if (existing) existing.remove();
+
+    const maxTokens = getContextMaxTokens();
+    if (maxTokens <= 0) return;
+
+    const stripThinking = !el.sendThinking?.checked;
+    const boundaryMsgId = getContextBoundaryMsgId(state.messages, { maxTokens, stripThinking });
+    if (state.messages.length === 0) return;
+
+    const boundaryEl = document.createElement('div');
+    boundaryEl.className = 'context-boundary';
+    boundaryEl.textContent = 'Context window';
+
+    if (boundaryMsgId != null) {
+        const target = el.chatHistory.querySelector(`.message[data-msg-id="${boundaryMsgId}"]`);
+        if (target) {
+            el.chatHistory.insertBefore(boundaryEl, target.closest('.message-container') || target);
+            return;
+        }
+    }
+
+    // All messages fit — insert at the top
+    const firstContainer = el.chatHistory.querySelector('.message-container');
+    if (firstContainer) {
+        el.chatHistory.insertBefore(boundaryEl, firstContainer);
     }
 }

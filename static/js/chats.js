@@ -5,7 +5,7 @@ import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage } from './messages.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
-import { updateContextMeter } from './context-meter.js';
+import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHAT LIST
@@ -233,6 +233,7 @@ export async function selectChat(chat) {
     renderLorebookFlyout();
     renderLorebookNotice();
     updateContextMeter();
+    updateContextBoundary();
     savePrefs();
 }
 

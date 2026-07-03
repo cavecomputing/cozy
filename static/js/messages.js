@@ -6,7 +6,7 @@ import {
     updateComposerState, setSendButtonMode,
 } from './utils.js';
 import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
-import { updateContextMeter } from './context-meter.js';
+import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { generateResponse } from './request-builder.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -114,6 +114,7 @@ async function generateSwipe(msgEl, swipes, idx) {
         stateMsg.activeSwipeIndex = idx;
     }
     updateContextMeter();
+    updateContextBoundary();
     return idx;
 }
 
@@ -140,6 +141,7 @@ function showSwipe(msgEl, swipes, idx) {
         }
     }
     updateContextMeter();
+    updateContextBoundary();
 }
 
 export async function handleSwipeAction(msgEl, isPrev) {
@@ -403,6 +405,7 @@ export function renderMessages() {
     state.autoScroll = atBottom;
     el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
     scrollToBottom();
+    updateContextBoundary();
 }
 
 export async function appendMessage(role, text, persist = true, isGreeting = false, timestamp = null, swipes = null, activeSwipeIndex = 0, persona = null, msgId = null) {
@@ -432,6 +435,7 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
 
     if (role === 'user') scrollToBottom(); else maybeScrollToBottom();
     updateContextMeter();
+    updateContextBoundary();
     return container;
 }
 
@@ -535,4 +539,5 @@ export function finishEditing(save) {
     actionsBar.classList.remove('always-visible');
 
     state.currentEdit = null;
+    updateContextBoundary();
 }

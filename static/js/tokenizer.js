@@ -56,3 +56,26 @@ export function selectContextMessages(messages, {
     }
     return selected;
 }
+
+/**
+ * Return the `id` of the first (oldest) message that fits within the token
+ * budget, or `null` if all messages fit or no limit is set.  Callers use this
+ * to position the context-boundary indicator in the UI.
+ */
+export function getContextBoundaryMsgId(messages, {
+    maxTokens = 0,
+    stripThinking = false,
+} = {}) {
+    if (!maxTokens || maxTokens <= 0) return null;
+    if (!Array.isArray(messages) || messages.length === 0) return null;
+
+    const selected = selectContextMessages(messages, { maxTokens, stripThinking });
+    if (selected.length === 0) return null;
+
+    const firstInContext = selected[0];
+    // If every message fits, the boundary sits at the top (return null so the
+    // caller inserts the indicator before the first message).
+    if (selected.length >= messages.length) return null;
+
+    return firstInContext.id ?? null;
+}

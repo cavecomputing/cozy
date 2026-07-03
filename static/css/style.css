@@ -1385,6 +1385,29 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin-top: -0.25rem;
 }
 
+/* ── Context-boundary indicator ─────────────────────────────────────────── */
+.context-boundary {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: var(--chat-max-width, 56rem);
+    margin: 0.5rem auto;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 500;
+    user-select: none;
+    opacity: 0.55;
+    letter-spacing: 0.04em;
+}
+.context-boundary::before,
+.context-boundary::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--border-color);
+}
+
 .msg-action-btn {
     display: flex;
     align-items: center;
