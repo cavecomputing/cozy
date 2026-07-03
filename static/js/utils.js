@@ -31,6 +31,19 @@ export function sanitizeFilename(name) {
     return (name || '').replace(/[\\/:*?"<>|]/g, '_');
 }
 
+/** Matches the syslogStamp() default name ("May 18 16:54:17") given to new chats. */
+export const DEFAULT_CHAT_NAME_RE = /^[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2}:\d{2}$/;
+
+/**
+ * User-facing chat name. Chats keep their timestamp name internally (the
+ * auto-rename logic keys off it), but display as "New chat" until renamed.
+ */
+export function displayChatName(chat) {
+    const name = (chat?.name || '').trim();
+    if (!name || name === 'New Chat' || DEFAULT_CHAT_NAME_RE.test(name)) return 'New chat';
+    return name;
+}
+
 /** Syslog-style local timestamp: "Mar 22 20:06:42" */
 export function syslogStamp() {
     const now = new Date();
@@ -134,7 +147,7 @@ export function setSendButtonMode(mode) {
 }
 
 function activeChatLabel() {
-    return state.activeChat?.name?.trim() || 'Untitled chat';
+    return displayChatName(state.activeChat);
 }
 
 function activeLorebookLabel() {

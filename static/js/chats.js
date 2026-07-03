@@ -1,6 +1,6 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
-import { syslogStamp, showToast, updateComposerState, savePrefs } from './utils.js';
+import { syslogStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs } from './utils.js';
 import { renderMessages, appendMessage } from './messages.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
@@ -45,7 +45,7 @@ function buildChatSelectButton(chat) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'chat-select-btn';
-    button.setAttribute('aria-label', `Select chat ${chat.name}`);
+    button.setAttribute('aria-label', `Select chat ${displayChatName(chat)}`);
 
     const prefix = document.createElement('span');
     prefix.className = 'chat-prefix';
@@ -54,7 +54,7 @@ function buildChatSelectButton(chat) {
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'chat-name';
-    nameSpan.textContent = chat.name;
+    nameSpan.textContent = displayChatName(chat);
 
     // Double-click the name to rename
     button.addEventListener('dblclick', e => {
@@ -72,11 +72,13 @@ export function startChatRename(li, chat) {
     const nameSpan = li.querySelector('.chat-name');
     if (!selectBtn || !nameSpan || li.querySelector('.chat-rename-input')) return; // already renaming
 
-    const original = nameSpan.textContent;
+    const original = chat.name;
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'chat-rename-input';
-    input.value = original;
+    // Default timestamp names aren't worth editing — start from a blank slate
+    input.value = DEFAULT_CHAT_NAME_RE.test(original) ? '' : original;
+    input.placeholder = 'Chat name';
     input.setAttribute('aria-label', 'Chat name');
 
     selectBtn.replaceWith(input);
@@ -106,7 +108,7 @@ export function startChatRename(li, chat) {
                 if (idx >= 0) state.chats[idx] = updated;
                 if (state.activeChat?.id === chat.id) state.activeChat = updated;
                 li.dataset.chatId = updated.id;
-                newButton.setAttribute('aria-label', `Select chat ${updated.name}`);
+                newButton.setAttribute('aria-label', `Select chat ${displayChatName(updated)}`);
                 updateComposerState();
                 showToast('Chat renamed', 'success');
             } catch (err) {
@@ -232,9 +234,6 @@ export async function selectChat(chat) {
     updateContextMeter();
     savePrefs();
 }
-
-// Matches the syslogStamp() default name ("May 18 16:54:17") given to new chats.
-const DEFAULT_CHAT_NAME_RE = /^[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2}:\d{2}$/;
 
 /**
  * Name a still-default-named chat after its first user message.
