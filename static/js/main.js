@@ -194,6 +194,24 @@ function bindResponsiveShellHandlers() {
     updateModalBottom();
 }
 
+function bindSheetBackdropHandlers() {
+    // On mobile the composer flyouts render as bottom sheets over a dimmed
+    // backdrop. Watch the flyouts' hidden attribute so every open/close path
+    // (toggle buttons, outside clicks, Escape, chat selection) stays in sync.
+    // The backdrop is display:none outside the mobile media query, so the
+    // .show class is harmless on desktop.
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (!backdrop) return;
+    const sheets = [el.chatFlyout, el.lorebookFlyout].filter(Boolean);
+    const sync = () => {
+        backdrop.classList.toggle('show', sheets.some(s => !s.hidden));
+    };
+    const observer = new MutationObserver(sync);
+    sheets.forEach(s => observer.observe(s, { attributes: true, attributeFilter: ['hidden'] }));
+    backdrop.addEventListener('click', () => Flyouts.closeAllExcept(null));
+    sync();
+}
+
 function bindFlyoutHandlers() {
     // Register flyouts so only one is open at a time
     Flyouts.register('settings', () => {
@@ -806,6 +824,7 @@ async function init() {
     updateContextMeter();
 
     bindFlyoutHandlers();
+    bindSheetBackdropHandlers();
     bindSidebarHandlers();
     bindSettingsHandlers();
     bindCharacterHandlers();
