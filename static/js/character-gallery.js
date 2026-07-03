@@ -921,6 +921,24 @@ function bindEvents() {
     });
 }
 
+/**
+ * Deep-link into the gallery with a character pre-selected — the desktop
+ * "edit character" entry point (the slide-out modal stays the mobile editor).
+ * Returns false when the gallery isn't available (mobile) so callers can
+ * fall back to the modal.
+ */
+export async function openGalleryWithCharacter(charId) {
+    if (!isDesktop()) return false;
+    if (gallery.open && !(await confirmDiscard())) return true;
+    gallery.view = 'all';
+    gallery.query = '';
+    getEls().search.value = '';
+    gallery.selectedId = charId;
+    await openGallery();
+    getEls().fields.name?.focus();
+    return true;
+}
+
 export function initCharacterGallery() {
     if (!getEls().root) return;
     bindEvents();
