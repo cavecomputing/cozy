@@ -4880,9 +4880,14 @@ input[type="checkbox"]:disabled {
         flex-wrap: wrap;
     }
 
-    .settings-model-row .form-input,
-    .settings-model-row .settings-select {
+    .settings-model-row .form-input {
         flex: 1 1 12rem;
+    }
+
+    /* Selects (e.g. the API preset picker) take the full row so their
+       action icons wrap together onto one line instead of splitting. */
+    .settings-model-row .settings-select {
+        flex: 1 1 100%;
     }
 
     .settings-row:has(input[type="checkbox"]) {
