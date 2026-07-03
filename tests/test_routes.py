@@ -600,6 +600,70 @@ class TestMessageDelete:
         assert r.status_code == 404
 
 
+class TestFork:
+    def test_fork_copies_messages_and_swipes(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        m1 = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Hello',
+        }).get_json()
+        m2 = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'Hi there!',
+        }).get_json()
+        m3 = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'How are you?',
+        }).get_json()
+        client.post(f'/api/messages/{m2["id"]}/swipes', json={'content': 'Hey!'})
+
+        r = client.post(f'/api/chats/{chat_id}/fork?message_id={m2["id"]}')
+        assert r.status_code == 201
+        new_chat = r.get_json()
+        assert new_chat['character_id'] == sample_chat['character_id']
+        assert new_chat['active_lorebook_embedded'] == sample_chat['active_lorebook_embedded']
+
+        msgs = client.get(f'/api/chats/{new_chat["id"]}/messages').get_json()
+        assert len(msgs) == 2
+        assert msgs[0]['content'] == 'Hello'
+        assert msgs[1]['content'] == 'Hey!'
+        assert len(msgs[1]['swipes']) == 2
+
+    def test_fork_on_last_message(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        m1 = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'A',
+        }).get_json()
+        m2 = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'B',
+        }).get_json()
+
+        r = client.post(f'/api/chats/{chat_id}/fork?message_id={m2["id"]}')
+        assert r.status_code == 201
+        new_chat = r.get_json()
+        msgs = client.get(f'/api/chats/{new_chat["id"]}/messages').get_json()
+        assert len(msgs) == 2
+
+    def test_fork_requires_message_id(self, client, sample_chat):
+        r = client.post(f'/api/chats/{sample_chat["id"]}/fork')
+        assert r.status_code == 400
+
+    def test_fork_unknown_chat_404(self, client):
+        r = client.post('/api/chats/99999/fork?message_id=1')
+        assert r.status_code == 404
+
+    def test_fork_unknown_message_404(self, client, sample_chat):
+        r = client.post(f'/api/chats/{sample_chat["id"]}/fork?message_id=99999')
+        assert r.status_code == 404
+
+    def test_fork_message_from_wrong_chat_404(self, client, sample_character):
+        chat_a = client.post(f'/api/characters/{sample_character["id"]}/chats', json={'name': 'A'}).get_json()
+        chat_b = client.post(f'/api/characters/{sample_character["id"]}/chats', json={'name': 'B'}).get_json()
+        msg_in_b = client.post(f'/api/chats/{chat_b["id"]}/messages', json={
+            'role': 'user', 'content': 'in B',
+        }).get_json()
+
+        r = client.post(f'/api/chats/{chat_a["id"]}/fork?message_id={msg_in_b["id"]}')
+        assert r.status_code == 404
+
+
 class TestChatCascade:
     def test_delete_chat_cascades_to_messages_and_swipes(self, client, sample_chat):
         chat_id = sample_chat['id']

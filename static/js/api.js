@@ -148,6 +148,12 @@ export const API = {
     async importChat(characterId, file) {
         return formRequest(`/api/chats/import?character_id=${characterId}`, { file }, 'Import failed');
     },
+    async forkChat(chatId, messageId) {
+        return jsonRequest(`/api/chats/${chatId}/fork?message_id=${messageId}`, {
+            method: 'POST',
+            fallback: 'Fork failed',
+        });
+    },
 
     // Messages
     async getMessages(chatId) {

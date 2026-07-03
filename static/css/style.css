@@ -1425,6 +1425,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .msg-action-btn:hover                { background-color: var(--hover-bg); color: var(--text-color); }
 .msg-action-btn.delete-msg-btn:hover { color: var(--danger-color); }
 .msg-action-btn.save-msg-btn:hover   { color: var(--success-color); }
+.msg-action-btn.fork-msg-btn:hover    { color: var(--accent-color); }
 
 .message.user .msg-action-btn        { color: var(--user-action-color, rgba(255, 255, 255, 0.5)); }
 .message.user .msg-action-btn:hover  { background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15)); color: var(--user-action-hover-color, white); }

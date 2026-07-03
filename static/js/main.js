@@ -740,6 +740,17 @@ function bindMessageHandlers() {
             navigator.clipboard.writeText(msgEl.dataset.rawText || '')
                 .then(() => showToast('Copied message', 'success', 2000))
                 .catch(() => showToast('Could not copy message'));
+        } else if (e.target.closest('.fork-msg-btn')) {
+            if (!state.activeChat || !msgEl.dataset.msgId) return;
+            try {
+                const newChat = await API.forkChat(state.activeChat.id, parseInt(msgEl.dataset.msgId));
+                state.chats.push(newChat);
+                renderChats();
+                await selectChat(newChat);
+                showToast('Chat forked', 'success', 2000);
+            } catch (err) {
+                showToast('Could not fork chat: ' + err.message, 'error');
+            }
         } else if (e.target.closest('.swipe-prev') || e.target.closest('.swipe-next')) {
             const isPrev = !!e.target.closest('.swipe-prev');
             await handleSwipeAction(msgEl, isPrev);

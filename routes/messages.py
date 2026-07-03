@@ -36,6 +36,59 @@ def _message_to_dict(row, swipes=None):
     return message
 
 
+@messages_bp.route('/api/chats/<int:chat_id>/fork', methods=['POST'])
+def fork_chat(chat_id):
+    """Create a new chat containing all messages up to and including message_id."""
+    msg_id = request.args.get('message_id', type=int)
+    if not msg_id:
+        return jsonify({'error': 'message_id query parameter is required'}), 400
+
+    with get_db() as conn:
+        chat = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+        if not chat:
+            return not_found('Chat')
+        msg = conn.execute('SELECT * FROM messages WHERE id=? AND chat_id=?', (msg_id, chat_id)).fetchone()
+        if not msg:
+            return not_found('Message')
+
+        import datetime
+        name = datetime.datetime.now().strftime('%b %d %H:%M:%S')
+
+        cur = conn.execute(
+            'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded) VALUES (?,?,?,?)',
+            (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'])
+        )
+        new_chat_id = cur.lastrowid
+
+        messages_to_copy = conn.execute(
+            'SELECT * FROM messages WHERE chat_id=? AND id <= ? ORDER BY id ASC',
+            (chat_id, msg_id)
+        ).fetchall()
+
+        old_to_new = {}
+        for m in messages_to_copy:
+            cur = conn.execute(
+                'INSERT INTO messages (chat_id, role, content, persona_id, created_at) VALUES (?,?,?,?,?)',
+                (new_chat_id, m['role'], m['content'], m['persona_id'], m['created_at'])
+            )
+            old_to_new[m['id']] = cur.lastrowid
+
+        if old_to_new:
+            placeholders = ','.join('?' for _ in old_to_new)
+            swipes = conn.execute(
+                f'SELECT * FROM message_swipes WHERE message_id IN ({placeholders}) ORDER BY id ASC',
+                list(old_to_new.keys())
+            ).fetchall()
+            for s in swipes:
+                conn.execute(
+                    'INSERT INTO message_swipes (message_id, content, created_at) VALUES (?,?,?)',
+                    (old_to_new[s['message_id']], s['content'], s['created_at'])
+                )
+
+        new_chat = conn.execute('SELECT * FROM chats WHERE id=?', (new_chat_id,)).fetchone()
+        return jsonify(dict(new_chat)), 201
+
+
 @messages_bp.route('/api/chats/<int:chat_id>/messages', methods=['GET'])
 def list_messages(chat_id):
     with get_db() as conn:

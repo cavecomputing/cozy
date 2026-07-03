@@ -240,6 +240,9 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
         bar.append(nav);
     }
     appendMessageActionButtons(bar);
+    if (role === 'character') {
+        bar.append(iconButton('msg-action-btn fork-msg-btn', 'Fork', 'Fork chat from here', icons.FORK));
+    }
     return bar;
 }
 
