@@ -4146,6 +4146,11 @@ input[type="checkbox"]:disabled {
     padding: 0.85rem 1rem;
 }
 
+.gallery-hero {
+    container-type: inline-size;
+    container-name: hero;
+}
+
 .gallery-hero-text {
     flex: 1 1 auto;
     min-width: 0;
@@ -4200,6 +4205,26 @@ input[type="checkbox"]:disabled {
 .gallery-hero-actions .btn-secondary:hover:not(:disabled) {
     background: rgba(0, 0, 0, 0.6);
     border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* In a narrow inspector the side-by-side hero layout crams the subtitle
+   against the action buttons — stack the actions below the text instead.
+   (.gallery-hero is the inline-size container these queries measure.) */
+@container hero (max-width: 400px) {
+    .gallery-hero-content {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-end;
+    }
+
+    .gallery-hero-actions {
+        flex-direction: row;
+        min-width: 0;
+    }
+
+    .gallery-hero-actions .btn {
+        flex: 1 1 0;
+    }
 }
 
 .gallery-status-pill {
