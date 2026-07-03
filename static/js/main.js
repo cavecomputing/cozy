@@ -165,16 +165,24 @@ function bindResponsiveShellHandlers() {
     // (transform on sidebar creates a new containing block that breaks fixed)
     const mobileQuery = window.matchMedia(MOBILE_SHELL_QUERY);
     function handleMobileModals(mq) {
+        const sheets = [el.chatFlyout, el.lorebookFlyout].filter(Boolean);
         if (mq.matches) {
             document.querySelectorAll('#sidebar .modal-overlay').forEach(m => {
                 document.body.appendChild(m);
             });
+            // The composer flyouts render as fixed bottom sheets on mobile.
+            // Inside #input-wrapper (position:relative + z-index:1) their
+            // z-index is trapped below the body-level sheet backdrop, which
+            // then paints over them — hoist them to <body> like the modals.
+            sheets.forEach(s => document.body.appendChild(s));
         } else {
-            // Move them back into the sidebar for desktop flyout positioning
+            // Move them back for desktop flyout positioning
             const sidebar = document.getElementById('sidebar');
             document.querySelectorAll('body > .modal-overlay').forEach(m => {
                 sidebar.appendChild(m);
             });
+            // Desktop popovers anchor absolutely to #input-wrapper
+            sheets.forEach(s => el.inputWrapper?.appendChild(s));
         }
     }
     handleMobileModals(mobileQuery);

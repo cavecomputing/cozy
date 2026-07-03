@@ -4463,9 +4463,12 @@ input[type="checkbox"]:disabled {
     backdrop-filter: blur(2px);
 }
 
+/* Start state stays on-screen and tappable on purpose: if the animation is
+   ever stalled (throttled tab, iOS low-power mode) a translateY(100%) start
+   would strand the sheet below the viewport. */
 @keyframes sheetUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+    from { transform: translateY(0.75rem); opacity: 0.4; }
+    to   { transform: translateY(0); opacity: 1; }
 }
 
 @media (max-width: 768px) {
