@@ -194,8 +194,8 @@
                     </div>
                     <div class="settings-section" data-section="api" hidden>
                         <header class="settings-page-header">
-                            <h3>API &amp; Samplers</h3>
-                            <p>Connect Cozy to an OpenAI-compatible endpoint, pick a model and context budget, and tune generation samplers.</p>
+                            <h3>API</h3>
+                            <p>Connect Cozy to an OpenAI-compatible endpoint, pick a model, and set the context budget.</p>
                         </header>
                         <div class="settings-section-body settings-section-stack">
                             <section class="settings-card">
@@ -274,17 +274,17 @@
                                     <input type="checkbox" id="settings-send-thinking">
                                 </div>
                             </section>
-                            <section class="settings-card">
-                                <header class="settings-card-header">
-                                    <h4>Extra Request Parameters</h4>
+                            <details class="settings-card settings-disclosure">
+                                <summary>Extra request parameters</summary>
+                                <header class="settings-card-header settings-card-header--disclosure">
                                     <p>Additional JSON fields merged into every chat completion request. Useful for backend-specific parameters not exposed in the sampler controls. <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;">?</span></p>
                                 </header>
                                 <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
                                 <p class="settings-hint">Enter valid JSON — keys and string values need double quotes. Each pair is merged into the LLM request body (nested objects are kept as-is). For llama.cpp, template args like <code>enable_thinking</code> must be nested under <code>chat_template_kwargs</code>. Invalid JSON is silently ignored. Overrides generated values if keys conflict.</p>
-                            </section>
+                            </details>
                         </div>
                     </div>
-                    <div class="settings-section" data-section="api" hidden>
+                    <div class="settings-section settings-section--samplers" data-section="api" hidden>
                         <header class="settings-page-header settings-page-header--with-action">
                             <div class="settings-page-title">
                                 <h3>Samplers</h3>
