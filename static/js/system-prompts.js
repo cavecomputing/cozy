@@ -2,6 +2,7 @@ import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
 import { showToast } from './utils.js';
+import { confirmDialog } from './confirm.js';
 import { previewChatPayload } from './request-builder.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -107,7 +108,7 @@ export async function createSystemPrompt() {
 export async function deleteSystemPrompt() {
     if (!state.activeSystemPromptId) return;
     const active = activePrompt();
-    if (!confirm(`Delete prompt "${active?.name || ''}"?`)) return;
+    if (!(await confirmDialog({ title: `Delete prompt "${active?.name || 'this prompt'}"?` }))) return;
     try {
         await API.deleteSystemPrompt(state.activeSystemPromptId);
         state.activeSystemPromptId = null;
@@ -149,7 +150,13 @@ export async function resetSystemPromptToDefault() {
     if (!state.activeSystemPromptId) return;
     const mode = activeEditorMode();
     const label = mode === 'post-history' ? 'post-history prompt' : 'system prompt';
-    if (!confirm(`Reset ${label} content to the default template?`)) return;
+    const ok = await confirmDialog({
+        title: `Reset ${label} to default?`,
+        message: 'The visible editor content is replaced with the default template.',
+        confirmLabel: 'Reset',
+        danger: false,
+    });
+    if (!ok) return;
     const defaults = await getDefaultTemplates();
     const p = activePrompt();
     if (!p) return;

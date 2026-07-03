@@ -2,6 +2,7 @@ import { state, icons } from './state.js';
 import { API } from './api.js';
 import { Modal } from './modal.js';
 import { applyAvatar, showToast } from './utils.js';
+import { confirmDialog } from './confirm.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
 import { renderLorebookList } from './lorebooks.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
@@ -182,8 +183,13 @@ function setDirty(dirty) {
     editor?.classList.toggle('is-dirty', dirty);
 }
 
-function confirmDiscard() {
-    return !gallery.dirty || confirm('Discard unsaved character changes?');
+async function confirmDiscard() {
+    if (!gallery.dirty) return true;
+    return confirmDialog({
+        title: 'Discard unsaved changes?',
+        message: 'Your edits to this character will be lost.',
+        confirmLabel: 'Discard',
+    });
 }
 
 function renderCollectionControls() {
@@ -457,8 +463,8 @@ function hideGallery() {
     restoreModalParent();
 }
 
-function closeGallery() {
-    if (!confirmDiscard()) return;
+async function closeGallery() {
+    if (!(await confirmDiscard())) return;
     hideGallery();
 }
 
@@ -559,7 +565,7 @@ async function startChatWithSelected() {
         showToast('Unarchive this character before starting a chat', 'error');
         return;
     }
-    if (!confirmDiscard()) return;
+    if (!(await confirmDiscard())) return;
     try {
         await selectCharacter(char.id);
         hideGallery();
@@ -599,7 +605,11 @@ async function addCollection(name, icon = '') {
 async function deleteCollectionById(collectionId) {
     const collection = gallery.collections.find(c => c.id === collectionId);
     if (!collection) return;
-    if (!confirm(`Delete collection "${collection.name}"? Characters are not deleted.`)) return;
+    const ok = await confirmDialog({
+        title: `Delete collection "${collection.name}"?`,
+        message: 'Characters in the collection are not deleted.',
+    });
+    if (!ok) return;
     try {
         await API.deleteCharacterCollection(collectionId);
         if (gallery.view === `collection:${collectionId}`) gallery.view = 'all';
@@ -731,15 +741,15 @@ function bindEvents() {
     });
     e.addBtn.addEventListener('click', () => Modal.open());
 
-    e.nav.addEventListener('click', event => {
+    e.nav.addEventListener('click', async event => {
         const btn = event.target.closest('.gallery-nav-item');
-        if (!btn || !confirmDiscard()) return;
+        if (!btn || !(await confirmDiscard())) return;
         gallery.view = btn.dataset.view;
         const visible = visibleCharacters();
         gallery.selectedId = visible[0]?.id || null;
         render();
     });
-    e.collectionList.addEventListener('click', event => {
+    e.collectionList.addEventListener('click', async event => {
         const deleteBtn = event.target.closest('[data-delete-collection-id]');
         if (deleteBtn) {
             deleteCollectionById(Number(deleteBtn.dataset.deleteCollectionId));
@@ -751,7 +761,7 @@ function bindEvents() {
             return;
         }
         const selectBtn = event.target.closest('.gallery-collection-select');
-        if (!selectBtn || !confirmDiscard()) return;
+        if (!selectBtn || !(await confirmDiscard())) return;
         gallery.view = `collection:${selectBtn.dataset.collectionId}`;
         const visible = visibleCharacters();
         gallery.selectedId = visible[0]?.id || null;
@@ -797,7 +807,7 @@ function bindEvents() {
         }
     });
 
-    e.grid.addEventListener('click', event => {
+    e.grid.addEventListener('click', async event => {
         const starBtn = event.target.closest('[data-pin-char-id]');
         if (starBtn) {
             event.stopPropagation();
@@ -805,16 +815,16 @@ function bindEvents() {
             return;
         }
         const card = event.target.closest('.gallery-card');
-        if (!card || !confirmDiscard()) return;
+        if (!card || !(await confirmDiscard())) return;
         gallery.selectedId = Number(card.dataset.charId);
         render();
     });
-    e.grid.addEventListener('keydown', event => {
+    e.grid.addEventListener('keydown', async event => {
         const card = event.target.closest('.gallery-card');
         if (!card || event.target !== card) return;
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        if (!confirmDiscard()) return;
+        if (!(await confirmDiscard())) return;
         gallery.selectedId = Number(card.dataset.charId);
         render();
     });

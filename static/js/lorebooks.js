@@ -4,6 +4,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { showToast, updateComposerState } from './utils.js';
+import { confirmDialog } from './confirm.js';
 
 // Editor state — purely local, swapped wholesale on selection change.
 // `kind` is 'standalone' or 'embedded'. `id` is the lorebook id (standalone)
@@ -410,7 +411,11 @@ export async function deleteLorebook(kind, id) {
     const isEditing = editing && editing.kind === kind && editing.id === id;
     if (kind === 'standalone') {
         const lb = state.lorebooks.find(b => b.id === id);
-        if (!confirm(`Delete lorebook "${lb?.name || 'this book'}"? This cannot be undone.`)) return;
+        const ok = await confirmDialog({
+            title: `Delete lorebook "${lb?.name || 'this book'}"?`,
+            message: 'This cannot be undone.',
+        });
+        if (!ok) return;
         try {
             await API.deleteLorebook(id);
             await loadLorebooks();
@@ -424,7 +429,11 @@ export async function deleteLorebook(kind, id) {
         }
     } else {
         const char = state.characters.find(c => c.id === id);
-        if (!confirm(`Remove the embedded lorebook from ${char?.name || 'this character'}?`)) return;
+        const ok = await confirmDialog({
+            title: `Remove the embedded lorebook from ${char?.name || 'this character'}?`,
+            confirmLabel: 'Remove',
+        });
+        if (!ok) return;
         try {
             await API.updateCharacter(id, { character_book: null });
             if (char) char.character_book = null;

@@ -1,6 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { showToast, savePrefs, applyAvatar } from './utils.js';
+import { confirmDialog } from './confirm.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PERSONAS
@@ -63,7 +64,7 @@ export function renderPersonaList() {
             del.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
             del.addEventListener('click', async e => {
                 e.stopPropagation();
-                if (!confirm(`Delete persona "${p.name}"?`)) return;
+                if (!(await confirmDialog({ title: `Delete persona "${p.name}"?` }))) return;
                 try {
                     await API.deletePersona(p.id);
                     state.personas = state.personas.filter(x => x.id !== p.id);

@@ -2,6 +2,7 @@ import { state, el } from './state.js';
 import { loadSamplerSettings, updateContextSizeWarning } from './sampler.js';
 import { API } from './api.js';
 import { showToast } from './utils.js';
+import { confirmDialog } from './confirm.js';
 
 const MODEL_SEARCH_DEBOUNCE_MS = 250;
 let modelSearchTimer = null;
@@ -311,7 +312,7 @@ export async function deletePreset() {
     const id = el.apiPreset?.value;
     if (!id) return;
     const preset = state.apiPresets.find(p => String(p.id) === id);
-    if (!confirm(`Delete preset "${preset?.name || id}"?`)) return;
+    if (!(await confirmDialog({ title: `Delete preset "${preset?.name || id}"?` }))) return;
     try {
         await API.deletePreset(id);
         state.activePresetId = null;

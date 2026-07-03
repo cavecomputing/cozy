@@ -1,6 +1,7 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import { syslogStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs } from './utils.js';
+import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage } from './messages.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
@@ -301,7 +302,12 @@ export async function handleChatImportFile() {
 }
 
 export async function deleteChat(chatId) {
-    if (!confirm('Delete this chat and all its messages? This cannot be undone.')) return;
+    const chat = state.chats.find(c => c.id === chatId);
+    const ok = await confirmDialog({
+        title: `Delete ${displayChatName(chat)}?`,
+        message: 'All of its messages will be deleted. This cannot be undone.',
+    });
+    if (!ok) return;
     try {
         await API.deleteChat(chatId);
         const idx = state.chats.findIndex(c => c.id === chatId);

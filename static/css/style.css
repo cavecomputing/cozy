@@ -3276,6 +3276,57 @@ input[type="checkbox"]:disabled {
     color: var(--btn-danger-hover-color, white);
 }
 
+/* ── Confirm dialog (styled window.confirm replacement) ──────────────────── */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: var(--backdrop-bg, rgba(0, 0, 0, 0.35));
+    backdrop-filter: blur(2px);
+    animation: fadeIn 0.15s ease-out;
+}
+
+.confirm-overlay[hidden] { display: none !important; }
+
+.confirm-dialog {
+    width: min(92vw, 380px);
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.confirm-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.confirm-message {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.confirm-message[hidden] { display: none; }
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
 /* ── Toast notifications ─────────────────────────────────────────────────── */
 #toast-container {
     position: fixed;

@@ -1,5 +1,6 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
+import { confirmDialog } from './confirm.js';
 import { applyAvatar, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages } from './messages.js';
@@ -129,7 +130,11 @@ export async function selectCharacter(charId) {
 
 export async function deleteCharacter(charId, name) {
     const label = name || 'this character';
-    if (!confirm(`Delete ${label} and all their chats? This cannot be undone.`)) return false;
+    const ok = await confirmDialog({
+        title: `Delete ${label}?`,
+        message: 'All of their chats will be deleted too. This cannot be undone.',
+    });
+    if (!ok) return false;
     try {
         await API.deleteCharacter(charId);
         showToast('Character deleted', 'success');
