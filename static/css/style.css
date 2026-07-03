@@ -4504,7 +4504,7 @@ input[type="checkbox"]:disabled {
 
     body {
         width: 100%;
-        overflow: hidden;
+        overscroll-behavior: auto;
         touch-action: manipulation;
     }
 
