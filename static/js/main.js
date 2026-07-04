@@ -28,7 +28,7 @@ import { initTooltips } from './tooltips.js';
 import { saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
 import { updateContextMeter } from './context-meter.js';
-import { initCharacterGallery, openGalleryWithCharacter } from './character-gallery.js';
+import { initCharacterGallery } from './character-gallery.js';
 
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
 marked.use({ breaks: true, gfm: true });
@@ -312,6 +312,11 @@ function bindSettingsHandlers() {
         saveLLMSettings({ show_context_token_meter: state.showContextTokenMeter ? '1' : '0' });
         updateContextMeter();
     });
+    el.settingsGalleryBtnToggle?.addEventListener('change', () => {
+        state.showGalleryButton = el.settingsGalleryBtnToggle.checked;
+        if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
+        saveLLMSettings({ show_gallery_button: state.showGalleryButton ? '1' : '0' });
+    });
 
     // LLM API settings — save on blur
     el.apiEndpoint?.addEventListener('change', () => {
@@ -472,15 +477,12 @@ function bindCharacterHandlers() {
         Modal.open(char);
     };
 
-    // Desktop edits happen in the gallery inspector; the slide-out modal
-    // remains the mobile editor (openGalleryWithCharacter declines on mobile).
-    const editCharacter = async char => {
-        if (await openGalleryWithCharacter(char.id)) return;
-        openCharacterModal(char);
-    };
+    // Edits open the slide-out modal on all screen sizes; the gallery
+    // inspector is reachable only via its own open button.
+    const editCharacter = char => openCharacterModal(char);
 
-    // New character — empty-state CTA and the mobile header "+"
-    // (the gallery, the primary entry point, is desktop-only)
+    // New character — sidebar header "+", empty-state CTA, and the mobile header "+"
+    el.newCharBtn?.addEventListener('click', () => openCharacterModal());
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
     el.mobileNewCharBtn?.addEventListener('click', () => openCharacterModal());
 

@@ -309,6 +309,11 @@ body {
     margin: 0 1rem;
 }
 
+#new-char-btn {
+    flex-shrink: 0;
+    width: 32px;
+}
+
 .sidebar-scrollable {
     flex: 1;
     overflow-y: auto;
@@ -3508,15 +3513,16 @@ input[type="checkbox"]:disabled {
    centered uppercase label) so it visually matches the main sidebar's
    header. To keep the title from jumping when the gallery opens, the
    collapse button matches #sidebar-toggle's 32px width and the spacer
-   matches #character-gallery-open's rendered 26px width, so the title
-   occupies the exact same box as the sidebar's. */
+   matches the sidebar header's right-side buttons — #character-gallery-open
+   (26px rendered) + #new-char-btn (32px) — so the title occupies the
+   exact same box as the sidebar's. */
 #gallery-collapse-btn {
     width: 32px;
     flex-shrink: 0;
 }
 
 .gallery-rail-header .panel-header-spacer {
-    width: 26px;
+    width: 58px;
     flex-shrink: 0;
 }
 
@@ -3773,6 +3779,21 @@ input[type="checkbox"]:disabled {
 
 .gallery-export-menu button:hover {
     background-color: var(--hover-bg);
+}
+
+.gallery-menu-label {
+    padding: 0.3rem 0.7rem 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.gallery-menu-sep {
+    height: 1px;
+    margin: 0.3rem 0.4rem;
+    background-color: var(--border-color);
 }
 
 .gallery-icon-choice {

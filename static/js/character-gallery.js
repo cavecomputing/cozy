@@ -86,6 +86,7 @@ function getEls() {
         addGreetingBtn: q('gallery-add-greeting-btn'),
         exportTrigger: q('gallery-export-card-btn'),
         exportMenu: q('gallery-export-menu'),
+        importInput: q('gallery-import-input'),
         fields: {
             name: q('gallery-field-name'),
             description: q('gallery-field-description'),
@@ -878,13 +879,31 @@ function bindEvents() {
         }
     });
     e.exportMenu.addEventListener('click', event => {
-        const btn = event.target.closest('[data-fmt]');
+        const btn = event.target.closest('[data-fmt], [data-action="import"]');
         if (!btn) return;
-        const char = selectedCharacter();
-        if (!char) return;
-        API.exportCard(char.id, e.fields.name.value.trim(), btn.dataset.fmt);
+        if (btn.dataset.action === 'import') {
+            e.importInput.click();
+        } else {
+            const char = selectedCharacter();
+            if (!char) return;
+            API.exportCard(char.id, e.fields.name.value.trim(), btn.dataset.fmt);
+        }
         e.exportMenu.hidden = true;
         e.exportTrigger.setAttribute('aria-expanded', 'false');
+    });
+    e.importInput.addEventListener('change', async () => {
+        const file = e.importInput.files[0];
+        if (!file) return;
+        e.importInput.value = '';
+        try {
+            const imported = await API.importCard(file);
+            gallery.selectedId = imported.id;
+            await loadCharacters();
+            await refreshData({ keepSelection: true });
+            showToast('Character imported', 'success');
+        } catch (err) {
+            showToast('Import failed: ' + err.message, 'error');
+        }
     });
     e.collections.addEventListener('click', event => {
         const btn = event.target.closest('[data-remove-collection-id]');

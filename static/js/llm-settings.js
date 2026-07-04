@@ -243,6 +243,9 @@ function applySettingsToUI(s) {
     state.contextMaxTokens = s.context_max_tokens || '32768';
     state.showContextTokenMeter = s.show_context_token_meter !== '0';
     if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = state.showContextTokenMeter;
+    state.showGalleryButton = s.show_gallery_button !== '0';
+    if (el.settingsGalleryBtnToggle) el.settingsGalleryBtnToggle.checked = state.showGalleryButton;
+    if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
     state.extraRequestParams = s.extra_request_params || '';
     if (el.extraParams) el.extraParams.value = state.extraRequestParams;
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;

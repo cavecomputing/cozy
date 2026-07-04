@@ -53,6 +53,12 @@
                     <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
                 </svg>
             </button>
+            <button id="new-char-btn" class="icon-btn hide-on-collapse desktop-only" title="New Character" aria-label="New Character">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
             <!-- Mobile-only "new character" button — the character gallery
                  (the primary create entry point) is desktop-only. -->
             <button id="mobile-new-char-btn" class="icon-btn mobile-only" title="New Character" aria-label="New Character">
@@ -179,6 +185,10 @@
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-context-meter-toggle">Show context token meter</label>
                                     <input type="checkbox" id="settings-context-meter-toggle">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-gallery-btn-toggle">Show character gallery button</label>
+                                    <input type="checkbox" id="settings-gallery-btn-toggle">
                                 </div>
                             </section>
                         </div>
@@ -804,9 +814,14 @@
             <div id="gallery-collection-list" class="gallery-collection-list"></div>
             <div id="gallery-icon-picker" class="gallery-icon-picker" hidden role="dialog" aria-label="Pick collection icon"></div>
             <ul id="gallery-export-menu" class="gallery-export-menu" hidden role="menu">
+                <li class="gallery-menu-label" role="presentation">Export</li>
                 <li><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
                 <li><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
+                <li class="gallery-menu-sep" role="separator"></li>
+                <li class="gallery-menu-label" role="presentation">Import</li>
+                <li><button data-action="import" role="menuitem">From file (.json / .png)</button></li>
             </ul>
+            <input id="gallery-import-input" type="file" accept=".json,.png" hidden>
         </aside>
 
         <div class="gallery-main">
@@ -861,8 +876,8 @@
                                         Start Chat
                                     </button>
                                     <button id="gallery-export-card-btn" type="button" class="btn btn-secondary btn-sm" aria-haspopup="true" aria-expanded="false">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                        Export
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 16 7 20 11 16"></polyline><line x1="7" y1="20" x2="7" y2="4"></line><polyline points="21 8 17 4 13 8"></polyline><line x1="17" y1="4" x2="17" y2="20"></line></svg>
+                                        Import/Export
                                     </button>
                                 </div>
                             </div>

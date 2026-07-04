@@ -32,6 +32,7 @@ SETTINGS_KEYS = {
     'send_thinking',
     'active_samplers',
     'show_context_token_meter',
+    'show_gallery_button',
     'context_max_tokens',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
