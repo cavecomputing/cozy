@@ -1899,9 +1899,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 /* Character editor — wider than the 380px .modal base so card fields
-   have more room to breathe. */
-#char-modal > .modal {
-    width: 460px;
+   have more room to breathe. Desktop-only: the ID selector outranks the
+   mobile breakpoint's `.modal-overlay > .modal { width: 100% }`, so an
+   unscoped rule would cap the modal at 460px on 461-768px viewports. */
+@media (min-width: 769px) {
+    #char-modal > .modal {
+        width: 460px;
+    }
 }
 
 body.gallery-open #char-modal.modal-overlay {
