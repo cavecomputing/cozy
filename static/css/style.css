@@ -1890,12 +1890,18 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     pointer-events: auto;
 }
 
-/* These modals stop above the input bar — JS sets --modal-bottom-offset.
-   Settings is omitted on purpose: it extends all the way down to the sidebar's
-   bottom border (which is level with the input box bottom) for more vertical room. */
-#char-modal.modal-overlay,
+/* This modal stops above the input bar — JS sets --modal-bottom-offset.
+   Settings and the character editor are omitted on purpose: they extend all
+   the way down to the sidebar's bottom border (which is level with the input
+   box bottom) for more vertical room. */
 #prompt-preview-modal.modal-overlay {
     bottom: var(--modal-bottom-offset, 4.25rem);
+}
+
+/* Character editor — wider than the 380px .modal base so card fields
+   have more room to breathe. */
+#char-modal > .modal {
+    width: 460px;
 }
 
 body.gallery-open #char-modal.modal-overlay {
