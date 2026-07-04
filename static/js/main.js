@@ -479,9 +479,8 @@ function bindCharacterHandlers() {
         openCharacterModal(char);
     };
 
-    // New character — collapsed sidebar button, empty-state CTA, and the
-    // mobile header "+" (the gallery, the primary entry point, is desktop-only)
-    el.collapsedNewCharBtn?.addEventListener('click', () => openCharacterModal());
+    // New character — empty-state CTA and the mobile header "+"
+    // (the gallery, the primary entry point, is desktop-only)
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
     el.mobileNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
