@@ -483,6 +483,8 @@ class TestLLMProxy:
 
         class UpstreamResponse:
             encoding = 'utf-8'
+            ok = True
+            status_code = 200
 
             def __enter__(self):
                 return self
@@ -531,10 +533,64 @@ class TestLLMProxy:
             'content': custom_system,
         }
 
+    def test_chat_upstream_error_body_reaches_client(self, client, monkeypatch):
+        """A 4xx from the provider must surface its response body, not just the status."""
+        import routes.llm as llm_module
+
+        class ErrorResponse:
+            encoding = 'utf-8'
+            ok = False
+            status_code = 400
+            reason = 'Bad Request'
+            text = '{"error": {"message": "model not found: aion-2.0"}}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        monkeypatch.setattr(llm_module.http_requests, 'post',
+                            lambda *a, **kw: ErrorResponse())
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://upstream.test/v1',
+            'api_model': 'test-model',
+        })
+        r = client.post('/api/llm/chat', json={
+            'model': 'test-model',
+            'messages': [{'role': 'user', 'content': 'hi'}],
+        })
+        body = r.get_data(as_text=True)
+        assert '400' in body
+        assert 'model not found: aion-2.0' in body
+
     def test_models_endpoint_requires_endpoint(self, client):
         r = client.get('/api/llm/models')
         assert r.status_code == 400
         assert 'endpoint' in r.get_json()['error'].lower()
+
+    def test_models_endpoint_accepts_models_key(self, client, monkeypatch):
+        """Some providers (aionlabs) return {"models": [...]} instead of {"data": [...]}."""
+        import routes.llm as llm_module
+
+        class ModelsResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {'models': [
+                    {'id': 'aion-labs/aion-2.0', 'context_length': 131072},
+                    {'id': 'aion-labs/aion-rp-llama-3.1-8b', 'context_length': 32768},
+                ]}
+
+        monkeypatch.setattr(llm_module.http_requests, 'get',
+                            lambda *a, **kw: ModelsResponse())
+        client.put('/api/settings', json={'api_endpoint': 'http://upstream.test/v1'})
+        r = client.get('/api/llm/models')
+        body = r.get_json()
+        assert body['ok'] is True
+        assert body['models'] == ['aion-labs/aion-2.0', 'aion-labs/aion-rp-llama-3.1-8b']
+        assert body['model_details']['aion-labs/aion-2.0'] == 131072
 
     def test_test_endpoint_requires_endpoint(self, client):
         r = client.post('/api/llm/test')

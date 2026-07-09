@@ -13,6 +13,21 @@ log = logging.getLogger('cozy')
 llm_bp = Blueprint('llm', __name__)
 
 
+def _error_detail(e):
+    """Append the upstream response body to a RequestException message.
+
+    Providers put the actual reason for a 4xx (bad model id, rejected
+    parameter, …) in the response body; raise_for_status() alone reports
+    only the status line.
+    """
+    resp = getattr(e, 'response', None)
+    if resp is not None:
+        body = (resp.text or '').strip()
+        if body:
+            return f'{e} — {body[:500]}'
+    return str(e)
+
+
 def _llm_settings():
     """Return (endpoint, api_key, model) from DB."""
     s = get_settings()
@@ -32,12 +47,14 @@ def list_models():
         r = http_requests.get(url, headers=headers, timeout=10)
         r.raise_for_status()
         body = r.json()
-        data = body.get('data', [])
+        # OpenAI-compatible APIs use {"data": [...]}; some providers
+        # (e.g. aionlabs) return {"models": [...]} instead.
+        data = body.get('data') or body.get('models') or []
         models = sorted(m.get('id', '') for m in data if m.get('id'))
         model_details = {m['id']: m['context_length'] for m in data if m.get('context_length')}
         return jsonify({'ok': True, 'models': models, 'model_details': model_details})
     except http_requests.RequestException as e:
-        return jsonify({'ok': False, 'error': str(e)}), 502
+        return jsonify({'ok': False, 'error': _error_detail(e)}), 502
 
 
 @llm_bp.route('/api/llm/test', methods=['POST'])
@@ -63,7 +80,7 @@ def test_llm():
         reply = body.get('choices', [{}])[0].get('message', {}).get('content', '')
         return jsonify({'ok': True, 'reply': reply.strip()})
     except http_requests.RequestException as e:
-        return jsonify({'ok': False, 'error': str(e)}), 502
+        return jsonify({'ok': False, 'error': _error_detail(e)}), 502
 
 
 @llm_bp.route('/api/llm/chat', methods=['POST'])
@@ -118,7 +135,18 @@ def llm_chat():
             # first token; the user stops a runaway generation with the Stop
             # button instead. See issue #6.
             with http_requests.post(url, json=data, headers=headers, timeout=(10, None), stream=True) as r:
-                r.raise_for_status()
+                if not r.ok:
+                    # Read the body before raising — the provider's actual
+                    # complaint (bad model id, rejected parameter, …) lives
+                    # there, and raise_for_status() discards it.
+                    r.encoding = 'utf-8'
+                    detail = (r.text or '').strip()
+                    msg = f'{r.status_code} {r.reason} from {url}'
+                    if detail:
+                        msg += f' — {detail[:500]}'
+                    log.error('  LLM error: %s', msg)
+                    yield f'data: {json.dumps({"error": msg})}\n\n'
+                    return
                 r.encoding = 'utf-8'
                 for line in r.iter_lines(decode_unicode=True):
                     if not line:
