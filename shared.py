@@ -75,7 +75,10 @@ DEFAULT_PROMPT_TEMPLATE = """{{#system_prompt}}[System Instructions]
 {{mesExamples}}{{/mesExamples}}
 
 {{#lorebook}}[WORLD INFO / CHARACTER LORE]
-{{lorebook}}{{/lorebook}}"""
+{{lorebook}}{{/lorebook}}
+
+{{#author_note}}[AUTHOR'S NOTE]
+{{author_note}}{{/author_note}}"""
 
 
 DEFAULT_POST_HISTORY_TEMPLATE = """{{#post_history_instructions}}[Post-History Instructions]
@@ -141,6 +144,7 @@ def init_db():
                 active_lorebook_id INTEGER DEFAULT NULL,
                 active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
                 lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0,
+                author_note TEXT NOT NULL DEFAULT '',
                 FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
             );
 
@@ -223,6 +227,10 @@ def init_db():
             conn.execute('ALTER TABLE characters ADD COLUMN pinned_at DATETIME DEFAULT NULL')
         if 'archived_at' not in cols:
             conn.execute('ALTER TABLE characters ADD COLUMN archived_at DATETIME DEFAULT NULL')
+
+        chat_cols = [c[1] for c in conn.execute('PRAGMA table_info(chats)').fetchall()]
+        if chat_cols and 'author_note' not in chat_cols:
+            conn.execute("ALTER TABLE chats ADD COLUMN author_note TEXT NOT NULL DEFAULT ''")
 
         collection_cols = [c[1] for c in conn.execute('PRAGMA table_info(character_collections)').fetchall()]
         if collection_cols and 'icon' not in collection_cols:

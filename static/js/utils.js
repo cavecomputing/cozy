@@ -61,8 +61,9 @@ export function syslogStamp() {
  * Supports conditional blocks: {{#var}}…{{/var}} drops out when var is empty.
  * @param {string} template — the raw template with {{var}} placeholders
  * @param {object} context  — { user, char, personality, scenario, description,
- *                              persona, mesExamples, lorebook, system_prompt,
- *                              post_history_instructions, idle_duration }
+ *                              persona, mesExamples, lorebook, author_note,
+ *                              system_prompt, post_history_instructions,
+ *                              idle_duration }
  * @returns {string} the resolved string
  */
 export function resolveTemplateVariables(template, context) {
@@ -84,6 +85,7 @@ export function resolveTemplateVariables(template, context) {
         .replace(/\{\{persona\}\}/gi,        context.persona || '')
         .replace(/\{\{mesExamples\}\}/gi,    context.mesExamples || '')
         .replace(/\{\{lorebook\}\}/gi,       context.lorebook || '')
+        .replace(/\{\{author_note\}\}/gi,    context.author_note || '')
         .replace(/\{\{system_prompt\}\}/gi,  context.system_prompt || '')
         .replace(/\{\{post_history_instructions\}\}/gi,
                                                 context.post_history_instructions || '')
@@ -179,16 +181,16 @@ function updateComposerContextControls(hasChat, hasCharacter) {
         }
     }
 
-    if (el.lorebookFlyoutBtn) {
-        const label = hasChat ? activeLorebookLabel() : 'Book';
-        el.lorebookFlyoutBtn.disabled = !hasChat;
-        el.lorebookFlyoutBtn.title = hasChat
-            ? `Lorebook for this chat: ${label}`
-            : (hasCharacter ? 'Create or select a chat to use lorebooks' : 'Select a character to use lorebooks');
-        el.lorebookFlyoutBtn.setAttribute('aria-label', el.lorebookFlyoutBtn.title);
-        if (!hasChat && el.lorebookFlyout) {
-            el.lorebookFlyout.hidden = true;
-            el.lorebookFlyoutBtn.setAttribute('aria-expanded', 'false');
+    if (el.memoryFlyoutBtn) {
+        const label = hasChat ? activeLorebookLabel() : 'Memory';
+        el.memoryFlyoutBtn.disabled = !hasChat;
+        el.memoryFlyoutBtn.title = hasChat
+            ? `Memory — Author's Note & lorebook (${label})`
+            : (hasCharacter ? 'Create or select a chat to use memory' : 'Select a character to use memory');
+        el.memoryFlyoutBtn.setAttribute('aria-label', el.memoryFlyoutBtn.title);
+        if (!hasChat && el.memoryFlyout) {
+            el.memoryFlyout.hidden = true;
+            el.memoryFlyoutBtn.setAttribute('aria-expanded', 'false');
         }
     }
 }

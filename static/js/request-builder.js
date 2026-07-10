@@ -78,6 +78,7 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         persona:       p.description || '',
         mesExamples:   c.mes_example || '',
         lorebook:      lorebookText,
+        author_note:   state.activeChat?.author_note || '',
         system_prompt: c.system_prompt || '',
         post_history_instructions: c.post_history_instructions || '',
     };

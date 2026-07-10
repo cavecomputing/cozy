@@ -91,6 +91,8 @@ class TestSystemPrompts:
         # builder variables and conditional blocks.
         assert '{{description}}' in prompts[0]['content']
         assert '{{#system_prompt}}' in prompts[0]['content']
+        # New installs get the Author's Note variable seeded automatically.
+        assert '{{author_note}}' in prompts[0]['content']
         assert prompts[0]['post_history_content'] == (
             '{{#post_history_instructions}}[Post-History Instructions]\n'
             '{{post_history_instructions}}{{/post_history_instructions}}'
@@ -954,3 +956,40 @@ class TestThemePrecedence:
             return
         r = client.get(f'/themes/{builtin_files[0]}')
         assert r.status_code == 200
+
+
+class TestChatAuthorNote:
+    def test_new_chat_has_empty_author_note(self, client, sample_chat):
+        assert sample_chat['author_note'] == ''
+
+    def test_update_persists_author_note(self, client, sample_chat):
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={
+            'author_note': "remember: it's raining",
+        })
+        assert r.status_code == 200
+        assert r.get_json()['author_note'] == "remember: it's raining"
+
+        # Reflected in the chat list, too
+        listed = client.get(
+            f'/api/characters/{sample_chat["character_id"]}/chats'
+        ).get_json()
+        match = next(c for c in listed if c['id'] == sample_chat['id'])
+        assert match['author_note'] == "remember: it's raining"
+
+    def test_author_note_survives_unrelated_update(self, client, sample_chat):
+        client.put(f'/api/chats/{sample_chat["id"]}', json={
+            'author_note': 'keep me',
+        })
+        # A later update that omits author_note must not clobber it.
+        lb = client.post('/api/lorebooks', json={'name': 'LB'}).get_json()
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={
+            'active_lorebook_id': lb['id'],
+        })
+        body = r.get_json()
+        assert body['author_note'] == 'keep me'
+        assert body['active_lorebook_id'] == lb['id']
+
+    def test_author_note_can_be_cleared(self, client, sample_chat):
+        client.put(f'/api/chats/{sample_chat["id"]}', json={'author_note': 'x'})
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={'author_note': ''})
+        assert r.get_json()['author_note'] == ''

@@ -581,6 +581,45 @@ async function setActiveLorebook(sel) {
     }
 }
 
+// ── Per-chat Author's Note (lives in the Memory flyout) ───────────────────
+let authorNoteTimer = null;
+
+/** Populate the Author's Note textarea from the active chat. */
+export function loadAuthorNote() {
+    if (!el.authorNoteInput) return;
+    const chat = state.activeChat;
+    el.authorNoteInput.value = chat?.author_note || '';
+    el.authorNoteInput.disabled = !chat;
+}
+
+/** Persist the Author's Note for the active chat (mirrors setActiveLorebook). */
+async function saveAuthorNote() {
+    const chat = state.activeChat;
+    if (!chat) return;
+    const value = el.authorNoteInput?.value || '';
+    if (value === (chat.author_note || '')) return;  // no-op when unchanged
+    try {
+        const updated = await API.updateChat(chat.id, { author_note: value });
+        state.activeChat = updated;
+        const idx = state.chats.findIndex(c => c.id === chat.id);
+        if (idx >= 0) state.chats[idx] = updated;
+    } catch (e) {
+        showToast('Failed to save note: ' + e.message);
+    }
+}
+
+/** Debounced autosave while typing. */
+export function scheduleAuthorNoteSave() {
+    clearTimeout(authorNoteTimer);
+    authorNoteTimer = setTimeout(saveAuthorNote, 500);
+}
+
+/** Immediate flush — used on blur / when the flyout closes. */
+export function flushAuthorNote() {
+    clearTimeout(authorNoteTimer);
+    saveAuthorNote();
+}
+
 // ── Inline notice above the composer ──────────────────────────────────────
 
 const NOTICE_AUTO_DISMISS_MS = 5000;

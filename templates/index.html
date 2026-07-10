@@ -506,6 +506,7 @@
                                         <dt><code>&#123;&#123;persona&#125;&#125;</code></dt><dd>Active persona's description.</dd>
                                         <dt><code>&#123;&#123;mesExamples&#125;&#125;</code></dt><dd>Example dialogue from the card.</dd>
                                         <dt><code>&#123;&#123;lorebook&#125;&#125;</code></dt><dd>Matched world-info entries (joined with separators).</dd>
+                                        <dt><code>&#123;&#123;author_note&#125;&#125;</code></dt><dd>Per-chat Author's Note (from the Memory flyout). Included in the default template; if you've customized yours, add it wherever you want the note injected.</dd>
                                         <dt><code>&#123;&#123;user&#125;&#125;</code> / <code>&#123;&#123;char&#125;&#125;</code></dt><dd>Active persona name / character name.</dd>
                                         <dt><code>&#123;&#123;time&#125;&#125;</code> / <code>&#123;&#123;date&#125;&#125;</code></dt><dd>Current local time / date.</dd>
                                         <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options.</dd>
@@ -1064,8 +1065,17 @@
                     <div class="panel-divider"></div>
                     <ul id="flyout-chat-list" class="chat-list"></ul>
                 </div>
-                <!-- Lorebook flyout popover -->
-                <div id="lorebook-flyout" class="chat-flyout lorebook-flyout" role="dialog" aria-label="Active lorebook for this chat" hidden>
+                <!-- Memory flyout popover: author's note + active lorebook -->
+                <div id="memory-flyout" class="chat-flyout memory-flyout" role="dialog" aria-label="Chat memory" hidden>
+                    <div class="chat-flyout-header panel-header panel-header--compact">
+                        <span class="section-label panel-title panel-title--left">Author's Note</span>
+                    </div>
+                    <div class="panel-divider"></div>
+                    <div class="memory-authornote">
+                        <textarea id="author-note-input" class="form-textarea" rows="4" placeholder="Things to remember for this chat…" disabled></textarea>
+                        <p class="memory-authornote-hint">Injected via <code>&#123;&#123;author_note&#125;&#125;</code> in your prompt template.</p>
+                    </div>
+                    <div class="panel-divider"></div>
                     <div class="chat-flyout-header panel-header panel-header--compact">
                         <span class="section-label panel-title panel-title--left">Active lorebook for this chat</span>
                     </div>
@@ -1080,9 +1090,11 @@
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
                     </button>
-                    <button id="lorebook-flyout-btn" class="icon-btn composer-context-btn" title="Lorebook for this chat" aria-label="Lorebook for this chat" aria-haspopup="dialog" aria-expanded="false">
+                    <button id="memory-flyout-btn" class="icon-btn composer-context-btn" title="Memory (Author's Note &amp; lorebook)" aria-label="Chat memory" aria-haspopup="dialog" aria-expanded="false">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+                            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
+                            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
                         </svg>
                     </button>
                 </div>

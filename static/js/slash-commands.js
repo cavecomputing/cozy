@@ -94,9 +94,9 @@ function renderMenu() {
         el.chatFlyout.hidden = true;
         el.chatFlyoutBtn?.setAttribute('aria-expanded', 'false');
     }
-    if (el.lorebookFlyout) {
-        el.lorebookFlyout.hidden = true;
-        el.lorebookFlyoutBtn?.setAttribute('aria-expanded', 'false');
+    if (el.memoryFlyout) {
+        el.memoryFlyout.hidden = true;
+        el.memoryFlyoutBtn?.setAttribute('aria-expanded', 'false');
     }
     menuEl.innerHTML = '';
     visibleCommands.forEach((cmd, index) => {

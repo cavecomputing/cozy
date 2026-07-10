@@ -4993,9 +4993,10 @@ input[type="checkbox"]:disabled {
         animation: sheetUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* The desktop .lorebook-flyout sizing rule is declared later in the
-       file — re-assert the sheet geometry with higher specificity. */
-    .chat-flyout.lorebook-flyout {
+    /* The desktop .lorebook-flyout / .memory-flyout sizing rules are declared
+       later in the file — re-assert the sheet geometry with higher specificity. */
+    .chat-flyout.lorebook-flyout,
+    .chat-flyout.memory-flyout {
         left: 0;
         min-width: 0;
         max-width: none;
@@ -5203,7 +5204,38 @@ input[type="checkbox"]:disabled {
 }
 .lorebook-flyout-manage:hover { background-color: var(--hover-bg); }
 
-#lorebook-flyout-btn { flex-shrink: 0; }
+#memory-flyout-btn { flex-shrink: 0; }
+
+/* Memory flyout (Author's Note + active lorebook, next to composer) */
+.memory-flyout {
+    left: -1px;
+    min-width: 280px;
+    max-width: 400px;
+    max-height: 70vh;
+}
+.memory-authornote {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem 0.6rem;
+}
+#author-note-input {
+    resize: vertical;
+    min-height: 4.5rem;
+    font-size: 0.85rem;
+}
+.memory-authornote-hint {
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--text-secondary);
+}
+.memory-authornote-hint code {
+    padding: 0.05rem 0.25rem;
+    border-radius: var(--radius-sm);
+    background: var(--active-bg);
+    font-size: 0.72rem;
+}
 
 /* Settings panel — global controls plus a responsive lorebook workspace */
 .lorebook-section-body {

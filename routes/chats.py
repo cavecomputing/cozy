@@ -295,6 +295,7 @@ def update_chat(chat_id):
         cur_lb_id = row['active_lorebook_id']
         cur_lb_embedded = row['active_lorebook_embedded'] or 0
         cur_notice = row['lorebook_notice_dismissed'] or 0
+        cur_author_note = row['author_note'] or ''
 
         # `active_lorebook_id`: explicit None clears, integer sets, omitted leaves alone.
         if 'active_lorebook_id' in data:
@@ -323,10 +324,13 @@ def update_chat(chat_id):
         if 'lorebook_notice_dismissed' in data:
             cur_notice = 1 if data['lorebook_notice_dismissed'] else 0
 
+        if 'author_note' in data:
+            cur_author_note = str(data['author_note'] or '')
+
         conn.execute(
             'UPDATE chats SET name=?, active_lorebook_id=?, active_lorebook_embedded=?, '
-            'lorebook_notice_dismissed=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
-            (name, cur_lb_id, cur_lb_embedded, cur_notice, chat_id)
+            'lorebook_notice_dismissed=?, author_note=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+            (name, cur_lb_id, cur_lb_embedded, cur_notice, cur_author_note, chat_id)
         )
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
         return jsonify(_chat_to_dict(row))

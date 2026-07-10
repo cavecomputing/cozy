@@ -21,7 +21,7 @@ import {
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode,
 } from './system-prompts.js';
-import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook } from './lorebooks.js';
+import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote } from './lorebooks.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
@@ -165,7 +165,7 @@ function bindResponsiveShellHandlers() {
     // (transform on sidebar creates a new containing block that breaks fixed)
     const mobileQuery = window.matchMedia(MOBILE_SHELL_QUERY);
     function handleMobileModals(mq) {
-        const sheets = [el.chatFlyout, el.lorebookFlyout].filter(Boolean);
+        const sheets = [el.chatFlyout, el.memoryFlyout].filter(Boolean);
         if (mq.matches) {
             document.querySelectorAll('#sidebar .modal-overlay').forEach(m => {
                 document.body.appendChild(m);
@@ -210,7 +210,7 @@ function bindSheetBackdropHandlers() {
     // .show class is harmless on desktop.
     const backdrop = document.getElementById('sheet-backdrop');
     if (!backdrop) return;
-    const sheets = [el.chatFlyout, el.lorebookFlyout].filter(Boolean);
+    const sheets = [el.chatFlyout, el.memoryFlyout].filter(Boolean);
     const sync = () => {
         backdrop.classList.toggle('show', sheets.some(s => !s.hidden));
     };
@@ -229,9 +229,10 @@ function bindFlyoutHandlers() {
         el.chatFlyout.hidden = true;
         el.chatFlyoutBtn?.setAttribute('aria-expanded', 'false');
     });
-    Flyouts.register('lorebook', () => {
-        if (el.lorebookFlyout) el.lorebookFlyout.hidden = true;
-        el.lorebookFlyoutBtn?.setAttribute('aria-expanded', 'false');
+    Flyouts.register('memory', () => {
+        if (el.memoryFlyout) el.memoryFlyout.hidden = true;
+        el.memoryFlyoutBtn?.setAttribute('aria-expanded', 'false');
+        flushAuthorNote();
     });
     Flyouts.register('persona', () => {
         el.personaDropup.classList.remove('show');
@@ -601,29 +602,39 @@ function bindChatHandlers() {
     el.flyoutImportChatFile?.addEventListener('change', handleChatImportFile);
 }
 
-function bindLorebookHandlers() {
-    // Lorebook flyout — toggle, render fresh on each open, close on outside click
-    el.lorebookFlyoutBtn?.addEventListener('click', e => {
+function bindMemoryHandlers() {
+    // Memory flyout — Author's Note + active lorebook. Toggle, render fresh on
+    // each open, close on outside click.
+    el.memoryFlyoutBtn?.addEventListener('click', e => {
         e.stopPropagation();
         closeSlashCommands();
-        const isOpen = !el.lorebookFlyout.hidden;
-        Flyouts.closeAllExcept('lorebook');
-        if (!isOpen) renderLorebookFlyout();
-        el.lorebookFlyout.hidden = isOpen;
-        el.lorebookFlyoutBtn.setAttribute('aria-expanded', String(!isOpen));
+        const isOpen = !el.memoryFlyout.hidden;
+        Flyouts.closeAllExcept('memory');
+        if (!isOpen) {
+            renderLorebookFlyout();
+            loadAuthorNote();
+        } else {
+            flushAuthorNote();
+        }
+        el.memoryFlyout.hidden = isOpen;
+        el.memoryFlyoutBtn.setAttribute('aria-expanded', String(!isOpen));
     });
     document.addEventListener('click', e => {
-        if (el.lorebookFlyout && !el.lorebookFlyout.hidden
-            && !el.lorebookFlyout.contains(e.target)
-            && e.target !== el.lorebookFlyoutBtn
-            && !el.lorebookFlyoutBtn?.contains(e.target)) {
-            el.lorebookFlyout.hidden = true;
-            el.lorebookFlyoutBtn.setAttribute('aria-expanded', 'false');
+        if (el.memoryFlyout && !el.memoryFlyout.hidden
+            && !el.memoryFlyout.contains(e.target)
+            && e.target !== el.memoryFlyoutBtn
+            && !el.memoryFlyoutBtn?.contains(e.target)) {
+            el.memoryFlyout.hidden = true;
+            el.memoryFlyoutBtn.setAttribute('aria-expanded', 'false');
+            flushAuthorNote();
         }
     });
+    // Author's Note — debounced autosave while typing, flush on blur.
+    el.authorNoteInput?.addEventListener('input', scheduleAuthorNoteSave);
+    el.authorNoteInput?.addEventListener('blur', flushAuthorNote);
     el.lorebookManageBtn?.addEventListener('click', e => {
         e.stopPropagation();
-        el.lorebookFlyout.hidden = true;
+        el.memoryFlyout.hidden = true;
         // Open settings on the lorebooks tab
         if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
         applySettingsSection('lorebooks', { drillIntoOnMobile: true });
@@ -849,7 +860,7 @@ async function init() {
     bindSettingsHandlers();
     bindCharacterHandlers();
     bindChatHandlers();
-    bindLorebookHandlers();
+    bindMemoryHandlers();
     bindMessageHandlers();
     bindComposerHandlers();
     bindPersonaHandlers();
