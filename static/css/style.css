@@ -2282,21 +2282,20 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     flex: 1;
     min-width: 0;
 }
-.prompt-select-row .icon-btn {
+.prompt-select-row .icon-btn,
+.prompt-select-row .export-dropdown {
     flex: none;
 }
-.prompt-section-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.25rem;
+/* Right-align the import/export menu so it doesn't overflow the row's edge */
+.prompt-select-row .export-menu {
+    left: auto;
+    right: 0;
 }
-.prompt-action-group {
+.prompt-header-actions {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 0.25rem;
+    flex: none;
 }
 .prompt-builder-tabs {
     display: flex;
@@ -2389,9 +2388,6 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     .prompt-section-right {
         flex: 1;
         min-height: 12rem;
-    }
-    .prompt-section-actions {
-        justify-content: flex-start;
     }
 }
 
