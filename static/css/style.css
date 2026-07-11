@@ -4826,6 +4826,16 @@ input[type="checkbox"]:disabled {
         flex-direction: column;
         gap: 0.55rem;
     }
+    /* Prompt header carries only two small icon buttons — keep them inline,
+       top-right, and let the tagline wrap within the narrowed title column. */
+    .settings-page-header--icons {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .settings-page-header--icons .settings-page-title p {
+        font-size: 0.74rem;
+    }
     .settings-section-body,
     .settings-section-stack,
     .prompt-section-body {
