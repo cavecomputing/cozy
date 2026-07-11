@@ -314,16 +314,11 @@ class TestLorebookEdgeCases:
         os.remove(path)
         # Run sync so the row is marked missing
         client.get('/api/characters')
-        # Creating a chat against a missing character should still 404 (handled
-        # by routes/chats.py: SELECT id FROM characters returns None? actually
-        # the row exists, so chat creation goes through but `_character_has_lorebook`
-        # silently returns False for missing files).
+        # The index row still exists, so chat creation succeeds while
+        # `_character_has_lorebook` treats the missing card as having no book.
         r = client.post(f'/api/characters/{sample_character["id"]}/chats', json={'name': 'C'})
-        # Either 201 with embedded=False or 404 — both acceptable; the key
-        # invariant is no 500.
-        assert r.status_code in (201, 404)
-        if r.status_code == 201:
-            assert r.get_json()['active_lorebook_embedded'] is False
+        assert r.status_code == 201
+        assert r.get_json()['active_lorebook_embedded'] is False
 
     def test_setting_negative_lorebook_id_is_rejected(self, client, sample_chat):
         r = client.put(f'/api/chats/{sample_chat["id"]}', json={
@@ -374,6 +369,64 @@ class TestMigrationIdempotent:
                 "SELECT name FROM sqlite_master WHERE type='table'"
             ).fetchall()}
             assert 'lorebooks' in tables
+
+    def test_init_db_migrates_legacy_columns(self, tmp_path, monkeypatch):
+        legacy_db = tmp_path / 'legacy.db'
+        monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
+        with shared.get_db() as conn:
+            conn.executescript('''
+                CREATE TABLE characters (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT NOT NULL UNIQUE,
+                    crc TEXT NOT NULL,
+                    missing INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE character_collections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE chats (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    character_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    active_lorebook_id INTEGER DEFAULT NULL,
+                    active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
+                    lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE api_presets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    api_endpoint TEXT NOT NULL DEFAULT '',
+                    api_key TEXT NOT NULL DEFAULT '',
+                    api_model TEXT NOT NULL DEFAULT '',
+                    context_max_tokens TEXT NOT NULL DEFAULT '32768',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE system_prompts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    content TEXT NOT NULL DEFAULT '',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            columns = lambda table: {
+                row['name'] for row in conn.execute(f'PRAGMA table_info({table})')
+            }
+            assert {'pinned_at', 'archived_at'} <= columns('characters')
+            assert 'icon' in columns('character_collections')
+            assert 'author_note' in columns('chats')
+            assert 'settings_json' in columns('api_presets')
+            assert 'post_history_content' in columns('system_prompts')
 
 
 class TestLorebookImport:
