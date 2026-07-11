@@ -32,7 +32,7 @@ export const state = {
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
     apiPresets:          [],
     activePresetId:      null,
-    settingsSection:     'appearance',
+    settingsSection:     'general',
     lorebooks:           [],     // standalone DB lorebooks (summary list)
     lorebookScanDepthOverride: 0,
     lorebookAlwaysInjectAll: false,
