@@ -1120,88 +1120,50 @@
             </div>
             <div class="panel-divider"></div>
             <div class="modal-body prompt-help-body">
-                <p class="prompt-help-callout"><strong>You don't need to change anything here.</strong> The default template already produces a sensible system message for every character. Only edit the template if you specifically want to change <em>how</em> the prompt is assembled — re-order sections, rename labels, drop a section entirely, add custom instructions, etc.</p>
+                <p class="prompt-help-callout"><strong>You usually don't need to touch this.</strong> The default template already builds a solid prompt for every character. Edit it only if you want to change <em>how</em> the prompt is put together — reorder sections, rename labels, drop one, or add your own instructions.</p>
 
-                <p>The textarea is a <strong>template</strong>. When a message is sent, it's resolved into either the system message or the post-history message that goes to the model. Whatever you write here, character data and persona data is folded into, gets sent.</p>
+                <h3>The big picture</h3>
+                <p>This box holds a <strong>template</strong>: a draft with blanks in it. Each time you send a message, Cozy fills the blanks with the current character and persona, then sends the finished text to the model.</p>
+                <p>It has two tabs, and each is its own template:</p>
+                <ul class="prompt-help-tips">
+                    <li><strong>System</strong> goes in first, before the chat — it sets the scene and the rules.</li>
+                    <li><strong>Post-History</strong> goes in after the chat so far — good for a last reminder to the model right before it replies.</li>
+                </ul>
+                <p>Three kinds of things can go in a template: variables, optional sections, and a random pick.</p>
 
-                <h3>Variables — <code>&#123;&#123;name&#125;&#125;</code></h3>
-                <p>Each <code>&#123;&#123;name&#125;&#125;</code> is replaced with the corresponding value at send time.</p>
-                <pre class="prompt-help-example">You are &#123;&#123;char&#125;&#125;, in conversation with &#123;&#123;user&#125;&#125;.
+                <h3>1. Variables — <code>&#123;&#123;name&#125;&#125;</code></h3>
+                <p>A variable is a blank. Write <code>&#123;&#123;char&#125;&#125;</code> and it becomes the character's name; <code>&#123;&#123;description&#125;&#125;</code> becomes their description, and so on.</p>
+                <pre class="prompt-help-example">You are &#123;&#123;char&#125;&#125;, talking with &#123;&#123;user&#125;&#125;.
 &#123;&#123;description&#125;&#125;</pre>
-                <p class="prompt-help-note">Empty variables resolve to an empty string. See the <em>Available variables</em> list under the textarea for the full set.</p>
+                <p class="prompt-help-note">A blank with nothing to fill it just disappears. The full list is in the <em>Variables</em> panel beside the editor.</p>
 
-                <h3>Conditional blocks — <code>&#123;&#123;#name&#125;&#125;…&#123;&#123;/name&#125;&#125;</code></h3>
-                <p>A conditional block is a fence around a chunk of template. The fence has an opening tag <code>&#123;&#123;#name&#125;&#125;</code> and a matching closing tag <code>&#123;&#123;/name&#125;&#125;</code> — the names must match on both sides.</p>
-
-                <p><strong>The rule:</strong> if the variable named in the fence is empty (or only whitespace), the entire fenced section is deleted from the output — including any labels, headers, and punctuation you wrote inside. If the variable has content, the fence tags themselves disappear and the inside is kept.</p>
-
-                <h4>Why it exists</h4>
-                <p>Without a conditional, this template:</p>
-                <pre class="prompt-help-example">[Scenario]
-&#123;&#123;scenario&#125;&#125;</pre>
-                <p>…always emits the <code>[Scenario]</code> line — even when the character has no scenario set. You'd get a header with nothing under it. The model might think you forgot something.</p>
-
-                <h4>With a conditional</h4>
+                <h3>2. Optional sections — <code>&#123;&#123;#name&#125;&#125;…&#123;&#123;/name&#125;&#125;</code></h3>
+                <p>Say you want a <code>[Scenario]</code> heading, but only when the character actually has a scenario. Wrap that part in a matching pair — <code>&#123;&#123;#name&#125;&#125;</code> to open, <code>&#123;&#123;/name&#125;&#125;</code> to close — and it becomes optional.</p>
+                <p><strong>The rule:</strong> if <code>name</code> is empty, everything between the tags is removed — heading, punctuation, all of it. If <code>name</code> has content, the tags disappear and what's inside stays.</p>
                 <pre class="prompt-help-example">&#123;&#123;#scenario&#125;&#125;[Scenario]
 &#123;&#123;scenario&#125;&#125;&#123;&#123;/scenario&#125;&#125;</pre>
-                <p><strong>If <code>scenario</code> is set</strong> to <code>"Lost in a forest"</code> — fence tags vanish, the inside renders normally:</p>
-                <pre class="prompt-help-example">[Scenario]
-Lost in a forest</pre>
-                <p><strong>If <code>scenario</code> is empty</strong> — the whole fenced block is removed, header and all. No orphan <code>[Scenario]</code> line.</p>
-
-                <h4>What counts as "empty"</h4>
+                <p>With a scenario set, you get the heading and the text. With no scenario, the whole block vanishes — no empty <code>[Scenario]</code> heading left sitting there.</p>
                 <ul class="prompt-help-tips">
-                    <li><code>null</code> / <code>undefined</code> — empty</li>
-                    <li><code>""</code> (empty string) — empty</li>
-                    <li><code>"   "</code> (only spaces or newlines) — empty</li>
-                    <li>Anything with real characters — not empty, block is kept</li>
+                    <li>The name must match on both ends. <code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/scenario&#125;&#125;</code> works; a typo like <code>&#123;&#123;/scneario&#125;&#125;</code> doesn't, and the raw tag shows up in the output.</li>
+                    <li>"Empty" means blank, missing, or only spaces.</li>
                 </ul>
 
-                <h4>What can go inside the fence</h4>
-                <p>Anything you want — labels, brackets, multi-line text, even other variables. The whole chunk between <code>&#123;&#123;#name&#125;&#125;</code> and <code>&#123;&#123;/name&#125;&#125;</code> is treated as one unit. The fence is asking "if this variable has content, render all of this; otherwise, render none of it."</p>
-
-                <h4>The names must match</h4>
-                <ul class="prompt-help-tips">
-                    <li><code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/scenario&#125;&#125;</code> — works.</li>
-                    <li><code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/Scenario&#125;&#125;</code> — broken (capital S doesn't match).</li>
-                    <li><code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/scneario&#125;&#125;</code> — broken (typo).</li>
-                </ul>
-                <p>When the names don't match, the fence isn't recognized — the literal <code>&#123;&#123;#scenario&#125;&#125;</code> tag stays in the output. Use Preview to spot it.</p>
-
-                <h4>How the default template uses them</h4>
-                <p>The default template wraps every section so empty fields don't show up:</p>
-                <pre class="prompt-help-example">&#123;&#123;#description&#125;&#125;[Character Description]
-&#123;&#123;description&#125;&#125;&#123;&#123;/description&#125;&#125;
-
-&#123;&#123;#personality&#125;&#125;[Character Personality]
-&#123;&#123;personality&#125;&#125;&#123;&#123;/personality&#125;&#125;
-
-&#123;&#123;#scenario&#125;&#125;[Scenario]
-&#123;&#123;scenario&#125;&#125;&#123;&#123;/scenario&#125;&#125;</pre>
-                <p>A character with a description and personality but no scenario produces:</p>
-                <pre class="prompt-help-example">[Character Description]
-A wise old wizard.
-
-[Character Personality]
-Calm and patient.</pre>
-                <p>The <code>[Scenario]</code> block silently disappears.</p>
-
-                <h3>Random choice — <code>&#123;&#123;random:a,b,c&#125;&#125;</code></h3>
-                <p>Picks one of the comma-separated options at random each time the prompt is built.</p>
+                <h3>3. Random pick — <code>&#123;&#123;random:a,b,c&#125;&#125;</code></h3>
+                <p>Picks one of the comma-separated options each time the prompt is built.</p>
                 <pre class="prompt-help-example">The weather is &#123;&#123;random:sunny,rainy,foggy,stormy&#125;&#125;.</pre>
 
-                <h3>Per-character fields</h3>
-                <p>If a character card has a <code>system_prompt</code> field, that text fills <code>&#123;&#123;system_prompt&#125;&#125;</code>. If a character card has a <code>post_history_instructions</code> field, that text fills <code>&#123;&#123;post_history_instructions&#125;&#125;</code>. If you remove either variable from its template, that per-character field has no effect.</p>
+                <h3>Blanks that come from the card</h3>
+                <p>Two variables are filled by the character card itself: <code>&#123;&#123;system_prompt&#125;&#125;</code> and <code>&#123;&#123;post_history_instructions&#125;&#125;</code>. Whatever the card puts there lands wherever you place the blank. Take the blank out and the card's text is ignored.</p>
 
-                <h3>Tips</h3>
+                <h3>Check your work</h3>
                 <ul class="prompt-help-tips">
-                    <li>Click <strong>Preview</strong> (eye icon) any time to see exactly what will be sent for the active character + persona.</li>
-                    <li>Multiple templates can be saved — switch between them with the dropdown.</li>
-                    <li>Typos in conditional tags fail silently (e.g. <code>&#123;&#123;#x&#125;&#125;…&#123;&#123;/y&#125;&#125;</code> won't match) — Preview is your debugging aid.</li>
+                    <li>Tap the <strong>eye</strong> icon to preview exactly what will be sent for the current character and persona.</li>
+                    <li>Made a typo in a tag? The preview is where you'll catch a leftover <code>&#123;&#123;…&#125;&#125;</code> that never got filled in.</li>
+                    <li>You can save several templates and switch between them with the dropdown.</li>
                 </ul>
 
                 <h3>Default templates</h3>
-                <p>The originals, in case you've edited a template and want to restore it — copy a block and paste it back into the editor.</p>
+                <p>Here are the originals. Edited a template and want to start fresh? Copy a block and paste it back into the editor.</p>
                 <div class="prompt-help-default">
                     <div class="prompt-help-default-head">
                         <h4>System</h4>
