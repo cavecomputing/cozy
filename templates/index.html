@@ -505,9 +505,8 @@
                             <p>Manage standalone and character-embedded world info, then choose which book each chat uses.</p>
                         </header>
                         <div class="settings-section-body lorebook-section-body">
-                            <details class="lorebook-card lorebook-card--global settings-disclosure">
-                                <summary>Global lorebook settings</summary>
-                                <div class="settings-row">
+                            <section class="settings-card lorebook-card lorebook-card--global">
+                                <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-lorebook-scan-override">
                                         Scan depth override
                                         <span class="help-tip" tabindex="0" aria-label="Scan depth override help" data-tip="Replaces every book's scan depth for this install. Scan depth is how many recent messages are checked for keyword hits. &lt;code&gt;0&lt;/code&gt; = use each book's own value.">?</span>
@@ -521,7 +520,7 @@
                                     </label>
                                     <input type="checkbox" id="settings-lorebook-always-inject-all">
                                 </div>
-                            </details>
+                            </section>
 
                             <div class="lorebook-card lorebook-card--workspace">
                                 <header class="settings-card-header settings-card-header--workspace">

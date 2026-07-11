@@ -5446,16 +5446,9 @@ input[type="checkbox"]:disabled {
     padding: 0.45rem 0;
 }
 
-/* No divider between rows inside the global settings card */
-.lorebook-card--global .settings-row + .settings-row {
-    border-top: 0;
-    padding-top: 0.35rem;
-}
-
-/* Keep the checkbox snug to its label rather than right-aligned */
-.lorebook-card--global .settings-row:has(input[type="checkbox"]) {
-    justify-content: flex-start;
-    gap: 0.6rem;
+.lorebook-card--global .settings-row--inline .form-input {
+    flex: 0 0 7rem;
+    width: 7rem;
 }
 
 .lorebook-card--workspace {
