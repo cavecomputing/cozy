@@ -2644,6 +2644,12 @@ input[type="checkbox"]:disabled {
     background-position: right 0.6rem center;
     cursor: pointer;
 }
+/* Theme the open option list so it matches the app instead of the OS default */
+.settings-select option,
+.settings-select optgroup {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
 
 .settings-model-row {
     display: flex;
