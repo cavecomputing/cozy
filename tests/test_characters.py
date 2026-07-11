@@ -603,3 +603,43 @@ class TestCharacterOrganization:
         with open(path, 'rb') as f:
             after = f.read()
         assert after == before
+
+
+# ── Duplicate endpoint ────────────────────────────────────────────────────
+
+class TestDuplicate:
+    def test_duplicate_creates_independent_copy(self, client, sample_character):
+        r = client.post(f'/api/characters/{sample_character["id"]}/duplicate')
+        assert r.status_code == 201
+        copy = r.get_json()
+
+        # New row, new file, name suffixed with " Copy".
+        assert copy['id'] != sample_character['id']
+        assert copy['filename'] != sample_character['filename']
+        assert copy['name'] == 'TestChar Copy'
+
+        # Both characters now show up in the listing.
+        ids = {c['id'] for c in client.get('/api/characters').get_json()}
+        assert {sample_character['id'], copy['id']} <= ids
+
+        # The copy's PNG embeds the renamed card.
+        path = os.path.join(shared.CHARACTERS_DIR, copy['filename'])
+        with open(path, 'rb') as f:
+            card = extract_png_chara(f.read())
+        assert card['data']['name'] == 'TestChar Copy'
+
+    def test_duplicate_leaves_original_untouched(self, client, sample_character):
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        with open(path, 'rb') as f:
+            before = f.read()
+
+        client.post(f'/api/characters/{sample_character["id"]}/duplicate')
+
+        original = client.get(f'/api/characters/{sample_character["id"]}').get_json()
+        assert original['name'] == 'TestChar'
+        with open(path, 'rb') as f:
+            assert f.read() == before
+
+    def test_duplicate_unknown_character_404s(self, client):
+        r = client.post('/api/characters/99999/duplicate')
+        assert r.status_code == 404
