@@ -28,11 +28,6 @@ function setEditorValues(prompt) {
     }
 }
 
-function activeEditorMode() {
-    const active = document.querySelector('[data-prompt-builder-tab].active');
-    return active?.dataset.promptBuilderTab === 'post-history' ? 'post-history' : 'system';
-}
-
 async function savePromptFields({ showSuccess = false } = {}) {
     if (!state.activeSystemPromptId) return;
     const p = syncActivePromptFromEditors();
@@ -142,29 +137,18 @@ async function getDefaultTemplates() {
     };
 }
 
-export async function resetSystemPromptToDefault() {
-    if (!state.activeSystemPromptId) return;
-    const mode = activeEditorMode();
-    const label = mode === 'post-history' ? 'post-history prompt' : 'system prompt';
-    const ok = await confirmDialog({
-        title: `Reset ${label} to default?`,
-        message: 'The visible editor content is replaced with the default template.',
-        confirmLabel: 'Reset',
-        danger: false,
-    });
-    if (!ok) return;
-    const defaults = await getDefaultTemplates();
-    const p = activePrompt();
-    if (!p) return;
-    if (mode === 'post-history') {
-        p.post_history_content = defaults.postHistoryTemplate;
-        if (el.postHistoryContent) el.postHistoryContent.value = defaults.postHistoryTemplate;
-    } else {
-        p.content = defaults.template;
-        if (el.syspromptContent) el.syspromptContent.value = defaults.template;
+/** Fill the help modal's read-only default-template blocks (for copy/paste). */
+export async function populateDefaultTemplateHelp() {
+    const sysEl = document.getElementById('prompt-help-default-system');
+    const postEl = document.getElementById('prompt-help-default-post-history');
+    if (!sysEl && !postEl) return;
+    try {
+        const defaults = await getDefaultTemplates();
+        if (sysEl) sysEl.textContent = defaults.template;
+        if (postEl) postEl.textContent = defaults.postHistoryTemplate;
+    } catch (e) {
+        console.warn('Failed to load default templates:', e);
     }
-    await savePromptFields();
-    showToast('Reset to default', 'success');
 }
 
 // ── Import / export ───────────────────────────────────────────────────────
@@ -188,11 +172,14 @@ export async function handleSystemPromptImportFile(e) {
     }
 }
 
-export function exportSystemPrompt() {
+export async function exportSystemPrompt() {
     if (!state.activeSystemPromptId) {
         showToast('No prompt selected');
         return;
     }
+    // Persist any unsaved editor edits so the export reflects both the
+    // System and Post-History content currently on screen.
+    await savePromptFields();
     window.location.href = `/api/system-prompts/${state.activeSystemPromptId}/export`;
 }
 

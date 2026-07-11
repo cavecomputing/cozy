@@ -441,17 +441,18 @@
                         </div>
                     </div>
                     <div class="settings-section" data-section="prompt" hidden>
-                        <header class="settings-page-header">
-                            <h3>Prompt</h3>
-                            <p>Edit the template Cozy uses to assemble character, persona, lorebook, and chat context.</p>
+                        <header class="settings-page-header settings-page-header--with-action">
+                            <div class="settings-page-title">
+                                <h3>Prompt</h3>
+                                <p>Edit the template Cozy uses to assemble character, persona, lorebook, and chat context.</p>
+                            </div>
+                            <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help & default prompts" aria-label="Template syntax help">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            </button>
                         </header>
                         <div class="settings-section-body prompt-section-body">
                             <div class="prompt-section-left">
                                 <div class="prompt-section-controls settings-card">
-                                    <header class="settings-card-header">
-                                        <h4>Prompt</h4>
-                                        <p>Select, save, preview, or reset a prompt template.</p>
-                                    </header>
                                     <label class="settings-row-label" for="settings-sysprompt-select">Prompt</label>
                                     <div class="prompt-select-row">
                                         <select id="settings-sysprompt-select" class="form-input settings-select"></select>
@@ -481,17 +482,7 @@
                                             <button id="settings-sysprompt-preview" class="icon-btn" title="Preview rendered prompt" aria-label="Preview prompt">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                             </button>
-                                            <button id="settings-sysprompt-reset" class="icon-btn" title="Reset visible editor to default template" aria-label="Reset visible editor to default">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-4.5"></path></svg>
-                                            </button>
-                                            <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help" aria-label="Template syntax help">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                            </button>
                                         </div>
-                                    </div>
-                                    <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
-                                        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system">System</button>
-                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">Post-History</button>
                                     </div>
                                 </div>
                                 <div class="prompt-vars-panel">
@@ -514,6 +505,10 @@
                                 </div>
                             </div>
                             <div class="prompt-section-right settings-card">
+                                <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
+                                    <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system">System</button>
+                                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">Post-History</button>
+                                </div>
                                 <textarea id="settings-sysprompt-content" class="form-textarea" placeholder="Enter prompt template…"></textarea>
                                 <textarea id="settings-posthistory-content" class="form-textarea" placeholder="Enter post-history prompt template…" hidden></textarea>
                             </div>
@@ -1202,10 +1197,26 @@ Calm and patient.</pre>
                 <h3>Tips</h3>
                 <ul class="prompt-help-tips">
                     <li>Click <strong>Preview</strong> (eye icon) any time to see exactly what will be sent for the active character + persona.</li>
-                    <li>Click <strong>Reset</strong> (circular arrow) to return to the default template.</li>
                     <li>Multiple templates can be saved — switch between them with the dropdown.</li>
                     <li>Typos in conditional tags fail silently (e.g. <code>&#123;&#123;#x&#125;&#125;…&#123;&#123;/y&#125;&#125;</code> won't match) — Preview is your debugging aid.</li>
                 </ul>
+
+                <h3>Default templates</h3>
+                <p>The originals, in case you've edited a template and want to restore it — copy a block and paste it back into the editor.</p>
+                <div class="prompt-help-default">
+                    <div class="prompt-help-default-head">
+                        <h4>System</h4>
+                        <button type="button" class="btn btn-secondary btn-sm prompt-help-copy" data-copy-default="system">Copy</button>
+                    </div>
+                    <pre class="prompt-help-example" id="prompt-help-default-system">Loading…</pre>
+                </div>
+                <div class="prompt-help-default">
+                    <div class="prompt-help-default-head">
+                        <h4>Post-History</h4>
+                        <button type="button" class="btn btn-secondary btn-sm prompt-help-copy" data-copy-default="post-history">Copy</button>
+                    </div>
+                    <pre class="prompt-help-example" id="prompt-help-default-post-history">Loading…</pre>
+                </div>
             </div>
         </div>
     </div>

@@ -17,7 +17,7 @@ import { handleSend } from './send.js';
 import { loadLLMSettings, saveLLMSettings, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, saveActivePreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
-    updateSystemPromptContent, resetSystemPromptToDefault,
+    updateSystemPromptContent, populateDefaultTemplateHelp,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode,
 } from './system-prompts.js';
@@ -375,10 +375,20 @@ function bindSettingsHandlers() {
         rememberSettingsSubmodalTrigger();
         previewSystemPrompt();
     });
-    el.syspromptReset?.addEventListener('click', resetSystemPromptToDefault);
     el.syspromptHelp?.addEventListener('click', () => {
         rememberSettingsSubmodalTrigger();
+        populateDefaultTemplateHelp();
         if (el.promptHelpModal) el.promptHelpModal.hidden = false;
+    });
+    el.promptHelpModal?.addEventListener('click', e => {
+        const copyBtn = e.target.closest('.prompt-help-copy');
+        if (!copyBtn) return;
+        const which = copyBtn.dataset.copyDefault === 'post-history'
+            ? 'prompt-help-default-post-history' : 'prompt-help-default-system';
+        const text = document.getElementById(which)?.textContent || '';
+        navigator.clipboard.writeText(text)
+            .then(() => showToast('Copied default template', 'success', 2000))
+            .catch(() => showToast('Could not copy template'));
     });
     // Import / export dropdown
     const closeSyspromptIoMenu = () => {
