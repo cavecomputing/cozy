@@ -13,15 +13,14 @@ Commit directly to `main` once work is complete and verified — this project do
 ```bash
 # Dev server (Flask, auto-reload, port 5001)
 uv run python app.py
-# or: python app.py
 
 # Custom data directory (default: ./data)
-COZY_DATA_DIR=/path/to/data python app.py
+COZY_DATA_DIR=/path/to/data uv run python app.py
 
-# Tests
-pytest                                 # full suite
-pytest tests/test_characters.py        # one file
-pytest tests/test_characters.py::test_name -x   # one test, stop on fail
+# Tests (use `uv run` — the bare `python`/`pytest` on PATH may not resolve the project env)
+uv run pytest                                 # full suite
+uv run pytest tests/test_characters.py        # one file
+uv run pytest tests/test_characters.py::test_name -x   # one test, stop on fail
 
 # Docker (host port 80 -> container 5001)
 cd docker && docker compose up --build
@@ -35,13 +34,15 @@ Single-process Flask app. Entry point [app.py](app.py) registers seven blueprint
 
 ### Data lives in two places
 
-Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`). Routes that need card data read it from the PNG via [png_utils.py](png_utils.py) at request time.
+Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`, plus `pinned_at`/`archived_at` for pin & archive state). Routes that need card data read it from the PNG via [png_utils.py](png_utils.py) at request time.
 
-Everything else (chats, messages, message_swipes, personas, settings, system_prompts, api_presets, lorebooks) lives in `data/cozy_chat.db`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py). Keep startup idempotent so calling `init_db()` repeatedly is safe.
+Everything else lives in `data/cozy_chat.db`: `character_collections` and `character_collection_members` (the gallery/collection grouping), `chats`, `messages`, `message_swipes`, `personas`, `settings`, `system_prompts`, `api_presets`, and `lorebooks`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py). Keep startup idempotent so calling `init_db()` repeatedly is safe — existing-DB column additions go through the `PRAGMA table_info` / `ALTER TABLE ADD COLUMN` migration block near the end of `init_db()`.
 
 ### Prompt template system
 
 System prompts are not plain text — they are Mustache-ish templates with `{{variable}}` and `{{#var}}…{{/var}}` conditional sections (see `DEFAULT_PROMPT_TEMPLATE` in [shared.py](shared.py)). Fresh databases seed the default template directly, with `{{system_prompt}}` left as a live variable for per-character instructions.
+
+Each saved prompt is **paired**: a `content` (system) template and a `post_history_content` template injected after the chat history (`DEFAULT_POST_HISTORY_TEMPLATE` in [shared.py](shared.py)). Both are stored on the `system_prompts` row and travel together through the import/export endpoints in [routes/settings.py](routes/settings.py).
 
 ### LLM proxy and streaming
 
@@ -56,3 +57,5 @@ CSS files in [static/themes/](static/themes/) are built-in; user-added themes li
 [tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR` AND the same names on `app_module`. The duplicate patching is required because [app.py](app.py) does `from shared import CHARACTERS_DIR, …` at import time, capturing the originals in `send_from_directory` closures. **If you add a new path constant in shared.py and reference it from `app.py`, patch both `shared.X` and `app_module.X` in the fixture** or tests will write to the real `data/`.
 
 When creating a character in tests, use `make_minimal_png()` from [png_utils.py](png_utils.py) — anything smaller is rejected by Pillow.
+
+[tests/test_request_builder.py](tests/test_request_builder.py) exercises the frontend prompt-assembly logic ([static/js/request-builder.js](static/js/request-builder.js)) by shelling out to `node`. These tests **skip** (not fail) when `node` isn't on PATH, so a green run on a machine without Node isn't actually covering that module.
