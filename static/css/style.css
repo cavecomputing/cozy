@@ -2260,6 +2260,18 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 .prompt-section-controls .settings-row-label {
     margin: 0;
 }
+.prompt-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.prompt-select-row .settings-select {
+    flex: 1;
+    min-width: 0;
+}
+.prompt-select-row .icon-btn {
+    flex: none;
+}
 .prompt-section-actions {
     display: flex;
     flex-wrap: wrap;

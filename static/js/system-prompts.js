@@ -124,10 +124,6 @@ export async function updateSystemPromptContent() {
     await savePromptFields();
 }
 
-export async function saveActiveSystemPrompt() {
-    await savePromptFields({ showSuccess: true });
-}
-
 let _defaultTemplate = null;
 let _defaultPostHistoryTemplate = null;
 async function getDefaultTemplates() {

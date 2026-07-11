@@ -17,7 +17,7 @@ import { handleSend } from './send.js';
 import { loadLLMSettings, saveLLMSettings, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, saveActivePreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
-    updateSystemPromptContent, saveActiveSystemPrompt, resetSystemPromptToDefault,
+    updateSystemPromptContent, resetSystemPromptToDefault,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode,
 } from './system-prompts.js';
@@ -363,10 +363,13 @@ function bindSettingsHandlers() {
     el.syspromptSelect?.addEventListener('change', () => {
         selectSystemPrompt(el.syspromptSelect.value);
     });
-    el.syspromptContent?.addEventListener('change', updateSystemPromptContent);
-    el.postHistoryContent?.addEventListener('change', updateSystemPromptContent);
+    // Prompt editors — debounced autosave while typing, flush on blur.
+    const saveSystemPromptDebounced = debounce(updateSystemPromptContent, 500);
+    el.syspromptContent?.addEventListener('input', saveSystemPromptDebounced);
+    el.syspromptContent?.addEventListener('blur', updateSystemPromptContent);
+    el.postHistoryContent?.addEventListener('input', saveSystemPromptDebounced);
+    el.postHistoryContent?.addEventListener('blur', updateSystemPromptContent);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
-    el.syspromptSave?.addEventListener('click', saveActiveSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);
     el.syspromptPreview?.addEventListener('click', () => {
         rememberSettingsSubmodalTrigger();
@@ -377,9 +380,26 @@ function bindSettingsHandlers() {
         rememberSettingsSubmodalTrigger();
         if (el.promptHelpModal) el.promptHelpModal.hidden = false;
     });
-    el.syspromptImport?.addEventListener('click', importSystemPrompt);
+    // Import / export dropdown
+    const closeSyspromptIoMenu = () => {
+        if (el.syspromptIoMenu) el.syspromptIoMenu.hidden = true;
+        el.syspromptIoDropdown?.classList.remove('open');
+        el.syspromptIoBtn?.setAttribute('aria-expanded', 'false');
+    };
+    el.syspromptIoBtn?.addEventListener('click', e => {
+        e.stopPropagation();
+        const willOpen = el.syspromptIoMenu?.hidden;
+        if (el.syspromptIoMenu) el.syspromptIoMenu.hidden = !willOpen;
+        el.syspromptIoDropdown?.classList.toggle('open', willOpen);
+        el.syspromptIoBtn?.setAttribute('aria-expanded', String(!!willOpen));
+    });
+    document.addEventListener('click', e => {
+        if (!el.syspromptIoMenu || el.syspromptIoMenu.hidden) return;
+        if (!e.target.closest('#sysprompt-io-dropdown')) closeSyspromptIoMenu();
+    });
+    el.syspromptImport?.addEventListener('click', () => { closeSyspromptIoMenu(); importSystemPrompt(); });
     el.syspromptImportFile?.addEventListener('change', handleSystemPromptImportFile);
-    el.syspromptExport?.addEventListener('click', exportSystemPrompt);
+    el.syspromptExport?.addEventListener('click', () => { closeSyspromptIoMenu(); exportSystemPrompt(); });
     el.promptPreviewClose?.addEventListener('click', () => {
         closeSettingsSubmodal(el.promptPreviewModal);
     });
