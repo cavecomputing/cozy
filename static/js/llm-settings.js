@@ -5,9 +5,13 @@ import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
 
 const MODEL_SEARCH_DEBOUNCE_MS = 250;
+const SETTINGS_SAVE_DEBOUNCE_MS = 500;
 let modelSearchTimer = null;
 let modelFetchRequestId = 0;
 let modelListLoaded = false;
+let settingsSaveTimer = null;
+let pendingSettings = {};
+let settingsSaveInFlight = Promise.resolve();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LLM SETTINGS
@@ -34,6 +38,37 @@ export async function saveLLMSettings(fields) {
         console.warn('Failed to save LLM settings:', e);
         showToast('Failed to save settings: ' + e.message);
     }
+}
+
+/** Queue API/sampler edits so typing produces one settings + preset update. */
+export function queueLLMSettingsSave(fields) {
+    Object.assign(pendingSettings, fields);
+    clearTimeout(settingsSaveTimer);
+    settingsSaveTimer = setTimeout(flushLLMSettingsSave, SETTINGS_SAVE_DEBOUNCE_MS);
+}
+
+/** Persist queued edits immediately, preserving their active-preset target. */
+export async function flushLLMSettingsSave() {
+    clearTimeout(settingsSaveTimer);
+    settingsSaveTimer = null;
+    if (Object.keys(pendingSettings).length === 0) return settingsSaveInFlight;
+
+    const fields = pendingSettings;
+    pendingSettings = {};
+    const presetId = state.activePresetId ? String(state.activePresetId) : null;
+    const presetSnapshot = presetId ? collectPresetSettings() : null;
+
+    const persist = async () => {
+        try {
+            await API.saveSettings(fields);
+            if (presetId) await API.updatePreset(presetId, presetSnapshot);
+        } catch (e) {
+            console.warn('Failed to autosave LLM settings:', e);
+            showToast('Failed to save settings: ' + e.message);
+        }
+    };
+    settingsSaveInFlight = settingsSaveInFlight.then(persist, persist);
+    return settingsSaveInFlight;
 }
 
 function setModelMenuOpen(open) {
@@ -77,7 +112,7 @@ export function selectModelFromMenu(name) {
     el.apiModel.value = name;
     state.apiModel = name;
     state.modelContextLength = state.modelDetails[name] ?? null;
-    saveLLMSettings({ api_model: name });
+    queueLLMSettingsSave({ api_model: name });
     updateContextSizeWarning();
     closeModelMenu();
 }
@@ -191,7 +226,6 @@ export async function testLLMConnection() {
 
 function updatePresetButtonStates() {
     const hasActive = !!el.apiPreset?.value;
-    if (el.presetSave)   el.presetSave.disabled   = !hasActive;
     if (el.presetDelete) el.presetDelete.disabled = !hasActive;
 }
 
@@ -258,6 +292,7 @@ function applySettingsToUI(s) {
 export async function activatePreset(id) {
     if (!id) { updatePresetButtonStates(); return; }
     try {
+        await flushLLMSettingsSave();
         const s = await API.activatePreset(id);
         clearModelListCache();
         applySettingsToUI(s);
@@ -276,7 +311,12 @@ export async function activatePreset(id) {
 /** Snapshot the page's sampler/thinking/extra state so it can be bundled into
  *  a preset alongside the connection fields. */
 function collectPresetSettings() {
-    const out = {};
+    const out = {
+        api_endpoint: el.apiEndpoint?.value || '',
+        api_key: el.apiKey?.value || '',
+        api_model: el.apiModel?.value || '',
+        context_max_tokens: el.settingsContextTokens?.value || '32768',
+    };
     for (const [key, elName] of Object.entries(SAMPLER_FIELDS)) {
         if (el[elName]) out[key] = el[elName].value;
     }
@@ -290,12 +330,9 @@ export async function createNewPreset() {
     const name = prompt('Preset name:');
     if (!name || !name.trim()) return;
     try {
+        await flushLLMSettingsSave();
         const created = await API.createPreset({
             name: name.trim(),
-            api_endpoint: el.apiEndpoint?.value || '',
-            api_key: el.apiKey?.value || '',
-            api_model: el.apiModel?.value || '',
-            context_max_tokens: el.settingsContextTokens?.value || '32768',
             ...collectPresetSettings(),
         });
         await loadPresets();
@@ -310,30 +347,13 @@ export async function createNewPreset() {
     }
 }
 
-export async function saveActivePreset() {
-    const id = el.apiPreset?.value;
-    if (!id) return;
-    try {
-        await API.updatePreset(id, {
-            api_endpoint: el.apiEndpoint?.value || '',
-            api_key: el.apiKey?.value || '',
-            api_model: el.apiModel?.value || '',
-            context_max_tokens: el.settingsContextTokens?.value || '32768',
-            ...collectPresetSettings(),
-        });
-        showToast('Preset updated', 'success');
-    } catch (e) {
-        showToast(e?.message || 'Failed to update preset');
-        console.warn(e);
-    }
-}
-
 export async function deletePreset() {
     const id = el.apiPreset?.value;
     if (!id) return;
     const preset = state.apiPresets.find(p => String(p.id) === id);
     if (!(await confirmDialog({ title: `Delete preset "${preset?.name || id}"?` }))) return;
     try {
+        await flushLLMSettingsSave();
         await API.deletePreset(id);
         state.activePresetId = null;
         await loadPresets();

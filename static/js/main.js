@@ -14,7 +14,7 @@ import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
-import { loadLLMSettings, saveLLMSettings, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, saveActivePreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
+import { loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, flushLLMSettingsSave, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
     updateSystemPromptContent, populateDefaultTemplateHelp,
@@ -322,21 +322,23 @@ function bindSettingsHandlers() {
         saveLLMSettings({ show_gallery_button: state.showGalleryButton ? '1' : '0' });
     });
 
-    // LLM API settings — save on blur
-    el.apiEndpoint?.addEventListener('change', () => {
+    // LLM API settings — autosave while typing, then flush on blur.
+    el.apiEndpoint?.addEventListener('input', () => {
         state.apiEndpoint = el.apiEndpoint.value;
         clearModelListCache();
-        saveLLMSettings({api_endpoint: el.apiEndpoint.value});
+        queueLLMSettingsSave({ api_endpoint: el.apiEndpoint.value });
     });
-    el.apiKey?.addEventListener('change', () => {
+    el.apiEndpoint?.addEventListener('blur', flushLLMSettingsSave);
+    el.apiKey?.addEventListener('input', () => {
         const v = el.apiKey.value;
         // Skip masked API keys: bullet-prefixed ("\u2022\u2022…") or containing ellipsis mask ("\u2026")
         if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026')) {
             state.apiKeySet = true;
             clearModelListCache();
-            saveLLMSettings({api_key: v});
+            queueLLMSettingsSave({ api_key: v });
         }
     });
+    el.apiKey?.addEventListener('blur', flushLLMSettingsSave);
     el.refreshModels?.addEventListener('click', browseModels);
     el.modelPickerMenu?.addEventListener('click', e => {
         const btn = e.target.closest('.model-picker-item');
@@ -355,7 +357,6 @@ function bindSettingsHandlers() {
     // API presets
     el.apiPreset?.addEventListener('change', () => activatePreset(el.apiPreset.value));
     el.presetNew?.addEventListener('click', createNewPreset);
-    el.presetSave?.addEventListener('click', saveActivePreset);
     el.presetDelete?.addEventListener('click', deletePreset);
 
     // System prompt settings
@@ -449,58 +450,44 @@ function bindSettingsHandlers() {
         }
     });
 
-    // Batched settings save — merges rapid changes into a single PUT
-    let pendingSettings = {};
-    const flushSettings = debounce(() => {
-        if (Object.keys(pendingSettings).length === 0) return;
-        saveLLMSettings(pendingSettings);
-        pendingSettings = {};
-    }, 300);
-    function queueSettingsSave(fields) {
-        Object.assign(pendingSettings, fields);
-        flushSettings();
-    }
-
-    // Sampler settings — save on change (debounced)
+    // Sampler settings — autosave while editing, then flush on blur.
     for (const [key, elName] of Object.entries(SAMPLER_FIELDS)) {
-        el[elName]?.addEventListener('change', () => {
-            queueSettingsSave({ [key]: el[elName].value });
+        el[elName]?.addEventListener('input', () => {
+            queueLLMSettingsSave({ [key]: el[elName].value });
         });
+        el[elName]?.addEventListener('blur', flushLLMSettingsSave);
     }
 
-    // Extra request params — save on blur
-    el.extraParams?.addEventListener('change', () => {
+    // Extra request params — autosave while typing.
+    el.extraParams?.addEventListener('input', () => {
         state.extraRequestParams = el.extraParams.value;
-        queueSettingsSave({ extra_request_params: el.extraParams.value });
+        queueLLMSettingsSave({ extra_request_params: el.extraParams.value });
     });
+    el.extraParams?.addEventListener('blur', flushLLMSettingsSave);
 
-    // Context budget — save on change and update warning + meter
-    el.settingsContextTokens?.addEventListener('change', () => {
+    // Context budget — autosave while editing and update warning + meter.
+    el.settingsContextTokens?.addEventListener('input', () => {
         state.contextMaxTokens = el.settingsContextTokens.value || '0';
-        queueSettingsSave({ context_max_tokens: state.contextMaxTokens });
+        queueLLMSettingsSave({ context_max_tokens: state.contextMaxTokens });
         updateContextSizeWarning();
         updateContextMeter();
     });
+    el.settingsContextTokens?.addEventListener('blur', flushLLMSettingsSave);
 
-    // Model input — type to search suggestions, save on committed change.
+    // Model input — search suggestions and autosave while typing.
     el.apiModel?.addEventListener('input', () => {
         state.apiModel = el.apiModel.value;
         state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
         updateContextSizeWarning();
         updateContextMeter();
         searchModelsFromInput();
+        queueLLMSettingsSave({ api_model: el.apiModel.value });
     });
-    el.apiModel?.addEventListener('change', () => {
-        state.apiModel = el.apiModel.value;
-        state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
-        saveLLMSettings({ api_model: el.apiModel.value });
-        updateContextSizeWarning();
-        updateContextMeter();
-    });
+    el.apiModel?.addEventListener('blur', flushLLMSettingsSave);
 
     // Thinking settings — save on change
     el.sendThinking?.addEventListener('change', () => {
-        saveLLMSettings({ send_thinking: el.sendThinking.checked ? '1' : '0' });
+        queueLLMSettingsSave({ send_thinking: el.sendThinking.checked ? '1' : '0' });
         updateContextMeter();
     });
 }
