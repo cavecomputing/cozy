@@ -4801,6 +4801,16 @@ input[type="checkbox"]:disabled {
         border: none;
     }
 
+    /* The preview/help modals set an explicit desktop width via an ID rule that
+       outranks the generic full-screen rule above — pin them back to full width
+       so they fill the screen on mobile like every other modal. */
+    #prompt-preview-modal .modal,
+    #prompt-help-modal .modal,
+    #sampler-help-modal .modal {
+        width: 100%;
+        max-width: 100%;
+    }
+
     .modal-header {
         min-height: var(--mobile-header-height);
         height: auto;
