@@ -2386,6 +2386,20 @@ body.gallery-open #char-modal.modal-overlay > .modal {
         flex: 1;
         min-height: 12rem;
     }
+    /* The editor card and the textarea both draw a same-coloured border a
+       few px apart, which reads as the field "bleeding" over the card edge
+       on narrow screens. Flush the textarea into the card so the card is the
+       only frame, with the text aligned to the tabs above it. */
+    .prompt-section-right .form-textarea {
+        border-color: transparent;
+        background: transparent;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .prompt-section-right .form-textarea:focus {
+        border-color: transparent;
+        box-shadow: none;
+    }
 }
 
 .settings-section[hidden] { display: none; }
