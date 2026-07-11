@@ -29,6 +29,7 @@ import { saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
 import { updateContextMeter } from './context-meter.js';
 import { initCharacterGallery } from './character-gallery.js';
+import { enhanceSettingsSelects } from './custom-select.js';
 
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
 marked.use({ breaks: true, gfm: true });
@@ -896,6 +897,7 @@ async function init() {
     bindPersonaHandlers();
     bindScrollHandlers();
     initCharacterGallery();
+    enhanceSettingsSelects();
 }
 
 init().then(() => {
