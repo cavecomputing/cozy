@@ -39,6 +39,7 @@ export function enhanceSelect(select) {
 
     const label = select.id ? document.querySelector(`label[for="${select.id}"]`) : null;
     if (label && !label.id) label.id = `${uid}-label`;
+    const ariaLabel = select.getAttribute('aria-label');  // fallback name when there's no visible <label>
 
     const trigger = document.createElement('button');
     trigger.type = 'button';
@@ -49,6 +50,7 @@ export function enhanceSelect(select) {
     trigger.setAttribute('aria-expanded', 'false');
     trigger.setAttribute('aria-controls', menuId);
     if (label) trigger.setAttribute('aria-labelledby', `${label.id} ${trigger.id}`);
+    else if (ariaLabel) trigger.setAttribute('aria-label', ariaLabel);
     const valueSpan = document.createElement('span');
     valueSpan.className = 'cozy-select-value';
     trigger.appendChild(valueSpan);
@@ -60,6 +62,7 @@ export function enhanceSelect(select) {
     menu.hidden = true;
     menu.setAttribute('role', 'listbox');
     if (label) menu.setAttribute('aria-labelledby', label.id);
+    else if (ariaLabel) menu.setAttribute('aria-label', ariaLabel);
     wrap.appendChild(menu);
 
     // ── State ──────────────────────────────────────────────────────────────

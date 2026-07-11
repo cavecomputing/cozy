@@ -2270,9 +2270,6 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     flex-direction: column;
     gap: 0.35rem;
 }
-.prompt-section-controls .settings-row-label {
-    margin: 0;
-}
 .prompt-select-row {
     display: flex;
     align-items: center;
