@@ -2320,6 +2320,27 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     margin-bottom: 0.4rem;
     font-weight: 600;
 }
+.prompt-vars-title--sub {
+    margin-top: 0.9rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--border-color);
+}
+.prompt-vars-lead {
+    margin: 0 0 0.5rem;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+.prompt-vars-note {
+    margin: 0.7rem 0 0;
+    font-size: 0.68rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+.prompt-vars-note strong {
+    color: var(--text-color);
+    font-weight: 600;
+}
 .prompt-section-right {
     grid-column: 2;
     grid-row: 2;
