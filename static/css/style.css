@@ -2616,6 +2616,18 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     justify-content: space-between;
 }
 
+/* Label sits inline with its control, e.g. "Theme  [dropdown]" */
+.settings-row--inline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.settings-row--inline .cozy-select {
+    flex: 0 1 20rem;
+    min-width: 0;
+}
+
 /* Themed checkboxes — apply app-wide so every <input type="checkbox"> picks
    up the active theme's accent color and border. The check glyph uses
    mask-image so its color tracks --btn-primary-color across themes. */
