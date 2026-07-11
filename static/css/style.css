@@ -2270,17 +2270,20 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     flex-direction: column;
     gap: 0.35rem;
 }
-.prompt-select-row {
+.prompt-select-row,
+.preset-select-row {
     display: flex;
     align-items: center;
     gap: 0.35rem;
 }
-.prompt-select-row .cozy-select {
+.prompt-select-row .cozy-select,
+.preset-select-row .cozy-select {
     flex: 1;
     min-width: 0;
 }
 .prompt-select-row .icon-btn,
-.prompt-select-row .export-dropdown {
+.prompt-select-row .export-dropdown,
+.preset-select-row .icon-btn {
     flex: none;
 }
 /* Right-align the import/export menu so it doesn't overflow the row's edge */
