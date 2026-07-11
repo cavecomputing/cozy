@@ -247,6 +247,36 @@ def export_system_prompt(prompt_id):
 
 PRESET_FIELDS = ('api_endpoint', 'api_key', 'api_model', 'context_max_tokens')
 
+# Extra page state a preset snapshots beyond the discrete connection columns:
+# every sampler value (incl. sampler_max_tokens), the active-sampler selection,
+# send_thinking, and extra_request_params. Derived from SETTINGS_KEYS so it
+# can't drift as samplers are added/removed.
+PRESET_SETTINGS_KEYS = {k for k in SETTINGS_KEYS if k.startswith('sampler_')} | {
+    'active_samplers', 'send_thinking', 'extra_request_params',
+}
+
+
+def _pack_preset_settings(data, base=None):
+    """Overlay any PRESET_SETTINGS_KEYS present in ``data`` onto ``base`` and
+    return a JSON string. ``base`` (a dict) lets callers merge into an existing
+    blob so a partial update doesn't wipe unrelated keys."""
+    merged = dict(base or {})
+    for key in PRESET_SETTINGS_KEYS:
+        if key in data:
+            merged[key] = _setting_value(data[key])
+    return json.dumps(merged)
+
+
+def _unpack_preset_settings(row):
+    """Parse a preset row's settings_json blob, tolerant of missing/bad JSON."""
+    row = dict(row)
+    raw = row.get('settings_json') or '{}'
+    try:
+        parsed = json.loads(raw)
+    except (ValueError, TypeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
 
 def _mask_preset(row):
     """Return a dict with the api_key masked (same logic as read_settings)."""
@@ -257,6 +287,7 @@ def _mask_preset(row):
         'api_endpoint': row['api_endpoint'],
         'api_model': row['api_model'],
         'context_max_tokens': row['context_max_tokens'],
+        'settings': _unpack_preset_settings(row),
         'created_at': row['created_at'],
     }
     d.update(mask_secret(row.get('api_key', '')))
@@ -288,10 +319,11 @@ def create_preset():
         if existing:
             return jsonify({'error': f'A preset named "{name}" already exists'}), 409
         cur = conn.execute(
-            'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, context_max_tokens) '
-            'VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, '
+            'context_max_tokens, settings_json) VALUES (?, ?, ?, ?, ?, ?)',
             (name, data.get('api_endpoint', ''), key_val,
-             data.get('api_model', ''), data.get('context_max_tokens', '32768'))
+             data.get('api_model', ''), data.get('context_max_tokens', '32768'),
+             _pack_preset_settings(data))
         )
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (cur.lastrowid,)).fetchone()
         return jsonify(_mask_preset(row)), 201
@@ -321,10 +353,11 @@ def update_preset(preset_id):
             key = key_val
         else:
             key = row['api_key']
+        settings_json = _pack_preset_settings(data, base=_unpack_preset_settings(row))
         conn.execute(
             'UPDATE api_presets SET name=?, api_endpoint=?, api_key=?, api_model=?, '
-            'context_max_tokens=? WHERE id=?',
-            (name, endpoint, key, model, ctx_tokens, preset_id)
+            'context_max_tokens=?, settings_json=? WHERE id=?',
+            (name, endpoint, key, model, ctx_tokens, settings_json, preset_id)
         )
         updated = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         return jsonify(_mask_preset(updated))
@@ -355,5 +388,11 @@ def activate_preset(preset_id):
         # Write preset fields into the settings table
         for key in PRESET_FIELDS:
             upsert_setting(conn, key, row[key])
+        # Unpack the preset's snapshot of sampler/thinking/extra settings. Only
+        # keys actually present are written, so a legacy preset (empty blob)
+        # leaves the current sampler settings untouched.
+        for key, value in _unpack_preset_settings(row).items():
+            if key in SETTINGS_KEYS:
+                upsert_setting(conn, key, _setting_value(value))
         upsert_setting(conn, 'active_api_preset', str(preset_id))
     return read_settings()

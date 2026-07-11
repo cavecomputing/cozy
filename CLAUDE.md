@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git workflow
+
+Commit directly to `main` once work is complete and verified — this project does not use feature branches or PRs. After finishing a task, stage the relevant files and commit with a descriptive message (don't wait to be asked). Only commit files that belong to the task; leave unrelated pre-existing changes and stray untracked files alone.
+
 ## Run / test
 
 ```bash

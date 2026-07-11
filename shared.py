@@ -198,6 +198,7 @@ def init_db():
                 api_key              TEXT NOT NULL DEFAULT '',
                 api_model            TEXT NOT NULL DEFAULT '',
                 context_max_tokens   TEXT NOT NULL DEFAULT '32768',
+                settings_json        TEXT NOT NULL DEFAULT '{}',
                 created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -235,6 +236,10 @@ def init_db():
         collection_cols = [c[1] for c in conn.execute('PRAGMA table_info(character_collections)').fetchall()]
         if collection_cols and 'icon' not in collection_cols:
             conn.execute("ALTER TABLE character_collections ADD COLUMN icon TEXT NOT NULL DEFAULT ''")
+
+        preset_cols = [c[1] for c in conn.execute('PRAGMA table_info(api_presets)').fetchall()]
+        if preset_cols and 'settings_json' not in preset_cols:
+            conn.execute("ALTER TABLE api_presets ADD COLUMN settings_json TEXT NOT NULL DEFAULT '{}'")
 
         system_prompt_cols = [c[1] for c in conn.execute('PRAGMA table_info(system_prompts)').fetchall()]
         if system_prompt_cols and 'post_history_content' not in system_prompt_cols:

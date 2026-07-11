@@ -1,5 +1,5 @@
 import { state, el } from './state.js';
-import { loadSamplerSettings, updateContextSizeWarning } from './sampler.js';
+import { loadSamplerSettings, updateContextSizeWarning, SAMPLER_FIELDS } from './sampler.js';
 import { API } from './api.js';
 import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
@@ -261,6 +261,8 @@ export async function activatePreset(id) {
         const s = await API.activatePreset(id);
         clearModelListCache();
         applySettingsToUI(s);
+        loadSamplerSettings(s);
+        if (el.sendThinking) el.sendThinking.checked = s.send_thinking === '1';
         updateContextSizeWarning();
         state.activePresetId = id;
         if (el.apiPreset) el.apiPreset.value = String(id);
@@ -269,6 +271,19 @@ export async function activatePreset(id) {
         showToast('Failed to activate preset');
         console.warn(e);
     }
+}
+
+/** Snapshot the page's sampler/thinking/extra state so it can be bundled into
+ *  a preset alongside the connection fields. */
+function collectPresetSettings() {
+    const out = {};
+    for (const [key, elName] of Object.entries(SAMPLER_FIELDS)) {
+        if (el[elName]) out[key] = el[elName].value;
+    }
+    out.active_samplers = [...state.activeSamplers].join(',');
+    out.send_thinking = el.sendThinking?.checked ? '1' : '0';
+    out.extra_request_params = el.extraParams?.value || '';
+    return out;
 }
 
 export async function createNewPreset() {
@@ -281,6 +296,7 @@ export async function createNewPreset() {
             api_key: el.apiKey?.value || '',
             api_model: el.apiModel?.value || '',
             context_max_tokens: el.settingsContextTokens?.value || '32768',
+            ...collectPresetSettings(),
         });
         await loadPresets();
         if (created?.id && el.apiPreset) {
@@ -303,6 +319,7 @@ export async function saveActivePreset() {
             api_key: el.apiKey?.value || '',
             api_model: el.apiModel?.value || '',
             context_max_tokens: el.settingsContextTokens?.value || '32768',
+            ...collectPresetSettings(),
         });
         showToast('Preset updated', 'success');
     } catch (e) {

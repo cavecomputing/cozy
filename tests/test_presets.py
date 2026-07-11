@@ -104,6 +104,56 @@ class TestPresetActivation:
         assert r.status_code == 404
 
 
+class TestPresetSamplerSnapshot:
+    def test_create_and_activate_round_trips_samplers(self, client):
+        created = client.post('/api/presets', json={
+            'name': 'Sampled',
+            'api_endpoint': 'http://s/v1',
+            'sampler_temperature': '0.4',
+            'sampler_max_tokens': '256',
+            'active_samplers': 'temperature,xtc',
+            'send_thinking': '1',
+            'extra_request_params': '{"foo": 1}',
+        }).get_json()
+
+        # The snapshot is exposed (non-secret) on read.
+        assert created['settings']['sampler_temperature'] == '0.4'
+
+        client.post(f'/api/presets/{created["id"]}/activate')
+        s = client.get('/api/settings').get_json()
+        assert s['sampler_temperature'] == '0.4'
+        assert s['sampler_max_tokens'] == '256'
+        assert s['active_samplers'] == 'temperature,xtc'
+        assert s['send_thinking'] == '1'
+        assert s['extra_request_params'] == '{"foo": 1}'
+
+    def test_update_merges_snapshot(self, client):
+        created = client.post('/api/presets', json={
+            'name': 'Merge', 'sampler_temperature': '0.4', 'sampler_top_p': '0.9',
+        }).get_json()
+        # A partial update must not wipe unrelated snapshot keys.
+        client.put(f'/api/presets/{created["id"]}', json={'sampler_temperature': '0.7'})
+        rows = client.get('/api/presets').get_json()
+        row = next(p for p in rows if p['id'] == created['id'])
+        assert row['settings']['sampler_temperature'] == '0.7'
+        assert row['settings']['sampler_top_p'] == '0.9'
+
+    def test_legacy_preset_activation_preserves_current_samplers(self, client):
+        # Preset created without any sampler snapshot (empty blob).
+        created = client.post('/api/presets', json={
+            'name': 'Legacy', 'api_endpoint': 'http://legacy/v1',
+        }).get_json()
+        assert created['settings'] == {}
+        # User's current global sampler value.
+        client.put('/api/settings', json={'sampler_temperature': '1.3'})
+
+        client.post(f'/api/presets/{created["id"]}/activate')
+        s = client.get('/api/settings').get_json()
+        # Connection changed, but samplers untouched.
+        assert s['api_endpoint'] == 'http://legacy/v1'
+        assert s['sampler_temperature'] == '1.3'
+
+
 class TestPresetDelete:
     def test_delete_removes_row(self, client):
         created = client.post('/api/presets', json={'name': 'Doomed'}).get_json()
