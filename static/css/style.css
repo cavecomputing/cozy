@@ -5347,72 +5347,97 @@ input[type="checkbox"]:disabled {
 .lorebook-flyout-list {
     list-style: none;
     margin: 0;
-    padding: 0.25rem;
+    padding: 0;
     overflow-y: auto;
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 .lorebook-flyout-item {
-    padding: 0.4rem 0.6rem;
-    margin-bottom: 1px;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid transparent;
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 0.85rem;
     color: var(--text-color);
-    transition: background-color 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .lorebook-flyout-item:hover { background-color: var(--hover-bg); }
 .lorebook-flyout-item.active {
     background-color: var(--active-bg);
+    border-color: var(--accent-border-light, var(--border-color));
     color: var(--accent-color);
 }
 .lorebook-flyout-manage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.55rem 0.75rem;
     background: none;
-    border: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
     color: var(--accent-color);
-    text-align: left;
-    padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
-    cursor: pointer;
-    border-bottom-left-radius: var(--radius-md);
-    border-bottom-right-radius: var(--radius-md);
-    transition: background-color 0.15s ease;
     font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
 }
+.lorebook-flyout-manage svg { width: 15px; height: 15px; }
 .lorebook-flyout-manage:hover { background-color: var(--hover-bg); }
 
 #memory-flyout-btn { flex-shrink: 0; }
 
-/* Memory flyout (Author's Note + active lorebook, next to composer) */
+/* Memory flyout — stacked cards (Author's Note + active lorebook) sitting on
+   a darker backdrop, each with an icon header and inset separator. */
 .memory-flyout {
     left: -1px;
-    min-width: 280px;
+    min-width: 300px;
     max-width: 400px;
     max-height: 70vh;
+    padding: 0.6rem;
+    gap: 0.6rem;
+    background-color: var(--app-bg);
+    overflow-y: auto;
 }
-/* Section headers ("Author's Note" / "Active lorebook"): bold label text
-   with a full-width separator beneath each. */
-.memory-flyout .chat-flyout-header {
-    margin-top: 0.35rem;
+.memory-card {
+    flex-shrink: 0;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
 }
-.memory-flyout .chat-flyout-header .section-label {
+.memory-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.memory-card-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--accent-color);
+}
+.memory-card-icon svg {
+    width: 17px;
+    height: 17px;
+}
+.memory-card-header .section-label {
     color: var(--text-color);
     font-weight: 700;
     font-size: 0.72rem;
     letter-spacing: 0.06em;
 }
-/* Full-bleed dividers so the section separators read clearly. */
-.memory-flyout .panel-divider {
-    margin: 0;
-}
-/* Keep the separator only beneath a header, never stacked above it. */
-.memory-flyout .panel-divider:has(+ .chat-flyout-header) {
-    display: none;
+.memory-card-body {
+    padding: 0.65rem 0.75rem 0.75rem;
 }
 .memory-authornote {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    padding: 0.5rem 0.6rem 0.6rem;
 }
 #author-note-input {
     resize: vertical;
