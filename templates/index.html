@@ -33,40 +33,46 @@
     <div id="sheet-backdrop"></div>
     <aside id="sidebar">
         <div class="sidebar-header panel-header">
-            <button id="sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
+            <!-- Left/right zones share equal flex so the title stays centered in
+                 the header no matter which side buttons are shown or hidden. -->
+            <div class="sidebar-header-side sidebar-header-side--left">
+                <button id="sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
             <h2 class="section-label panel-title hide-on-collapse">Characters</h2>
-            <button id="character-gallery-open" class="icon-btn hide-on-collapse desktop-only" title="Open character gallery" aria-label="Open character gallery">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
-                    <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
-                    <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
-                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                </svg>
-            </button>
-            <button id="new-char-btn" class="icon-btn hide-on-collapse desktop-only" title="New Character" aria-label="New Character">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
-            <!-- Mobile-only "new character" button — the character gallery
-                 (the primary create entry point) is desktop-only. -->
-            <button id="mobile-new-char-btn" class="icon-btn mobile-only" title="New Character" aria-label="New Character">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
+            <div class="sidebar-header-side sidebar-header-side--right hide-on-collapse">
+                <button id="character-gallery-open" class="icon-btn desktop-only" title="Open character gallery" aria-label="Open character gallery">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                        <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
+                        <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
+                        <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                    </svg>
+                </button>
+                <button id="new-char-btn" class="icon-btn desktop-only" title="New Character" aria-label="New Character">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <!-- Mobile-only "new character" button — the character gallery
+                     (the primary create entry point) is desktop-only. -->
+                <button id="mobile-new-char-btn" class="icon-btn mobile-only" title="New Character" aria-label="New Character">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
         </div>
         <div class="panel-divider hide-on-collapse"></div>
 

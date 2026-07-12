@@ -163,6 +163,12 @@ body {
         gap: 0;
     }
 
+    /* Collapsed: drop the equal-flex zones so the lone toggle button centers
+       (the right zone is hidden via .hide-on-collapse). */
+    #sidebar.collapsed .sidebar-header-side {
+        flex: 0 0 auto;
+    }
+
     /* collapsed: profile card becomes a compact centred icon button */
     #sidebar.collapsed #user-profile-container {
         margin: 0 0.375rem 0.375rem;
@@ -286,6 +292,22 @@ body {
     text-align: center;
     letter-spacing: 0.1em;
     line-height: 1.2;
+}
+
+/* Sidebar header: equal-width side zones keep the "Characters" title truly
+   centered in the header regardless of which side buttons are visible. The
+   title sizes to its content and sits between the two flexible zones. */
+.sidebar-header-side {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+}
+.sidebar-header-side--right {
+    justify-content: flex-end;
+}
+.sidebar-header .panel-title {
+    flex: 0 0 auto;
 }
 
 .panel-header--compact {
