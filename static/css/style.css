@@ -5196,13 +5196,11 @@ input[type="checkbox"]:disabled {
         margin: 0.45rem auto 0.15rem;
     }
 
-    .chat-flyout .chat-list,
-    .lorebook-flyout-list {
+    .chat-flyout .chat-list {
         padding: 0.4rem;
     }
 
     .chat-flyout .chat-select-btn,
-    .lorebook-flyout-item,
     .lorebook-flyout-manage {
         min-height: 48px;
         padding: 0.65rem 0.75rem;
@@ -5350,29 +5348,8 @@ input[type="checkbox"]:disabled {
     max-width: 380px;
     max-height: 320px;
 }
-.lorebook-flyout-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.lorebook-flyout-item {
-    padding: 0.45rem 0.6rem;
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
+.lorebook-flyout-select {
     font-size: 0.85rem;
-    color: var(--text-color);
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-.lorebook-flyout-item:hover { background-color: var(--hover-bg); }
-.lorebook-flyout-item.active {
-    background-color: var(--active-bg);
-    border-color: var(--accent-border-light, var(--border-color));
-    color: var(--accent-color);
 }
 .lorebook-flyout-manage {
     display: flex;

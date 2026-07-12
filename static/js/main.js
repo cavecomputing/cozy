@@ -21,7 +21,7 @@ import {
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode,
 } from './system-prompts.js';
-import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
+import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
@@ -661,6 +661,7 @@ function bindMemoryHandlers() {
         updateAuthorNoteCounter();
     });
     el.authorNoteInput?.addEventListener('blur', flushAuthorNote);
+    el.lorebookFlyoutSelect?.addEventListener('change', onLorebookSelectChange);
     el.lorebookManageBtn?.addEventListener('click', e => {
         e.stopPropagation();
         el.memoryFlyout.hidden = true;

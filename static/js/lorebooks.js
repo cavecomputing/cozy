@@ -527,39 +527,49 @@ export function exportLorebook(kind, id) {
 
 // ── Per-chat selection flyout (next to the composer) ──────────────────────
 
-/** Build the radio-style options list for the active-lorebook flyout. */
+/** Build the dropdown options for the active-lorebook flyout. */
 export function renderLorebookFlyout() {
-    if (!el.lorebookFlyoutList) return;
-    el.lorebookFlyoutList.innerHTML = '';
+    const sel = el.lorebookFlyoutSelect;
+    if (!sel) return;
+    sel.innerHTML = '';
     const chat = state.activeChat;
     const char = state.activeCharacter;
 
-    const choose = (label, isActive, onClick) => {
-        const li = document.createElement('li');
-        li.className = `lorebook-flyout-item${isActive ? ' active' : ''}`;
-        li.tabIndex = 0;
-        li.textContent = label;
-        li.addEventListener('click', onClick);
-        li.addEventListener('keydown', e => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
-        });
-        el.lorebookFlyoutList.appendChild(li);
+    // Each option encodes its selection in `value`: "none", "embedded",
+    // or "standalone:<id>". `setActiveLorebook` decodes it on change.
+    const option = (value, label, isActive) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        if (isActive) opt.selected = true;
+        sel.appendChild(opt);
     };
 
     const noneActive = chat && !chat.active_lorebook_embedded && chat.active_lorebook_id == null;
-    choose('None', !!noneActive, () => setActiveLorebook({ kind: 'none' }));
+    option('none', 'None', !!noneActive);
 
     const embedded = char?.character_book || char?.data?.character_book;
     if (embedded && Array.isArray(embedded.entries) && embedded.entries.length > 0) {
         const label = `${char.name}'s lorebook (${embedded.entries.length} entries)`;
-        const active = chat?.active_lorebook_embedded === true;
-        choose(label, active, () => setActiveLorebook({ kind: 'embedded' }));
+        option('embedded', label, chat?.active_lorebook_embedded === true);
     }
 
     for (const lb of state.lorebooks) {
         const label = `${lb.name} · ${lb.entry_count} entries`;
-        const active = chat?.active_lorebook_id === lb.id;
-        choose(label, active, () => setActiveLorebook({ kind: 'standalone', id: lb.id }));
+        option(`standalone:${lb.id}`, label, chat?.active_lorebook_id === lb.id);
+    }
+
+    sel.disabled = !chat;
+}
+
+/** Decode a dropdown option value and persist the selection. */
+export function onLorebookSelectChange() {
+    const value = el.lorebookFlyoutSelect?.value || 'none';
+    if (value === 'embedded') setActiveLorebook({ kind: 'embedded' });
+    else if (value.startsWith('standalone:')) {
+        setActiveLorebook({ kind: 'standalone', id: Number(value.slice('standalone:'.length)) });
+    } else {
+        setActiveLorebook({ kind: 'none' });
     }
 }
 

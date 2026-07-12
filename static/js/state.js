@@ -167,7 +167,7 @@ export function initElements() {
         authorNoteInput:     document.getElementById('author-note-input'),
         authorNoteCounter:   document.getElementById('author-note-counter'),
         settingsAuthorNoteLimit: document.getElementById('settings-author-note-limit'),
-        lorebookFlyoutList:  document.getElementById('lorebook-flyout-list'),
+        lorebookFlyoutSelect: document.getElementById('lorebook-flyout-select'),
         lorebookManageBtn:   document.getElementById('lorebook-flyout-manage'),
         apiNotice:           document.getElementById('api-notice'),
         apiNoticeSettings:   document.getElementById('api-notice-settings'),
