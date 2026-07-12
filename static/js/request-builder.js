@@ -4,7 +4,7 @@ import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
-import { selectContextMessages } from './tokenizer.js';
+import { selectContextMessages, truncateTextToTokens } from './tokenizer.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST BUILDER
@@ -78,7 +78,7 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         persona:       p.description || '',
         mesExamples:   c.mes_example || '',
         lorebook:      lorebookText,
-        author_note:   state.activeChat?.author_note || '',
+        author_note:   truncateTextToTokens(state.activeChat?.author_note || '', state.authorNoteTokenLimit),
         system_prompt: c.system_prompt || '',
         post_history_instructions: c.post_history_instructions || '',
     };

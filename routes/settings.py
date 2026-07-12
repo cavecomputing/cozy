@@ -34,6 +34,7 @@ SETTINGS_KEYS = {
     'show_context_token_meter',
     'show_gallery_button',
     'context_max_tokens',
+    'author_note_token_limit',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
     'extra_request_params',

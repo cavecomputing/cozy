@@ -280,6 +280,8 @@ function applySettingsToUI(s) {
     state.showGalleryButton = s.show_gallery_button !== '0';
     if (el.settingsGalleryBtnToggle) el.settingsGalleryBtnToggle.checked = state.showGalleryButton;
     if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
+    state.authorNoteTokenLimit = parseInt(s.author_note_token_limit ?? '2048', 10) || 0;
+    if (el.settingsAuthorNoteLimit) el.settingsAuthorNoteLimit.value = String(state.authorNoteTokenLimit);
     state.extraRequestParams = s.extra_request_params || '';
     if (el.extraParams) el.extraParams.value = state.extraRequestParams;
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;

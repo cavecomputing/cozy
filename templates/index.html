@@ -186,6 +186,12 @@
                                     <label class="settings-row-label" for="settings-gallery-btn-toggle">Show character gallery button</label>
                                     <input type="checkbox" id="settings-gallery-btn-toggle">
                                 </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-author-note-limit">Author's Note token limit</label>
+                                    <input type="number" id="settings-author-note-limit" class="form-input"
+                                           min="0" step="128" value="2048" placeholder="0 = no cap">
+                                </div>
+                                <p class="settings-hint">Caps how much of each chat's Author's Note is sent to the model, injected via <code>&#123;&#123;author_note&#125;&#125;</code>. Text beyond the limit is trimmed from the request (your saved note is kept in full). <strong>0 = no cap</strong>. Counts are estimates marked with <code>&#8776;</code>.</p>
                             </section>
                         </div>
                     </div>
@@ -1051,6 +1057,7 @@
                     <div class="panel-divider"></div>
                     <div class="memory-authornote">
                         <textarea id="author-note-input" class="form-textarea" rows="4" placeholder="Things to remember for this chat…" disabled></textarea>
+                        <div class="memory-authornote-counter" id="author-note-counter" aria-live="polite"></div>
                         <p class="memory-authornote-hint">Injected via <code>&#123;&#123;author_note&#125;&#125;</code> in your prompt template.</p>
                     </div>
                     <div class="panel-divider"></div>
