@@ -2630,6 +2630,11 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     flex: 0 1 20rem;
     min-width: 0;
 }
+.settings-row--inline > .form-input[type="number"] {
+    flex: 0 0 7rem;
+    min-width: 0;
+    text-align: right;
+}
 
 /* Themed checkboxes — apply app-wide so every <input type="checkbox"> picks
    up the active theme's accent color and border. The check glyph uses
@@ -5383,6 +5388,17 @@ input[type="checkbox"]:disabled {
     min-width: 280px;
     max-width: 400px;
     max-height: 70vh;
+}
+/* Section headers ("Author's Note" / "Active lorebook") read as distinct
+   bands: filled background + accent edge, primary-color label text. */
+.memory-flyout .chat-flyout-header {
+    background-color: var(--active-bg);
+    border-left: 3px solid var(--accent-color);
+}
+.memory-flyout .chat-flyout-header .section-label {
+    color: var(--text-color);
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
 }
 .memory-authornote {
     display: flex;
