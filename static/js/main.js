@@ -321,6 +321,17 @@ function bindSettingsHandlers() {
         if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
         saveLLMSettings({ show_gallery_button: state.showGalleryButton ? '1' : '0' });
     });
+    el.settingsCollapseBtnToggle?.addEventListener('change', () => {
+        state.showCollapseButton = el.settingsCollapseBtnToggle.checked;
+        // Hiding the toggle while collapsed would strand the user — expand first.
+        if (!state.showCollapseButton && state.sidebarCollapsed) {
+            state.sidebarCollapsed = false;
+            el.sidebar.classList.remove('collapsed');
+            savePrefs();
+        }
+        if (el.sidebarToggle) el.sidebarToggle.hidden = !state.showCollapseButton;
+        saveLLMSettings({ show_collapse_button: state.showCollapseButton ? '1' : '0' });
+    });
     el.settingsAuthorNoteLimit?.addEventListener('input', () => {
         state.authorNoteTokenLimit = parseInt(el.settingsAuthorNoteLimit.value, 10) || 0;
         updateAuthorNoteCounter();

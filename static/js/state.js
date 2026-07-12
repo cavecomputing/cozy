@@ -27,6 +27,7 @@ export const state = {
     contextMaxTokens:    '32768',
     showContextTokenMeter: true,
     showGalleryButton:   true,
+    showCollapseButton:  true,
     authorNoteTokenLimit: 2048,
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
@@ -87,6 +88,7 @@ export function initElements() {
         settingsThemeSelect: document.getElementById('settings-theme-select'),
         settingsContextMeterToggle: document.getElementById('settings-context-meter-toggle'),
         settingsGalleryBtnToggle: document.getElementById('settings-gallery-btn-toggle'),
+        settingsCollapseBtnToggle: document.getElementById('settings-collapse-btn-toggle'),
         galleryOpenBtn: document.getElementById('character-gallery-open'),
         mobileMenuBtn:     document.getElementById('mobile-menu-btn'),
         mobileBackdrop:    document.getElementById('mobile-backdrop'),
