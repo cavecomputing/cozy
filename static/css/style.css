@@ -5389,21 +5389,23 @@ input[type="checkbox"]:disabled {
     max-width: 400px;
     max-height: 70vh;
 }
-/* Section headers ("Author's Note" / "Active lorebook") are soft rounded
-   chips, inset from the flyout edges so the corners read. */
+/* Section headers ("Author's Note" / "Active lorebook"): bold label text
+   with a full-width separator beneath each. */
 .memory-flyout .chat-flyout-header {
-    height: 28px;
-    margin: 0.45rem 0.5rem 0.1rem;
-    padding: 0 0.6rem;
-    background-color: var(--active-bg);
-    border-radius: var(--radius-sm);
+    margin-top: 0.35rem;
 }
 .memory-flyout .chat-flyout-header .section-label {
     color: var(--text-color);
+    font-weight: 700;
+    font-size: 0.72rem;
     letter-spacing: 0.06em;
 }
-/* The chip already separates the section; drop the line right beneath it. */
-.memory-flyout .chat-flyout-header + .panel-divider {
+/* Full-bleed dividers so the section separators read clearly. */
+.memory-flyout .panel-divider {
+    margin: 0;
+}
+/* Keep the separator only beneath a header, never stacked above it. */
+.memory-flyout .panel-divider:has(+ .chat-flyout-header) {
     display: none;
 }
 .memory-authornote {
