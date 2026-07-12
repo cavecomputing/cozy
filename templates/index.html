@@ -172,12 +172,22 @@
                             <h3>General</h3>
                             <p>Choose how Cozy looks and behaves on this device.</p>
                         </header>
-                        <div class="settings-section-body">
+                        <div class="settings-section-body settings-section-stack">
                             <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Appearance</h4>
+                                    <p>Theme and visual styling for this device.</p>
+                                </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-theme-select">Theme</label>
                                     <select id="settings-theme-select" class="form-input settings-select"></select>
                                 </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Interface</h4>
+                                    <p>Show or hide optional on-screen controls.</p>
+                                </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-context-meter-toggle">Show context token meter</label>
                                     <input type="checkbox" id="settings-context-meter-toggle">
@@ -186,6 +196,12 @@
                                     <label class="settings-row-label" for="settings-gallery-btn-toggle">Show character gallery button</label>
                                     <input type="checkbox" id="settings-gallery-btn-toggle">
                                 </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Prompt Behavior</h4>
+                                    <p>Limits applied when assembling each chat request.</p>
+                                </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-author-note-limit">Author's Note token limit</label>
                                     <input type="number" id="settings-author-note-limit" class="form-input"
