@@ -1029,8 +1029,9 @@
             <div id="input-wrapper">
                 <!-- Chat flyout popover -->
                 <div id="chat-flyout" class="chat-flyout" role="dialog" aria-label="Chats" hidden>
-                    <div class="chat-flyout-header panel-header panel-header--compact">
-                        <span class="section-label panel-title panel-title--left">Chats</span>
+                    <div class="chat-flyout-header memory-card-header">
+                        <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
+                        <span class="section-label">Chats</span>
                         <button id="flyout-import-chat-btn" class="icon-btn" title="Import chat" aria-label="Import chat">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1046,7 +1047,6 @@
                         </button>
                         <input id="flyout-import-chat-file" type="file" accept=".jsonl,application/jsonl,text/plain,application/json" hidden>
                     </div>
-                    <div class="panel-divider"></div>
                     <ul id="flyout-chat-list" class="chat-list"></ul>
                 </div>
                 <!-- Memory flyout popover: author's note + active lorebook -->

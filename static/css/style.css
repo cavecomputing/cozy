@@ -1532,7 +1532,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     display: none !important;
 }
 
-/* chat-flyout-header now uses .panel-header + .panel-divider */
+/* chat-flyout-header reuses .memory-card-header (accent icon + bold label +
+   full-width bottom border); the label flexes so the action buttons stay
+   right-aligned. */
+.chat-flyout-header .section-label {
+    flex: 1;
+}
 
 .chat-flyout .chat-list {
     overflow-y: auto;
