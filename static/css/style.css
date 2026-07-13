@@ -163,6 +163,12 @@ body {
         gap: 0;
     }
 
+    /* Collapsed: drop the equal-flex zones so the lone toggle button centers
+       (the right zone is hidden via .hide-on-collapse). */
+    #sidebar.collapsed .sidebar-header-side {
+        flex: 0 0 auto;
+    }
+
     /* collapsed: profile card becomes a compact centred icon button */
     #sidebar.collapsed #user-profile-container {
         margin: 0 0.375rem 0.375rem;
@@ -284,6 +290,22 @@ body {
     text-align: center;
     letter-spacing: 0.1em;
     line-height: 1.2;
+}
+
+/* Sidebar header: equal-width side zones keep the "Characters" title truly
+   centered in the header regardless of which side buttons are visible. The
+   title sizes to its content and sits between the two flexible zones. */
+.sidebar-header-side {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+}
+.sidebar-header-side--right {
+    justify-content: flex-end;
+}
+.sidebar-header .panel-title {
+    flex: 0 0 auto;
 }
 
 .panel-header--compact {
@@ -1491,7 +1513,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     display: none !important;
 }
 
-/* chat-flyout-header now uses .panel-header + .panel-divider */
+/* chat-flyout-header reuses .memory-card-header (accent icon + bold label +
+   full-width bottom border); the label flexes so the action buttons stay
+   right-aligned. */
+.chat-flyout-header .section-label {
+    flex: 1;
+}
 
 .chat-flyout .chat-list {
     overflow-y: auto;
@@ -1743,6 +1770,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-secondary);
     text-align: center;
     padding: 2rem;
+    /* Transparent overlay — don't steal clicks from composer flyouts that
+       render beneath it; only its own controls stay interactive. */
+    pointer-events: none;
+}
+.empty-state button {
+    pointer-events: auto;
 }
 
 .empty-state-icon {
@@ -2159,49 +2192,9 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 
 .settings-card > .settings-row,
 .settings-card > .settings-hint,
-.settings-card > .settings-warning,
-.settings-disclosure > .settings-row {
+.settings-card > .settings-warning {
     margin-left: -0.25rem;
     margin-right: -0.25rem;
-}
-
-.settings-disclosure {
-    color: var(--text-color);
-}
-
-.settings-disclosure > summary {
-    cursor: pointer;
-    user-select: none;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-color);
-}
-
-.settings-disclosure > summary::-webkit-details-marker {
-    display: none;
-}
-
-.settings-disclosure > summary::before {
-    content: '›';
-    color: var(--text-secondary);
-    font-size: 1.05rem;
-    line-height: 1;
-    transform: rotate(0deg);
-    transition: transform 0.15s ease;
-}
-
-.settings-disclosure[open] > summary::before {
-    transform: rotate(90deg);
-}
-
-/* Card-style disclosures (e.g. Extra request parameters) — space the body
-   out from the summary once opened. */
-.settings-card.settings-disclosure[open] > summary {
-    margin-bottom: 0.6rem;
 }
 
 /* Prompt section: controls across the top, variables beside the editor. */
@@ -2566,9 +2559,7 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     border-top: 1px solid var(--border-color);
 }
 
-.settings-card > .settings-row:first-of-type,
-.settings-disclosure > .settings-row:first-of-type,
-.sampler-advanced-card > .settings-row:first-of-type {
+.settings-card > .settings-row:first-of-type {
     border-top: 0;
 }
 
@@ -2587,6 +2578,32 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 }
 .settings-row--inline .cozy-select {
     flex: 0 1 20rem;
+    min-width: 0;
+}
+.settings-row--inline > .form-input[type="number"] {
+    flex: 0 0 7rem;
+    min-width: 0;
+    text-align: right;
+}
+
+/* Sampler rows read as a value list: each label sits inline with its field
+   (mirrors .settings-row--inline, applied card-wide so every sampler — and
+   any future one — picks it up automatically). */
+.sampler-card .settings-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.sampler-card .settings-row > .form-input:not(.settings-select) {
+    flex: 0 0 7rem;
+    min-width: 0;
+    text-align: right;
+}
+/* The mirostat mode picker is enhanced into a .cozy-select widget at runtime,
+   so size the wrapper (the native <select> is hidden inside it). */
+.sampler-card .settings-row > .cozy-select {
+    flex: 0 0 11rem;
     min-width: 0;
 }
 
@@ -2834,10 +2851,34 @@ input[type="checkbox"]:disabled {
     padding-top: 0.65rem;
 }
 
-.sampler-common-card,
-.sampler-advanced-card {
+.sampler-card {
     width: min(100%, 720px);
     max-width: 720px;
+}
+
+/* Help bubble sits inline, just right of the "Samplers" heading. */
+.sampler-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Sub-section headers inside the combined sampler card. The core header
+   carries the Active-samplers gear on its right. */
+.sampler-subsection-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
+}
+.sampler-subsection-title {
+    min-width: 0;
+}
+/* Obvious break between the core and advanced groups within the one card. */
+.sampler-subsection-header--advanced {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
 }
 
 .sampler-empty-state {
@@ -3217,28 +3258,10 @@ input[type="checkbox"]:disabled {
     flex-shrink: 0;
 }
 
-.sampler-configure-btn {
-    background: none;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 0.3rem 0.55rem;
-    border-radius: var(--radius-sm);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font: inherit;
-    font-size: 0.75rem;
-    transition: color 0.15s, background-color 0.15s, border-color 0.15s;
-}
-.sampler-configure-btn:hover {
+/* Active-samplers gear (top-right of the Core samplers header). Reuses
+   .icon-btn; this only adds the "open" active state. */
+#sampler-configure-btn[aria-expanded="true"] {
     color: var(--accent-color);
-    border-color: var(--accent-color);
-    background-color: var(--hover-bg);
-}
-.sampler-configure-btn[aria-expanded="true"] {
-    color: var(--accent-color);
-    border-color: var(--accent-color);
     background-color: var(--active-bg);
 }
 
@@ -4863,12 +4886,7 @@ input[type="checkbox"]:disabled {
         padding: 0.7rem;
         border-radius: var(--radius-md);
     }
-    .sampler-toolbar {
-        width: 100%;
-    }
     .sampler-popover {
-        left: 0;
-        right: auto;
         max-width: calc(100vw - 1.5rem);
     }
     .settings-nav-item::after {
@@ -5143,13 +5161,11 @@ input[type="checkbox"]:disabled {
         margin: 0.45rem auto 0.15rem;
     }
 
-    .chat-flyout .chat-list,
-    .lorebook-flyout-list {
+    .chat-flyout .chat-list {
         padding: 0.4rem;
     }
 
     .chat-flyout .chat-select-btn,
-    .lorebook-flyout-item,
     .lorebook-flyout-manage {
         min-height: 48px;
         padding: 0.65rem 0.75rem;
@@ -5297,61 +5313,90 @@ input[type="checkbox"]:disabled {
     max-width: 380px;
     max-height: 320px;
 }
-.lorebook-flyout-list {
-    list-style: none;
-    margin: 0;
-    padding: 0.25rem;
-    overflow-y: auto;
-    flex: 1;
-}
-.lorebook-flyout-item {
-    padding: 0.4rem 0.6rem;
-    margin-bottom: 1px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
+.lorebook-flyout-select {
     font-size: 0.85rem;
-    color: var(--text-color);
-    transition: background-color 0.15s ease;
-}
-.lorebook-flyout-item:hover { background-color: var(--hover-bg); }
-.lorebook-flyout-item.active {
-    background-color: var(--active-bg);
-    color: var(--accent-color);
 }
 .lorebook-flyout-manage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.55rem 0.75rem;
     background: none;
-    border: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
     color: var(--accent-color);
-    text-align: left;
-    padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
-    cursor: pointer;
-    border-bottom-left-radius: var(--radius-md);
-    border-bottom-right-radius: var(--radius-md);
-    transition: background-color 0.15s ease;
     font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
 }
+.lorebook-flyout-manage svg { width: 15px; height: 15px; }
 .lorebook-flyout-manage:hover { background-color: var(--hover-bg); }
 
 #memory-flyout-btn { flex-shrink: 0; }
 
-/* Memory flyout (Author's Note + active lorebook, next to composer) */
+/* Memory flyout — one panel with icon-headed sections (Author's Note +
+   active lorebook), separated by full-width dividers. No nested cards. */
 .memory-flyout {
     left: -1px;
-    min-width: 280px;
+    min-width: 300px;
     max-width: 400px;
     max-height: 70vh;
+    overflow-y: auto;
+}
+.memory-card {
+    flex-shrink: 0;
+}
+.memory-card + .memory-card {
+    border-top: 1px solid var(--border-color);
+}
+.memory-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.memory-card-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--accent-color);
+}
+.memory-card-icon svg {
+    width: 17px;
+    height: 17px;
+}
+.memory-card-header .section-label {
+    color: var(--text-color);
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+}
+.memory-card-body {
+    padding: 0.65rem 0.85rem 0.8rem;
 }
 .memory-authornote {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    padding: 0.5rem 0.6rem 0.6rem;
 }
 #author-note-input {
     resize: vertical;
     min-height: 4.5rem;
     font-size: 0.85rem;
+}
+.memory-authornote-counter {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.memory-authornote-counter.is-over {
+    color: var(--danger-color, #e5534b);
+    font-weight: 600;
 }
 .memory-authornote-hint {
     margin: 0;

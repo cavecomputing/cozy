@@ -21,7 +21,7 @@ import {
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode,
 } from './system-prompts.js';
-import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote } from './lorebooks.js';
+import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
@@ -321,6 +321,23 @@ function bindSettingsHandlers() {
         if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
         saveLLMSettings({ show_gallery_button: state.showGalleryButton ? '1' : '0' });
     });
+    el.settingsCollapseBtnToggle?.addEventListener('change', () => {
+        state.showCollapseButton = el.settingsCollapseBtnToggle.checked;
+        // Hiding the toggle while collapsed would strand the user — expand first.
+        if (!state.showCollapseButton && state.sidebarCollapsed) {
+            state.sidebarCollapsed = false;
+            el.sidebar.classList.remove('collapsed');
+            savePrefs();
+        }
+        if (el.sidebarToggle) el.sidebarToggle.hidden = !state.showCollapseButton;
+        saveLLMSettings({ show_collapse_button: state.showCollapseButton ? '1' : '0' });
+    });
+    el.settingsAuthorNoteLimit?.addEventListener('input', () => {
+        state.authorNoteTokenLimit = parseInt(el.settingsAuthorNoteLimit.value, 10) || 0;
+        updateAuthorNoteCounter();
+        queueLLMSettingsSave({ author_note_token_limit: String(state.authorNoteTokenLimit) });
+    });
+    el.settingsAuthorNoteLimit?.addEventListener('blur', flushLLMSettingsSave);
 
     // LLM API settings — autosave while typing, then flush on blur.
     el.apiEndpoint?.addEventListener('input', () => {
@@ -650,8 +667,12 @@ function bindMemoryHandlers() {
         }
     });
     // Author's Note — debounced autosave while typing, flush on blur.
-    el.authorNoteInput?.addEventListener('input', scheduleAuthorNoteSave);
+    el.authorNoteInput?.addEventListener('input', () => {
+        scheduleAuthorNoteSave();
+        updateAuthorNoteCounter();
+    });
     el.authorNoteInput?.addEventListener('blur', flushAuthorNote);
+    el.lorebookFlyoutSelect?.addEventListener('change', onLorebookSelectChange);
     el.lorebookManageBtn?.addEventListener('click', e => {
         e.stopPropagation();
         el.memoryFlyout.hidden = true;

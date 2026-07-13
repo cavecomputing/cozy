@@ -26,6 +26,8 @@ export const state = {
     contextMaxTokens:    '32768',
     showContextTokenMeter: true,
     showGalleryButton:   true,
+    showCollapseButton:  true,
+    authorNoteTokenLimit: 2048,
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -85,6 +87,7 @@ export function initElements() {
         settingsThemeSelect: document.getElementById('settings-theme-select'),
         settingsContextMeterToggle: document.getElementById('settings-context-meter-toggle'),
         settingsGalleryBtnToggle: document.getElementById('settings-gallery-btn-toggle'),
+        settingsCollapseBtnToggle: document.getElementById('settings-collapse-btn-toggle'),
         galleryOpenBtn: document.getElementById('character-gallery-open'),
         mobileMenuBtn:     document.getElementById('mobile-menu-btn'),
         mobileBackdrop:    document.getElementById('mobile-backdrop'),
@@ -163,7 +166,9 @@ export function initElements() {
         memoryFlyout:        document.getElementById('memory-flyout'),
         memoryFlyoutBtn:     document.getElementById('memory-flyout-btn'),
         authorNoteInput:     document.getElementById('author-note-input'),
-        lorebookFlyoutList:  document.getElementById('lorebook-flyout-list'),
+        authorNoteCounter:   document.getElementById('author-note-counter'),
+        settingsAuthorNoteLimit: document.getElementById('settings-author-note-limit'),
+        lorebookFlyoutSelect: document.getElementById('lorebook-flyout-select'),
         lorebookManageBtn:   document.getElementById('lorebook-flyout-manage'),
         apiNotice:           document.getElementById('api-notice'),
         apiNoticeSettings:   document.getElementById('api-notice-settings'),

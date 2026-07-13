@@ -33,40 +33,46 @@
     <div id="sheet-backdrop"></div>
     <aside id="sidebar">
         <div class="sidebar-header panel-header">
-            <button id="sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
+            <!-- Left/right zones share equal flex so the title stays centered in
+                 the header no matter which side buttons are shown or hidden. -->
+            <div class="sidebar-header-side sidebar-header-side--left">
+                <button id="sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
             <h2 class="section-label panel-title hide-on-collapse">Characters</h2>
-            <button id="character-gallery-open" class="icon-btn hide-on-collapse desktop-only" title="Open character gallery" aria-label="Open character gallery">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
-                    <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
-                    <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
-                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                </svg>
-            </button>
-            <button id="new-char-btn" class="icon-btn hide-on-collapse desktop-only" title="New Character" aria-label="New Character">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
-            <!-- Mobile-only "new character" button — the character gallery
-                 (the primary create entry point) is desktop-only. -->
-            <button id="mobile-new-char-btn" class="icon-btn mobile-only" title="New Character" aria-label="New Character">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </button>
+            <div class="sidebar-header-side sidebar-header-side--right hide-on-collapse">
+                <button id="character-gallery-open" class="icon-btn desktop-only" title="Open character gallery" aria-label="Open character gallery">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                        <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
+                        <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
+                        <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                    </svg>
+                </button>
+                <button id="new-char-btn" class="icon-btn desktop-only" title="New Character" aria-label="New Character">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <!-- Mobile-only "new character" button — the character gallery
+                     (the primary create entry point) is desktop-only. -->
+                <button id="mobile-new-char-btn" class="icon-btn mobile-only" title="New Character" aria-label="New Character">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
         </div>
         <div class="panel-divider hide-on-collapse"></div>
 
@@ -172,12 +178,22 @@
                             <h3>General</h3>
                             <p>Choose how Cozy looks and behaves on this device.</p>
                         </header>
-                        <div class="settings-section-body">
+                        <div class="settings-section-body settings-section-stack">
                             <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Appearance</h4>
+                                    <p>Theme and visual styling for this device.</p>
+                                </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-theme-select">Theme</label>
                                     <select id="settings-theme-select" class="form-input settings-select"></select>
                                 </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Interface</h4>
+                                    <p>Show or hide optional on-screen controls.</p>
+                                </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-context-meter-toggle">Show context token meter</label>
                                     <input type="checkbox" id="settings-context-meter-toggle">
@@ -186,6 +202,22 @@
                                     <label class="settings-row-label" for="settings-gallery-btn-toggle">Show character gallery button</label>
                                     <input type="checkbox" id="settings-gallery-btn-toggle">
                                 </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-collapse-btn-toggle">Show sidebar collapse button</label>
+                                    <input type="checkbox" id="settings-collapse-btn-toggle">
+                                </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Prompt Behavior</h4>
+                                    <p>Limits applied when assembling each chat request.</p>
+                                </header>
+                                <div class="settings-row settings-row--inline">
+                                    <label class="settings-row-label" for="settings-author-note-limit">Author's Note token limit</label>
+                                    <input type="number" id="settings-author-note-limit" class="form-input"
+                                           min="0" step="128" value="2048" placeholder="0 = no cap">
+                                </div>
+                                <p class="settings-hint">Caps how much of each chat's Author's Note is sent to the model, injected via <code>&#123;&#123;author_note&#125;&#125;</code>. Text beyond the limit is trimmed from the request (your saved note is kept in full). <strong>0 = no cap</strong>. Counts are estimates marked with <code>&#8776;</code>.</p>
                             </section>
                         </div>
                     </div>
@@ -209,7 +241,7 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Connection</h4>
-                                    <p>Endpoint and credentials are stored locally and masked in API responses.</p>
+                                    <p>Endpoint, credentials, and model. Credentials are stored locally and masked in API responses.</p>
                                 </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-api-endpoint">Endpoint</label>
@@ -220,19 +252,6 @@
                                     <label class="settings-row-label" for="settings-api-key">API Key</label>
                                     <input type="password" id="settings-api-key" class="form-input" placeholder="sk-...">
                                 </div>
-                                <div class="settings-row settings-row-actions">
-                                    <button id="settings-test-api" class="btn btn-secondary btn-sm">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                        Test Connection
-                                    </button>
-                                    <span id="settings-test-result" class="settings-test-result"></span>
-                                </div>
-                            </section>
-                            <section class="settings-card settings-card-grid">
-                                <header class="settings-card-header">
-                                    <h4>Model and context</h4>
-                                    <p>Choose the model and limit how many recent messages are included in requests.</p>
-                                </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-model">Model</label>
                                     <div class="settings-model-row model-picker-row">
@@ -243,56 +262,66 @@
                                         <div id="model-picker-menu" class="model-picker-menu" hidden role="listbox"></div>
                                     </div>
                                 </div>
-                                <div class="settings-row">
+                                <div class="settings-row settings-row-actions">
+                                    <button id="settings-test-api" class="btn btn-secondary btn-sm">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        Test Connection
+                                    </button>
+                                    <span id="settings-test-result" class="settings-test-result"></span>
+                                </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Context &amp; generation</h4>
+                                    <p>Set the context-window budget, reply length, and any extra JSON sent with each request.</p>
+                                </header>
+                                <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
                                     <input type="number" id="settings-context-tokens" class="form-input"
                                            min="0" step="256" value="32768" placeholder="0 = no cap">
                                 </div>
-                                <p class="settings-hint">Total context-window budget — set this to your model's context size. Cozy fills chat history newest-to-oldest until the budget is hit, after first reserving <strong>Max Response Tokens</strong> below so the reply has room. <strong>0 = no cap</strong> (send the whole history, useful for very large context models). Token counts are estimates marked with <code>≈</code> in the meter.</p>
                                 <span id="context-size-warning" class="settings-warning" hidden></span>
-                                <div class="settings-row">
+                                <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-sampler-max-tokens">Max Response Tokens</label>
                                     <input type="number" id="settings-sampler-max-tokens" class="form-input"
                                            step="1" min="1" max="32768" value="512">
                                 </div>
-                                <p class="settings-hint">Most tokens the model may generate per reply (OpenAI <code>max_tokens</code>). Cozy subtracts this from the context budget above so the prompt and the reply fit the window together.</p>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-send-thinking">Send thinking in context</label>
                                     <input type="checkbox" id="settings-send-thinking">
                                 </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-extra-params">Extra request parameters <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Keys and string values need double quotes. Invalid JSON is silently ignored.">?</span></label>
+                                    <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
+                                </div>
                             </section>
-                            <details class="settings-card settings-disclosure">
-                                <summary>Extra request parameters</summary>
-                                <header class="settings-card-header settings-card-header--disclosure">
-                                    <p>Additional JSON fields merged into every chat completion request. Useful for backend-specific parameters not exposed in the sampler controls. <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;">?</span></p>
-                                </header>
-                                <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
-                                <p class="settings-hint">Enter valid JSON — keys and string values need double quotes. Each pair is merged into the LLM request body (nested objects are kept as-is). For llama.cpp, template args like <code>enable_thinking</code> must be nested under <code>chat_template_kwargs</code>. Invalid JSON is silently ignored. Overrides generated values if keys conflict.</p>
-                            </details>
                         </div>
                     </div>
                     <div class="settings-section settings-section--samplers" data-section="api" hidden>
-                        <header class="settings-page-header settings-page-header--with-action">
+                        <header class="settings-page-header">
                             <div class="settings-page-title">
-                                <h3>Samplers</h3>
+                                <div class="sampler-title-row">
+                                    <h3>Samplers</h3>
+                                    <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                    </button>
+                                </div>
                                 <p>Tune generation behavior. Keep common controls visible and enable only the advanced samplers you use.</p>
-                            </div>
-                            <div class="sampler-toolbar">
-                                <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                </button>
-                                <button id="sampler-configure-btn" class="sampler-configure-btn" title="Configure active samplers" aria-label="Configure active samplers" aria-haspopup="true" aria-expanded="false">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                    <span>Active samplers</span>
-                                </button>
-                                <div id="sampler-popover" class="sampler-popover" hidden></div>
                             </div>
                         </header>
                         <div class="settings-section-body sampler-section-body">
-                            <section class="settings-card sampler-common-card">
-                                <header class="settings-card-header">
-                                    <h4>Core generation</h4>
-                                    <p>These are the controls most likely to affect day-to-day output quality.</p>
+                            <section class="settings-card sampler-card">
+                                <header class="settings-card-header sampler-subsection-header">
+                                    <div class="sampler-subsection-title">
+                                        <h4>Core samplers</h4>
+                                        <p>These are the controls most likely to affect day-to-day output quality.</p>
+                                    </div>
+                                    <div class="sampler-toolbar">
+                                        <button id="sampler-configure-btn" class="icon-btn" title="Active samplers" aria-label="Active samplers" aria-haspopup="true" aria-expanded="false">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                        </button>
+                                        <div id="sampler-popover" class="sampler-popover" hidden></div>
+                                    </div>
                                 </header>
                             <p id="sampler-core-empty" class="sampler-empty-state" hidden>No core samplers active. Use Active samplers to add day-to-day controls here.</p>
                             <!-- Temperature -->
@@ -339,12 +368,12 @@
                                     <input type="number" id="settings-sampler-repeat-last-n" class="form-input" step="1" min="-1" max="4096" value="64">
                                 </div>
                             </div>
-                            </section>
-                            <section class="settings-card sampler-advanced-card">
-                                <header class="settings-card-header">
-                                    <h4>Advanced sampler controls</h4>
+                            <header class="settings-card-header sampler-subsection-header sampler-subsection-header--advanced">
+                                <div class="sampler-subsection-title">
+                                    <h4>Advanced samplers</h4>
                                     <p>Niche or experimental samplers — off by default. Enable any of them from Active samplers.</p>
-                                </header>
+                                </div>
+                            </header>
                             <p id="sampler-advanced-empty" class="sampler-empty-state" hidden>No advanced samplers active. Enable one from Active samplers to show controls here.</p>
                             <!-- Typical-P -->
                             <div class="settings-row" data-sampler="typical_p">
@@ -1023,8 +1052,9 @@
             <div id="input-wrapper">
                 <!-- Chat flyout popover -->
                 <div id="chat-flyout" class="chat-flyout" role="dialog" aria-label="Chats" hidden>
-                    <div class="chat-flyout-header panel-header panel-header--compact">
-                        <span class="section-label panel-title panel-title--left">Chats</span>
+                    <div class="chat-flyout-header memory-card-header">
+                        <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
+                        <span class="section-label">Chats</span>
                         <button id="flyout-import-chat-btn" class="icon-btn" title="Import chat" aria-label="Import chat">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1040,27 +1070,34 @@
                         </button>
                         <input id="flyout-import-chat-file" type="file" accept=".jsonl,application/jsonl,text/plain,application/json" hidden>
                     </div>
-                    <div class="panel-divider"></div>
                     <ul id="flyout-chat-list" class="chat-list"></ul>
                 </div>
                 <!-- Memory flyout popover: author's note + active lorebook -->
                 <div id="memory-flyout" class="chat-flyout memory-flyout" role="dialog" aria-label="Chat memory" hidden>
-                    <div class="chat-flyout-header panel-header panel-header--compact">
-                        <span class="section-label panel-title panel-title--left">Author's Note</span>
-                    </div>
-                    <div class="panel-divider"></div>
-                    <div class="memory-authornote">
-                        <textarea id="author-note-input" class="form-textarea" rows="4" placeholder="Things to remember for this chat…" disabled></textarea>
-                        <p class="memory-authornote-hint">Injected via <code>&#123;&#123;author_note&#125;&#125;</code> in your prompt template.</p>
-                    </div>
-                    <div class="panel-divider"></div>
-                    <div class="chat-flyout-header panel-header panel-header--compact">
-                        <span class="section-label panel-title panel-title--left">Active lorebook for this chat</span>
-                    </div>
-                    <div class="panel-divider"></div>
-                    <ul id="lorebook-flyout-list" class="lorebook-flyout-list"></ul>
-                    <div class="panel-divider"></div>
-                    <button id="lorebook-flyout-manage" class="lorebook-flyout-manage">Manage lorebooks…</button>
+                    <section class="memory-card">
+                        <header class="memory-card-header">
+                            <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v10"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10.4 12.6a2 2 0 0 1 3 3L8 21l-4 1 1-4Z"></path></svg></span>
+                            <span class="section-label">Author's Note</span>
+                        </header>
+                        <div class="memory-card-body memory-authornote">
+                            <textarea id="author-note-input" class="form-textarea" rows="4" placeholder="Things to remember for this chat…" disabled></textarea>
+                            <div class="memory-authornote-counter" id="author-note-counter" aria-live="polite"></div>
+                            <p class="memory-authornote-hint">Injected via <code>&#123;&#123;author_note&#125;&#125;</code> in your prompt template.</p>
+                        </div>
+                    </section>
+                    <section class="memory-card">
+                        <header class="memory-card-header">
+                            <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
+                            <span class="section-label">Active Lorebook</span>
+                        </header>
+                        <div class="memory-card-body">
+                            <select id="lorebook-flyout-select" class="settings-select lorebook-flyout-select" aria-label="Active lorebook"></select>
+                            <button id="lorebook-flyout-manage" class="lorebook-flyout-manage">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                Manage lorebooks…
+                            </button>
+                        </div>
+                    </section>
                 </div>
                 <div class="composer-context-controls" aria-label="Chat context controls">
                     <button id="chat-flyout-btn" class="icon-btn composer-context-btn" title="Chats" aria-label="Open chats" aria-haspopup="dialog" aria-expanded="false">

@@ -15,7 +15,7 @@ import { parseThinkingContent } from './thinking.js';
 
 const MESSAGE_OVERHEAD = 4; // ChatML-ish per-message framing tokens
 
-function estimateTextTokens(text) {
+export function estimateTextTokens(text) {
     if (!text) return 0;
     const s = String(text);
     const words = s.trim().split(/\s+/).filter(Boolean).length;
@@ -23,6 +23,33 @@ function estimateTextTokens(text) {
     // (~4 chars/token). Take the max — code and dense punctuation push the
     // char estimate up; ordinary prose tracks the word estimate.
     return Math.max(1, Math.ceil(Math.max(words * 1.3, s.length / 4)));
+}
+
+/**
+ * Trim `text` so its estimated token count is at most `maxTokens`. Returns the
+ * text unchanged when it already fits, or when `maxTokens` is falsy/≤ 0 (no
+ * cap). Cuts on a whitespace boundary where possible to avoid slicing a word
+ * in half. Uses the same heuristic as the meters, so it's approximate.
+ */
+export function truncateTextToTokens(text, maxTokens) {
+    if (!text) return text || '';
+    if (!maxTokens || maxTokens <= 0) return String(text);
+    const s = String(text);
+    if (estimateTextTokens(s) <= maxTokens) return s;
+
+    // Binary-search the longest prefix that still fits the budget.
+    let lo = 0;
+    let hi = s.length;
+    while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        if (estimateTextTokens(s.slice(0, mid)) <= maxTokens) lo = mid;
+        else hi = mid - 1;
+    }
+    let cut = s.slice(0, lo);
+    // Prefer to end on a word boundary if we're not discarding too much.
+    const lastSpace = cut.lastIndexOf(' ');
+    if (lastSpace > lo * 0.6) cut = cut.slice(0, lastSpace);
+    return cut.trimEnd();
 }
 
 export function estimateMessageTokens(message, { stripThinking = false } = {}) {
