@@ -117,11 +117,10 @@ def llm_chat():
     if samplers:
         log.info('  Samplers: %s', json.dumps(samplers))
 
-    token_count = 0
-
     def generate():
-        nonlocal token_count
-        full_response = []
+        token_count = 0
+        debug_enabled = log.isEnabledFor(logging.DEBUG)
+        full_response = [] if debug_enabled else None
         # Diagnostics for truncation reports: why did the stream stop?
         #   finish_reason 'length' -> hit max_tokens (raise it / reasoning ate it)
         #   finish_reason 'stop'   -> model decided it was done
@@ -163,7 +162,8 @@ def llm_chat():
                             choice = chunk.get('choices', [{}])[0]
                             tok = choice.get('delta', {}).get('content', '')
                             if tok:
-                                full_response.append(tok)
+                                if full_response is not None:
+                                    full_response.append(tok)
                                 token_count += 1
                             if choice.get('finish_reason'):
                                 finish_reason = choice['finish_reason']
@@ -186,7 +186,7 @@ def llm_chat():
             elif finish_reason == 'length':
                 log.info('  Note: hit max_tokens — raise sampler_max_tokens, or '
                          'reasoning output is consuming the token budget.')
-            if log.isEnabledFor(logging.DEBUG):
+            if full_response is not None:
                 text = ''.join(full_response)
                 preview = (text[:200] + '\u2026') if len(text) > 200 else text
                 log.debug('  Text:   %s', preview)

@@ -145,7 +145,7 @@ excluded from removal.
 
 ## Debug-state cleanup
 
-- [ ] **DBG1 · High** — Accumulate full streamed LLM text only when DEBUG logging
+- [x] **DBG1 · High** — Accumulate full streamed LLM text only when DEBUG logging
   is enabled; keep counters local to the generator where possible.
 
 No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
