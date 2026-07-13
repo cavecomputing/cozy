@@ -682,6 +682,8 @@ class TestFork:
         new_chat = r.get_json()
         assert new_chat['character_id'] == sample_chat['character_id']
         assert new_chat['active_lorebook_embedded'] == sample_chat['active_lorebook_embedded']
+        assert isinstance(new_chat['active_lorebook_embedded'], bool)
+        assert isinstance(new_chat['lorebook_notice_dismissed'], bool)
 
         msgs = client.get(f'/api/chats/{new_chat["id"]}/messages').get_json()
         assert len(msgs) == 2

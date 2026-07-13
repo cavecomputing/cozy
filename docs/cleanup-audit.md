@@ -153,7 +153,7 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
 
 ## Inconsistent patterns and one-offs
 
-- [ ] **INC1 · High** — Serialize forked chats with the normal chat serializer so
+- [x] **INC1 · High** — Serialize forked chats with the normal chat serializer so
   SQLite integer flags do not leak where the API normally returns booleans.
 - [ ] **INC2 · Medium** — Decide whether forking should copy `author_note` and
   `lorebook_notice_dismissed`; then move/share chat creation logic rather than

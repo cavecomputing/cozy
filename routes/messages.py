@@ -2,6 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 
+from routes.chats import chat_to_dict
 from shared import get_db, not_found, persona_avatar_url
 
 messages_bp = Blueprint('messages', __name__)
@@ -86,7 +87,7 @@ def fork_chat(chat_id):
                 )
 
         new_chat = conn.execute('SELECT * FROM chats WHERE id=?', (new_chat_id,)).fetchone()
-        return jsonify(dict(new_chat)), 201
+        return jsonify(chat_to_dict(new_chat)), 201
 
 
 @messages_bp.route('/api/chats/<int:chat_id>/messages', methods=['GET'])

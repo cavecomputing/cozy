@@ -12,7 +12,7 @@ from shared import get_db, not_found, safe_download_name
 chats_bp = Blueprint('chats', __name__)
 
 
-def _chat_to_dict(row):
+def chat_to_dict(row):
     """Coerce the SQLite Row into a plain dict with normalised lorebook flags."""
     d = dict(row)
     d['active_lorebook_id'] = d.get('active_lorebook_id')
@@ -178,7 +178,7 @@ def list_chats(char_id):
         rows = conn.execute(
             'SELECT * FROM chats WHERE character_id=? ORDER BY created_at ASC, id ASC', (char_id,)
         ).fetchall()
-        return jsonify([_chat_to_dict(r) for r in rows])
+        return jsonify([chat_to_dict(r) for r in rows])
 
 
 @chats_bp.route('/api/characters/<int:char_id>/chats', methods=['POST'])
@@ -196,7 +196,7 @@ def create_chat(char_id):
         )
         chat_id = cur.lastrowid
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
-        return jsonify(_chat_to_dict(row)), 201
+        return jsonify(chat_to_dict(row)), 201
 
 
 @chats_bp.route('/api/chats/<int:chat_id>/export', methods=['GET'])
@@ -277,7 +277,7 @@ def import_chat():
 
         conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
-        result = _chat_to_dict(row)
+        result = chat_to_dict(row)
         result['warnings'] = warnings
         return jsonify(result), 201
 
@@ -332,7 +332,7 @@ def update_chat(chat_id):
             (name, cur_lb_id, cur_lb_embedded, cur_notice, cur_author_note, chat_id)
         )
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
-        return jsonify(_chat_to_dict(row))
+        return jsonify(chat_to_dict(row))
 
 
 @chats_bp.route('/api/chats/<int:chat_id>', methods=['DELETE'])
