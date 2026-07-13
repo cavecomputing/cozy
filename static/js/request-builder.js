@@ -184,11 +184,12 @@ export function previewChatPayload() {
 /**
  * Generate a character response via the LLM.
  * @param {number} [excludeLastN=0] — drop last N messages for regen
+ * @param {(text: string) => void} onToken — receives the accumulated streamed text
  */
-export async function generateResponse(excludeLastN = 0, onToken = null, signal = null, nudge = null) {
+export async function generateResponse(excludeLastN = 0, onToken, signal = null, nudge = null) {
     const payload = buildChatPayload(excludeLastN, nudge);
     if (!payload.model) throw new Error('No model configured \u2014 check Settings');
     if (payload.messages.length === 0) throw new Error('No messages to send');
-    if (onToken) return API.streamChatCompletion(payload, onToken, signal);
-    return API.chatCompletion(payload, signal);
+    if (typeof onToken !== 'function') throw new TypeError('Streaming token callback is required');
+    return API.streamChatCompletion(payload, onToken, signal);
 }

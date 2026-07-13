@@ -22,7 +22,7 @@ feature remains available.
   `buildGreetingNav()`, `state.greetingIndex`, its writes/resets, and the
   `.greeting-nav*` CSS (`static/js/messages.js`, `static/js/state.js`,
   `static/js/chats.js`, `static/css/style.css`).
-- [ ] **D2 · High** — Remove the incompatible non-streaming LLM fallback
+- [x] **D2 · High** — Remove the incompatible non-streaming LLM fallback
   `API.chatCompletion()` and require the SSE path in `generateResponse()`
   (`static/js/api.js`, `static/js/request-builder.js`).
 - [x] **D3 · High** — Remove unused `import shared` statements from
