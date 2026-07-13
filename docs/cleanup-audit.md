@@ -32,7 +32,7 @@ feature remains available.
   shim. This does not remove or disable the gallery.
 - [x] **D5 · High** — Simplify `write_character_card()` to return only the CRC;
   stop returning unused PNG bytes and recalculating the same CRC.
-- [ ] **D6 · High** — Remove the unused successful card result from
+- [x] **D6 · High** — Remove the unused successful card result from
   `set_character_book()`.
 - [ ] **D7 · High** — Replace unnecessary shared `state.apiEndpoint` and
   `state.apiKeySet` with local values.

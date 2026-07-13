@@ -181,13 +181,13 @@ def write_character_card(path, card):
 
 
 def set_character_book(char_id, new_book):
-    """Set a character PNG's embedded character_book and refresh its DB CRC."""
+    """Set an embedded character_book, returning an error message on failure."""
     with get_db() as conn:
         row = conn.execute(
             'SELECT * FROM characters WHERE id=?', (char_id,)
         ).fetchone()
         if not row or row['missing']:
-            return None, 'Character not found'
+            return 'Character not found'
 
         path = os.path.join(shared.CHARACTERS_DIR, row['filename'])
         with open(path, 'rb') as f:
@@ -207,4 +207,3 @@ def set_character_book(char_id, new_book):
             f.write(png_bytes)
 
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (file_crc(path), char_id))
-        return card, None

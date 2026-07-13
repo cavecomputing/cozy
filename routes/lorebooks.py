@@ -242,7 +242,7 @@ def embed_in_character(book_id, char_id):
             return not_found('Lorebook')
         book = _parse_book(row['book'])
 
-        _, err = set_character_book(char_id, book)
+        err = set_character_book(char_id, book)
         if err:
             return jsonify({'error': err}), 404
 
