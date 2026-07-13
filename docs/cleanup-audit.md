@@ -162,7 +162,7 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
   character or orphan a persona avatar; ignore only missing files.
 - [ ] **INC4 · High** — Access data-path constants consistently through `shared`
   so tests no longer patch both `shared` and `app` globals.
-- [ ] **INC5 · High** — Make test import isolation override an existing
+- [x] **INC5 · High** — Make test import isolation override an existing
   `COZY_DATA_DIR` instead of using `setdefault()`.
 - [ ] **INC6 · High** — Choose package-style test imports or flat imports; remove
   the current combination of `tests/__init__.py` and `sys.path` mutation.
