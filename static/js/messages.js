@@ -162,7 +162,6 @@ export async function handleSwipeAction(msgEl, isPrev) {
     }
 
     updateSwipeNav(msgEl, swipes, idx, isGreeting);
-    if (isGreeting) state.greetingIndex = idx;
 }
 
 export async function regenerateLastAssistantMessage() {
@@ -253,43 +252,6 @@ function buildEditActions() {
         iconButton('msg-action-btn cancel-msg-btn', 'Cancel (Esc)', 'Cancel message edit', icons.CANCEL),
     );
     return bar;
-}
-
-/** Build the greeting prev/next nav row (only when multiple greetings exist). */
-function buildGreetingNav(allGreetings, messageEl, contentEl) {
-    const nav = document.createElement('div');
-    nav.className = 'greeting-nav';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'greeting-nav-btn';
-    prevBtn.title = 'Previous greeting';
-    prevBtn.setAttribute('aria-label', 'Previous greeting');
-    prevBtn.innerHTML = icons.CHEVLEFT;
-
-    const counter = document.createElement('span');
-    counter.className = 'greeting-nav-count';
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'greeting-nav-btn';
-    nextBtn.title = 'Next greeting';
-    nextBtn.setAttribute('aria-label', 'Next greeting');
-    nextBtn.innerHTML = icons.CHEVRIGHT;
-
-    const update = () => {
-        const idx = state.greetingIndex;
-        counter.textContent = `${idx + 1} / ${allGreetings.length}`;
-        prevBtn.disabled = idx === 0;
-        nextBtn.disabled = idx === allGreetings.length - 1;
-        renderMarkdown(contentEl, allGreetings[idx]);
-        messageEl.dataset.rawText = allGreetings[idx];
-    };
-
-    prevBtn.addEventListener('click', () => { if (state.greetingIndex > 0) { state.greetingIndex--; update(); } });
-    nextBtn.addEventListener('click', () => { if (state.greetingIndex < allGreetings.length - 1) { state.greetingIndex++; update(); } });
-
-    update();
-    nav.append(prevBtn, counter, nextBtn);
-    return nav;
 }
 
 /** Build a message DOM element (pure DOM construction, no side effects). */

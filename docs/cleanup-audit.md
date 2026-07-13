@@ -18,7 +18,7 @@ feature remains available.
 
 ## Dead code and ineffective styles
 
-- [ ] **D1 · High** — Remove the abandoned greeting-navigation implementation:
+- [x] **D1 · High** — Remove the abandoned greeting-navigation implementation:
   `buildGreetingNav()`, `state.greetingIndex`, its writes/resets, and the
   `.greeting-nav*` CSS (`static/js/messages.js`, `static/js/state.js`,
   `static/js/chats.js`, `static/css/style.css`).

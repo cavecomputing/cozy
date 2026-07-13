@@ -157,8 +157,7 @@ export async function selectChat(chat) {
     saveDraft();
     if (llm.abortController) llm.abortController.abort();
 
-    state.activeChat   = chat;
-    state.greetingIndex = 0;    // reset greeting switcher for each new chat
+    state.activeChat = chat;
     restoreDraft();
     updateComposerState();
 

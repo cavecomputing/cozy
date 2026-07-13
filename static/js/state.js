@@ -11,7 +11,6 @@ export const state = {
     activeChat:       null,     // full chat object
     messages:         [],       // client-side cache of current chat's messages
     currentEdit:      null,
-    greetingIndex:    0,        // which greeting is shown when chat is empty
     _savedActiveId:   null,     // restored from localStorage
     _savedChatId:     null,
     personas:         [],

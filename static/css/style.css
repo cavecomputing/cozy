@@ -241,7 +241,6 @@ body {
 .chat-rename-input:focus-visible,
 .msg-action-btn:focus-visible,
 .swipe-btn:focus-visible,
-.greeting-nav-btn:focus-visible,
 .settings-nav-item:focus-visible,
 #send-btn:focus-visible {
     outline: 2px solid var(--accent-color);
@@ -256,8 +255,7 @@ body {
 
 .icon-btn svg,
 .msg-action-btn svg,
-.swipe-btn svg,
-.greeting-nav-btn svg {
+.swipe-btn svg {
     width: 14px;
     height: 14px;
 }
@@ -1457,45 +1455,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     min-width: 2em;
     text-align: center;
     user-select: none;
-}
-
-/* ── Greeting navigation ─────────────────────────────────────────────────── */
-.greeting-nav {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-top: 0.4rem;
-    padding-left: 2px;
-}
-
-.greeting-nav-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 2px 5px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.greeting-nav-btn:hover:not(:disabled) {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
-}
-
-.greeting-nav-btn:disabled {
-    opacity: 0.3;
-    cursor: default;
-}
-
-.greeting-nav-count {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    min-width: 2.5em;
-    text-align: center;
 }
 
 /* Floating Input */
@@ -4689,8 +4648,7 @@ input[type="checkbox"]:disabled {
     }
 
     .icon-btn,
-    #send-btn,
-    .greeting-nav-btn {
+    #send-btn {
         min-width: var(--mobile-tap-target);
         min-height: var(--mobile-tap-target);
         padding: 0.6rem;
