@@ -2233,49 +2233,9 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 
 .settings-card > .settings-row,
 .settings-card > .settings-hint,
-.settings-card > .settings-warning,
-.settings-disclosure > .settings-row {
+.settings-card > .settings-warning {
     margin-left: -0.25rem;
     margin-right: -0.25rem;
-}
-
-.settings-disclosure {
-    color: var(--text-color);
-}
-
-.settings-disclosure > summary {
-    cursor: pointer;
-    user-select: none;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-color);
-}
-
-.settings-disclosure > summary::-webkit-details-marker {
-    display: none;
-}
-
-.settings-disclosure > summary::before {
-    content: '›';
-    color: var(--text-secondary);
-    font-size: 1.05rem;
-    line-height: 1;
-    transform: rotate(0deg);
-    transition: transform 0.15s ease;
-}
-
-.settings-disclosure[open] > summary::before {
-    transform: rotate(90deg);
-}
-
-/* Card-style disclosures (e.g. Extra request parameters) — space the body
-   out from the summary once opened. */
-.settings-card.settings-disclosure[open] > summary {
-    margin-bottom: 0.6rem;
 }
 
 /* Prompt section: controls across the top, variables beside the editor. */
@@ -2641,7 +2601,6 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 }
 
 .settings-card > .settings-row:first-of-type,
-.settings-disclosure > .settings-row:first-of-type,
 .sampler-advanced-card > .settings-row:first-of-type {
     border-top: 0;
 }

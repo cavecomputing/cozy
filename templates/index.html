@@ -241,7 +241,7 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Connection</h4>
-                                    <p>Endpoint and credentials are stored locally and masked in API responses.</p>
+                                    <p>Endpoint, credentials, and model. Credentials are stored locally and masked in API responses.</p>
                                 </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-api-endpoint">Endpoint</label>
@@ -252,19 +252,6 @@
                                     <label class="settings-row-label" for="settings-api-key">API Key</label>
                                     <input type="password" id="settings-api-key" class="form-input" placeholder="sk-...">
                                 </div>
-                                <div class="settings-row settings-row-actions">
-                                    <button id="settings-test-api" class="btn btn-secondary btn-sm">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                        Test Connection
-                                    </button>
-                                    <span id="settings-test-result" class="settings-test-result"></span>
-                                </div>
-                            </section>
-                            <section class="settings-card settings-card-grid">
-                                <header class="settings-card-header">
-                                    <h4>Model and context</h4>
-                                    <p>Choose the model and limit how many recent messages are included in requests.</p>
-                                </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-model">Model</label>
                                     <div class="settings-model-row model-picker-row">
@@ -275,6 +262,19 @@
                                         <div id="model-picker-menu" class="model-picker-menu" hidden role="listbox"></div>
                                     </div>
                                 </div>
+                                <div class="settings-row settings-row-actions">
+                                    <button id="settings-test-api" class="btn btn-secondary btn-sm">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        Test Connection
+                                    </button>
+                                    <span id="settings-test-result" class="settings-test-result"></span>
+                                </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Context &amp; generation</h4>
+                                    <p>Set the context-window budget, reply length, and any extra JSON sent with each request.</p>
+                                </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
                                     <input type="number" id="settings-context-tokens" class="form-input"
@@ -290,15 +290,12 @@
                                     <label class="settings-row-label" for="settings-send-thinking">Send thinking in context</label>
                                     <input type="checkbox" id="settings-send-thinking">
                                 </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-extra-params">Extra request parameters <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;">?</span></label>
+                                    <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
+                                    <p class="settings-hint">Additional JSON fields merged into every chat completion request — useful for backend-specific parameters not exposed in the sampler controls. Keys and string values need double quotes. For llama.cpp, template args like <code>enable_thinking</code> must be nested under <code>chat_template_kwargs</code>. Invalid JSON is silently ignored. Overrides generated values if keys conflict.</p>
+                                </div>
                             </section>
-                            <details class="settings-card settings-disclosure">
-                                <summary>Extra request parameters</summary>
-                                <header class="settings-card-header settings-card-header--disclosure">
-                                    <p>Additional JSON fields merged into every chat completion request. Useful for backend-specific parameters not exposed in the sampler controls. <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;">?</span></p>
-                                </header>
-                                <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
-                                <p class="settings-hint">Enter valid JSON — keys and string values need double quotes. Each pair is merged into the LLM request body (nested objects are kept as-is). For llama.cpp, template args like <code>enable_thinking</code> must be nested under <code>chat_template_kwargs</code>. Invalid JSON is silently ignored. Overrides generated values if keys conflict.</p>
-                            </details>
                         </div>
                     </div>
                     <div class="settings-section settings-section--samplers" data-section="api" hidden>
