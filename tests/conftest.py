@@ -8,12 +8,18 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 # Importing app.py initializes the database. Force that import-time work into
 # a temp data directory so pytest never touches a production checkout's data/.
-_IMPORT_DATA_DIR = tempfile.mkdtemp(prefix='cozy-test-import-')
-os.environ['COZY_DATA_DIR'] = _IMPORT_DATA_DIR
+_IMPORT_DATA_DIR = tempfile.TemporaryDirectory(prefix='cozy-test-import-')
+os.environ['COZY_DATA_DIR'] = _IMPORT_DATA_DIR.name
 
 import app as app_module
 import shared
 from png_utils import make_minimal_png
+
+
+@pytest.fixture(scope='session', autouse=True)
+def _cleanup_import_data_dir():
+    yield
+    _IMPORT_DATA_DIR.cleanup()
 
 
 @pytest.fixture(autouse=True)

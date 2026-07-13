@@ -115,7 +115,7 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
   `fix-sampler-param-names` when no longer needed as a bookmark.
 - [ ] **O3 · High** — Remove the redundant `.codex/` ignore entry already covered
   by `.codex`.
-- [ ] **O4 · High** — Stop `tests/conftest.py` from leaking
+- [x] **O4 · High** — Stop `tests/conftest.py` from leaking
   `cozy-test-import-*` temporary directories and clean them up at session end.
 - [ ] **O5 · Medium** — Update/link or remove the orphaned `docs/samplers.md`;
   it still documents removed TFS-Z behavior.
