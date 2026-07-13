@@ -2600,8 +2600,7 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     border-top: 1px solid var(--border-color);
 }
 
-.settings-card > .settings-row:first-of-type,
-.sampler-advanced-card > .settings-row:first-of-type {
+.settings-card > .settings-row:first-of-type {
     border-top: 0;
 }
 
@@ -2631,23 +2630,20 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 /* Sampler rows read as a value list: each label sits inline with its field
    (mirrors .settings-row--inline, applied card-wide so every sampler — and
    any future one — picks it up automatically). */
-.sampler-common-card .settings-row,
-.sampler-advanced-card .settings-row {
+.sampler-card .settings-row {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
 }
-.sampler-common-card .settings-row > .form-input:not(.settings-select),
-.sampler-advanced-card .settings-row > .form-input:not(.settings-select) {
+.sampler-card .settings-row > .form-input:not(.settings-select) {
     flex: 0 0 7rem;
     min-width: 0;
     text-align: right;
 }
 /* The mirostat mode picker is enhanced into a .cozy-select widget at runtime,
    so size the wrapper (the native <select> is hidden inside it). */
-.sampler-common-card .settings-row > .cozy-select,
-.sampler-advanced-card .settings-row > .cozy-select {
+.sampler-card .settings-row > .cozy-select {
     flex: 0 0 11rem;
     min-width: 0;
 }
@@ -2896,10 +2892,34 @@ input[type="checkbox"]:disabled {
     padding-top: 0.65rem;
 }
 
-.sampler-common-card,
-.sampler-advanced-card {
+.sampler-card {
     width: min(100%, 720px);
     max-width: 720px;
+}
+
+/* Help bubble sits inline, just right of the "Samplers" heading. */
+.sampler-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Sub-section headers inside the combined sampler card. The core header
+   carries the Active-samplers gear on its right. */
+.sampler-subsection-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
+}
+.sampler-subsection-title {
+    min-width: 0;
+}
+/* Obvious break between the core and advanced groups within the one card. */
+.sampler-subsection-header--advanced {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
 }
 
 .sampler-empty-state {
@@ -3279,28 +3299,10 @@ input[type="checkbox"]:disabled {
     flex-shrink: 0;
 }
 
-.sampler-configure-btn {
-    background: none;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 0.3rem 0.55rem;
-    border-radius: var(--radius-sm);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font: inherit;
-    font-size: 0.75rem;
-    transition: color 0.15s, background-color 0.15s, border-color 0.15s;
-}
-.sampler-configure-btn:hover {
+/* Active-samplers gear (top-right of the Core samplers header). Reuses
+   .icon-btn; this only adds the "open" active state. */
+#sampler-configure-btn[aria-expanded="true"] {
     color: var(--accent-color);
-    border-color: var(--accent-color);
-    background-color: var(--hover-bg);
-}
-.sampler-configure-btn[aria-expanded="true"] {
-    color: var(--accent-color);
-    border-color: var(--accent-color);
     background-color: var(--active-bg);
 }
 
@@ -4926,12 +4928,7 @@ input[type="checkbox"]:disabled {
         padding: 0.7rem;
         border-radius: var(--radius-md);
     }
-    .sampler-toolbar {
-        width: 100%;
-    }
     .sampler-popover {
-        left: 0;
-        right: auto;
         max-width: calc(100vw - 1.5rem);
     }
     .settings-nav-item::after {

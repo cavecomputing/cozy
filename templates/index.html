@@ -298,27 +298,30 @@
                         </div>
                     </div>
                     <div class="settings-section settings-section--samplers" data-section="api" hidden>
-                        <header class="settings-page-header settings-page-header--with-action">
+                        <header class="settings-page-header">
                             <div class="settings-page-title">
-                                <h3>Samplers</h3>
+                                <div class="sampler-title-row">
+                                    <h3>Samplers</h3>
+                                    <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                    </button>
+                                </div>
                                 <p>Tune generation behavior. Keep common controls visible and enable only the advanced samplers you use.</p>
-                            </div>
-                            <div class="sampler-toolbar">
-                                <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                </button>
-                                <button id="sampler-configure-btn" class="sampler-configure-btn" title="Configure active samplers" aria-label="Configure active samplers" aria-haspopup="true" aria-expanded="false">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                    <span>Active samplers</span>
-                                </button>
-                                <div id="sampler-popover" class="sampler-popover" hidden></div>
                             </div>
                         </header>
                         <div class="settings-section-body sampler-section-body">
-                            <section class="settings-card sampler-common-card">
-                                <header class="settings-card-header">
-                                    <h4>Core generation</h4>
-                                    <p>These are the controls most likely to affect day-to-day output quality.</p>
+                            <section class="settings-card sampler-card">
+                                <header class="settings-card-header sampler-subsection-header">
+                                    <div class="sampler-subsection-title">
+                                        <h4>Core samplers</h4>
+                                        <p>These are the controls most likely to affect day-to-day output quality.</p>
+                                    </div>
+                                    <div class="sampler-toolbar">
+                                        <button id="sampler-configure-btn" class="icon-btn" title="Active samplers" aria-label="Active samplers" aria-haspopup="true" aria-expanded="false">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                        </button>
+                                        <div id="sampler-popover" class="sampler-popover" hidden></div>
+                                    </div>
                                 </header>
                             <p id="sampler-core-empty" class="sampler-empty-state" hidden>No core samplers active. Use Active samplers to add day-to-day controls here.</p>
                             <!-- Temperature -->
@@ -365,12 +368,12 @@
                                     <input type="number" id="settings-sampler-repeat-last-n" class="form-input" step="1" min="-1" max="4096" value="64">
                                 </div>
                             </div>
-                            </section>
-                            <section class="settings-card sampler-advanced-card">
-                                <header class="settings-card-header">
-                                    <h4>Advanced sampler controls</h4>
+                            <header class="settings-card-header sampler-subsection-header sampler-subsection-header--advanced">
+                                <div class="sampler-subsection-title">
+                                    <h4>Advanced samplers</h4>
                                     <p>Niche or experimental samplers — off by default. Enable any of them from Active samplers.</p>
-                                </header>
+                                </div>
+                            </header>
                             <p id="sampler-advanced-empty" class="sampler-empty-state" hidden>No advanced samplers active. Enable one from Active samplers to show controls here.</p>
                             <!-- Typical-P -->
                             <div class="settings-row" data-sampler="typical_p">
