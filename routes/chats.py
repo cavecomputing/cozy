@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, Response
 
-import shared
 from card_store import get_character_card_data
 from shared import get_db, not_found, safe_download_name
 

@@ -11,7 +11,6 @@ import json
 
 from flask import Blueprint, request, jsonify, Response
 
-import shared
 from card_store import (
     coerce_keys, get_character_card, normalize_character_book, safe_int,
     set_character_book,

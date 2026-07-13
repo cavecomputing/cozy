@@ -2,7 +2,7 @@
 
 This document tracks the read-only cleanup audit completed on 2026-07-11.
 Items are grouped by category and ordered by confidence. Check an item only when
-the change has been verified and committed; append the commit hash when done.
+the change has been verified and included in its own commit.
 
 Confidence describes how safe the proposed change is:
 
@@ -25,7 +25,7 @@ feature remains available.
 - [ ] **D2 · High** — Remove the incompatible non-streaming LLM fallback
   `API.chatCompletion()` and require the SSE path in `generateResponse()`
   (`static/js/api.js`, `static/js/request-builder.js`).
-- [ ] **D3 · High** — Remove unused `import shared` statements from
+- [x] **D3 · High** — Remove unused `import shared` statements from
   `routes/chats.py` and `routes/lorebooks.py`.
 - [ ] **D4 · High** — Remove the unused gallery deep-link
   `openGalleryWithCharacter()` and the now-trivial `editCharacter` forwarding
