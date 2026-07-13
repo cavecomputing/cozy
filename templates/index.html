@@ -275,19 +275,17 @@
                                         <div id="model-picker-menu" class="model-picker-menu" hidden role="listbox"></div>
                                     </div>
                                 </div>
-                                <div class="settings-row">
+                                <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
                                     <input type="number" id="settings-context-tokens" class="form-input"
                                            min="0" step="256" value="32768" placeholder="0 = no cap">
                                 </div>
-                                <p class="settings-hint">Total context-window budget — set this to your model's context size. Cozy fills chat history newest-to-oldest until the budget is hit, after first reserving <strong>Max Response Tokens</strong> below so the reply has room. <strong>0 = no cap</strong> (send the whole history, useful for very large context models). Token counts are estimates marked with <code>≈</code> in the meter.</p>
                                 <span id="context-size-warning" class="settings-warning" hidden></span>
-                                <div class="settings-row">
+                                <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-sampler-max-tokens">Max Response Tokens</label>
                                     <input type="number" id="settings-sampler-max-tokens" class="form-input"
                                            step="1" min="1" max="32768" value="512">
                                 </div>
-                                <p class="settings-hint">Most tokens the model may generate per reply (OpenAI <code>max_tokens</code>). Cozy subtracts this from the context budget above so the prompt and the reply fit the window together.</p>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-send-thinking">Send thinking in context</label>
                                     <input type="checkbox" id="settings-send-thinking">

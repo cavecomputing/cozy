@@ -2669,6 +2669,30 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     text-align: right;
 }
 
+/* Sampler rows read as a value list: each label sits inline with its field
+   (mirrors .settings-row--inline, applied card-wide so every sampler — and
+   any future one — picks it up automatically). */
+.sampler-common-card .settings-row,
+.sampler-advanced-card .settings-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.sampler-common-card .settings-row > .form-input:not(.settings-select),
+.sampler-advanced-card .settings-row > .form-input:not(.settings-select) {
+    flex: 0 0 7rem;
+    min-width: 0;
+    text-align: right;
+}
+/* The mirostat mode picker is enhanced into a .cozy-select widget at runtime,
+   so size the wrapper (the native <select> is hidden inside it). */
+.sampler-common-card .settings-row > .cozy-select,
+.sampler-advanced-card .settings-row > .cozy-select {
+    flex: 0 0 11rem;
+    min-width: 0;
+}
+
 /* Themed checkboxes — apply app-wide so every <input type="checkbox"> picks
    up the active theme's accent color and border. The check glyph uses
    mask-image so its color tracks --btn-primary-color across themes. */
