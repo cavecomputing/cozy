@@ -171,13 +171,13 @@ def ensure_png(image_bytes):
 
 
 def write_character_card(path, card):
-    """Embed card data in an existing PNG file and return (png_bytes, crc)."""
+    """Embed card data in an existing PNG file and return its CRC."""
     with open(path, 'rb') as f:
         png_bytes = f.read()
     png_bytes = write_png_chara(png_bytes, card)
     with open(path, 'wb') as f:
         f.write(png_bytes)
-    return png_bytes, file_crc(path)
+    return file_crc(path)
 
 
 def set_character_book(char_id, new_book):

@@ -30,7 +30,7 @@ feature remains available.
 - [ ] **D4 · High** — Remove the unused gallery deep-link
   `openGalleryWithCharacter()` and the now-trivial `editCharacter` forwarding
   shim. This does not remove or disable the gallery.
-- [ ] **D5 · High** — Simplify `write_character_card()` to return only the CRC;
+- [x] **D5 · High** — Simplify `write_character_card()` to return only the CRC;
   stop returning unused PNG bytes and recalculating the same CRC.
 - [ ] **D6 · High** — Remove the unused successful card result from
   `set_character_book()`.

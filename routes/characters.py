@@ -338,9 +338,9 @@ def duplicate_character(char_id):
             card = normalize_to_v2(card_data)
             card.setdefault('data', {})
             card['data']['name'] = copy_name
-            write_character_card(target_path, card)
-
-        crc = file_crc(target_path)
+            crc = write_character_card(target_path, card)
+        else:
+            crc = file_crc(target_path)
         cur = conn.execute(
             'INSERT INTO characters (filename, crc) VALUES (?, ?)', (filename, crc)
         )
@@ -411,7 +411,7 @@ def update_character(char_id):
             'data': existing_data,
         }
 
-        png_bytes, crc = write_character_card(filepath, card)
+        crc = write_character_card(filepath, card)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         return jsonify(_char_to_dict(row, card, _collections_for_char(conn, char_id)))
