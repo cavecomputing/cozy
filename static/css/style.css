@@ -2192,7 +2192,8 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 
 .settings-card > .settings-row,
 .settings-card > .settings-hint,
-.settings-card > .settings-warning {
+.settings-card > .settings-warning,
+.sampler-subsection > .settings-row {
     margin-left: -0.25rem;
     margin-right: -0.25rem;
 }
@@ -2556,6 +2557,15 @@ body.gallery-open #char-modal.modal-overlay > .modal {
 }
 
 .settings-row + .settings-row {
+    border-top: 1px solid var(--border-color);
+}
+
+/* Sampler rows: draw a divider between consecutive *visible* rows within a
+   subsection. Uses the general-sibling combinator with :not([hidden]) so an
+   inactive (hidden) sampler sitting between two rows — e.g. Dynamic
+   Temperature between Temperature and Top-P — doesn't swallow the divider the
+   way the adjacent-sibling rule above does. */
+.sampler-subsection > .settings-row:not([hidden]) ~ .settings-row:not([hidden]) {
     border-top: 1px solid var(--border-color);
 }
 
