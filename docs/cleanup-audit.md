@@ -34,7 +34,7 @@ feature remains available.
   stop returning unused PNG bytes and recalculating the same CRC.
 - [x] **D6 · High** — Remove the unused successful card result from
   `set_character_book()`.
-- [ ] **D7 · High** — Replace unnecessary shared `state.apiEndpoint` and
+- [x] **D7 · High** — Replace unnecessary shared `state.apiEndpoint` and
   `state.apiKeySet` with local values.
 - [ ] **D8 · High** — Remove dead standalone lorebook-flyout container/button
   selectors while preserving the live nested list/item/manage selectors.

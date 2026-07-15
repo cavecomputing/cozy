@@ -334,7 +334,6 @@ function bindSettingsHandlers() {
     });
     // LLM API settings — autosave while typing, then flush on blur.
     el.apiEndpoint?.addEventListener('input', () => {
-        state.apiEndpoint = el.apiEndpoint.value;
         clearModelListCache();
         queueLLMSettingsSave({ api_endpoint: el.apiEndpoint.value });
     });
@@ -343,7 +342,6 @@ function bindSettingsHandlers() {
         const v = el.apiKey.value;
         // Skip masked API keys: bullet-prefixed ("\u2022\u2022…") or containing ellipsis mask ("\u2026")
         if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026')) {
-            state.apiKeySet = true;
             clearModelListCache();
             queueLLMSettingsSave({ api_key: v });
         }

@@ -263,14 +263,14 @@ export async function loadPresets() {
 }
 
 function applySettingsToUI(s) {
-    state.apiEndpoint = s.api_endpoint || '';
-    state.apiKeySet   = s.api_key_set || false;
+    const apiEndpoint = s.api_endpoint || '';
+    const apiKeySet = s.api_key_set || false;
     state.apiModel    = s.api_model || '';
     state.activePresetId = s.active_api_preset || null;
-    if (el.apiEndpoint) el.apiEndpoint.value = state.apiEndpoint;
+    if (el.apiEndpoint) el.apiEndpoint.value = apiEndpoint;
     if (el.apiKey) {
-        el.apiKey.value = state.apiKeySet ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : '';
-        el.apiKey.placeholder = state.apiKeySet ? 'Key saved (edit to change)' : 'sk-...';
+        el.apiKey.value = apiKeySet ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : '';
+        el.apiKey.placeholder = apiKeySet ? 'Key saved (edit to change)' : 'sk-...';
     }
     if (el.apiModel) el.apiModel.value = state.apiModel;
     if (el.settingsContextTokens) el.settingsContextTokens.value = s.context_max_tokens || '32768';

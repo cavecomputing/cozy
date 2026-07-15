@@ -16,8 +16,6 @@ export const state = {
     personas:         [],
     activePersona:    null,
     _savedPersonaId:  null,
-    apiEndpoint:      '',
-    apiKeySet:        false,
     apiModel:         '',
     systemPrompts:       [],
     activeSystemPromptId: null,
