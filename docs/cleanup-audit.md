@@ -86,7 +86,7 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
 
 - [ ] **DUP1 · High** — Remove the duplicate `@keyframes spin` declaration.
 - [ ] **DUP2 · High** — Remove the second redundant `#send-btn:disabled` block.
-- [ ] **DUP3 · High** — Share the repeated “detach chats, then delete lorebook”
+- [x] **DUP3 · High** — Share the repeated “detach chats, then delete lorebook”
   sequence between standalone deletion and move-to-character deletion.
 - [ ] **DUP4 · High** — Share the repeated active-chat replacement used by
   lorebook selection, Author's Note save, and notice dismissal.

@@ -112,6 +112,14 @@ class TestEmbedAndExtract:
     def test_embed_with_delete_standalone_drops_db_row(self, client, sample_character):
         book = _make_book('Drop me', entries=[{'keys': ['k'], 'content': 'v'}])
         created = client.post('/api/lorebooks', json={'name': 'Drop me', 'book': book}).get_json()
+        chat = client.post(
+            f'/api/characters/{sample_character["id"]}/chats',
+            json={'name': 'Selected standalone'},
+        ).get_json()
+        client.put(
+            f'/api/chats/{chat["id"]}',
+            json={'active_lorebook_id': created['id']},
+        )
 
         r = client.post(
             f'/api/lorebooks/{created["id"]}/embed-in-character/{sample_character["id"]}'
@@ -120,6 +128,9 @@ class TestEmbedAndExtract:
         assert r.status_code == 200
         # Standalone row is gone
         assert client.get(f'/api/lorebooks/{created["id"]}').status_code == 404
+        chats = client.get(f'/api/characters/{sample_character["id"]}/chats').get_json()
+        updated_chat = next(item for item in chats if item['id'] == chat['id'])
+        assert updated_chat['active_lorebook_id'] is None
 
     def test_extract_creates_standalone_from_embedded(self, client, sample_character):
         # Embed a book on the character

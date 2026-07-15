@@ -66,6 +66,15 @@ def _full_dict(row):
     }
 
 
+def _detach_and_delete_lorebook(conn, book_id):
+    """Clear active chat selections before deleting a standalone lorebook."""
+    conn.execute(
+        'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
+        (book_id,),
+    )
+    conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
+
+
 def _normalize_imported_book(raw):
     """Normalize an imported lorebook JSON into V2 ``character_book`` shape.
 
@@ -224,12 +233,7 @@ def delete_lorebook(book_id):
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
             return not_found('Lorebook')
-        # Keep chat selections tidy when a standalone lorebook is removed.
-        conn.execute(
-            'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
-            (book_id,)
-        )
-        conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
+        _detach_and_delete_lorebook(conn, book_id)
         return jsonify({'success': True})
 
 
@@ -247,11 +251,7 @@ def embed_in_character(book_id, char_id):
             return jsonify({'error': err}), 404
 
         if delete_standalone:
-            conn.execute(
-                'UPDATE chats SET active_lorebook_id=NULL WHERE active_lorebook_id=?',
-                (book_id,)
-            )
-            conn.execute('DELETE FROM lorebooks WHERE id=?', (book_id,))
+            _detach_and_delete_lorebook(conn, book_id)
 
     return jsonify({'success': True, 'character_book': book})
 
