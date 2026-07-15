@@ -3,6 +3,7 @@ import glob
 import logging
 
 from flask import Flask, render_template, jsonify, send_from_directory
+from werkzeug.exceptions import HTTPException
 
 from shared import (
     CHARACTERS_DIR, PERSONAS_DIR, THEMES_DIR, BUILTIN_THEMES_DIR, init_db,
@@ -18,7 +19,6 @@ app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB
 # ── Global error handlers (always return JSON for API consumers) ──────────
 @app.errorhandler(Exception)
 def handle_exception(e):
-    from werkzeug.exceptions import HTTPException
     if isinstance(e, HTTPException):
         return jsonify({'error': e.description}), e.code
     log.exception('Unhandled error: %s', e)

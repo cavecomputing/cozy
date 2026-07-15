@@ -1,5 +1,7 @@
 """Message and swipe routes."""
 
+from datetime import datetime
+
 from flask import Blueprint, request, jsonify
 
 from routes.chats import chat_to_dict
@@ -52,8 +54,7 @@ def fork_chat(chat_id):
         if not msg:
             return not_found('Message')
 
-        import datetime
-        name = datetime.datetime.now().strftime('%b %d %H:%M:%S')
+        name = datetime.now().strftime('%b %d %H:%M:%S')
 
         cur = conn.execute(
             'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded) VALUES (?,?,?,?)',

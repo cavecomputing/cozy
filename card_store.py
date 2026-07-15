@@ -41,7 +41,7 @@ def read_character_card(path):
     try:
         with open(path, 'rb') as f:
             return extract_png_chara(f.read())
-    except (OSError, IOError):
+    except OSError:
         return None
 
 

@@ -468,7 +468,6 @@ class TestPin:
 
     def test_list_orders_pinned_first(self, client):
         # Create three characters
-        from io import BytesIO
         png = make_minimal_png()
         chars = []
         for name in ('Alpha', 'Beta', 'Gamma'):

@@ -1,6 +1,9 @@
+import json
 import os
 import sys
 import tempfile
+from io import BytesIO
+
 import pytest
 
 # Make test helpers importable (e.g. `from helpers import v2_card`)
@@ -59,8 +62,6 @@ def client():
 @pytest.fixture
 def sample_character(client):
     """Create and return a test character with embedded card data."""
-    import json
-    from io import BytesIO
     png = make_minimal_png()
     char_data = json.dumps({
         'name': 'TestChar',

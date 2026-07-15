@@ -170,7 +170,7 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
   gallery, matching sidebar pin behavior.
 - [ ] **INC8 · High** — Return 404 for swipe-list requests targeting nonexistent
   messages if D13 is retained.
-- [ ] **INC9 · High** — Remove minor Python one-offs: duplicate
+- [x] **INC9 · High** — Remove minor Python one-offs: duplicate
   `OSError`/`IOError` handling and unexplained function-local imports.
 - [ ] **INC10 · Medium** — Replace native `prompt()` in preset and system-prompt
   creation with the application's styled interaction pattern.

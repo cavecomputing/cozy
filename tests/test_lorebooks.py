@@ -565,7 +565,6 @@ class TestLorebookImport:
         assert body['book']['entries'][0]['content'] == 'u-content'
 
     def test_import_rejects_invalid_json_upload(self, client):
-        from io import BytesIO
         r = client.post(
             '/api/lorebooks/import',
             data={'file': (BytesIO(b'not json{'), 'bad.json', 'application/json')},
