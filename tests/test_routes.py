@@ -318,6 +318,12 @@ class TestMessages:
         swipe = r.get_json()
         assert swipe['content'] == 'Alternative response'
 
+    def test_list_swipes_for_unknown_message_returns_404(self, client):
+        r = client.get('/api/messages/99999/swipes')
+
+        assert r.status_code == 404
+        assert r.get_json()['error'] == 'Message not found'
+
     def test_update_message(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
