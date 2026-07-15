@@ -185,7 +185,7 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
   appropriate.
 - [ ] **INC15 · Medium** — Move import-time directory creation/database migration
   toward explicit application initialization while preserving Gunicorn startup.
-- [ ] **INC16 · Medium** — Remove `check_same_thread=False` if no supported caller
+- [x] **INC16 · Medium** — Remove `check_same_thread=False` if no supported caller
   moves a connection across threads.
 
 ## Documentation and toolchain drift
