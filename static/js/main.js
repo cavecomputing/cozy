@@ -205,62 +205,6 @@ function bindResponsiveShellHandlers() {
     updateModalBottom();
 }
 
-function bindMobileViewportHandlers() {
-    // iOS on-screen-keyboard fix. On iOS EVERY browser is WebKit (Apple
-    // mandates it), so Safari, Firefox and Chrome all share this behaviour.
-    // The app is a full-height shell (body: height:100dvh) with an inner scroll
-    // container. Focusing a field or contenteditable — e.g. editing a message —
-    // raises the keyboard, and WebKit scrolls the *page* to keep the focus
-    // visible. Crucially, `overflow:hidden` on <body> does NOT stop this scroll
-    // on iOS — only `position:fixed` truly locks the page. So the whole shell
-    // gets shoved up: the chat slides off the top and the area the keyboard
-    // vacated shows as a blank gap.
-    //
-    // Fix (mobile only): via the mobile CSS, <body> is `position:fixed`, which
-    // stops WebKit from scrolling the page — it scrolls the inner #chat-scroll
-    // instead, exactly where we want the edited line to move above the keyboard.
-    // We then pin the fixed shell to the visual viewport by tracking its height
-    // and top offset. `top` (not `transform`) is used deliberately: a transform
-    // on <body> would become the containing block for every position:fixed
-    // overlay (modals, drawer, toasts) and break them.
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const mobileQuery = window.matchMedia(MOBILE_SHELL_QUERY);
-    const root = document.documentElement;
-
-    const sync = () => {
-        // Desktop: drop the vars so the shell falls back to a plain 100dvh box
-        // and never gets pinned — pinning would fight pinch-zoom panning, which
-        // legitimately scrolls the visual viewport.
-        if (!mobileQuery.matches) {
-            root.style.removeProperty('--app-height');
-            root.style.removeProperty('--app-viewport-top');
-            return;
-        }
-        // A hidden/backgrounded page reports height 0. Ignore it so the shell
-        // keeps its last good geometry instead of collapsing to nothing (common
-        // on mobile: switch apps, come back).
-        const h = Math.round(vv.height);
-        if (h <= 0) return;
-        root.style.setProperty('--app-height', `${h}px`);
-        // offsetTop is how far WebKit scrolled the visual viewport down inside
-        // the layout viewport; move the fixed shell down by the same amount to
-        // keep it glued to the visible area above the keyboard.
-        root.style.setProperty('--app-viewport-top', `${Math.round(vv.offsetTop)}px`);
-    };
-
-    vv.addEventListener('resize', sync);
-    vv.addEventListener('scroll', sync);
-    // Re-evaluate when crossing the mobile/desktop boundary (rotation, resize)
-    // and when the page is restored from the background (height 0 → real).
-    mobileQuery.addEventListener('change', sync);
-    document.addEventListener('visibilitychange', sync);
-    // iOS 26 sometimes leaves offsetTop non-zero after the keyboard dismisses;
-    // a blur is a reliable signal to re-pin once the animation settles.
-    document.addEventListener('focusout', () => setTimeout(sync, 100));
-    sync();
-}
-
 function bindSheetBackdropHandlers() {
     // On mobile the composer flyouts render as bottom sheets over a dimmed
     // backdrop. Watch the flyouts' hidden attribute so every open/close path
@@ -933,7 +877,6 @@ async function init() {
     applyTheme(state.theme);
     await loadThemeList();
     bindResponsiveShellHandlers();
-    bindMobileViewportHandlers();
 
     const [, settings] = await Promise.all([loadPersonas(), loadLLMSettings()]);
     await loadSystemPrompts(settings);
