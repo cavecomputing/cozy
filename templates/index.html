@@ -207,18 +207,6 @@
                                     <input type="checkbox" id="settings-collapse-btn-toggle">
                                 </div>
                             </section>
-                            <section class="settings-card">
-                                <header class="settings-card-header">
-                                    <h4>Prompt Behavior</h4>
-                                    <p>Limits applied when assembling each chat request.</p>
-                                </header>
-                                <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-author-note-limit">Author's Note token limit</label>
-                                    <input type="number" id="settings-author-note-limit" class="form-input"
-                                           min="0" step="128" value="2048" placeholder="0 = no cap">
-                                </div>
-                                <p class="settings-hint">Caps how much of each chat's Author's Note is sent to the model, injected via <code>&#123;&#123;author_note&#125;&#125;</code>. Text beyond the limit is trimmed from the request (your saved note is kept in full). <strong>0 = no cap</strong>. Counts are estimates marked with <code>&#8776;</code>.</p>
-                            </section>
                         </div>
                     </div>
                     <div class="settings-section" data-section="api" hidden>

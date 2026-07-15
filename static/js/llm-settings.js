@@ -289,8 +289,6 @@ function applySettingsToUI(s) {
         state.sidebarCollapsed = false;
         el.sidebar?.classList.remove('collapsed');
     }
-    state.authorNoteTokenLimit = parseInt(s.author_note_token_limit ?? '2048', 10) || 0;
-    if (el.settingsAuthorNoteLimit) el.settingsAuthorNoteLimit.value = String(state.authorNoteTokenLimit);
     state.extraRequestParams = s.extra_request_params || '';
     if (el.extraParams) el.extraParams.value = state.extraRequestParams;
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;

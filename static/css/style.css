@@ -5404,10 +5404,6 @@ input[type="checkbox"]:disabled {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
-.memory-authornote-counter.is-over {
-    color: var(--danger-color, #e5534b);
-    font-weight: 600;
-}
 .memory-authornote-hint {
     margin: 0;
     font-size: 0.72rem;

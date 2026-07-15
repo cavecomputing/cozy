@@ -332,13 +332,6 @@ function bindSettingsHandlers() {
         if (el.sidebarToggle) el.sidebarToggle.hidden = !state.showCollapseButton;
         saveLLMSettings({ show_collapse_button: state.showCollapseButton ? '1' : '0' });
     });
-    el.settingsAuthorNoteLimit?.addEventListener('input', () => {
-        state.authorNoteTokenLimit = parseInt(el.settingsAuthorNoteLimit.value, 10) || 0;
-        updateAuthorNoteCounter();
-        queueLLMSettingsSave({ author_note_token_limit: String(state.authorNoteTokenLimit) });
-    });
-    el.settingsAuthorNoteLimit?.addEventListener('blur', flushLLMSettingsSave);
-
     // LLM API settings — autosave while typing, then flush on blur.
     el.apiEndpoint?.addEventListener('input', () => {
         state.apiEndpoint = el.apiEndpoint.value;

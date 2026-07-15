@@ -27,7 +27,6 @@ export const state = {
     showContextTokenMeter: true,
     showGalleryButton:   true,
     showCollapseButton:  true,
-    authorNoteTokenLimit: 2048,
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -167,7 +166,6 @@ export function initElements() {
         memoryFlyoutBtn:     document.getElementById('memory-flyout-btn'),
         authorNoteInput:     document.getElementById('author-note-input'),
         authorNoteCounter:   document.getElementById('author-note-counter'),
-        settingsAuthorNoteLimit: document.getElementById('settings-author-note-limit'),
         lorebookFlyoutSelect: document.getElementById('lorebook-flyout-select'),
         lorebookManageBtn:   document.getElementById('lorebook-flyout-manage'),
         apiNotice:           document.getElementById('api-notice'),

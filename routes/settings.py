@@ -35,7 +35,6 @@ SETTINGS_KEYS = {
     'show_gallery_button',
     'show_collapse_button',
     'context_max_tokens',
-    'author_note_token_limit',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
     'extra_request_params',
