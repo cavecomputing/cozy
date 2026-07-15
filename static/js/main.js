@@ -205,6 +205,52 @@ function bindResponsiveShellHandlers() {
     updateModalBottom();
 }
 
+function bindMobileViewportHandlers() {
+    // iOS keyboard fix. The app is a fixed shell (body: height:100dvh;
+    // overflow:hidden) with an inner scroll container. Focusing a field or
+    // contenteditable — e.g. editing a message — raises the keyboard, and iOS
+    // scrolls the *window* to keep the focus visible. The shell can't scroll, so
+    // that offset shoves the whole app upward: the chat slides off the top and
+    // the vacated keyboard area shows as a blank gap. dvh units don't shrink for
+    // the keyboard on iOS, so nothing shrinks the layout on its own.
+    //
+    // Track the VisualViewport instead: size the shell to the space above the
+    // keyboard (--app-height) so the composer and edited line sit just above it,
+    // and cancel iOS's spurious window scroll. Scoped to the mobile shell so
+    // desktop pinch-zoom panning (a legitimate visual-viewport scroll) is left
+    // alone.
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const mobileQuery = window.matchMedia(MOBILE_SHELL_QUERY);
+    const root = document.documentElement;
+
+    const sync = () => {
+        // Desktop: leave the shell on 100dvh and never touch scroll — resetting
+        // it would fight pinch-zoom panning, which legitimately scrolls the
+        // visual viewport.
+        if (!mobileQuery.matches) {
+            root.style.removeProperty('--app-height');
+            return;
+        }
+        // A hidden/backgrounded page reports height 0. Ignore it so the shell
+        // keeps its last good height instead of collapsing to nothing (common
+        // on mobile: switch apps, come back).
+        const h = Math.round(vv.height);
+        if (h <= 0) return;
+        root.style.setProperty('--app-height', `${h}px`);
+        // iOS parks the shell mid-scroll when the keyboard opens; pull it back.
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+    };
+
+    vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
+    // Re-evaluate when crossing the mobile/desktop boundary (rotation, resize)
+    // and when the page is restored from the background (height 0 → real).
+    mobileQuery.addEventListener('change', sync);
+    document.addEventListener('visibilitychange', sync);
+    sync();
+}
+
 function bindSheetBackdropHandlers() {
     // On mobile the composer flyouts render as bottom sheets over a dimmed
     // backdrop. Watch the flyouts' hidden attribute so every open/close path
@@ -877,6 +923,7 @@ async function init() {
     applyTheme(state.theme);
     await loadThemeList();
     bindResponsiveShellHandlers();
+    bindMobileViewportHandlers();
 
     const [, settings] = await Promise.all([loadPersonas(), loadLLMSettings()]);
     await loadSystemPrompts(settings);

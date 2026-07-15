@@ -52,6 +52,10 @@ body {
     display: flex;
     height: 100vh;
     height: 100dvh;
+    /* --app-height is set from the VisualViewport on mobile so the on-screen
+       keyboard shrinks the shell instead of iOS shoving it off the top. Falls
+       back to 100dvh on desktop / when the JS hasn't run. */
+    height: var(--app-height, 100dvh);
     overflow: hidden;
     overscroll-behavior: none;
 }
@@ -4802,7 +4806,9 @@ input[type="checkbox"]:disabled {
     .modal-overlay > .modal {
         width: 100%;
         max-width: 100%;
-        height: 100dvh;
+        /* Track the keyboard-aware shell height so editing a field inside a
+           full-screen modal keeps its content above the keyboard too. */
+        height: var(--app-height, 100dvh);
         border-radius: 0;
         border: none;
     }
