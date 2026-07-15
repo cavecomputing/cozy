@@ -172,6 +172,34 @@ class TestSchemaMigrationLedger:
             for row in _migration_rows()
         ] == _registered_migrations()
 
+    def test_unversioned_upgrade_deletes_legacy_context_message_setting(
+        self,
+        client,
+    ):
+        with shared.get_db() as conn:
+            conn.execute('DROP TABLE schema_migrations')
+            conn.execute(
+                'INSERT INTO settings (key, value) VALUES (?, ?)',
+                ('context_max_messages', '64'),
+            )
+
+        shared.init_db()
+        after_upgrade = _migration_rows()
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            legacy_row = conn.execute(
+                'SELECT value FROM settings WHERE key=?',
+                ('context_max_messages',),
+            ).fetchone()
+        assert legacy_row is None
+        assert _migration_rows() == after_upgrade
+        assert [
+            {'version': row['version'], 'name': row['name']}
+            for row in after_upgrade
+        ] == _registered_migrations()
+        assert 'context_max_messages' not in client.get('/api/settings').get_json()
+
     def test_init_db_runs_twice_safely(self):
         """Running init_db repeatedly on an existing DB should be a no-op."""
         shared.init_db()

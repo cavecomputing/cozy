@@ -78,7 +78,6 @@ def upsert_setting(conn, key, value):
 @settings_bp.route('/api/settings', methods=['GET'])
 def read_settings():
     s = get_settings()
-    s.pop('context_max_messages', None)
     # Never send the full API key to the frontend — mask it
     s.update(mask_secret(s.get('api_key', '')))
     s.pop('api_key', None)

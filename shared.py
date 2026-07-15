@@ -109,8 +109,17 @@ def _retire_duplicate_greeting_cleanup(_conn):
     return None
 
 
+def _delete_legacy_context_max_messages(conn):
+    """Remove the retired message-count context limit from old databases."""
+    conn.execute(
+        'DELETE FROM settings WHERE key=?',
+        ('context_max_messages',),
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
+    (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
 )
 
 

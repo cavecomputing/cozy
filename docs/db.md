@@ -195,7 +195,8 @@ Repeated startup skips versions already present in the ledger.
 Migration 1 is an intentional baseline marker that retires a historical
 duplicate-greeting repair. Databases that predate the ledger are treated as
 already repaired so startup never again risks deleting a legitimate repeated
-greeting.
+greeting. Migration 2 deletes the retired `context_max_messages` setting from
+older databases; context limits are token-based now.
 
 ## Seeded data
 

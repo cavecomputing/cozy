@@ -129,7 +129,7 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
   already repaired, so the cleanup is never run again.
 - [ ] **CFG2 · Medium** — Retire the perpetual
   `DROP INDEX IF EXISTS idx_messages_chat_created` through versioned migration.
-- [ ] **CFG3 · Medium** — Migrate/delete legacy `context_max_messages` rows once,
+- [x] **CFG3 · Medium** — Migrate/delete legacy `context_max_messages` rows once,
   then remove the response-time tombstone. Do not remove only the `pop()` while
   stale rows can still exist.
 - [ ] **CFG4 · Medium** — Remove the pre-v1 `active_samplers` field-name fallback
