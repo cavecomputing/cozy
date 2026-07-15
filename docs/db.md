@@ -109,6 +109,16 @@ Key-value store for application settings (API endpoint, model, sampler parameter
 | key    | TEXT | Primary key.       |
 | value  | TEXT | Setting value.     |
 
+### schema_migrations
+
+Ledger of one-time database migrations applied during startup.
+
+| Column     | Type     | Description                              |
+|------------|----------|------------------------------------------|
+| version    | INTEGER  | Ordered migration version; primary key. |
+| name       | TEXT     | Unique, stable migration name.          |
+| applied_at | DATETIME | Timestamp recorded after successful application. |
+
 ### system_prompts
 
 Saved system prompt templates.
@@ -178,7 +188,9 @@ clears matching chat selections in the lorebook route.
 `init_db()` creates missing tables and indexes idempotently, enables WAL mode,
 and sets SQLite synchronous mode to `NORMAL`. Existing databases receive newer
 columns through `PRAGMA table_info` checks followed by `ALTER TABLE ADD COLUMN`.
-There is currently no schema-version table or migration ledger.
+After those shape checks, pending entries from the ordered migration registry
+run inside a serialized transaction and are recorded in `schema_migrations`.
+Repeated startup skips versions already present in the ledger.
 
 ## Seeded data
 

@@ -137,7 +137,7 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
 - [ ] **CFG5 · Medium** — Decide whether chats should be ordered by activity;
   otherwise remove the dead `updated_at` writes/comment while considering
   external API consumers.
-- [ ] **CFG6 · Medium** — Introduce schema-version tracking so one-time schema and
+- [x] **CFG6 · Medium** — Introduce schema-version tracking so one-time schema and
   data migrations have an explicit retirement point.
 
 `show_gallery_button` and the gallery archive/collection routes are explicitly

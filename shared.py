@@ -101,6 +101,36 @@ def get_db():
         conn.close()
 
 
+MIGRATIONS = ()
+
+
+def _run_migrations(conn):
+    """Run pending migrations in version order within the caller's transaction."""
+    previous_version = 0
+    for version, name, migrate in MIGRATIONS:
+        if version <= previous_version:
+            raise RuntimeError('Schema migrations must have unique, increasing versions')
+        previous_version = version
+
+        row = conn.execute(
+            'SELECT name FROM schema_migrations WHERE version=?',
+            (version,),
+        ).fetchone()
+        if row:
+            if row['name'] != name:
+                raise RuntimeError(
+                    f'Schema migration version {version} is already recorded as '
+                    f'{row["name"]!r}, not {name!r}'
+                )
+            continue
+
+        migrate(conn)
+        conn.execute(
+            'INSERT INTO schema_migrations (version, name) VALUES (?, ?)',
+            (version, name),
+        )
+
+
 def init_db():
     with get_db() as conn:
         # WAL and synchronous are file-level settings that persist once set.
@@ -182,6 +212,12 @@ def init_db():
                 value TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version    INTEGER PRIMARY KEY,
+                name       TEXT NOT NULL UNIQUE,
+                applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE TABLE IF NOT EXISTS system_prompts (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 name       TEXT NOT NULL,
@@ -222,6 +258,10 @@ def init_db():
                 ON message_swipes(message_id, id);
         ''')
 
+        # executescript() commits implicitly. Serialize everything after it so
+        # concurrent startup processes cannot both observe a pending migration.
+        conn.execute('BEGIN IMMEDIATE')
+
         # Migration: add pinned_at to existing databases
         cols = [c[1] for c in conn.execute('PRAGMA table_info(characters)').fetchall()]
         if 'pinned_at' not in cols:
@@ -249,6 +289,8 @@ def init_db():
                 "WHERE post_history_content = ''",
                 (DEFAULT_POST_HISTORY_TEMPLATE,)
             )
+
+        _run_migrations(conn)
 
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "
