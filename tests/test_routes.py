@@ -80,7 +80,11 @@ class TestSettings:
         assert r.get_json()['context_max_tokens'] == '0'
 
     def test_legacy_context_message_setting_is_not_exposed(self, client):
-        client.put('/api/settings', json={'context_max_messages': '64'})
+        with shared.get_db() as conn:
+            conn.execute(
+                'INSERT INTO settings (key, value) VALUES (?, ?)',
+                ('context_max_messages', '64'),
+            )
         r = client.get('/api/settings')
         assert 'context_max_messages' not in r.get_json()
 
@@ -868,12 +872,6 @@ class TestSettingsWhitelist:
         assert r.status_code == 200
         s = client.get('/api/settings').get_json()
         assert 'evil_injection' not in s
-
-    def test_legacy_context_max_messages_not_reintroduced(self, client):
-        r = client.put('/api/settings', json={'context_max_messages': '50'})
-        assert r.status_code == 200
-        s = client.get('/api/settings').get_json()
-        assert 'context_max_messages' not in s
 
 
 class TestChatRename:

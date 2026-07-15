@@ -92,7 +92,7 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
   lorebook selection, Author's Note save, and notice dismissal.
 - [ ] **DUP5 · High** — Remove caller-side message clearing/composer updates
   already performed by `renderMessages()`.
-- [ ] **DUP6 · High** — Consolidate duplicate legacy-setting tests and seed an
+- [x] **DUP6 · High** — Consolidate duplicate legacy-setting tests and seed an
   actual legacy DB row so the read-time compatibility path is exercised.
 - [ ] **DUP7 · High** — Remove component-specific `[hidden]` rules made redundant
   by the global rule, and decide whether model/sampler popover fade-outs should
