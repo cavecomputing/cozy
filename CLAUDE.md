@@ -54,7 +54,7 @@ CSS files in [static/themes/](static/themes/) are built-in; user-added themes li
 
 ## Testing gotchas
 
-[tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR` AND the same names on `app_module`. The duplicate patching is required because [app.py](app.py) does `from shared import CHARACTERS_DIR, …` at import time, capturing the originals in `send_from_directory` closures. **If you add a new path constant in shared.py and reference it from `app.py`, patch both `shared.X` and `app_module.X` in the fixture** or tests will write to the real `data/`.
+[tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR`. [app.py](app.py) and route modules resolve data paths through `shared`, so new path constants used at runtime should follow the same pattern or be included in the fixture when tests need to isolate them.
 
 When creating a character in tests, use `make_minimal_png()` from [png_utils.py](png_utils.py) — anything smaller is rejected by Pillow.
 

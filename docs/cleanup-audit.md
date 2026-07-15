@@ -160,7 +160,7 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
   implementing it inside `routes/messages.py`.
 - [x] **INC3 · High** — Stop swallowing file-delete errors that can resurrect a
   character or orphan a persona avatar; ignore only missing files.
-- [ ] **INC4 · High** — Access data-path constants consistently through `shared`
+- [x] **INC4 · High** — Access data-path constants consistently through `shared`
   so tests no longer patch both `shared` and `app` globals.
 - [x] **INC5 · High** — Make test import isolation override an existing
   `COZY_DATA_DIR` instead of using `setdefault()`.

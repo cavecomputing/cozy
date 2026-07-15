@@ -27,14 +27,7 @@ def _cleanup_import_data_dir():
 
 @pytest.fixture(autouse=True)
 def _test_db(tmp_path, monkeypatch):
-    """Use a fresh temp database, characters dir, and personas dir for every test.
-
-    `app.py` does `from shared import CHARACTERS_DIR, PERSONAS_DIR` at import
-    time, so its static-file routes capture the original paths in their closure.
-    Monkeypatching `shared.X` doesn't reach those — we have to patch
-    `app_module.X` too. Routes under `routes/*.py` use `shared.X` directly and
-    only need the `shared` patch.
-    """
+    """Use fresh temporary database and data directories for every test."""
     db_path = str(tmp_path / 'test.db')
     chars_dir = str(tmp_path / 'characters')
     personas_dir = str(tmp_path / 'personas')
@@ -45,9 +38,6 @@ def _test_db(tmp_path, monkeypatch):
     monkeypatch.setattr(shared, 'CHARACTERS_DIR', chars_dir)
     monkeypatch.setattr(shared, 'PERSONAS_DIR', personas_dir)
     monkeypatch.setattr(shared, 'THEMES_DIR', themes_dir)
-    monkeypatch.setattr(app_module, 'CHARACTERS_DIR', chars_dir)
-    monkeypatch.setattr(app_module, 'PERSONAS_DIR', personas_dir)
-    monkeypatch.setattr(app_module, 'THEMES_DIR', themes_dir)
     shared.init_db()
     yield db_path
 
