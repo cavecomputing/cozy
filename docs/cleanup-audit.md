@@ -158,7 +158,7 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
 - [ ] **INC2 · Medium** — Decide whether forking should copy `author_note` and
   `lorebook_notice_dismissed`; then move/share chat creation logic rather than
   implementing it inside `routes/messages.py`.
-- [ ] **INC3 · High** — Stop swallowing file-delete errors that can resurrect a
+- [x] **INC3 · High** — Stop swallowing file-delete errors that can resurrect a
   character or orphan a persona avatar; ignore only missing files.
 - [ ] **INC4 · High** — Access data-path constants consistently through `shared`
   so tests no longer patch both `shared` and `app` globals.

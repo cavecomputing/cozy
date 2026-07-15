@@ -4,6 +4,7 @@ import os
 from io import BytesIO
 
 import shared
+import routes.personas as personas_module
 from png_utils import make_minimal_png
 
 
@@ -149,3 +150,44 @@ class TestPersonaAvatar:
         client.delete(f'/api/personas/{sample_persona["id"]}')
         files_after = os.listdir(shared.PERSONAS_DIR)
         assert len(files_after) == 0
+
+    def test_delete_succeeds_when_avatar_is_already_missing(self, client, sample_persona):
+        uploaded = client.post(
+            f'/api/personas/{sample_persona["id"]}/avatar',
+            data={'avatar': (BytesIO(make_minimal_png()), 'a.png', 'image/png')},
+            content_type='multipart/form-data',
+        ).get_json()
+        filename = uploaded['avatar_url'].rsplit('/', 1)[-1].split('?', 1)[0]
+        os.remove(os.path.join(shared.PERSONAS_DIR, filename))
+
+        r = client.delete(f'/api/personas/{sample_persona["id"]}')
+
+        assert r.status_code == 200
+        with shared.get_db() as conn:
+            row = conn.execute(
+                'SELECT id FROM personas WHERE id=?',
+                (sample_persona['id'],),
+            ).fetchone()
+        assert row is None
+
+    def test_delete_failure_preserves_database_row(self, client, sample_persona, monkeypatch):
+        client.post(
+            f'/api/personas/{sample_persona["id"]}/avatar',
+            data={'avatar': (BytesIO(make_minimal_png()), 'a.png', 'image/png')},
+            content_type='multipart/form-data',
+        )
+
+        def deny_remove(_path):
+            raise PermissionError('read-only filesystem')
+
+        monkeypatch.setattr(personas_module.os, 'remove', deny_remove)
+
+        r = client.delete(f'/api/personas/{sample_persona["id"]}')
+
+        assert r.status_code == 500
+        with shared.get_db() as conn:
+            row = conn.execute(
+                'SELECT id FROM personas WHERE id=?',
+                (sample_persona['id'],),
+            ).fetchone()
+        assert row is not None

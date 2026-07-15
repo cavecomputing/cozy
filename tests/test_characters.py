@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 
 import shared
+import routes.characters as characters_module
 from helpers import v2_card
 from png_utils import extract_png_chara, write_png_chara, make_minimal_png
 
@@ -330,6 +331,40 @@ class TestAvatarUpload:
             content_type='multipart/form-data',
         )
         assert r.status_code == 404
+
+
+# ── Delete behavior ────────────────────────────────────────────────────────
+
+class TestCharacterDelete:
+    def test_delete_succeeds_when_file_is_already_missing(self, client, sample_character):
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        os.remove(path)
+
+        r = client.delete(f'/api/characters/{sample_character["id"]}')
+
+        assert r.status_code == 200
+        with shared.get_db() as conn:
+            row = conn.execute(
+                'SELECT id FROM characters WHERE id=?',
+                (sample_character['id'],),
+            ).fetchone()
+        assert row is None
+
+    def test_delete_failure_preserves_database_row(self, client, sample_character, monkeypatch):
+        def deny_remove(_path):
+            raise PermissionError('read-only filesystem')
+
+        monkeypatch.setattr(characters_module.os, 'remove', deny_remove)
+
+        r = client.delete(f'/api/characters/{sample_character["id"]}')
+
+        assert r.status_code == 500
+        with shared.get_db() as conn:
+            row = conn.execute(
+                'SELECT id FROM characters WHERE id=?',
+                (sample_character['id'],),
+            ).fetchone()
+        assert row is not None
 
 
 # ── Sync logic — files renamed/missing on disk ─────────────────────────────
