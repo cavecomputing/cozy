@@ -190,7 +190,7 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
 
 ## Documentation and toolchain drift
 
-- [ ] **DOC1 · High** — Bring `docs/db.md` in sync with `shared.py`: pinned/archive
+- [x] **DOC1 · High** — Bring `docs/db.md` in sync with `shared.py`: pinned/archive
   columns, collection tables, Author's Note, paired prompt content, preset
   settings JSON, and actual FK declarations.
 - [ ] **DOC2 · High** — Use `uv run python app.py` in the custom-data example in
