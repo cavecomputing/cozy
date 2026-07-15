@@ -124,9 +124,9 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
 
 ## Dead configuration and perpetual migrations
 
-- [ ] **CFG1 · Medium** — Gate the destructive “one-shot” greeting cleanup in
-  `shared.py` with a migration version/sentinel; remove it outright only when
-  direct upgrades from pre-fix databases are unsupported.
+- [x] **CFG1 · Medium** — Retire the destructive recurring greeting cleanup with
+  a recorded baseline migration. Existing unversioned databases are considered
+  already repaired, so the cleanup is never run again.
 - [ ] **CFG2 · Medium** — Retire the perpetual
   `DROP INDEX IF EXISTS idx_messages_chat_created` through versioned migration.
 - [ ] **CFG3 · Medium** — Migrate/delete legacy `context_max_messages` rows once,

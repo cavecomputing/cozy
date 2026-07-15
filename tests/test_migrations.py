@@ -16,8 +16,15 @@ def _migration_rows():
         ]
 
 
+def _registered_migrations():
+    return [
+        {'version': version, 'name': name}
+        for version, name, _migrate in shared.MIGRATIONS
+    ]
+
+
 class TestSchemaMigrationLedger:
-    def test_fresh_database_creates_empty_ledger(self, tmp_path, monkeypatch):
+    def test_fresh_database_creates_ledger(self, tmp_path, monkeypatch):
         fresh_db = tmp_path / 'fresh.db'
         monkeypatch.setattr(shared, 'DATABASE', str(fresh_db))
 
@@ -29,7 +36,10 @@ class TestSchemaMigrationLedger:
                 for row in conn.execute('PRAGMA table_info(schema_migrations)')
             }
         assert columns == {'version', 'name', 'applied_at'}
-        assert _migration_rows() == []
+        assert [
+            {'version': row['version'], 'name': row['name']}
+            for row in _migration_rows()
+        ] == _registered_migrations()
 
     def test_existing_unversioned_database_gets_ledger_without_data_loss(self):
         with shared.get_db() as conn:
@@ -47,7 +57,10 @@ class TestSchemaMigrationLedger:
                 ('pre_ledger_probe',),
             ).fetchone()
         assert probe['value'] == 'keep me'
-        assert _migration_rows() == []
+        assert [
+            {'version': row['version'], 'name': row['name']}
+            for row in _migration_rows()
+        ] == _registered_migrations()
 
     def test_init_db_does_not_reapply_recorded_migrations(self, monkeypatch):
         def add_probe(conn):
@@ -56,10 +69,11 @@ class TestSchemaMigrationLedger:
                 ('migration_probe', 'ran'),
             )
 
+        probe_version = shared.MIGRATIONS[-1][0] + 1
         monkeypatch.setattr(
             shared,
             'MIGRATIONS',
-            ((1, 'add_migration_probe', add_probe),),
+            (*shared.MIGRATIONS, (probe_version, 'add_migration_probe', add_probe)),
         )
 
         shared.init_db()
@@ -68,8 +82,8 @@ class TestSchemaMigrationLedger:
         shared.init_db()
 
         assert _migration_rows() == before
-        assert len(before) == 1
-        assert before[0]['name'] == 'add_migration_probe'
+        assert before[-1]['version'] == probe_version
+        assert before[-1]['name'] == 'add_migration_probe'
 
     def test_failed_migration_rolls_back_work_and_ledger(self, monkeypatch):
         def fail_after_write(conn):
@@ -79,10 +93,12 @@ class TestSchemaMigrationLedger:
             )
             raise RuntimeError('migration failed')
 
+        before = _migration_rows()
+        probe_version = shared.MIGRATIONS[-1][0] + 1
         monkeypatch.setattr(
             shared,
             'MIGRATIONS',
-            ((1, 'failing_migration', fail_after_write),),
+            (*shared.MIGRATIONS, (probe_version, 'failing_migration', fail_after_write)),
         )
 
         with pytest.raises(RuntimeError, match='migration failed'):
@@ -94,13 +110,15 @@ class TestSchemaMigrationLedger:
                 ('failed_migration_probe',),
             ).fetchone()
         assert probe is None
-        assert _migration_rows() == []
+        assert _migration_rows() == before
 
     def test_reusing_a_version_with_a_different_name_fails(self, monkeypatch):
+        original_migrations = shared.MIGRATIONS
+        probe_version = original_migrations[-1][0] + 1
         monkeypatch.setattr(
             shared,
             'MIGRATIONS',
-            ((1, 'original_name', lambda conn: None),),
+            (*original_migrations, (probe_version, 'original_name', lambda conn: None)),
         )
         shared.init_db()
         before = _migration_rows()
@@ -108,12 +126,51 @@ class TestSchemaMigrationLedger:
         monkeypatch.setattr(
             shared,
             'MIGRATIONS',
-            ((1, 'replacement_name', lambda conn: None),),
+            (*original_migrations, (probe_version, 'replacement_name', lambda conn: None)),
         )
         with pytest.raises(RuntimeError, match='already recorded'):
             shared.init_db()
 
         assert _migration_rows() == before
+
+    def test_unversioned_upgrade_preserves_legitimate_repeated_greeting(
+        self,
+        client,
+        sample_chat,
+    ):
+        chat_id = sample_chat['id']
+        first = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character',
+            'content': 'Welcome back.',
+        }).get_json()
+        middle = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user',
+            'content': 'It has been a while.',
+        }).get_json()
+        repeated = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character',
+            'content': 'Welcome back.',
+        }).get_json()
+
+        with shared.get_db() as conn:
+            conn.execute('DROP TABLE schema_migrations')
+
+        shared.init_db()
+        shared.init_db()
+
+        messages = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        assert [
+            (message['id'], message['role'], message['content'])
+            for message in messages
+        ] == [
+            (first['id'], 'character', 'Welcome back.'),
+            (middle['id'], 'user', 'It has been a while.'),
+            (repeated['id'], 'character', 'Welcome back.'),
+        ]
+        assert [
+            {'version': row['version'], 'name': row['name']}
+            for row in _migration_rows()
+        ] == _registered_migrations()
 
     def test_init_db_runs_twice_safely(self):
         """Running init_db repeatedly on an existing DB should be a no-op."""

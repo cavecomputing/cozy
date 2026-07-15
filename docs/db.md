@@ -192,6 +192,11 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
+Migration 1 is an intentional baseline marker that retires a historical
+duplicate-greeting repair. Databases that predate the ledger are treated as
+already repaired so startup never again risks deleting a legitimate repeated
+greeting.
+
 ## Seeded data
 
 On first run, the database is seeded with:

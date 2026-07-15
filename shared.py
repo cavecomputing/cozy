@@ -101,7 +101,17 @@ def get_db():
         conn.close()
 
 
-MIGRATIONS = ()
+def _retire_duplicate_greeting_cleanup(_conn):
+    """Baseline databases after retiring the old destructive greeting repair."""
+    # The repair ran on every startup before migration tracking existed. Current
+    # databases are considered repaired; rerunning it could delete intentional
+    # later messages that happen to repeat the opening greeting.
+    return None
+
+
+MIGRATIONS = (
+    (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
+)
 
 
 def _run_migrations(conn):
@@ -304,26 +314,6 @@ def init_db():
             "INSERT INTO settings (key, value) VALUES ('extra_request_params', '') "
             "ON CONFLICT(key) DO NOTHING"
         )
-
-        # One-shot cleanup: a previous bug re-seeded character greetings into
-        # the END of long chats whenever the messages GET failed. Remove any
-        # character message whose content matches the chat's first character
-        # message (which is the legitimate greeting). Idempotent.
-        conn.execute('''
-            DELETE FROM messages
-            WHERE role = 'character'
-              AND id > (
-                  SELECT MIN(id) FROM messages m2
-                  WHERE m2.chat_id = messages.chat_id AND m2.role = 'character'
-              )
-              AND content = (
-                  SELECT content FROM messages m3
-                  WHERE m3.id = (
-                      SELECT MIN(id) FROM messages m4
-                      WHERE m4.chat_id = messages.chat_id AND m4.role = 'character'
-                  )
-              )
-        ''')
 
         # Seed a default persona if the table is empty
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:
