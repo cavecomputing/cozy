@@ -4673,15 +4673,29 @@ input[type="checkbox"]:disabled {
         display: none !important;
     }
 
+    /* Lock the shell as a fixed box pinned to the visual viewport. `position:
+       fixed` is what actually stops iOS WebKit from scrolling the whole page
+       when the keyboard opens (overflow:hidden alone does not) — it scrolls the
+       inner #chat-scroll instead. --app-height / --app-viewport-top are kept in
+       sync with window.visualViewport by bindMobileViewportHandlers() so the
+       shell hugs the area above the keyboard. `top` is used to follow the
+       viewport rather than `transform`, which would reparent every
+       position:fixed overlay to <body> and break them. */
     body {
+        position: fixed;
+        top: var(--app-viewport-top, 0px);
+        left: 0;
+        right: 0;
         width: 100%;
+        height: var(--app-height, 100dvh);
         overscroll-behavior: auto;
         touch-action: manipulation;
     }
 
     body.mobile-drawer-open {
-        position: fixed;
         inset: 0;
+        top: 0;
+        height: 100dvh;
     }
 
     .icon-btn,
