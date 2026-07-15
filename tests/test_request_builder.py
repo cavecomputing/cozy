@@ -169,3 +169,66 @@ def test_post_history_conditionals_drop_when_character_field_empty():
         assert.doesNotMatch(JSON.stringify(payload.messages), /Post-History/);
     """
     run_node_module(code)
+
+
+def test_user_template_wraps_final_user_message_in_place():
+    """{{user_message}} lets the template position lore/author-note around the
+    user's own text within a single, final user turn."""
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira', post_history_instructions: '' };
+        state.activeChat = { author_note: 'Remember: the sky is green.' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            name: 'User wrap',
+            content: 'System for {{char}}',
+            post_history_content: '[Note]\n{{author_note}}\n\n{{user_message}}',
+        }];
+        state.messages = [
+            { role: 'user', text: 'Hello' },
+            { role: 'character', text: 'Hi there.' },
+            { role: 'user', text: 'What happens next?' },
+        ];
+
+        const payload = buildChatPayload();
+        const roles = payload.messages.map(m => m.role);
+        const lastMessage = payload.messages[payload.messages.length - 1];
+
+        // system, user(Hello), assistant(Hi), user(wrapped) — no extra turn.
+        assert.deepEqual(roles, ['system', 'user', 'assistant', 'user']);
+        assert.equal(lastMessage.role, 'user');
+        // Author-note sits BEFORE the user's own text, in one turn.
+        assert.equal(lastMessage.content, '[Note]\nRemember: the sky is green.\n\nWhat happens next?');
+        // The raw message is not also present as its own bare turn.
+        assert.equal(
+            payload.messages.filter(m => m.content === 'What happens next?').length, 0);
+    """
+    run_node_module(code)
+
+
+def test_user_template_can_place_content_after_user_message():
+    """The user's text can sit before appended template content when
+    {{user_message}} comes first."""
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira', post_history_instructions: '' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            name: 'User then OOC',
+            content: 'System for {{char}}',
+            post_history_content: '{{user_message}}\n\n((OOC: stay in character as {{char}}.))',
+        }];
+        state.messages = [
+            { role: 'user', text: 'Hello' },
+            { role: 'character', text: 'Hi there.' },
+            { role: 'user', text: 'Tell me a story.' },
+        ];
+
+        const payload = buildChatPayload();
+        const lastMessage = payload.messages[payload.messages.length - 1];
+
+        assert.equal(lastMessage.role, 'user');
+        assert.equal(lastMessage.content, 'Tell me a story.\n\n((OOC: stay in character as Mira.))');
+        assert.equal(payload.messages.length, 4);
+    """
+    run_node_module(code)

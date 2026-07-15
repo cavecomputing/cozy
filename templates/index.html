@@ -499,6 +499,7 @@
                                         <dt><code>&#123;&#123;post_history_instructions&#125;&#125;</code></dt><dd>Per-character post-history instructions from the card.</dd>
                                         <dt><code>&#123;&#123;lorebook&#125;&#125;</code></dt><dd>Matched world-info entries (joined with separators).</dd>
                                         <dt><code>&#123;&#123;author_note&#125;&#125;</code></dt><dd>Per-chat Author's Note (from the Memory flyout).</dd>
+                                        <dt><code>&#123;&#123;user_message&#125;&#125;</code></dt><dd><strong>User tab only.</strong> Your latest message. Add it to the User template to wrap your message — position <code>&#123;&#123;lorebook&#125;&#125;</code>, <code>&#123;&#123;author_note&#125;&#125;</code>, etc. before or after it. Leave it out and the template is appended after your message instead.</dd>
                                         <dt><code>&#123;&#123;time&#125;&#125;</code> / <code>&#123;&#123;date&#125;&#125;</code></dt><dd>Current local time / date.</dd>
                                     </dl>
                                     <div class="prompt-vars-title prompt-vars-title--sub">Template syntax</div>
@@ -513,10 +514,10 @@
                             <div class="prompt-section-right settings-card">
                                 <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
                                     <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system">System</button>
-                                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">Post-History</button>
+                                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">User</button>
                                 </div>
                                 <textarea id="settings-sysprompt-content" class="form-textarea" placeholder="Enter prompt template…"></textarea>
-                                <textarea id="settings-posthistory-content" class="form-textarea" placeholder="Enter post-history prompt template…" hidden></textarea>
+                                <textarea id="settings-posthistory-content" class="form-textarea" placeholder="Enter user message template…" hidden></textarea>
                             </div>
                         </div>
                     </div>
@@ -1141,7 +1142,7 @@
                 <p>It has two tabs, and each is its own template:</p>
                 <ul class="prompt-help-tips">
                     <li><strong>System</strong> goes in first, before the chat — it sets the scene and the rules.</li>
-                    <li><strong>Post-History</strong> goes in after the chat so far — good for a last reminder to the model right before it replies.</li>
+                    <li><strong>User</strong> shapes the final user turn. Add <code>&#123;&#123;user_message&#125;&#125;</code> and the template wraps your latest message, so you can place lore, the author's note, or a reminder before or after it. Leave <code>&#123;&#123;user_message&#125;&#125;</code> out and it's simply appended after your message — a last note to the model right before it replies.</li>
                 </ul>
                 <p>Three kinds of things can go in a template: variables, optional sections, and a random pick.</p>
 
@@ -1187,7 +1188,7 @@
                 </div>
                 <div class="prompt-help-default">
                     <div class="prompt-help-default-head">
-                        <h4>Post-History</h4>
+                        <h4>User</h4>
                         <button type="button" class="btn btn-secondary btn-sm prompt-help-copy" data-copy-default="post-history">Copy</button>
                     </div>
                     <pre class="prompt-help-example" id="prompt-help-default-post-history">Loading…</pre>
