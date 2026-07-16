@@ -178,7 +178,7 @@ export async function exportSystemPrompt() {
         return;
     }
     // Persist any unsaved editor edits so the export reflects both the
-    // System and Post-History content currently on screen.
+    // System and User content currently on screen.
     await savePromptFields();
     window.location.href = `/api/system-prompts/${state.activeSystemPromptId}/export`;
 }

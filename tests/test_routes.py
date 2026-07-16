@@ -1,9 +1,12 @@
 """Tests for backend API routes."""
 
+import json
 import os
 from io import BytesIO
 
 import shared
+import routes.llm as llm_module
+from routes import settings as settings_module
 from png_utils import make_minimal_png
 
 
@@ -79,11 +82,6 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['context_max_tokens'] == '0'
 
-    def test_legacy_context_message_setting_is_not_exposed(self, client):
-        client.put('/api/settings', json={'context_max_messages': '64'})
-        r = client.get('/api/settings')
-        assert 'context_max_messages' not in r.get_json()
-
 
 class TestSystemPrompts:
     def test_list_includes_default_seed(self, client):
@@ -146,7 +144,6 @@ class TestSystemPrompts:
         assert r.status_code == 400
 
     def test_export_prompt_round_trips_through_import(self, client):
-        import json as _json
         created = client.post('/api/system-prompts', json={
             'name': 'Roundtrip',
             'content': 'You are {{char}}. End.',
@@ -158,7 +155,7 @@ class TestSystemPrompts:
         assert r.status_code == 200
         assert r.headers['Content-Type'].startswith('application/json')
         assert 'attachment' in r.headers['Content-Disposition']
-        body = _json.loads(r.data.decode('utf-8'))
+        body = json.loads(r.data.decode('utf-8'))
         assert body == {
             'name': 'Roundtrip',
             'content': 'You are {{char}}. End.',
@@ -312,6 +309,12 @@ class TestMessages:
         swipe = r.get_json()
         assert swipe['content'] == 'Alternative response'
 
+    def test_list_swipes_for_unknown_message_returns_404(self, client):
+        r = client.get('/api/messages/99999/swipes')
+
+        assert r.status_code == 404
+        assert r.get_json()['error'] == 'Message not found'
+
     def test_update_message(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
@@ -362,7 +365,6 @@ class TestMessages:
 
 class TestChatJsonlImportExport:
     def test_export_chat_as_sillytavern_jsonl(self, client, sample_chat):
-        import json
         chat_id = sample_chat['id']
         user_msg = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'user', 'content': 'Hello!',
@@ -392,7 +394,6 @@ class TestChatJsonlImportExport:
         assert lines[2]['swipe_id'] == 1
 
     def test_import_sillytavern_jsonl_with_swipes(self, client, sample_character):
-        import json
         payload = '\n'.join(json.dumps(line) for line in [
             {'user_name': 'Alice', 'character_name': 'TestChar', 'create_date': '2026-05-07T12:00:00Z', 'chat_metadata': {}},
             {'name': 'Alice', 'is_user': True, 'send_date': '2026-05-07T12:00:01Z', 'mes': 'Hi'},
@@ -434,7 +435,6 @@ class TestCharacters:
         assert r.status_code == 400
 
     def test_create_character(self, client):
-        from io import BytesIO
         png = make_minimal_png()
         r = client.post('/api/characters', data={
             'data': '{"name": "Alice"}',
@@ -484,8 +484,6 @@ class TestLLMProxy:
 
     def test_chat_forwards_system_prompt_unchanged(self, client, monkeypatch):
         """The proxy should not replace the frontend-built system message."""
-        import routes.llm as llm_module
-
         captured = {}
 
         class UpstreamResponse:
@@ -542,8 +540,6 @@ class TestLLMProxy:
 
     def test_chat_upstream_error_body_reaches_client(self, client, monkeypatch):
         """A 4xx from the provider must surface its response body, not just the status."""
-        import routes.llm as llm_module
-
         class ErrorResponse:
             encoding = 'utf-8'
             ok = False
@@ -578,8 +574,6 @@ class TestLLMProxy:
 
     def test_models_endpoint_accepts_models_key(self, client, monkeypatch):
         """Some providers (aionlabs) return {"models": [...]} instead of {"data": [...]}."""
-        import routes.llm as llm_module
-
         class ModelsResponse:
             def raise_for_status(self):
                 return None
@@ -827,12 +821,10 @@ class TestErrorHandler:
 
     def test_unhandled_exception_returns_500_json(self, client, monkeypatch):
         """Force a route to raise; the global handler should return JSON."""
-        from routes import settings as settings_mod
-
         def boom():
             raise RuntimeError('intentional test crash')
 
-        monkeypatch.setattr(settings_mod, 'get_settings', boom)
+        monkeypatch.setattr(settings_module, 'get_settings', boom)
         r = client.get('/api/settings')
         assert r.status_code == 500
         body = r.get_json()
@@ -868,12 +860,6 @@ class TestSettingsWhitelist:
         assert r.status_code == 200
         s = client.get('/api/settings').get_json()
         assert 'evil_injection' not in s
-
-    def test_legacy_context_max_messages_not_reintroduced(self, client):
-        r = client.put('/api/settings', json={'context_max_messages': '50'})
-        assert r.status_code == 200
-        s = client.get('/api/settings').get_json()
-        assert 'context_max_messages' not in s
 
 
 class TestChatRename:

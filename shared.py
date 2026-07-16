@@ -91,7 +91,7 @@ DEFAULT_POST_HISTORY_TEMPLATE = """{{#post_history_instructions}}[Post-History I
 # ── Database helpers ────────────────────────────────────────────────────────
 @contextmanager
 def get_db():
-    conn = sqlite3.connect(DATABASE, check_same_thread=False)
+    conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys=ON')
     try:
@@ -102,6 +102,55 @@ def get_db():
         raise
     finally:
         conn.close()
+
+
+def _retire_duplicate_greeting_cleanup(_conn):
+    """Baseline databases after retiring the old destructive greeting repair."""
+    # The repair ran on every startup before migration tracking existed. Current
+    # databases are considered repaired; rerunning it could delete intentional
+    # later messages that happen to repeat the opening greeting.
+    return None
+
+
+def _delete_legacy_context_max_messages(conn):
+    """Remove the retired message-count context limit from old databases."""
+    conn.execute(
+        'DELETE FROM settings WHERE key=?',
+        ('context_max_messages',),
+    )
+
+
+MIGRATIONS = (
+    (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
+    (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
+)
+
+
+def _run_migrations(conn):
+    """Run pending migrations in version order within the caller's transaction."""
+    previous_version = 0
+    for version, name, migrate in MIGRATIONS:
+        if version <= previous_version:
+            raise RuntimeError('Schema migrations must have unique, increasing versions')
+        previous_version = version
+
+        row = conn.execute(
+            'SELECT name FROM schema_migrations WHERE version=?',
+            (version,),
+        ).fetchone()
+        if row:
+            if row['name'] != name:
+                raise RuntimeError(
+                    f'Schema migration version {version} is already recorded as '
+                    f'{row["name"]!r}, not {name!r}'
+                )
+            continue
+
+        migrate(conn)
+        conn.execute(
+            'INSERT INTO schema_migrations (version, name) VALUES (?, ?)',
+            (version, name),
+        )
 
 
 def init_db():
@@ -190,6 +239,12 @@ def init_db():
                 value TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version    INTEGER PRIMARY KEY,
+                name       TEXT NOT NULL UNIQUE,
+                applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE TABLE IF NOT EXISTS system_prompts (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 name       TEXT NOT NULL,
@@ -229,6 +284,10 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_message_swipes_message
                 ON message_swipes(message_id, id);
         ''')
+
+        # executescript() commits implicitly. Serialize everything after it so
+        # concurrent startup processes cannot both observe a pending migration.
+        conn.execute('BEGIN IMMEDIATE')
 
         # Migration: add pinned_at to existing databases
         cols = [c[1] for c in conn.execute('PRAGMA table_info(characters)').fetchall()]
@@ -273,6 +332,8 @@ def init_db():
                 (DEFAULT_POST_HISTORY_TEMPLATE,)
             )
 
+        _run_migrations(conn)
+
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "
             "ON CONFLICT(key) DO NOTHING"
@@ -283,10 +344,6 @@ def init_db():
         )
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('extra_request_params', '') "
-            "ON CONFLICT(key) DO NOTHING"
-        )
-        conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('author_note_token_limit', '2048') "
             "ON CONFLICT(key) DO NOTHING"
         )
         # Auto Summaries — configuration defaults (enablement is per-chat, not here).
@@ -301,26 +358,6 @@ def init_db():
                 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING',
                 (_sk, _sv)
             )
-
-        # One-shot cleanup: a previous bug re-seeded character greetings into
-        # the END of long chats whenever the messages GET failed. Remove any
-        # character message whose content matches the chat's first character
-        # message (which is the legitimate greeting). Idempotent.
-        conn.execute('''
-            DELETE FROM messages
-            WHERE role = 'character'
-              AND id > (
-                  SELECT MIN(id) FROM messages m2
-                  WHERE m2.chat_id = messages.chat_id AND m2.role = 'character'
-              )
-              AND content = (
-                  SELECT content FROM messages m3
-                  WHERE m3.id = (
-                      SELECT MIN(id) FROM messages m4
-                      WHERE m4.chat_id = messages.chat_id AND m4.role = 'character'
-                  )
-              )
-        ''')
 
         # Seed a default persona if the table is empty
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:

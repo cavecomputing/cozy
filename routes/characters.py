@@ -425,11 +425,10 @@ def delete_character(char_id):
             return not_found('Character')
 
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
-        if os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-            except OSError:
-                pass
+        try:
+            os.remove(filepath)
+        except FileNotFoundError:
+            pass
 
         conn.execute('DELETE FROM characters WHERE id=?', (char_id,))
         return jsonify({'success': True})

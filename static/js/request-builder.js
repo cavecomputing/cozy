@@ -4,7 +4,7 @@ import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
-import { selectContextMessages, truncateTextToTokens } from './tokenizer.js';
+import { selectContextMessages } from './tokenizer.js';
 import { summaryToText } from './summaries.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -54,12 +54,11 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     const tokenLimit = ctxBudget > 0 ? Math.max(1, ctxBudget - maxResponseTokens) : 0;
     const stripThinking = !el.sendThinking?.checked;
 
-    // Auto Summaries: inject the chat's running summary when enabled, capped at a
-    // percentage of the context window (mirrors the author's-note pattern).
-    const summaryCapPct = parseFloat(state.summaryCapPct || '10') || 10;
-    const summaryCapTokens = ctxBudget > 0 ? Math.floor(ctxBudget * summaryCapPct / 100) : 0;
+    // Auto Summaries: inject the chat's running summary when enabled. The stored
+    // summary is already held within its size cap server-side (enforce_cap), so
+    // it's injected as-is.
     const summaryText = state.activeChat?.summary_enabled
-        ? truncateTextToTokens(summaryToText(state.activeChat?.summary), summaryCapTokens)
+        ? summaryToText(state.activeChat?.summary)
         : '';
     msgs = selectContextMessages(msgs, {
         maxTokens: tokenLimit,
@@ -87,10 +86,11 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         persona:       p.description || '',
         mesExamples:   c.mes_example || '',
         lorebook:      lorebookText,
-        author_note:   truncateTextToTokens(state.activeChat?.author_note || '', state.authorNoteTokenLimit),
+        author_note:   state.activeChat?.author_note || '',
         summary:       summaryText,
         system_prompt: c.system_prompt || '',
         post_history_instructions: c.post_history_instructions || '',
+        user_message:  '',   // set per-turn below when the User template wraps it
     };
     ctx.post_history_instructions = resolveTemplateVariables(ctx.post_history_instructions, ctx);
 
@@ -101,25 +101,44 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     const messages = [];
     if (sysContent) messages.push({ role: 'system', content: sysContent });
 
-    // 5. Chat history (map character → assistant), optionally limited
-    for (const msg of msgs) {
-        let content = msg.text;
-        if (stripThinking) {
-            const parsed = parseThinkingContent(content);
-            content = parsed.response;
+    // The "User" template (stored as post_history_content) works two ways. When
+    // it uses {{user_message}}, the final user turn is rendered THROUGH it in
+    // place — letting lore, author-note, etc. be positioned around the user's
+    // own text. When it doesn't, it's appended after the history as a trailing
+    // reminder (the classic post-history behavior). wrapsUserMessage picks the
+    // path; lastUserIdx marks the turn to wrap.
+    const userTemplate = sp ? (sp.post_history_content || '') : '';
+    const wrapsUserMessage = /\{\{user_message\}\}/i.test(userTemplate);
+    let lastUserIdx = -1;
+    if (wrapsUserMessage) {
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i].role === 'user') { lastUserIdx = i; break; }
         }
-        if (!content) continue;
-        messages.push({
-            role: msg.role === 'user' ? 'user' : 'assistant',
-            content,
-        });
     }
 
-    // 6. Post-history prompt — injected as user role to avoid mid-conversation system messages
-    const postHistoryTemplate = sp ? (sp.post_history_content || '') : '';
-    const postHistoryContent = resolveTemplateVariables(postHistoryTemplate, ctx);
-    if (postHistoryContent) {
-        messages.push({ role: 'user', content: postHistoryContent });
+    // 5. Chat history (map character → assistant), optionally limited. The final
+    //    user turn is rendered through the User template in place when it wraps.
+    for (let i = 0; i < msgs.length; i++) {
+        const msg = msgs[i];
+        let content = msg.text;
+        if (stripThinking) {
+            content = parseThinkingContent(content).response;
+        }
+        if (!content) continue;
+        if (wrapsUserMessage && i === lastUserIdx) {
+            ctx.user_message = content;
+            messages.push({ role: 'user', content: resolveTemplateVariables(userTemplate, ctx) });
+        } else {
+            messages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content });
+        }
+    }
+
+    // 6. Otherwise append the User template as a user-role turn after the history
+    //    (also the fallback when wrapping was requested but there was no user
+    //    turn to wrap). User role avoids mid-conversation system messages.
+    if (!wrapsUserMessage || lastUserIdx === -1) {
+        const rendered = resolveTemplateVariables(userTemplate, ctx);
+        if (rendered) messages.push({ role: 'user', content: rendered });
     }
 
     // 7. Nudge — hidden continuation prompt, not persisted to chat

@@ -333,13 +333,6 @@ function bindSettingsHandlers() {
         if (el.sidebarToggle) el.sidebarToggle.hidden = !state.showCollapseButton;
         saveLLMSettings({ show_collapse_button: state.showCollapseButton ? '1' : '0' });
     });
-    el.settingsAuthorNoteLimit?.addEventListener('input', () => {
-        state.authorNoteTokenLimit = parseInt(el.settingsAuthorNoteLimit.value, 10) || 0;
-        updateAuthorNoteCounter();
-        queueLLMSettingsSave({ author_note_token_limit: String(state.authorNoteTokenLimit) });
-    });
-    el.settingsAuthorNoteLimit?.addEventListener('blur', flushLLMSettingsSave);
-
     // Auto Summaries config — autosave while typing, flush on blur.
     el.summaryEndpoint?.addEventListener('input', () => {
         state.summaryApiEndpoint = el.summaryEndpoint.value;
@@ -370,7 +363,6 @@ function bindSettingsHandlers() {
 
     // LLM API settings — autosave while typing, then flush on blur.
     el.apiEndpoint?.addEventListener('input', () => {
-        state.apiEndpoint = el.apiEndpoint.value;
         clearModelListCache();
         queueLLMSettingsSave({ api_endpoint: el.apiEndpoint.value });
     });
@@ -379,7 +371,6 @@ function bindSettingsHandlers() {
         const v = el.apiKey.value;
         // Skip masked API keys: bullet-prefixed ("\u2022\u2022…") or containing ellipsis mask ("\u2026")
         if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026')) {
-            state.apiKeySet = true;
             clearModelListCache();
             queueLLMSettingsSave({ api_key: v });
         }

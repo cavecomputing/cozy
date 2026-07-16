@@ -420,7 +420,12 @@ export function startEditing(messageEl) {
     const editParsed = parseThinkingContent(messageEl.dataset.rawText);
     contentDiv.textContent = editParsed.thinking ? editParsed.response : messageEl.dataset.rawText;
     contentDiv.contentEditable = 'plaintext-only';
-    contentDiv.focus();
+    // preventScroll: don't let the browser "scroll the focused element into
+    // view". The message sits inside the #chat-scroll container, and on iOS
+    // WebKit that focus-scroll overshoots and yanks the whole page up (the
+    // composer, a plain textarea outside any scroll container, never triggers
+    // this — which is why composing was fine but editing shoved the screen).
+    contentDiv.focus({ preventScroll: true });
     // Place cursor at end
     const range = document.createRange();
     range.selectNodeContents(contentDiv);

@@ -35,7 +35,6 @@ SETTINGS_KEYS = {
     'show_gallery_button',
     'show_collapse_button',
     'context_max_tokens',
-    'author_note_token_limit',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
     'extra_request_params',
@@ -86,7 +85,6 @@ def upsert_setting(conn, key, value):
 @settings_bp.route('/api/settings', methods=['GET'])
 def read_settings():
     s = get_settings()
-    s.pop('context_max_messages', None)
     # Never send full secret values to the frontend — mask them and strip the raw key.
     for key in SECRET_KEYS:
         s.update(mask_secret(s.get(key, ''), key))

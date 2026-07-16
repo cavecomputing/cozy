@@ -3,10 +3,9 @@ import glob
 import logging
 
 from flask import Flask, render_template, jsonify, send_from_directory
+from werkzeug.exceptions import HTTPException
 
-from shared import (
-    CHARACTERS_DIR, PERSONAS_DIR, THEMES_DIR, BUILTIN_THEMES_DIR, init_db,
-)
+import shared
 
 log = logging.getLogger('cozy')
 
@@ -18,7 +17,6 @@ app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB
 # ── Global error handlers (always return JSON for API consumers) ──────────
 @app.errorhandler(Exception)
 def handle_exception(e):
-    from werkzeug.exceptions import HTTPException
     if isinstance(e, HTTPException):
         return jsonify({'error': e.description}), e.code
     log.exception('Unhandled error: %s', e)
@@ -28,12 +26,12 @@ def handle_exception(e):
 # ── Serve files from DATA_DIR ─────────────────────────────────────────────
 @app.route('/characters/<path:filename>')
 def serve_character_avatar(filename):
-    return send_from_directory(CHARACTERS_DIR, filename)
+    return send_from_directory(shared.CHARACTERS_DIR, filename)
 
 
 @app.route('/personas/<path:filename>')
 def serve_persona_avatar(filename):
-    return send_from_directory(PERSONAS_DIR, filename)
+    return send_from_directory(shared.PERSONAS_DIR, filename)
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────
@@ -45,7 +43,7 @@ def index():
 @app.route('/api/themes', methods=['GET'])
 def list_themes():
     names = set()
-    for d in (BUILTIN_THEMES_DIR, THEMES_DIR):
+    for d in (shared.BUILTIN_THEMES_DIR, shared.THEMES_DIR):
         if os.path.isdir(d):
             names.update(
                 f[:-4] for f in os.listdir(d)
@@ -57,10 +55,10 @@ def list_themes():
 @app.route('/themes/<path:filename>')
 def serve_theme(filename):
     """Serve theme CSS — user themes in DATA_DIR take precedence over built-in."""
-    user_path = os.path.join(THEMES_DIR, filename)
+    user_path = os.path.join(shared.THEMES_DIR, filename)
     if os.path.isfile(user_path):
-        return send_from_directory(THEMES_DIR, filename)
-    return send_from_directory(BUILTIN_THEMES_DIR, filename)
+        return send_from_directory(shared.THEMES_DIR, filename)
+    return send_from_directory(shared.BUILTIN_THEMES_DIR, filename)
 
 
 # ── Register blueprints ────────────────────────────────────────────────────
@@ -87,7 +85,7 @@ for blueprint in (
 
 
 # ── Initialise DB (runs under both gunicorn and `python app.py`) ────────────
-init_db()
+shared.init_db()
 
 # ── Entry point ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':

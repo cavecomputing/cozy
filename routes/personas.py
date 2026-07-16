@@ -68,11 +68,10 @@ def delete_persona(persona_id):
             return jsonify({'error': 'Cannot delete the default persona'}), 400
         if row['avatar_path']:
             avatar_file = os.path.join(shared.PERSONAS_DIR, row['avatar_path'])
-            if os.path.exists(avatar_file):
-                try:
-                    os.remove(avatar_file)
-                except OSError:
-                    pass
+            try:
+                os.remove(avatar_file)
+            except FileNotFoundError:
+                pass
         conn.execute('DELETE FROM personas WHERE id=?', (persona_id,))
         return jsonify({'success': True})
 

@@ -34,7 +34,7 @@ feature remains available.
   stop returning unused PNG bytes and recalculating the same CRC.
 - [x] **D6 · High** — Remove the unused successful card result from
   `set_character_book()`.
-- [ ] **D7 · High** — Replace unnecessary shared `state.apiEndpoint` and
+- [x] **D7 · High** — Replace unnecessary shared `state.apiEndpoint` and
   `state.apiKeySet` with local values.
 - [ ] **D8 · High** — Remove dead standalone lorebook-flyout container/button
   selectors while preserving the live nested list/item/manage selectors.
@@ -86,13 +86,13 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
 
 - [ ] **DUP1 · High** — Remove the duplicate `@keyframes spin` declaration.
 - [ ] **DUP2 · High** — Remove the second redundant `#send-btn:disabled` block.
-- [ ] **DUP3 · High** — Share the repeated “detach chats, then delete lorebook”
+- [x] **DUP3 · High** — Share the repeated “detach chats, then delete lorebook”
   sequence between standalone deletion and move-to-character deletion.
 - [ ] **DUP4 · High** — Share the repeated active-chat replacement used by
   lorebook selection, Author's Note save, and notice dismissal.
 - [ ] **DUP5 · High** — Remove caller-side message clearing/composer updates
   already performed by `renderMessages()`.
-- [ ] **DUP6 · High** — Consolidate duplicate legacy-setting tests and seed an
+- [x] **DUP6 · High** — Consolidate duplicate legacy-setting tests and seed an
   actual legacy DB row so the read-time compatibility path is exercised.
 - [ ] **DUP7 · High** — Remove component-specific `[hidden]` rules made redundant
   by the global rule, and decide whether model/sampler popover fade-outs should
@@ -124,12 +124,12 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
 
 ## Dead configuration and perpetual migrations
 
-- [ ] **CFG1 · Medium** — Gate the destructive “one-shot” greeting cleanup in
-  `shared.py` with a migration version/sentinel; remove it outright only when
-  direct upgrades from pre-fix databases are unsupported.
+- [x] **CFG1 · Medium** — Retire the destructive recurring greeting cleanup with
+  a recorded baseline migration. Existing unversioned databases are considered
+  already repaired, so the cleanup is never run again.
 - [ ] **CFG2 · Medium** — Retire the perpetual
   `DROP INDEX IF EXISTS idx_messages_chat_created` through versioned migration.
-- [ ] **CFG3 · Medium** — Migrate/delete legacy `context_max_messages` rows once,
+- [x] **CFG3 · Medium** — Migrate/delete legacy `context_max_messages` rows once,
   then remove the response-time tombstone. Do not remove only the `pop()` while
   stale rows can still exist.
 - [ ] **CFG4 · Medium** — Remove the pre-v1 `active_samplers` field-name fallback
@@ -137,7 +137,7 @@ No commented-out executable blocks or TODO/FIXME/HACK/XXX markers were found.
 - [ ] **CFG5 · Medium** — Decide whether chats should be ordered by activity;
   otherwise remove the dead `updated_at` writes/comment while considering
   external API consumers.
-- [ ] **CFG6 · Medium** — Introduce schema-version tracking so one-time schema and
+- [x] **CFG6 · Medium** — Introduce schema-version tracking so one-time schema and
   data migrations have an explicit retirement point.
 
 `show_gallery_button` and the gallery archive/collection routes are explicitly
@@ -158,9 +158,9 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
 - [ ] **INC2 · Medium** — Decide whether forking should copy `author_note` and
   `lorebook_notice_dismissed`; then move/share chat creation logic rather than
   implementing it inside `routes/messages.py`.
-- [ ] **INC3 · High** — Stop swallowing file-delete errors that can resurrect a
+- [x] **INC3 · High** — Stop swallowing file-delete errors that can resurrect a
   character or orphan a persona avatar; ignore only missing files.
-- [ ] **INC4 · High** — Access data-path constants consistently through `shared`
+- [x] **INC4 · High** — Access data-path constants consistently through `shared`
   so tests no longer patch both `shared` and `app` globals.
 - [x] **INC5 · High** — Make test import isolation override an existing
   `COZY_DATA_DIR` instead of using `setdefault()`.
@@ -168,9 +168,9 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
   the current combination of `tests/__init__.py` and `sys.path` mutation.
 - [ ] **INC7 · High** — Re-sort sidebar character state after pinning from the
   gallery, matching sidebar pin behavior.
-- [ ] **INC8 · High** — Return 404 for swipe-list requests targeting nonexistent
+- [x] **INC8 · High** — Return 404 for swipe-list requests targeting nonexistent
   messages if D13 is retained.
-- [ ] **INC9 · High** — Remove minor Python one-offs: duplicate
+- [x] **INC9 · High** — Remove minor Python one-offs: duplicate
   `OSError`/`IOError` handling and unexplained function-local imports.
 - [ ] **INC10 · Medium** — Replace native `prompt()` in preset and system-prompt
   creation with the application's styled interaction pattern.
@@ -185,12 +185,12 @@ No console.log/console.debug/debugger/print/breakpoint/pdb leftovers were found.
   appropriate.
 - [ ] **INC15 · Medium** — Move import-time directory creation/database migration
   toward explicit application initialization while preserving Gunicorn startup.
-- [ ] **INC16 · Medium** — Remove `check_same_thread=False` if no supported caller
+- [x] **INC16 · Medium** — Remove `check_same_thread=False` if no supported caller
   moves a connection across threads.
 
 ## Documentation and toolchain drift
 
-- [ ] **DOC1 · High** — Bring `docs/db.md` in sync with `shared.py`: pinned/archive
+- [x] **DOC1 · High** — Bring `docs/db.md` in sync with `shared.py`: pinned/archive
   columns, collection tables, Author's Note, paired prompt content, preset
   settings JSON, and actual FK declarations.
 - [ ] **DOC2 · High** — Use `uv run python app.py` in the custom-data example in

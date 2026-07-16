@@ -604,19 +604,11 @@ export function loadAuthorNote() {
     updateAuthorNoteCounter();
 }
 
-/** Refresh the "≈ N / limit tokens" counter under the Author's Note box. */
+/** Refresh the "≈ N tokens" counter under the Author's Note box. */
 export function updateAuthorNoteCounter() {
     if (!el.authorNoteCounter) return;
     const used = estimateTextTokens(el.authorNoteInput?.value || '');
-    const limit = state.authorNoteTokenLimit || 0;
-    if (limit > 0) {
-        el.authorNoteCounter.textContent =
-            `≈ ${used.toLocaleString()} / ${limit.toLocaleString()} tokens`;
-        el.authorNoteCounter.classList.toggle('is-over', used > limit);
-    } else {
-        el.authorNoteCounter.textContent = `≈ ${used.toLocaleString()} tokens`;
-        el.authorNoteCounter.classList.remove('is-over');
-    }
+    el.authorNoteCounter.textContent = `≈ ${used.toLocaleString()} tokens`;
 }
 
 /** Persist the Author's Note for the active chat (mirrors setActiveLorebook). */

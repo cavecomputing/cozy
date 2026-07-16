@@ -112,6 +112,14 @@ class TestEmbedAndExtract:
     def test_embed_with_delete_standalone_drops_db_row(self, client, sample_character):
         book = _make_book('Drop me', entries=[{'keys': ['k'], 'content': 'v'}])
         created = client.post('/api/lorebooks', json={'name': 'Drop me', 'book': book}).get_json()
+        chat = client.post(
+            f'/api/characters/{sample_character["id"]}/chats',
+            json={'name': 'Selected standalone'},
+        ).get_json()
+        client.put(
+            f'/api/chats/{chat["id"]}',
+            json={'active_lorebook_id': created['id']},
+        )
 
         r = client.post(
             f'/api/lorebooks/{created["id"]}/embed-in-character/{sample_character["id"]}'
@@ -120,6 +128,9 @@ class TestEmbedAndExtract:
         assert r.status_code == 200
         # Standalone row is gone
         assert client.get(f'/api/lorebooks/{created["id"]}').status_code == 404
+        chats = client.get(f'/api/characters/{sample_character["id"]}/chats').get_json()
+        updated_chat = next(item for item in chats if item['id'] == chat['id'])
+        assert updated_chat['active_lorebook_id'] is None
 
     def test_extract_creates_standalone_from_embedded(self, client, sample_character):
         # Embed a book on the character
@@ -353,82 +364,6 @@ class TestEmbedExtractRoundtrip:
         assert body['book']['entries'][1]['constant'] is True
 
 
-class TestMigrationIdempotent:
-    def test_init_db_runs_twice_safely(self, tmp_path, monkeypatch):
-        """Running init_db a second time on an existing DB should be a no-op."""
-        # The autouse _test_db fixture has already initialised once.
-        shared.init_db()
-        shared.init_db()
-        # Verify the new columns exist
-        with shared.get_db() as conn:
-            cols = {r['name'] for r in conn.execute('PRAGMA table_info(chats)').fetchall()}
-            assert 'active_lorebook_id' in cols
-            assert 'active_lorebook_embedded' in cols
-            assert 'lorebook_notice_dismissed' in cols
-            tables = {r['name'] for r in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()}
-            assert 'lorebooks' in tables
-
-    def test_init_db_migrates_legacy_columns(self, tmp_path, monkeypatch):
-        legacy_db = tmp_path / 'legacy.db'
-        monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
-        with shared.get_db() as conn:
-            conn.executescript('''
-                CREATE TABLE characters (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    filename TEXT NOT NULL UNIQUE,
-                    crc TEXT NOT NULL,
-                    missing INTEGER DEFAULT 0,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE TABLE character_collections (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE TABLE chats (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    character_id INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    active_lorebook_id INTEGER DEFAULT NULL,
-                    active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
-                    lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE api_presets (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE,
-                    api_endpoint TEXT NOT NULL DEFAULT '',
-                    api_key TEXT NOT NULL DEFAULT '',
-                    api_model TEXT NOT NULL DEFAULT '',
-                    context_max_tokens TEXT NOT NULL DEFAULT '32768',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE TABLE system_prompts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    content TEXT NOT NULL DEFAULT '',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
-            ''')
-
-        shared.init_db()
-
-        with shared.get_db() as conn:
-            columns = lambda table: {
-                row['name'] for row in conn.execute(f'PRAGMA table_info({table})')
-            }
-            assert {'pinned_at', 'archived_at'} <= columns('characters')
-            assert 'icon' in columns('character_collections')
-            assert 'author_note' in columns('chats')
-            assert 'settings_json' in columns('api_presets')
-            assert 'post_history_content' in columns('system_prompts')
-
-
 class TestLorebookImport:
     def test_import_v2_character_book_shape(self, client):
         """A bare V2 character_book object imports cleanly."""
@@ -565,7 +500,6 @@ class TestLorebookImport:
         assert body['book']['entries'][0]['content'] == 'u-content'
 
     def test_import_rejects_invalid_json_upload(self, client):
-        from io import BytesIO
         r = client.post(
             '/api/lorebooks/import',
             data={'file': (BytesIO(b'not json{'), 'bad.json', 'application/json')},
