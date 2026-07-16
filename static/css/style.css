@@ -5549,12 +5549,18 @@ input[type="checkbox"]:disabled {
     gap: 0.4rem;
     margin-bottom: 0.5rem;
 }
-.summary-actions .lorebook-flyout-manage { flex: 1; justify-content: center; }
+.summary-actions .lorebook-flyout-manage {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    margin-top: 0;
+    justify-content: center;
+}
 .summary-rebuild-btn svg,
 .summary-reset-btn svg { width: 14px; height: 14px; }
 .summary-rebuild-btn:disabled,
 .summary-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.summary-reset-btn { flex: 0 0 auto !important; }
+.summary-actions .summary-reset-btn { flex: 0 0 auto; }
 .summary-reset-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 
 /* Settings panel — global controls plus a responsive lorebook workspace */
