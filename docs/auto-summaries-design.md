@@ -25,20 +25,30 @@ The feature is **optional and per-chat-aware**. When disabled, the app behaves e
 Think of the chat in three zones:
 
 1. **Summarized (old):** already folded into the running summary.
-2. **Waiting (aging out):** messages that have left the recent window but are held in full until they get summarized.
+2. **Waiting (aging out):** messages that have just left the recent window but have
+   not yet been folded into the summary. A generation request waits for this zone to
+   be retired before it is sent.
 3. **Recent (live):** newest messages, always sent word-for-word.
 
-New messages enter at the Recent end and push older ones toward Waiting. Once a batch of Waiting messages is large enough, it is summarized, folded into the running summary, and then dropped from context. The running summary is injected into the prompt (like the author's note is), so the AI always sees a compressed "story so far" plus the recent messages in full.
+New messages enter at the Recent end and push older ones toward Waiting. As soon as
+history crosses that boundary, a background job starts folding it into the running
+summary. If generation catches the job in flight, a preflight barrier waits for the
+summary watermark to reach the raw-context boundary. The running summary is then
+injected into the prompt (like the author's note is), so the AI sees a compressed
+"story so far" plus the recent messages in full.
 
-### Chunked, not per-message ("Way 2")
+### Chunked back-fills, with a no-gap send barrier
 
-Summarizing on every single message would be slow and expensive. Instead:
+Large backlogs are processed in bounded calls:
 
-- Old messages are **held in full** in context until a batch accumulates.
-- When the batch reaches the configured size, **one summarize call** folds the whole batch in.
-- Then that batch of raw messages is **dropped together**.
+- A run begins when at least one message has crossed the raw-context boundary.
+- Each summarizer call folds in at most the configured number of messages.
+- Existing-chat back-fills and other accumulated work are split across as many calls
+  as necessary, checkpointing completed batches.
 
-Because the batch is held in full until it's summarized, there is **never a memory gap** — the summary catches up before those messages actually leave the AI's view.
+The send barrier, rather than deliberate overfilling of the model context, guarantees
+there is **never a memory gap**: generation does not proceed while an aged-out message
+is in neither the persisted summary nor the selected raw history.
 
 ### The summary is cumulative
 
@@ -125,12 +135,13 @@ Pins let the user protect specific generated lines from being reworded or droppe
 
 ---
 
-## Message tagging
+## Coverage bookkeeping
 
-Every message carries a flag indicating whether it has been **folded into the summary yet**.
+Each chat stores a monotonically increasing `summary_up_to_msg_id` watermark. Messages
+in that chat at or below the watermark are considered **folded into the summary**.
 
 - Prevents double-counting messages across summarize runs.
-- Stamped by both the normal batch runs and the bulk back-fill (below).
+- Advances after completed normal batches and once at the end of an atomic rebuild.
 - Lets the UI draw the boundary between "summarized history" and "live messages."
 
 ---
@@ -162,9 +173,10 @@ Summaries and their state are **tied to the individual character-chat**, the sam
 ### 1. Global: new "Auto Summaries" settings tab
 
 - Enable / disable the feature.
-- **Summarizer model config** — its own endpoint / API key / model, **separate from the main chat model** (intent: use a cheaper model for summarizing; reserve the main model for prose).
+- **Summarizer model config** — optional endpoint / API key / model overrides for
+  using a cheaper summarizer; each blank field falls back to the main API connection.
 - Summary size cap as a **percentage of context** (default 10%).
-- **Trigger interval** — how many aged-out messages accumulate before a summarize run.
+- **Messages per summarizer batch** — the maximum backlog folded into one model call.
 - (Any other knobs that emerge during planning.)
 
 ### 2. Per-chat: "memory management" button in the chat input bar
@@ -190,7 +202,10 @@ Rough intent for the instruction text (to be refined during tuning):
 
 ## Known limitations (accepted for v1)
 
-- Editing or swiping a message **after** it's been summarized will not retroactively fix the summary.
+- Editing, deleting, or swiping a message **after** it has aged out (including while
+  its summarizer batch is in flight) will not retroactively fix the summary. Unpin
+  any now-stale protected lines, then use **Rebuild from history** (or **Reset** for
+  a completely clean slate) after changing older history.
 - Compression is model judgment, not exact — pins are the mitigation.
 - Summary quality depends on the chosen summarizer model.
 
@@ -200,7 +215,11 @@ Rough intent for the instruction text (to be refined during tuning):
 
 Light pointers only — not a plan:
 
-- New always-on injected block follows the **author's note pattern**: a per-chat field → a key in the `ctx` object → a `{{#summary}}…{{/summary}}` block in `DEFAULT_PROMPT_TEMPLATE` (`shared.py`), assembled in `buildChatPayload` (`static/js/request-builder.js`).
+- The default injected block follows the **author's note pattern**: a per-chat field →
+  a key in the `ctx` object → a `{{#summary}}…{{/summary}}` block in
+  `DEFAULT_PROMPT_TEMPLATE` (`shared.py`), assembled in `buildChatPayload`
+  (`static/js/request-builder.js`). Runtime request building also supplies a fallback
+  memory block for custom templates that omit `{{summary}}`.
 - The context boundary (which messages are about to age out) is already computed by `getContextBoundaryMsgId` in `static/js/tokenizer.js` — useful as the trigger signal.
 - The summarizer call is a **non-streaming** LLM request; the existing proxy pattern in `routes/llm.py` (see `test_llm`) is the reference for a background call to a configurable endpoint.
 - Keep volatile blocks (summary) positioned so they don't needlessly break any prompt-prefix caching.

@@ -45,6 +45,13 @@ class TestSettings:
         # Raw key should not be in response
         assert 'sk-test-secret-key-12345' not in str(data)
 
+    def test_api_key_can_be_explicitly_cleared(self, client):
+        client.put('/api/settings', json={'api_key': 'sk-test-secret-key-12345'})
+        cleared = client.put('/api/settings', json={'api_key': ''})
+        assert cleared.status_code == 200
+        assert cleared.get_json()['api_key_set'] is False
+        assert settings_module.get_settings()['api_key'] == ''
+
     def test_send_thinking_setting_persists(self, client):
         client.put('/api/settings', json={'send_thinking': '1'})
         r = client.get('/api/settings')
@@ -69,6 +76,13 @@ class TestSettings:
         client.put('/api/settings', json={'show_gallery_button': '0'})
         r = client.get('/api/settings')
         assert r.get_json()['show_gallery_button'] == '0'
+
+    def test_auto_summaries_global_gate_defaults_on_and_persists(self, client):
+        r = client.get('/api/settings')
+        assert r.get_json()['auto_summaries_enabled'] == '1'
+        client.put('/api/settings', json={'auto_summaries_enabled': '0'})
+        r = client.get('/api/settings')
+        assert r.get_json()['auto_summaries_enabled'] == '0'
 
     def test_context_token_zero_means_no_cap(self, client):
         # 0 is a valid value meaning "no cap" — round-trip preserves the literal "0"

@@ -3,19 +3,39 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Per-chat running summary of aged-out history. Enablement + pinning happen in
 // the memory flyout; the actual summarization runs as a background job on the
-// server (see routes/summaries.py). Everything here is fire-and-forget + polling
-// so the send path is never blocked.
+// server (see routes/summaries.py). Completed turns start updates in the
+// background; the send preflight waits only when history would otherwise fall
+// into the gap between raw context and the persisted summary.
 
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { getContextBoundaryMsgId, estimateTextTokens } from './tokenizer.js';
-import { SAMPLER_DEFAULTS } from './sampler.js';
+import { estimateTextTokens, selectContextMessages } from './tokenizer.js';
+import {
+    getContextTokenBudget, getRawHistoryMessages, getRawMessageTokenBudget,
+} from './context-budget.js';
+import { flushLLMSettingsSave } from './llm-settings.js';
 import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
 
 const STORY_HEADING = 'STORY SO FAR';
 const BONDS_HEADING = 'BONDS';
 const POLL_MS = 2500;
+const MAX_SEND_POLL_FAILURES = 3;
+let pollEpoch = 0;
+let summaryBudgetChangeHandler = null;
+
+/** Register the context-meter refresh hook without importing its cyclic module. */
+export function setSummaryBudgetChangeHandler(handler) {
+    summaryBudgetChangeHandler = typeof handler === 'function' ? handler : null;
+}
+
+function globallyEnabled() {
+    return state.autoSummariesEnabled !== false;
+}
+
+function summariesActive(chat = state.activeChat) {
+    return globallyEnabled() && !!chat?.summary_enabled;
+}
 
 // ── Rendering the summary object to text (mirror of summarizer.summary_to_text) ──
 export function summaryToText(obj) {
@@ -37,17 +57,15 @@ export function summaryToText(obj) {
 
 // ── Config helpers ──────────────────────────────────────────────────────────
 function summarizerConfigured() {
-    const ep = state.summaryApiEndpoint || state.apiEndpoint;
+    // The main endpoint lives in the settings input rather than state. Each
+    // blank dedicated field falls back independently on the server.
+    const ep = state.summaryApiEndpoint || el.apiEndpoint?.value;
     const model = state.summaryApiModel || state.apiModel;
     return !!(ep && model);
 }
 
-function contextBudget() {
-    return parseInt(el.settingsContextTokens?.value || state.contextMaxTokens || '0', 10) || 0;
-}
-
 function capTokens() {
-    const ctx = contextBudget();
+    const ctx = getContextTokenBudget();
     const pct = parseFloat(state.summaryCapPct || '10') || 10;
     return ctx > 0 ? Math.floor(ctx * pct / 100) : 0;
 }
@@ -55,31 +73,34 @@ function capTokens() {
 // Token budget left for raw messages once the reply space and the injected
 // summary are carved out — the mirror of buildChatPayload's calculation, so the
 // "which messages have aged out" boundary matches what actually gets sent.
-function messageBudget() {
-    const ctx = contextBudget();
-    if (ctx <= 0) return 0;
-    const maxResp = parseInt(el.samplerMaxTokens?.value || SAMPLER_DEFAULTS.sampler_max_tokens, 10) || 0;
-    const sumTok = state.activeChat?.summary_enabled
-        ? estimateTextTokens(summaryToText(state.activeChat.summary)) : 0;
-    return Math.max(1, ctx - maxResp - sumTok);
+function messageBudget(summaryTextOverride = null) {
+    const summaryText = summaryTextOverride == null
+        ? (summariesActive() ? summaryToText(state.activeChat.summary) : '')
+        : summaryTextOverride;
+    return getRawMessageTokenBudget(summaryText);
 }
 
 // ── Aged-out message detection ──────────────────────────────────────────────
-function agedOutMessages() {
+function agedOutMessages(excludeLastN = 0, {
+    includeSummarized = false,
+    summaryTextOverride = null,
+} = {}) {
     if (!state.activeChat) return [];
-    const budget = messageBudget();
+    const budget = messageBudget(summaryTextOverride);
     if (budget <= 0) return [];
     const stripThinking = !el.sendThinking?.checked;
-    const boundaryId = getContextBoundaryMsgId(state.messages, { maxTokens: budget, stripThinking });
-    if (boundaryId == null) return [];  // everything fits (or no cap) → nothing aged out
-    const idx = state.messages.findIndex(m => m.id === boundaryId);
-    if (idx <= 0) return [];
-    return state.messages.slice(0, idx);  // messages older than the recent window
+    const candidates = getRawHistoryMessages(state.messages, {
+        excludeLastN,
+        includeSummarized,
+    });
+    const selected = selectContextMessages(candidates, { maxTokens: budget, stripThinking });
+    const agedCount = candidates.length - selected.length;
+    return agedCount > 0 ? candidates.slice(0, agedCount) : [];
 }
 
-function agedOutUnsummarized() {
+function agedOutUnsummarized(excludeLastN = 0) {
     const wm = state.activeChat?.summary_up_to_msg_id || 0;
-    return agedOutMessages().filter(m => (m.id || 0) > wm);
+    return agedOutMessages(excludeLastN).filter(m => (m.id || 0) > wm);
 }
 
 function summarizedCount() {
@@ -92,72 +113,264 @@ function summarizedCount() {
 const SUMMARY_KEYS = ['summary_enabled', 'summary', 'summary_up_to_msg_id',
                       'summary_status', 'summary_status_detail'];
 
-function applySummaryState(st) {
-    const chat = state.activeChat;
-    if (!chat || !st) return;
-    if (st.id != null && st.id !== chat.id) return;  // response for a different chat
-    for (const k of SUMMARY_KEYS) {
-        if (k in st) chat[k] = st[k];
-    }
-    const inList = state.chats.find(c => c.id === chat.id);
-    if (inList) for (const k of SUMMARY_KEYS) if (k in st) inList[k] = st[k];
-    renderMemorySummaryCard();
+function validSummaryState(st) {
+    return !!st && typeof st === 'object'
+        && ['running', 'idle', 'error'].includes(st.summary_status);
 }
 
-export function startStatusPolling() {
-    stopStatusPolling();
-    state._summaryPollTimer = setInterval(async () => {
-        const chat = state.activeChat;
-        if (!chat) return stopStatusPolling();
-        try {
-            const st = await API.getSummaryStatus(chat.id);
-            if (!state.activeChat || state.activeChat.id !== chat.id) return stopStatusPolling();
-            applySummaryState(st);
-            if (st.summary_status !== 'running') stopStatusPolling();
-        } catch {
-            stopStatusPolling();
-        }
+export function applySummaryState(st, expectedChatId = st?.id ?? state.activeChat?.id) {
+    if (!st || expectedChatId == null) return;
+    if (st.id != null && st.id !== expectedChatId) return;
+
+    // Older server versions could leave progress text behind after a restart
+    // reset a dead worker to idle. It is not a warning and should not be shown
+    // as one in the memory card.
+    if (st.summary_status === 'idle'
+        && /^(Starting|Summarizing)/i.test(st.summary_status_detail || '')) {
+        st = { ...st, summary_status_detail: '' };
+    }
+
+    const chat = state.activeChat?.id === expectedChatId ? state.activeChat : null;
+    const previousSummaryText = chat ? summaryToText(chat.summary) : '';
+    const wasActive = chat ? summariesActive(chat) : false;
+    for (const k of SUMMARY_KEYS) {
+        if (chat && k in st) chat[k] = st[k];
+    }
+    const inList = state.chats.find(c => c.id === expectedChatId);
+    if (inList) for (const k of SUMMARY_KEYS) if (k in st) inList[k] = st[k];
+    if (chat) {
+        renderMemorySummaryCard();
+        const budgetChanged = previousSummaryText !== summaryToText(chat.summary)
+            || wasActive !== summariesActive(chat);
+        if (budgetChanged) summaryBudgetChangeHandler?.();
+    }
+}
+
+function scheduleStatusPoll(epoch, chatId) {
+    if (epoch !== pollEpoch || state.activeChat?.id !== chatId) return;
+    state._summaryPollTimer = setTimeout(() => {
+        state._summaryPollTimer = null;
+        void pollSummaryStatus(epoch, chatId);
     }, POLL_MS);
 }
 
+async function pollSummaryStatus(epoch, chatId) {
+    if (epoch !== pollEpoch || state.activeChat?.id !== chatId) return;
+    try {
+        const st = await API.getSummaryStatus(chatId);
+        if (!validSummaryState(st)) throw new Error('Invalid summary status response');
+        if (epoch !== pollEpoch || state.activeChat?.id !== chatId) return;
+        applySummaryState(st, chatId);
+        if (st.summary_status === 'running') scheduleStatusPoll(epoch, chatId);
+    } catch {
+        // A single failed request should not strand a genuinely running job.
+        // Keep retrying while this chat remains selected; switching chats or a
+        // terminal success invalidates this poll generation.
+        scheduleStatusPoll(epoch, chatId);
+    }
+}
+
+export function startStatusPolling(chatId = state.activeChat?.id) {
+    stopStatusPolling();
+    if (chatId == null || state.activeChat?.id !== chatId) return;
+    const epoch = ++pollEpoch;
+    // Poll immediately so reopening a chat reconciles stale local status
+    // without waiting for the first interval.
+    void pollSummaryStatus(epoch, chatId);
+}
+
 export function stopStatusPolling() {
+    pollEpoch += 1;
     if (state._summaryPollTimer) {
-        clearInterval(state._summaryPollTimer);
+        clearTimeout(state._summaryPollTimer);
         state._summaryPollTimer = null;
     }
 }
 
-// ── Kicking off runs (all fire-and-forget) ──────────────────────────────────
-async function triggerRun({ rebuild = false } = {}) {
-    const chat = state.activeChat;
-    if (!chat) return;
-    const agedOut = agedOutMessages();
-    const upTo = agedOut.length ? agedOut[agedOut.length - 1].id : null;
+// ── Kicking off runs + send readiness ───────────────────────────────────────
+function abortError(message = 'Summary wait cancelled') {
+    const err = new Error(message);
+    err.name = 'AbortError';
+    return err;
+}
+
+function assertSendStillActive(chatId, signal) {
+    if (signal?.aborted || state.activeChat?.id !== chatId) throw abortError();
+}
+
+function waitForNextPoll(signal) {
+    if (signal?.aborted) return Promise.reject(abortError());
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(done, POLL_MS);
+        function done() {
+            signal?.removeEventListener?.('abort', cancelled);
+            resolve();
+        }
+        function cancelled() {
+            clearTimeout(timer);
+            reject(abortError());
+        }
+        signal?.addEventListener?.('abort', cancelled, { once: true });
+    });
+}
+
+async function waitForSummaryCompletion(chatId, initialState, signal) {
+    let st = initialState;
+    let failures = 0;
+    while (st?.summary_status === 'running') {
+        assertSendStillActive(chatId, signal);
+        if (!summariesActive(state.activeChat)) return st;
+        await waitForNextPoll(signal);
+        assertSendStillActive(chatId, signal);
+        if (!summariesActive(state.activeChat)) return st;
+        try {
+            st = await API.getSummaryStatus(chatId);
+            if (!validSummaryState(st)) {
+                throw new Error('Summarizer returned an invalid status response.');
+            }
+            failures = 0;
+        } catch (e) {
+            failures += 1;
+            if (failures >= MAX_SEND_POLL_FAILURES) {
+                throw new Error(`Could not confirm that chat memory is ready: ${e.message}`);
+            }
+            continue;
+        }
+        assertSendStillActive(chatId, signal);
+        applySummaryState(st, chatId);
+    }
+    if (st?.summary_status === 'error') {
+        throw new Error(st.summary_status_detail || 'Summary update failed.');
+    }
+    return st;
+}
+
+async function triggerRun({ rebuild = false, awaitCompletion = false,
+                            chatId = state.activeChat?.id, signal,
+                            excludeLastN = 0 } = {}) {
+    if (chatId == null || state.activeChat?.id !== chatId) return null;
+
+    try {
+        // Settings fields update local state immediately but persist through a
+        // debounce. The worker reads server settings, so its POST must stay
+        // behind a strict persistence barrier.
+        await flushLLMSettingsSave({ strict: true });
+    } catch (e) {
+        if (awaitCompletion) throw e;
+        showToast('Summary run failed: ' + e.message);
+        return null;
+    }
+    if (awaitCompletion) assertSendStillActive(chatId, signal);
+    if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return null;
+
+    // A post-turn background update commonly overlaps the next send. Join that
+    // job instead of issuing a redundant run request; the API's 409 handling
+    // below still covers the race where a worker starts after this check.
+    if (awaitCompletion && state.activeChat.summary_status === 'running') {
+        let runningState;
+        try {
+            runningState = await API.getSummaryStatus(chatId);
+            if (!validSummaryState(runningState)) {
+                throw new Error('Summarizer returned an invalid status response.');
+            }
+            assertSendStillActive(chatId, signal);
+            applySummaryState(runningState, chatId);
+        } catch (e) {
+            if (e.name === 'AbortError') throw e;
+            // Let the resilient waiter retry transient status failures.
+            runningState = { summary_status: 'running' };
+        }
+        return waitForSummaryCompletion(chatId, runningState, signal);
+    }
+
+    if (rebuild && agedOutMessages(excludeLastN, {
+        includeSummarized: true,
+        summaryTextOverride: '',
+    }).length === 0) {
+        // Removing stale memory may be enough for all history to fit verbatim.
+        // In that case rebuilding would unnecessarily perpetuate the summary.
+        await clearSummary(chatId);
+        return null;
+    }
+
+    const agedOut = agedOutMessages(excludeLastN, { includeSummarized: rebuild });
+    const agedOutIds = agedOut.map(m => m.id).filter(id => Number.isInteger(id) && id > 0);
+    const upTo = agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null;
     if (upTo == null) {
         // Nothing is outside the context window. On an explicit rebuild that means
         // a grown context now fits everything — clear any lingering stale summary.
-        if (rebuild) await clearSummary();
+        if (rebuild) await clearSummary(chatId);
         else renderMemorySummaryCard();
-        return;
+        return null;
     }
     try {
-        const st = await API.runSummary(chat.id, { up_to_msg_id: upTo, rebuild });
-        applySummaryState(st);
-        if (st.summary_status === 'running') startStatusPolling();
+        const st = await API.runSummary(chatId, { up_to_msg_id: upTo, rebuild });
+        if (!validSummaryState(st)) {
+            throw new Error('Summarizer returned an invalid status response.');
+        }
+        if (awaitCompletion) assertSendStillActive(chatId, signal);
+        applySummaryState(st, chatId);
+        if (st.summary_status === 'running') {
+            if (awaitCompletion) return waitForSummaryCompletion(chatId, st, signal);
+            if (state.activeChat?.id === chatId) startStatusPolling(chatId);
+        } else if (awaitCompletion && st.summary_status === 'error') {
+            throw new Error(st.summary_status_detail || 'Summary update failed.');
+        }
+        return st;
     } catch (e) {
+        if (awaitCompletion) throw e;
         showToast('Summary run failed: ' + e.message);
+        return null;
     }
 }
 
-/** After a completed turn: fold in aged-out history once enough has accumulated. */
+/**
+ * Before generation, close any gap between the stored watermark and the raw
+ * context boundary. The loop matters because a newly enlarged summary can
+ * itself move the boundary and age out one more message.
+ */
+export async function ensureSummaryReadyForSend(signal, { excludeLastN = 0 } = {}) {
+    const chat = state.activeChat;
+    if (!summariesActive(chat)) return;
+    if (agedOutUnsummarized(excludeLastN).length === 0) return;
+    if (!summarizerConfigured()) {
+        throw new Error('Configure an Auto Summaries endpoint and model before sending so aged-out history is not forgotten.');
+    }
+
+    const chatId = chat.id;
+    let previousWatermark = chat.summary_up_to_msg_id || 0;
+    let stalledRuns = 0;
+    for (;;) {
+        assertSendStillActive(chatId, signal);
+        if (!summariesActive(state.activeChat)) return;
+        if (agedOutUnsummarized(excludeLastN).length === 0) return;
+
+        await triggerRun({ awaitCompletion: true, chatId, signal, excludeLastN });
+        assertSendStillActive(chatId, signal);
+        if (!summariesActive(state.activeChat)) return;
+
+        const watermark = state.activeChat.summary_up_to_msg_id || 0;
+        if (agedOutUnsummarized(excludeLastN).length === 0) return;
+        if (watermark <= previousWatermark) {
+            stalledRuns += 1;
+            if (stalledRuns >= 2) {
+                throw new Error('Chat memory did not advance; response generation was paused to avoid forgetting history.');
+            }
+        } else {
+            stalledRuns = 0;
+            previousWatermark = watermark;
+        }
+    }
+}
+
+/** After a completed turn: start folding in any newly aged-out history. */
 export function maybeTriggerSummary() {
     const chat = state.activeChat;
-    if (!chat || !chat.summary_enabled) return;
+    if (!summariesActive(chat)) return;
     if (chat.summary_status === 'running') return;
     if (!summarizerConfigured()) return;
-    const interval = parseInt(state.summaryTriggerInterval || '20', 10) || 20;
-    if (agedOutUnsummarized().length < interval) return;
-    triggerRun({});
+    if (agedOutUnsummarized().length === 0) return;
+    return triggerRun({ chatId: chat.id });
 }
 
 async function enableSummariesForChat() {
@@ -165,9 +378,16 @@ async function enableSummariesForChat() {
     if (!chat) return;
     try {
         const updated = await API.updateChat(chat.id, { summary_enabled: true });
-        applySummaryState(updated);
+        applySummaryState(updated, chat.id);
     } catch (e) {
         showToast('Could not enable summaries: ' + e.message);
+        if (state.activeChat?.id === chat.id) renderMemorySummaryCard();
+        return;
+    }
+    // The update belongs to the chat where the toggle was clicked. Never use
+    // the newly selected chat's messages if the user switched during the PUT.
+    if (state.activeChat?.id !== chat.id) return;
+    if (!globallyEnabled()) {
         renderMemorySummaryCard();
         return;
     }
@@ -176,35 +396,42 @@ async function enableSummariesForChat() {
         return;
     }
     // Immediately back-fill the entire out-of-context backlog.
-    triggerRun({});
+    return triggerRun({ chatId: chat.id });
 }
 
 async function disableSummariesForChat() {
     const chat = state.activeChat;
     if (!chat) return;
     stopStatusPolling();
+    const wasEnabled = !!chat.summary_enabled;
+    chat.summary_enabled = false;
+    const inList = state.chats.find(c => c.id === chat.id);
+    if (inList) inList.summary_enabled = false;
+    renderMemorySummaryCard();
     try {
         const updated = await API.updateChat(chat.id, { summary_enabled: false });
-        applySummaryState(updated);
+        applySummaryState(updated, chat.id);
     } catch (e) {
+        chat.summary_enabled = wasEnabled;
+        if (inList) inList.summary_enabled = wasEnabled;
         showToast('Could not disable summaries: ' + e.message);
-        renderMemorySummaryCard();
+        if (state.activeChat?.id === chat.id) renderMemorySummaryCard();
     }
 }
 
 function rebuildSummary() {
-    if (!state.activeChat?.summary_enabled) return;
-    triggerRun({ rebuild: true });
+    const chat = state.activeChat;
+    if (!summariesActive(chat)) return;
+    return triggerRun({ rebuild: true, chatId: chat.id });
 }
 
 /** Wipe the summary + watermark to empty (no LLM call). */
-async function clearSummary() {
-    const chat = state.activeChat;
-    if (!chat) return;
-    stopStatusPolling();
+async function clearSummary(chatId = state.activeChat?.id) {
+    if (chatId == null) return;
+    if (state.activeChat?.id === chatId) stopStatusPolling();
     try {
-        const st = await API.resetSummary(chat.id);
-        applySummaryState(st);
+        const st = await API.resetSummary(chatId);
+        applySummaryState(st, chatId);
     } catch (e) {
         showToast('Could not reset summary: ' + e.message);
     }
@@ -213,7 +440,7 @@ async function clearSummary() {
 /** Reset button: confirm (pins are discarded), then clear to a blank slate. */
 async function resetSummary() {
     const chat = state.activeChat;
-    if (!chat?.summary_enabled) return;
+    if (!summariesActive(chat)) return;
     const hasContent = (chat.summary?.lines?.length || 0) > 0;
     if (hasContent) {
         const ok = await confirmDialog({
@@ -224,21 +451,28 @@ async function resetSummary() {
         });
         if (!ok) return;
     }
-    await clearSummary();
+    await clearSummary(chat.id);
 }
 
 async function togglePin(index) {
     const chat = state.activeChat;
     const lines = chat?.summary?.lines;
-    if (!lines || !lines[index]) return;
-    lines[index].pinned = !lines[index].pinned;
+    if (!lines || !lines[index] || !summariesActive(chat)
+        || chat.summary_status === 'running') return;
+    const line = lines[index];
+    const pinned = !line.pinned;
+    line.pinned = pinned;
     renderMemorySummaryCard();  // optimistic
     try {
-        const updated = await API.updateChat(chat.id, { summary_json: chat.summary });
-        applySummaryState(updated);
+        const updated = await API.updateSummaryPin(chat.id, {
+            text: line.text,
+            section: line.section || 'story',
+            pinned,
+        });
+        applySummaryState(updated, chat.id);
     } catch (e) {
-        lines[index].pinned = !lines[index].pinned;  // revert
-        renderMemorySummaryCard();
+        line.pinned = !pinned;  // revert the object that was changed optimistically
+        if (state.activeChat?.id === chat.id) renderMemorySummaryCard();
         showToast('Could not update pin: ' + e.message);
     }
 }
@@ -251,6 +485,10 @@ function renderStatus() {
     box.className = 'summary-status';
     box.textContent = '';
     if (!chat || !chat.summary_enabled) return;
+    if (!globallyEnabled()) {
+        box.textContent = 'Paused globally — saved summary memory is retained.';
+        return;
+    }
 
     const status = chat.summary_status || 'idle';
     if (status === 'running') {
@@ -274,8 +512,10 @@ function renderStatus() {
         const count = summarizedCount();
         const toks = estimateTextTokens(summaryToText(chat.summary));
         const cap = capTokens();
-        box.textContent = `Up to date · ${count} message${count === 1 ? '' : 's'} summarized · `
-            + `≈ ${toks.toLocaleString()} / ${cap.toLocaleString()} tokens`;
+        const size = cap > 0
+            ? `≈ ${toks.toLocaleString()} / ${cap.toLocaleString()} tokens`
+            : `≈ ${toks.toLocaleString()} tokens · no cap`;
+        box.textContent = `Up to date · ${count} message${count === 1 ? '' : 's'} summarized · ${size}`;
     }
     if (chat.summary_status_detail) {
         // A non-empty detail on idle is the pins-over-cap warning.
@@ -290,6 +530,7 @@ function renderLines(enabled) {
     if (!box) return;
     box.innerHTML = '';
     const lines = (enabled && state.activeChat?.summary?.lines) || [];
+    const busy = !globallyEnabled() || state.activeChat?.summary_status === 'running';
     if (!lines.length) { box.hidden = true; return; }
     box.hidden = false;
 
@@ -312,7 +553,10 @@ function renderLines(enabled) {
             pin.type = 'button';
             pin.className = 'summary-pin-btn' + (l.pinned ? ' pinned' : '');
             pin.setAttribute('aria-pressed', l.pinned ? 'true' : 'false');
-            pin.title = l.pinned ? 'Unpin (allow rewording)' : 'Pin (keep word-for-word)';
+            pin.disabled = busy;
+            pin.title = busy
+                ? 'Pinning is unavailable while the summary updates'
+                : (l.pinned ? 'Unpin (allow rewording)' : 'Pin (keep word-for-word)');
             pin.innerHTML = l.pinned ? icons.STAR_FILLED : icons.STAR;
             pin.addEventListener('click', () => togglePin(i));
 
@@ -332,15 +576,22 @@ export function renderMemorySummaryCard() {
     if (!toggle) return;  // card not in the DOM
     const chat = state.activeChat;
     const enabled = !!(chat && chat.summary_enabled);
+    const available = globallyEnabled();
 
     toggle.checked = enabled;
-    toggle.disabled = !chat;
+    toggle.disabled = !chat || !available;
+    toggle.title = available
+        ? 'Summarize aged-out history for this chat'
+        : 'Auto Summaries are paused globally in Settings';
 
-    if (el.summaryConfigHint) el.summaryConfigHint.hidden = !(enabled && !summarizerConfigured());
+    if (el.summaryConfigHint) {
+        el.summaryConfigHint.hidden = !(available && enabled && !summarizerConfigured());
+    }
     const busy = chat?.summary_status === 'running';
-    if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !enabled || busy;
+    if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !available || !enabled || busy;
     if (el.summaryResetBtn) {
-        el.summaryResetBtn.disabled = !enabled || busy || !(chat?.summary?.lines?.length);
+        el.summaryResetBtn.disabled = !available || !enabled || busy
+            || !(chat?.summary?.lines?.length);
     }
     renderStatus();
     renderLines(enabled);
@@ -350,14 +601,42 @@ export function renderMemorySummaryCard() {
 export function onChatSelected() {
     stopStatusPolling();
     renderMemorySummaryCard();
-    if (state.activeChat?.summary_status === 'running') startStatusPolling();
+    if (summariesActive()) {
+        // Always reconcile once on reopen. This recovers both a job that began
+        // elsewhere and stale local status after a transient polling failure.
+        startStatusPolling(state.activeChat.id);
+        maybeTriggerSummary();
+    }
+}
+
+/** Apply the global pause/resume switch without changing any per-chat state. */
+export function onGlobalSummarySettingChanged() {
+    stopStatusPolling();
+    renderMemorySummaryCard();
+    if (summariesActive()) {
+        startStatusPolling(state.activeChat.id);
+        return maybeTriggerSummary();
+    }
+}
+
+/** Reconcile local state after the persisted global OFF gate cancels workers. */
+export function markSummaryRunsCancelled() {
+    const chats = new Set(state.chats || []);
+    if (state.activeChat) chats.add(state.activeChat);
+    for (const chat of chats) {
+        if (chat?.summary_status === 'running') {
+            chat.summary_status = 'idle';
+            chat.summary_status_detail = '';
+        }
+    }
+    renderMemorySummaryCard();
 }
 
 /** Wire the memory-card controls. Call once at startup. */
 export function initSummaryHandlers() {
-    el.summaryToggle?.addEventListener('change', () => {
-        if (el.summaryToggle.checked) enableSummariesForChat();
-        else disableSummariesForChat();
+    el.summaryToggle?.addEventListener('change', async () => {
+        if (el.summaryToggle.checked) await enableSummariesForChat();
+        else await disableSummariesForChat();
     });
     el.summaryRebuildBtn?.addEventListener('click', rebuildSummary);
     el.summaryResetBtn?.addEventListener('click', resetSummary);

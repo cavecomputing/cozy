@@ -6,7 +6,8 @@ import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
 import { maybeAutoNameChat } from './chats.js';
 import { clearDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
-import { maybeTriggerSummary } from './summaries.js';
+import { ensureSummaryReadyForSend, maybeTriggerSummary } from './summaries.js';
+import { flushLLMSettingsSave } from './llm-settings.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEND MESSAGE
@@ -19,6 +20,15 @@ export async function handleSend() {
     // Preflight: without a model the request can't be built — keep the
     // user's text in the composer and point them at settings instead of
     // persisting a message that will never get a reply.
+    try {
+        // Endpoint/model/key edits are debounced. Persist them before either a
+        // summary worker or the chat completion reads settings on the server.
+        await flushLLMSettingsSave({ strict: true });
+    } catch (e) {
+        console.error('Settings flush failed before send:', e);
+        return;
+    }
+
     if (!state.apiModel) {
         showApiNotice();
         return;
@@ -50,6 +60,11 @@ export async function handleSend() {
     contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
 
     try {
+        // Persisting this user turn can move an older message outside the raw
+        // context window. Fold that newly aged-out history into memory before
+        // building the request so no turn falls between the two.
+        await ensureSummaryReadyForSend(signal);
+
         const reply = await generateResponse(0, (accumulated) => {
             const parsed = parseThinkingContent(accumulated);
             renderThinkingBlock(msgBody, parsed);
@@ -60,8 +75,8 @@ export async function handleSend() {
         // Finalize: remove loading container and persist the real message
         loadingContainer.remove();
         await appendMessage('character', reply, true);
-        // Fire-and-forget: fold aged-out history into the summary if enough has
-        // accumulated. Never awaited — the send path must not block on it.
+        // Fold any history displaced by the new reply in the background. The
+        // next send's preflight waits for this job if it is still running.
         maybeTriggerSummary();
 
     } catch (err) {

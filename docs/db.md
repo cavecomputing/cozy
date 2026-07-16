@@ -57,6 +57,11 @@ Each chat belongs to one character. Deleting a character cascades to all its cha
 | active_lorebook_embedded | INTEGER | `1` when the character card's embedded lorebook is selected. |
 | lorebook_notice_dismissed | INTEGER | `1` once the embedded-lorebook notice has been dismissed. |
 | author_note | TEXT | Per-chat Author's Note injected by the prompt builder. |
+| summary_enabled | INTEGER | `1` when Auto Summaries are enabled for this chat. |
+| summary_json | TEXT | Running structured summary and per-line pin state. |
+| summary_up_to_msg_id | INTEGER | Highest message ID safely folded into the running summary, or `NULL`. |
+| summary_status | TEXT | Background summary job state: `idle`, `running`, or `error`. |
+| summary_status_detail | TEXT | Progress, warning, or error detail shown in the memory panel. |
 
 `active_lorebook_id` is an application-level reference; SQLite does not declare
 it as a foreign key. Lorebook deletion explicitly clears matching chat values.
@@ -196,7 +201,9 @@ Migration 1 is an intentional baseline marker that retires a historical
 duplicate-greeting repair. Databases that predate the ledger are treated as
 already repaired so startup never again risks deleting a legitimate repeated
 greeting. Migration 2 deletes the retired `context_max_messages` setting from
-older databases; context limits are token-based now.
+older databases; context limits are token-based now. Migration 3 upgrades only
+untouched copies of the former stock system-prompt template so they include the
+Auto Summary variable; customized prompts are preserved exactly.
 
 ## Seeded data
 
@@ -204,4 +211,7 @@ On first run, the database is seeded with:
 
 - **Default persona**: "Default User" (tagline: "The brave adventurer", `is_default = 1`)
 - **Default system prompt**: "Default" with paired main and post-history Prompt Builder templates
-- **Default settings**: context token budget (`32768`), visible context meter, and an empty extra-request-parameters value
+- **Default settings**: context token budget (`32768`), visible context meter, an
+  empty extra-request-parameters value, Auto Summaries enabled globally, blank
+  summarizer endpoint/key/model overrides, a 10% summary cap, and 20 messages per
+  summarizer batch

@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify, Response
 
 from card_store import get_character_card_data
 from shared import get_db, not_found, safe_download_name
-from summarizer import parse_summary_json, dump_summary_json
+from summarizer import parse_summary_json
 
 chats_bp = Blueprint('chats', __name__)
 
@@ -21,8 +21,8 @@ def chat_to_dict(row):
     d['lorebook_notice_dismissed'] = bool(d.get('lorebook_notice_dismissed') or 0)
     if 'summary_enabled' in d:
         d['summary_enabled'] = bool(d.get('summary_enabled') or 0)
-        # Expose the summary as a structured object (the raw summary_json string
-        # stays too, for pin-toggle round-trips).
+        # Expose a structured companion to the stored JSON. Clients edit pins through
+        # the dedicated summary endpoint; generic chat updates never accept this field.
         d['summary'] = parse_summary_json(d.get('summary_json'))
     return d
 
@@ -290,19 +290,37 @@ def import_chat():
 
 @chats_bp.route('/api/chats/<int:chat_id>', methods=['PUT'])
 def update_chat(chat_id):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'A JSON object body is required'}), 400
+
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+        # Do not load the generated summary into this read/modify/write path. Summary
+        # content is worker-owned; pins have their own narrow atomic endpoint.
+        row = conn.execute(
+            'SELECT id, name, active_lorebook_id, active_lorebook_embedded, '
+            'lorebook_notice_dismissed, author_note, summary_enabled '
+            'FROM chats WHERE id=?',
+            (chat_id,),
+        ).fetchone()
         if not row:
             return not_found('Chat')
-        data = request.get_json(silent=True) or {}
+        if 'summary_json' in data:
+            return jsonify({
+                'error': 'summary_json is server-managed; use the summary pin endpoint',
+            }), 400
 
-        name = (data.get('name') or '').strip() or row['name']
+        updates = []
+        params = []
+
+        if 'name' in data:
+            name = (data.get('name') or '').strip()
+            if name:
+                updates.append('name=?')
+                params.append(name)
+
         cur_lb_id = row['active_lorebook_id']
         cur_lb_embedded = row['active_lorebook_embedded'] or 0
-        cur_notice = row['lorebook_notice_dismissed'] or 0
-        cur_author_note = row['author_note'] or ''
-        cur_summary_enabled = row['summary_enabled'] or 0
-        cur_summary_json = row['summary_json'] or ''
 
         # `active_lorebook_id`: explicit None clears, integer sets, omitted leaves alone.
         if 'active_lorebook_id' in data:
@@ -328,31 +346,32 @@ def update_chat(chat_id):
         if cur_lb_embedded:
             cur_lb_id = None
 
+        if 'active_lorebook_id' in data or 'active_lorebook_embedded' in data:
+            updates.extend(('active_lorebook_id=?', 'active_lorebook_embedded=?'))
+            params.extend((cur_lb_id, cur_lb_embedded))
+
         if 'lorebook_notice_dismissed' in data:
-            cur_notice = 1 if data['lorebook_notice_dismissed'] else 0
+            updates.append('lorebook_notice_dismissed=?')
+            params.append(1 if data['lorebook_notice_dismissed'] else 0)
 
         if 'author_note' in data:
-            cur_author_note = str(data['author_note'] or '')
+            updates.append('author_note=?')
+            params.append(str(data['author_note'] or ''))
 
-        # Auto Summaries: the client toggles enablement and edits pins (the whole
-        # summary object) here. The watermark (summary_up_to_msg_id) and status are
-        # server-managed by the summary run endpoint and are NOT accepted from the client.
+        # The generic chat patch may toggle enablement, but generated content, pins,
+        # watermark, and job status remain server-managed.
         if 'summary_enabled' in data:
-            cur_summary_enabled = 1 if data['summary_enabled'] else 0
-        if 'summary_json' in data:
-            raw = data['summary_json']
-            if isinstance(raw, (dict, list)):
-                raw = json.dumps(raw)
-            # Round-trip through the sanitizer so only well-formed lines are stored.
-            cur_summary_json = dump_summary_json(parse_summary_json(str(raw or '')))
+            updates.append('summary_enabled=?')
+            enabled = 1 if data['summary_enabled'] else 0
+            params.append(enabled)
+            if not enabled:
+                # Commit disablement and cancellation in one row update. In-flight
+                # workers must discard their result rather than revive paused memory.
+                updates.extend(("summary_status='idle'", "summary_status_detail=''"))
 
-        conn.execute(
-            'UPDATE chats SET name=?, active_lorebook_id=?, active_lorebook_embedded=?, '
-            'lorebook_notice_dismissed=?, author_note=?, summary_enabled=?, summary_json=?, '
-            'updated_at=CURRENT_TIMESTAMP WHERE id=?',
-            (name, cur_lb_id, cur_lb_embedded, cur_notice, cur_author_note,
-             cur_summary_enabled, cur_summary_json, chat_id)
-        )
+        updates.append('updated_at=CURRENT_TIMESTAMP')
+        params.append(chat_id)
+        conn.execute(f"UPDATE chats SET {', '.join(updates)} WHERE id=?", params)
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
         return jsonify(chat_to_dict(row))
 

@@ -232,3 +232,186 @@ def test_user_template_can_place_content_after_user_message():
         assert.equal(payload.messages.length, 4);
     """
     run_node_module(code)
+
+
+def test_summary_tokens_reduce_the_raw_message_budget():
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            name: 'Summary-aware',
+            content: '{{summary}}',
+            post_history_content: '',
+        }];
+        state.contextMaxTokens = '100';
+        el.settingsContextTokens = { value: '100' };
+        el.samplerMaxTokens = { value: '20' };
+        el.sendThinking = { checked: true };
+        state.messages = Array.from({ length: 12 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `message-${i}-abcdefghijklmno`,
+        }));
+
+        state.activeChat = { summary_enabled: false, summary: { lines: [] } };
+        const withoutSummary = buildChatPayload();
+
+        state.activeChat = {
+            summary_enabled: true,
+            summary: { lines: [{ section: 'story', text: 'x'.repeat(120), pinned: false }] },
+        };
+        const withSummary = buildChatPayload();
+
+        state.autoSummariesEnabled = false;
+        const globallyPaused = buildChatPayload();
+
+        const rawWithout = withoutSummary.messages.filter(m => /message-\d+-/.test(m.content));
+        const rawWith = withSummary.messages.filter(m => /message-\d+-/.test(m.content));
+        const rawPaused = globallyPaused.messages.filter(m => /message-\d+-/.test(m.content));
+        assert.equal(rawWithout.length, 7);
+        assert.equal(rawWith.length, 4);
+        assert.equal(rawPaused.length, 7);
+        assert.doesNotMatch(JSON.stringify(globallyPaused.messages), /STORY SO FAR/);
+    """
+    run_node_module(code)
+
+
+def test_custom_template_without_summary_gets_fallback_memory_block():
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            name: 'Legacy custom prompt',
+            content: 'CUSTOM ROLEPLAY INSTRUCTIONS',
+            post_history_content: '',
+        }];
+        state.activeChat = {
+            summary_enabled: true,
+            summary: {
+                lines: [{ section: 'story', text: 'The lighthouse lens is cracked.', pinned: false }],
+            },
+        };
+        state.messages = [{ id: 1, role: 'user', text: 'What do we do next?' }];
+
+        const payload = buildChatPayload();
+        const system = payload.messages.find(m => m.role === 'system');
+
+        assert.match(system.content, /CUSTOM ROLEPLAY INSTRUCTIONS/);
+        assert.match(system.content, /\[MEMORY — STORY SO FAR\]/);
+        assert.match(system.content, /The lighthouse lens is cracked\./);
+        assert.equal(
+            (JSON.stringify(payload.messages).match(/The lighthouse lens is cracked\./g) || []).length,
+            1,
+        );
+    """
+    run_node_module(code)
+
+
+def test_templates_with_summary_slot_do_not_duplicate_fallback_memory():
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activeSystemPromptId = 1;
+        state.activeChat = {
+            summary_enabled: true,
+            summary: {
+                lines: [{ section: 'story', text: 'Morgan carries the brass key.', pinned: false }],
+            },
+        };
+        state.messages = [{ id: 1, role: 'user', text: 'Open the door.' }];
+
+        state.systemPrompts = [{
+            id: 1,
+            name: 'System memory slot',
+            content: 'CUSTOM\n{{summary}}',
+            post_history_content: '',
+        }];
+        const systemSlot = buildChatPayload();
+        assert.equal(
+            (JSON.stringify(systemSlot.messages).match(/Morgan carries the brass key\./g) || []).length,
+            1,
+        );
+        assert.doesNotMatch(systemSlot.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
+
+        state.systemPrompts = [{
+            id: 1,
+            name: 'User memory slot',
+            content: 'CUSTOM',
+            post_history_content: 'Remember this:\n{{summary}}',
+        }];
+        const userSlot = buildChatPayload();
+        assert.equal(
+            (JSON.stringify(userSlot.messages).match(/Morgan carries the brass key\./g) || []).length,
+            1,
+        );
+        assert.doesNotMatch(userSlot.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
+    """
+    run_node_module(code)
+
+
+def test_summary_slot_removed_by_false_conditional_gets_fallback():
+    code = BASE_NODE_SETUP + r"""
+        state.activePersona = { name: 'Morgan', description: '' };
+        state.activeCharacter = { name: 'Mira' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            name: 'Conditional memory slot',
+            content: 'CUSTOM\n{{#persona}}{{summary}}{{/persona}}',
+            post_history_content: '',
+        }];
+        state.activeChat = {
+            summary_enabled: true,
+            summary_up_to_msg_id: 1,
+            summary: {
+                lines: [{ section: 'story', text: 'The observatory door is sealed.', pinned: false }],
+            },
+        };
+        state.messages = [
+            { id: 1, role: 'character', text: 'SUMMARIZED RAW TURN' },
+            { id: 2, role: 'user', text: 'LIVE TURN' },
+        ];
+
+        const payload = buildChatPayload();
+        const serialized = JSON.stringify(payload.messages);
+
+        assert.match(payload.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
+        assert.match(serialized, /The observatory door is sealed\./);
+        assert.doesNotMatch(serialized, /SUMMARIZED RAW TURN/);
+        assert.match(serialized, /LIVE TURN/);
+    """
+    run_node_module(code)
+
+
+def test_regen_payload_excludes_summarized_turn_but_keeps_first_live_turn():
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            name: 'Summary aware',
+            content: '{{summary}}',
+            post_history_content: '',
+        }];
+        state.activeChat = {
+            summary_enabled: true,
+            summary_up_to_msg_id: 1,
+            summary: {
+                lines: [{ section: 'story', text: 'Old history retained.', pinned: false }],
+            },
+        };
+        state.messages = [
+            { id: 1, role: 'character', text: 'SUMMARIZED TURN' },
+            { id: 2, role: 'user', text: 'FIRST LIVE TURN' },
+            { id: 3, role: 'character', text: 'ASSISTANT BEING REGENERATED' },
+        ];
+
+        const payload = buildChatPayload(1);
+        const serialized = JSON.stringify(payload.messages);
+
+        assert.doesNotMatch(serialized, /SUMMARIZED TURN/);
+        assert.match(serialized, /FIRST LIVE TURN/);
+        assert.doesNotMatch(serialized, /ASSISTANT BEING REGENERATED/);
+    """
+    run_node_module(code)

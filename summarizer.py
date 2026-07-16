@@ -20,6 +20,12 @@ import re
 STORY_HEADING = 'STORY SO FAR'
 BONDS_HEADING = 'BONDS'
 
+THINKING_TAG_PAIRS = (
+    ('<think>', '</think>'),
+    ('<thinking>', '</thinking>'),
+    ('<|thinking|>', '<|/thinking|>'),
+)
+
 
 SUMMARY_INSTRUCTIONS = (
     "You maintain a running memory summary of an ongoing roleplay so the AI keeps "
@@ -65,6 +71,31 @@ def _norm_heading(line):
     return re.sub(r'\s+', ' ', kept).strip()
 
 
+def strip_thinking_content(text):
+    """Return the visible response with supported reasoning blocks removed.
+
+    Mirrors the frontend's thinking-tag handling, including the streaming edge case
+    where an opening tag has no closing tag yet. Multiple completed blocks are removed
+    rather than exposing a later block to the summarizer.
+    """
+    remaining = '' if text is None else str(text)
+    while remaining:
+        found = []
+        for opening, closing in THINKING_TAG_PAIRS:
+            index = remaining.find(opening)
+            if index >= 0:
+                found.append((index, opening, closing))
+        if not found:
+            break
+        index, opening, closing = min(found, key=lambda item: item[0])
+        close_index = remaining.find(closing, index + len(opening))
+        if close_index < 0:
+            remaining = remaining[:index]
+            break
+        remaining = remaining[:index] + remaining[close_index + len(closing):]
+    return remaining.strip()
+
+
 def parse_summary(text):
     """Parse the model's ``STORY SO FAR`` / ``BONDS`` output into a summary object.
 
@@ -88,6 +119,31 @@ def parse_summary(text):
         if content:
             lines.append({'section': section, 'text': content, 'pinned': False})
     return {'lines': lines}
+
+
+def parse_summarizer_output(text):
+    """Validate and parse a model response in the required summary format.
+
+    A transport-level success is not enough to retire chat history: the response must
+    begin with ``STORY SO FAR``, include ``BONDS``, and contain at least one summary
+    line. Reasoning blocks are discarded before validation so they never become memory.
+    """
+    visible = strip_thinking_content(text)
+    meaningful = [
+        line.strip() for line in visible.splitlines()
+        if line.strip() and not line.strip().startswith('```')
+    ]
+    if not meaningful:
+        raise ValueError('Summarizer returned empty content')
+    if _norm_heading(meaningful[0]) != STORY_HEADING:
+        raise ValueError('Summarizer response is missing the STORY SO FAR heading')
+    if not any(_norm_heading(line) == BONDS_HEADING for line in meaningful[1:]):
+        raise ValueError('Summarizer response is missing the BONDS heading')
+
+    parsed = parse_summary('\n'.join(meaningful))
+    if not parsed['lines']:
+        raise ValueError('Summarizer returned headings without any summary lines')
+    return parsed
 
 
 def summary_lines(obj):
@@ -150,11 +206,13 @@ def enforce_cap(obj, cap_tokens):
 
     Drops the lowest-priority unpinned lines first — unpinned ``story`` (oldest first),
     then unpinned ``bonds`` (oldest first). Pinned lines are never dropped. Returns
-    ``(trimmed_obj, warning)`` where ``warning`` is non-empty only when the pinned lines
-    alone still exceed the cap.
+    ``(trimmed_obj, warning)``. A non-empty input is never reduced to an empty summary:
+    if the model's rewrite still exceeds the cap, the last remaining unpinned line is
+    shortened as a final safety net.
     """
-    obj = {'lines': list(summary_lines(obj))}
+    obj = {'lines': [dict(line) for line in summary_lines(obj)]}
     warning = ''
+    trimmed = False
     if not cap_tokens or cap_tokens <= 0:
         return obj, warning
 
@@ -169,14 +227,49 @@ def enforce_cap(obj, cap_tokens):
         while not fits() and i < len(obj['lines']):
             line = obj['lines'][i]
             if line.get('section', 'story') == target and not line.get('pinned'):
+                # The LLM call is already the semantic rewrite/tighten pass. This
+                # fallback must not erase its final remaining memory line.
+                if len(obj['lines']) == 1:
+                    break
                 obj['lines'].pop(i)
+                trimmed = True
                 continue
             i += 1
         if fits():
+            warning = (
+                'The summary model exceeded the size cap; lowest-priority lines were omitted.'
+                if trimmed else ''
+            )
             return obj, warning
 
+    # Preserve the longest fitting prefix of a lone unpinned line. Binary search keeps
+    # this deterministic fallback small while retaining more context than dropping the
+    # whole summary would.
+    if len(obj['lines']) == 1 and not obj['lines'][0].get('pinned'):
+        original = obj['lines'][0]['text']
+        best = None
+        low, high = 1, len(original)
+        while low <= high:
+            middle = (low + high) // 2
+            candidate = original[:middle].rstrip()
+            if middle < len(original):
+                candidate += '…'
+            obj['lines'][0]['text'] = candidate
+            if fits():
+                best = candidate
+                low = middle + 1
+            else:
+                high = middle - 1
+        if best:
+            obj['lines'][0]['text'] = best
+            return obj, 'The summary model exceeded the size cap; its last line was shortened.'
+        obj['lines'][0]['text'] = original
+
     if not fits():
-        warning = 'Pinned lines alone exceed the summary size cap — consider unpinning some.'
+        if any(line.get('pinned') for line in obj['lines']):
+            warning = 'Pinned lines alone exceed the summary size cap — consider unpinning some.'
+        else:
+            warning = 'The summary cannot fit the configured size cap without becoming empty.'
     return obj, warning
 
 
@@ -191,13 +284,32 @@ def build_summarizer_messages(prev_text, batch_messages, pins, cap_tokens):
         convo.append(f"{who}: {msg.get('content', '')}")
     convo_text = '\n\n'.join(convo)
     pins_text = '\n'.join(f'- {p}' for p in pins) if pins else '(none)'
-    budget = f"about {cap_tokens}" if cap_tokens and cap_tokens > 0 else "the given"
+    budget = f"no more than {cap_tokens}" if cap_tokens and cap_tokens > 0 else "the given"
     user = (
         f"CURRENT SUMMARY:\n{prev_text or '(empty — this is the first batch)'}\n\n"
         f"PINNED LINES (reproduce these EXACTLY, word-for-word):\n{pins_text}\n\n"
         f"NEW MESSAGES TO FOLD IN:\n{convo_text}\n\n"
         f"Rewrite the running summary so it now covers everything above. "
-        f"Keep it under {budget} tokens."
+        f"The entire output, including headings and bullets, must use {budget} tokens. "
+        "Tighten or merge older unpinned lines instead of merely appending new bullets."
+    )
+    return [
+        {'role': 'system', 'content': SUMMARY_INSTRUCTIONS},
+        {'role': 'user', 'content': user},
+    ]
+
+
+def build_tighten_messages(candidate_text, pins, cap_tokens):
+    """Build one semantic retry when a fold-in response misses the size budget."""
+    pins_text = '\n'.join(f'- {p}' for p in pins) if pins else '(none)'
+    user = (
+        f"OVER-BUDGET SUMMARY DRAFT:\n{candidate_text}\n\n"
+        f"PINNED LINES (reproduce these EXACTLY, word-for-word):\n{pins_text}\n\n"
+        f"This draft is too long. Rewrite and tighten it to no more than {cap_tokens} "
+        "tokens total, including headings and bullets. There is no new chat history to "
+        "add. Merge or compress older unpinned details while preserving relationships, "
+        "motivations, unresolved threads, and every pinned line. Output only the required "
+        "STORY SO FAR and BONDS format."
     )
     return [
         {'role': 'system', 'content': SUMMARY_INSTRUCTIONS},
@@ -213,18 +325,24 @@ def merge_pins(new_obj, prev_obj):
     previously-pinned text missing from ``new_obj`` is re-added, and matching lines are
     re-flagged pinned. Pinned lines are placed under their original section.
     """
-    new_lines = list(summary_lines(new_obj))
-    existing = {line['text'] for line in new_lines}
+    new_lines = [dict(line) for line in summary_lines(new_obj)]
+    existing = {
+        ('bonds' if line.get('section') == 'bonds' else 'story', line['text'])
+        for line in new_lines
+    }
     for pin in summary_lines(prev_obj):
         if not pin.get('pinned'):
             continue
-        if pin['text'] in existing:
+        section = 'bonds' if pin.get('section') == 'bonds' else 'story'
+        key = (section, pin['text'])
+        if key in existing:
             for line in new_lines:
-                if line['text'] == pin['text']:
+                line_section = 'bonds' if line.get('section') == 'bonds' else 'story'
+                if (line_section, line['text']) == key:
                     line['pinned'] = True
         else:
             new_lines.append({
-                'section': 'bonds' if pin.get('section') == 'bonds' else 'story',
+                'section': section,
                 'text': pin['text'],
                 'pinned': True,
             })

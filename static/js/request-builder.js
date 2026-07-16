@@ -6,6 +6,7 @@ import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
 import { selectContextMessages } from './tokenizer.js';
 import { summaryToText } from './summaries.js';
+import { getRawHistoryMessages, getRawMessageTokenBudget } from './context-budget.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST BUILDER
@@ -41,25 +42,26 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
 
     // 1. Build context-limited message slice — lorebook scan needs it before
     //    template resolution.
-    let msgs = excludeLastN > 0 ? state.messages.slice(0, -excludeLastN) : state.messages;
+    let msgs = getRawHistoryMessages(state.messages, { excludeLastN });
     // 0 = no cap (entire history sent). Otherwise, fill back-to-front until the
     // approximate token budget is hit — but first carve out room for the reply.
     // The configured budget is the whole context window; if history is allowed
     // to fill all of it the model has no space left to answer and llama.cpp
     // truncates the response mid-sentence (truncated=1). Reserve Max Response
     // Tokens so prompt + reply fit the window.
-    const ctxBudget = parseInt(el.settingsContextTokens?.value || state.contextMaxTokens || '0', 10) || 0;
-    const maxResponseTokens = parseInt(
-        el.samplerMaxTokens?.value || SAMPLER_DEFAULTS.sampler_max_tokens, 10) || 0;
-    const tokenLimit = ctxBudget > 0 ? Math.max(1, ctxBudget - maxResponseTokens) : 0;
     const stripThinking = !el.sendThinking?.checked;
 
     // Auto Summaries: inject the chat's running summary when enabled. The stored
     // summary is already held within its size cap server-side (enforce_cap), so
     // it's injected as-is.
-    const summaryText = state.activeChat?.summary_enabled
+    const summaryText = state.autoSummariesEnabled !== false
+        && state.activeChat?.summary_enabled
         ? summaryToText(state.activeChat?.summary)
         : '';
+    // The summary shares the model context with raw chat history. Reserve its
+    // actual rendered size before selecting recent messages so request building
+    // and the aged-out boundary use the same budget.
+    const tokenLimit = getRawMessageTokenBudget(summaryText);
     msgs = selectContextMessages(msgs, {
         maxTokens: tokenLimit,
         stripThinking,
@@ -96,6 +98,7 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
 
     // 4. Resolve the active prompt-builder template into the system message.
     const template = sp ? sp.content : '';
+    const userTemplate = sp ? (sp.post_history_content || '') : '';
     const sysContent = resolveTemplateVariables(template, ctx);
 
     const messages = [];
@@ -107,7 +110,6 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     // own text. When it doesn't, it's appended after the history as a trailing
     // reminder (the classic post-history behavior). wrapsUserMessage picks the
     // path; lastUserIdx marks the turn to wrap.
-    const userTemplate = sp ? (sp.post_history_content || '') : '';
     const wrapsUserMessage = /\{\{user_message\}\}/i.test(userTemplate);
     let lastUserIdx = -1;
     if (wrapsUserMessage) {
@@ -139,6 +141,16 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     if (!wrapsUserMessage || lastUserIdx === -1) {
         const rendered = resolveTemplateVariables(userTemplate, ctx);
         if (rendered) messages.push({ role: 'user', content: rendered });
+    }
+
+    // A raw {{summary}} token is not proof that memory survived rendering: it
+    // may sit inside a false conditional. Inspect the actual rendered turns,
+    // then add a system fallback only when the exact non-empty summary is gone.
+    if (summaryText && !messages.some(message => message.content.includes(summaryText))) {
+        const fallback = `[MEMORY — STORY SO FAR]\n${summaryText}`;
+        const system = messages.find(message => message.role === 'system');
+        if (system) system.content += `\n\n${fallback}`;
+        else messages.unshift({ role: 'system', content: fallback });
     }
 
     // 7. Nudge — hidden continuation prompt, not persisted to chat

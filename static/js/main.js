@@ -14,7 +14,7 @@ import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
-import { loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, flushLLMSettingsSave, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
+import { loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave, persistAutoSummariesEnabled, flushLLMSettingsSave, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
     updateSystemPromptContent, populateDefaultTemplateHelp,
@@ -27,10 +27,13 @@ import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
 import { saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
-import { updateContextMeter } from './context-meter.js';
+import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { initCharacterGallery } from './character-gallery.js';
 import { enhanceSettingsSelects } from './custom-select.js';
-import { initSummaryHandlers, renderMemorySummaryCard } from './summaries.js';
+import {
+    initSummaryHandlers, onGlobalSummarySettingChanged, renderMemorySummaryCard,
+    markSummaryRunsCancelled, setSummaryBudgetChangeHandler,
+} from './summaries.js';
 
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
 marked.use({ breaks: true, gfm: true });
@@ -334,9 +337,36 @@ function bindSettingsHandlers() {
         saveLLMSettings({ show_collapse_button: state.showCollapseButton ? '1' : '0' });
     });
     // Auto Summaries config — autosave while typing, flush on blur.
+    el.summaryGlobalToggle?.addEventListener('change', async () => {
+        const previous = state.autoSummariesEnabled;
+        const enabled = el.summaryGlobalToggle.checked;
+        state.autoSummariesEnabled = enabled;
+        const gateSave = persistAutoSummariesEnabled(enabled);
+        // Pausing stops local behavior immediately; resuming starts only after
+        // the backend feature gate has been persisted.
+        if (!enabled) onGlobalSummarySettingChanged();
+        updateContextMeter();
+        updateContextBoundary();
+        try {
+            await gateSave;
+        } catch (e) {
+            state.autoSummariesEnabled = previous;
+            el.summaryGlobalToggle.checked = previous;
+            queueLLMSettingsSave({
+                auto_summaries_enabled: previous ? '1' : '0',
+            });
+            onGlobalSummarySettingChanged();
+            updateContextMeter();
+            updateContextBoundary();
+            return;
+        }
+        if (enabled) await onGlobalSummarySettingChanged();
+        else markSummaryRunsCancelled();
+    });
     el.summaryEndpoint?.addEventListener('input', () => {
         state.summaryApiEndpoint = el.summaryEndpoint.value;
         queueLLMSettingsSave({ summary_api_endpoint: el.summaryEndpoint.value });
+        renderMemorySummaryCard();
     });
     el.summaryEndpoint?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryKey?.addEventListener('input', () => {
@@ -347,6 +377,7 @@ function bindSettingsHandlers() {
     el.summaryModel?.addEventListener('input', () => {
         state.summaryApiModel = el.summaryModel.value;
         queueLLMSettingsSave({ summary_api_model: el.summaryModel.value });
+        renderMemorySummaryCard();
     });
     el.summaryModel?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryCapInput?.addEventListener('input', () => {
@@ -365,15 +396,11 @@ function bindSettingsHandlers() {
     el.apiEndpoint?.addEventListener('input', () => {
         clearModelListCache();
         queueLLMSettingsSave({ api_endpoint: el.apiEndpoint.value });
+        renderMemorySummaryCard();
     });
     el.apiEndpoint?.addEventListener('blur', flushLLMSettingsSave);
     el.apiKey?.addEventListener('input', () => {
-        const v = el.apiKey.value;
-        // Skip masked API keys: bullet-prefixed ("\u2022\u2022…") or containing ellipsis mask ("\u2026")
-        if (v && !v.startsWith('\u2022\u2022') && !v.includes('\u2026')) {
-            clearModelListCache();
-            queueLLMSettingsSave({ api_key: v });
-        }
+        queueMainApiKeySave(el.apiKey.value);
     });
     el.apiKey?.addEventListener('blur', flushLLMSettingsSave);
     el.refreshModels?.addEventListener('click', browseModels);
@@ -519,6 +546,7 @@ function bindSettingsHandlers() {
         updateContextMeter();
         searchModelsFromInput();
         queueLLMSettingsSave({ api_model: el.apiModel.value });
+        renderMemorySummaryCard();
     });
     el.apiModel?.addEventListener('blur', flushLLMSettingsSave);
 
@@ -906,6 +934,10 @@ function bindScrollHandlers() {
 // ═══════════════════════════════════════════════════════════════════════════
 async function init() {
     initElements();
+    setSummaryBudgetChangeHandler(() => {
+        updateContextMeter();
+        updateContextBoundary();
+    });
     initTooltips();
     loadPrefs();
     if (state.sidebarCollapsed) el.sidebar.classList.add('collapsed');

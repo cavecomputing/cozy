@@ -56,7 +56,9 @@ def safe_download_name(name, fallback='download'):
 # Reproduces the legacy hardcoded system-block assembly. Conditional blocks
 # ({{#var}}…{{/var}}) drop out when the variable is empty, so empty fields
 # don't leave dangling section headers.
-DEFAULT_PROMPT_TEMPLATE = """{{#system_prompt}}[System Instructions]
+# Historical stock prompt values are exact-match migration sentinels. Do not
+# edit an existing version; add a new version and migration instead.
+_DEFAULT_PROMPT_TEMPLATE_V1 = """{{#system_prompt}}[System Instructions]
 {{system_prompt}}{{/system_prompt}}
 
 {{#description}}[Character Description]
@@ -78,10 +80,15 @@ DEFAULT_PROMPT_TEMPLATE = """{{#system_prompt}}[System Instructions]
 {{lorebook}}{{/lorebook}}
 
 {{#author_note}}[AUTHOR'S NOTE]
-{{author_note}}{{/author_note}}
+{{author_note}}{{/author_note}}"""
+
+
+_DEFAULT_PROMPT_TEMPLATE_V2 = _DEFAULT_PROMPT_TEMPLATE_V1 + """
 
 {{#summary}}[MEMORY — STORY SO FAR]
 {{summary}}{{/summary}}"""
+
+DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V2
 
 
 DEFAULT_POST_HISTORY_TEMPLATE = """{{#post_history_instructions}}[Post-History Instructions]
@@ -120,9 +127,18 @@ def _delete_legacy_context_max_messages(conn):
     )
 
 
+def _add_summary_to_legacy_default_prompt(conn):
+    """Add summary memory to untouched copies of the former stock prompt."""
+    conn.execute(
+        'UPDATE system_prompts SET content=? WHERE content=?',
+        (_DEFAULT_PROMPT_TEMPLATE_V2, _DEFAULT_PROMPT_TEMPLATE_V1),
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
+    (3, 'add_summary_to_legacy_default_prompt', _add_summary_to_legacy_default_prompt),
 )
 
 
@@ -313,7 +329,10 @@ def init_db():
         # A server restart kills any in-flight summary thread; clear stale state so
         # a chat isn't stuck showing "running" forever. Partial progress is safe:
         # the worker persists summary_json + watermark after each batch.
-        conn.execute("UPDATE chats SET summary_status='idle' WHERE summary_status='running'")
+        conn.execute(
+            "UPDATE chats SET summary_status='idle', summary_status_detail='' "
+            "WHERE summary_status='running'"
+        )
 
         collection_cols = [c[1] for c in conn.execute('PRAGMA table_info(character_collections)').fetchall()]
         if collection_cols and 'icon' not in collection_cols:
@@ -346,8 +365,9 @@ def init_db():
             "INSERT INTO settings (key, value) VALUES ('extra_request_params', '') "
             "ON CONFLICT(key) DO NOTHING"
         )
-        # Auto Summaries — configuration defaults (enablement is per-chat, not here).
+        # Auto Summaries — global feature gate plus per-chat behavior defaults.
         for _sk, _sv in (
+            ('auto_summaries_enabled', '1'),
             ('summary_api_endpoint', ''),
             ('summary_api_key', ''),
             ('summary_api_model', ''),

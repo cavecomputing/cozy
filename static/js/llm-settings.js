@@ -11,7 +11,7 @@ let modelFetchRequestId = 0;
 let modelListLoaded = false;
 let settingsSaveTimer = null;
 let pendingSettings = {};
-let settingsSaveInFlight = Promise.resolve();
+let settingsDrainInFlight = null;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LLM SETTINGS
@@ -47,28 +47,74 @@ export function queueLLMSettingsSave(fields) {
     settingsSaveTimer = setTimeout(flushLLMSettingsSave, SETTINGS_SAVE_DEBOUNCE_MS);
 }
 
-/** Persist queued edits immediately, preserving their active-preset target. */
-export async function flushLLMSettingsSave() {
-    clearTimeout(settingsSaveTimer);
-    settingsSaveTimer = null;
-    if (Object.keys(pendingSettings).length === 0) return settingsSaveInFlight;
+/** Queue a main API key edit, including an explicit empty-string clear. */
+export function queueMainApiKeySave(value) {
+    const v = value == null ? '' : String(value);
+    // A rendered mask is only a placeholder for the stored secret. Empty is a
+    // real edit and must reach the backend so users can clear the key.
+    if (v && (v.startsWith('\u2022\u2022') || v.includes('\u2026'))) return false;
+    clearModelListCache();
+    queueLLMSettingsSave({ api_key: v });
+    return true;
+}
 
-    const fields = pendingSettings;
-    pendingSettings = {};
-    const presetId = state.activePresetId ? String(state.activePresetId) : null;
-    const presetSnapshot = presetId ? collectPresetSettings() : null;
+/** Persist the global summaries gate immediately; workers read it server-side. */
+export function persistAutoSummariesEnabled(enabled) {
+    queueLLMSettingsSave({ auto_summaries_enabled: enabled ? '1' : '0' });
+    return flushLLMSettingsSave({ strict: true });
+}
 
-    const persist = async () => {
+async function drainLLMSettingsQueue() {
+    // There is only ever one drain. Besides making the barrier deterministic,
+    // this prevents an older failed snapshot from being restored behind a
+    // newer same-field snapshot and then overwriting it on retry.
+    while (Object.keys(pendingSettings).length > 0) {
+        clearTimeout(settingsSaveTimer);
+        settingsSaveTimer = null;
+
+        const fields = pendingSettings;
+        pendingSettings = {};
+        const presetId = state.activePresetId ? String(state.activePresetId) : null;
+
         try {
+            const presetSnapshot = presetId ? collectPresetSettings() : null;
             await API.saveSettings(fields);
             if (presetId) await API.updatePreset(presetId, presetSnapshot);
-        } catch (e) {
-            console.warn('Failed to autosave LLM settings:', e);
-            showToast('Failed to save settings: ' + e.message);
+        } catch (error) {
+            // Newer edits accumulated while this snapshot was saving. They win
+            // field-by-field when the failed snapshot is put back for retry.
+            pendingSettings = { ...fields, ...pendingSettings };
+            console.warn('Failed to autosave LLM settings:', error);
+            showToast('Failed to save settings: ' + error.message);
+            return { ok: false, error };
         }
-    };
-    settingsSaveInFlight = settingsSaveInFlight.then(persist, persist);
-    return settingsSaveInFlight;
+    }
+    return { ok: true, error: null };
+}
+
+/** Persist queued edits immediately, preserving their active-preset target. */
+export async function flushLLMSettingsSave({ strict = false } = {}) {
+    clearTimeout(settingsSaveTimer);
+    settingsSaveTimer = null;
+
+    // Strict and debounced callers share the same drain and therefore observe
+    // the same result. A background flush cannot consume an error and let a
+    // simultaneous send continue with stale server settings.
+    if (!settingsDrainInFlight) {
+        const drain = drainLLMSettingsQueue();
+        settingsDrainInFlight = drain;
+        const clearDrain = () => {
+            if (settingsDrainInFlight === drain) settingsDrainInFlight = null;
+        };
+        // Register both branches explicitly so cleanup never creates a second
+        // unobserved rejected promise.
+        void drain.then(clearDrain, clearDrain);
+    }
+    const result = await settingsDrainInFlight;
+    if (!result.ok && strict) {
+        throw new Error(`Settings could not be saved: ${result.error.message}`);
+    }
+    return result;
 }
 
 function setModelMenuOpen(open) {
@@ -151,6 +197,7 @@ export async function fetchModels({ force = false, filter = '' } = {}) {
     el.testResult.textContent = '';
     el.testResult.className = 'settings-test-result';
     try {
+        await flushLLMSettingsSave({ strict: true });
         if (force || !modelListLoaded) await loadModels();
         if (filter) {
             openModelSearchResults(filter);
@@ -169,7 +216,7 @@ export async function fetchModels({ force = false, filter = '' } = {}) {
 }
 
 export function browseModels() {
-    fetchModels({ force: true });
+    return fetchModels({ force: true });
 }
 
 export function searchModelsFromInput() {
@@ -209,6 +256,7 @@ export async function testLLMConnection() {
     el.testResult.textContent = 'Testing\u2026';
     el.testResult.className = 'settings-test-result';
     try {
+        await flushLLMSettingsSave({ strict: true });
         const body = await API.testLLM();
         el.testResult.textContent = 'Connected! Reply: ' + body.reply;
         el.testResult.className = 'settings-test-result success';
@@ -296,11 +344,13 @@ function applySettingsToUI(s) {
     state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';
     if (el.lorebookAlwaysInjectAll) el.lorebookAlwaysInjectAll.checked = state.lorebookAlwaysInjectAll;
     // Auto Summaries config
+    state.autoSummariesEnabled = s.auto_summaries_enabled !== '0';
     state.summaryApiEndpoint = s.summary_api_endpoint || '';
     state.summaryApiKeySet   = s.summary_api_key_set || false;
     state.summaryApiModel    = s.summary_api_model || '';
     state.summaryCapPct      = s.summary_cap_pct || '10';
     state.summaryTriggerInterval = s.summary_trigger_interval || '20';
+    if (el.summaryGlobalToggle) el.summaryGlobalToggle.checked = state.autoSummariesEnabled;
     if (el.summaryEndpoint) el.summaryEndpoint.value = state.summaryApiEndpoint;
     if (el.summaryKey) {
         el.summaryKey.value = state.summaryApiKeySet ? '••••••••' : '';
@@ -315,7 +365,7 @@ function applySettingsToUI(s) {
 export async function activatePreset(id) {
     if (!id) { updatePresetButtonStates(); return; }
     try {
-        await flushLLMSettingsSave();
+        await flushLLMSettingsSave({ strict: true });
         const s = await API.activatePreset(id);
         clearModelListCache();
         applySettingsToUI(s);
@@ -353,7 +403,7 @@ export async function createNewPreset() {
     const name = prompt('Preset name:');
     if (!name || !name.trim()) return;
     try {
-        await flushLLMSettingsSave();
+        await flushLLMSettingsSave({ strict: true });
         const created = await API.createPreset({
             name: name.trim(),
             ...collectPresetSettings(),
@@ -376,7 +426,7 @@ export async function deletePreset() {
     const preset = state.apiPresets.find(p => String(p.id) === id);
     if (!(await confirmDialog({ title: `Delete preset "${preset?.name || id}"?` }))) return;
     try {
-        await flushLLMSettingsSave();
+        await flushLLMSettingsSave({ strict: true });
         await API.deletePreset(id);
         state.activePresetId = null;
         await loadPresets();

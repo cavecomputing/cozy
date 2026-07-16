@@ -200,6 +200,54 @@ class TestSchemaMigrationLedger:
         ] == _registered_migrations()
         assert 'context_max_messages' not in client.get('/api/settings').get_json()
 
+    def test_unversioned_upgrade_adds_summary_to_legacy_default_prompt(self):
+        with shared.get_db() as conn:
+            conn.execute('DROP TABLE schema_migrations')
+            conn.execute(
+                'UPDATE system_prompts SET content=? WHERE name=?',
+                (shared._DEFAULT_PROMPT_TEMPLATE_V1, 'Default'),
+            )
+
+        shared.init_db()
+        after_upgrade = _migration_rows()
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+        assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
+        assert '{{#summary}}' in prompt['content']
+        assert _migration_rows() == after_upgrade
+
+    def test_summary_prompt_migration_preserves_customized_prompt(self):
+        custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V1 + '\n\nCustom instructions.'
+        migration_version = shared.MIGRATIONS[-1][0]
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE system_prompts SET content=? WHERE name=?',
+                (custom_prompt, 'Default'),
+            )
+            conn.execute(
+                'DELETE FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            )
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+            migration = conn.execute(
+                'SELECT name FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            ).fetchone()
+        assert prompt['content'] == custom_prompt
+        assert migration['name'] == 'add_summary_to_legacy_default_prompt'
+
     def test_init_db_runs_twice_safely(self):
         """Running init_db repeatedly on an existing DB should be a no-op."""
         shared.init_db()

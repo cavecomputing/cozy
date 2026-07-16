@@ -38,7 +38,7 @@ Production (Docker) runs gunicorn with the `gthread` worker class — required b
 
 ## Architecture
 
-Single-process Flask app. Entry point [app.py](app.py) registers seven blueprints from [routes/](routes/), all serving `/api/*`. [shared.py](shared.py) owns paths, the SQLite connection (`get_db()` context manager), `init_db()` schema + seed data, and the `DEFAULT_PROMPT_TEMPLATE`. The frontend is a single SPA loaded from [templates/index.html](templates/index.html) with vanilla-JS modules under [static/js/](static/js/) (entry: [main.js](static/js/main.js)).
+Single-process Flask app. Entry point [app.py](app.py) registers eight blueprints from [routes/](routes/), all serving `/api/*`. [shared.py](shared.py) owns paths, the SQLite connection (`get_db()` context manager), `init_db()` schema + seed data, and the `DEFAULT_PROMPT_TEMPLATE`. The frontend is a single SPA loaded from [templates/index.html](templates/index.html) with vanilla-JS modules under [static/js/](static/js/) (entry: [main.js](static/js/main.js)).
 
 ### Data lives in two places
 

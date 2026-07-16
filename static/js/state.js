@@ -36,6 +36,7 @@ export const state = {
     lorebookAlwaysInjectAll: false,
     extraRequestParams: '',
     // Auto Summaries — global config (per-chat enablement lives on activeChat)
+    autoSummariesEnabled: true,
     summaryApiEndpoint:  '',
     summaryApiKeySet:    false,
     summaryApiModel:     '',
@@ -206,6 +207,7 @@ export function initElements() {
         summaryResetBtn:     document.getElementById('summary-reset-btn'),
         summaryConfigHint:   document.getElementById('summary-config-hint'),
         // Auto Summaries — global settings tab
+        summaryGlobalToggle: document.getElementById('settings-auto-summaries-toggle'),
         summaryEndpoint:     document.getElementById('settings-summary-endpoint'),
         summaryKey:          document.getElementById('settings-summary-key'),
         summaryModel:        document.getElementById('settings-summary-model'),

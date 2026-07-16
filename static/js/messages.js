@@ -8,6 +8,8 @@ import {
 import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { generateResponse } from './request-builder.js';
+import { ensureSummaryReadyForSend } from './summaries.js';
+import { flushLLMSettingsSave } from './llm-settings.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CHAT — MESSAGES
@@ -52,7 +54,7 @@ function updateSwipeNav(msgEl, swipes, idx, isGreeting) {
     next.title = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
 }
 
-async function generateSwipe(msgEl, swipes, idx) {
+export async function generateSwipe(msgEl, swipes, idx) {
     if (!state.apiModel) {
         showApiNotice();
         return null;
@@ -73,6 +75,8 @@ async function generateSwipe(msgEl, swipes, idx) {
 
     let newContent;
     try {
+        await flushLLMSettingsSave({ strict: true });
+        await ensureSummaryReadyForSend(regenSignal, { excludeLastN: 1 });
         newContent = await generateResponse(1, (accumulated) => {
             const parsed = parseThinkingContent(accumulated);
             renderThinkingBlock(msgBody, parsed);

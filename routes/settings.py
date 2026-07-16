@@ -40,7 +40,7 @@ SETTINGS_KEYS = {
     'extra_request_params',
     # Auto Summaries — configuration (per-chat enablement lives on the chat row)
     'summary_api_endpoint', 'summary_api_key', 'summary_api_model',
-    'summary_cap_pct', 'summary_trigger_interval',
+    'summary_cap_pct', 'summary_trigger_interval', 'auto_summaries_enabled',
 }
 
 # Settings keys holding secrets: masked on read, and skipped on write when the
@@ -58,10 +58,9 @@ def mask_secret(value, field='api_key'):
 
 
 def is_masked_secret(value):
-    if not value:
-        return True
-    value = str(value).strip()
-    return not value or value.startswith('••') or '…' in value
+    value = '' if value is None else str(value).strip()
+    # Empty is an explicit clear. Only the UI's masked placeholder is ignored.
+    return bool(value) and (value.startswith('••') or '…' in value)
 
 
 def get_settings():
@@ -99,12 +98,20 @@ def write_settings():
         for key in SETTINGS_KEYS:
             if key in data:
                 val = _setting_value(data[key])
-                # Allow clearing, or setting a new value.
-                # For secret keys, skip if the placeholder/masked value is sent back
+                # Allow an explicit empty string to clear, or set a new value.
+                # For secret keys, skip only if the placeholder/masked value is sent back
                 # so the stored key isn't clobbered by its own mask.
                 if key in SECRET_KEYS and is_masked_secret(val):
                     continue
                 upsert_setting(conn, key, val)
+        if ('auto_summaries_enabled' in data
+                and _setting_value(data['auto_summaries_enabled']) == '0'):
+            # The gate change and cancellation commit together. A worker already in an
+            # HTTP call will see idle afterward and discard its response.
+            conn.execute(
+                "UPDATE chats SET summary_status='idle', summary_status_detail='' "
+                "WHERE summary_status='running'"
+            )
     return read_settings()
 
 
@@ -317,8 +324,9 @@ def create_preset():
     if not name:
         return jsonify({'error': 'name is required'}), 400
     # If no real key was provided, inherit the current one from settings
-    key_val = data.get('api_key', '')
-    if is_masked_secret(key_val):
+    key_supplied = 'api_key' in data
+    key_val = _setting_value(data.get('api_key', ''))
+    if not key_supplied or is_masked_secret(key_val):
         s = get_settings()
         key_val = s.get('api_key', '')
     with get_db() as conn:
@@ -356,12 +364,12 @@ def update_preset(preset_id):
         endpoint = data.get('api_endpoint', row['api_endpoint'])
         model = data.get('api_model', row['api_model'])
         ctx_tokens = data.get('context_max_tokens', row['context_max_tokens'])
-        # Only update api_key if a real (non-masked) value was sent
-        key_val = data.get('api_key', '')
-        if not is_masked_secret(key_val):
-            key = key_val
-        else:
+        # Missing or masked leaves the key alone; explicit empty clears it.
+        key_val = _setting_value(data.get('api_key', ''))
+        if 'api_key' not in data or is_masked_secret(key_val):
             key = row['api_key']
+        else:
+            key = key_val
         settings_json = _pack_preset_settings(data, base=_unpack_preset_settings(row))
         conn.execute(
             'UPDATE api_presets SET name=?, api_endpoint=?, api_key=?, api_model=?, '

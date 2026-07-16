@@ -637,9 +637,20 @@
                     <div class="settings-section" data-section="summaries" hidden>
                         <header class="settings-page-header">
                             <h3>Auto Summaries</h3>
-                            <p>Keep a running memory of everything that scrolls out of the context window. Turn it on <strong>per chat</strong> from the memory button in the chat bar — this page just configures how it works.</p>
+                            <p>Keep a running memory of everything that scrolls out of the context window. Pause the feature globally here, then choose which chats use it from the memory button in the chat bar.</p>
                         </header>
                         <div class="settings-section-body settings-section-stack">
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Availability</h4>
+                                    <p>Pause or resume summary memory across every chat without clearing saved summaries or per-chat choices.</p>
+                                </header>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-auto-summaries-toggle">Enable Auto Summaries globally</label>
+                                    <input type="checkbox" id="settings-auto-summaries-toggle" checked>
+                                </div>
+                                <p class="settings-hint">When paused, summaries are not updated, injected, or counted against context. Per-chat settings are retained.</p>
+                            </section>
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Summarizer model</h4>
@@ -663,7 +674,7 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Behavior</h4>
-                                    <p>How large the summary may grow and how often it folds in aged-out messages.</p>
+                                    <p>How large the summary may grow and how many messages each model call processes.</p>
                                 </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-summary-cap-pct">Size cap (% of context)</label>
@@ -671,10 +682,10 @@
                                 </div>
                                 <p class="settings-hint">The summary is capped at this percentage of the Max Context Tokens budget. Pinned lines count inside this budget. Counts are estimates marked with <code>&#8776;</code>.</p>
                                 <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-summary-interval">Fold-in interval (messages)</label>
+                                    <label class="settings-row-label" for="settings-summary-interval">Messages per summarizer batch</label>
                                     <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="20">
                                 </div>
-                                <p class="settings-hint">Aged-out messages accumulate until this many are waiting, then one summarize run folds them in. Larger = fewer, bigger summarizer calls.</p>
+                                <p class="settings-hint">Updates start as soon as history leaves the context window. This controls how many messages each summarizer call folds in; larger values mean fewer, bigger calls.</p>
                             </section>
                         </div>
                     </div>

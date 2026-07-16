@@ -162,8 +162,14 @@ export const API = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ up_to_msg_id, rebuild }),
         });
-        // 202 = started, 409 = already running — both return the current summary state.
-        if (r.status === 202 || r.status === 409) return r.json();
+        // 202 = started. Only an explicitly already-running 409 is joinable;
+        // other conflicts must remain visible to the caller.
+        if (r.status === 202) return r.json();
+        if (r.status === 409) {
+            const body = await r.json().catch(() => ({}));
+            if (body.already_running && body.summary_status) return body;
+            throw new Error(body.error || 'Summary run failed');
+        }
         if (!r.ok) throw new Error(await apiError(r, 'Summary run failed'));
         return r.json();
     },
@@ -172,6 +178,13 @@ export const API = {
     },
     async resetSummary(chatId) {
         return jsonRequest(`/api/chats/${chatId}/summary/reset`, { method: 'POST', fallback: 'Summary reset failed' });
+    },
+    async updateSummaryPin(chatId, { text, section, pinned }) {
+        return jsonRequest(`/api/chats/${chatId}/summary/pins`, {
+            method: 'PUT',
+            body: { text, section, pinned },
+            fallback: 'Pin update failed',
+        });
     },
 
     // Messages
