@@ -11,6 +11,7 @@ import { API } from './api.js';
 import { getContextBoundaryMsgId, estimateTextTokens } from './tokenizer.js';
 import { SAMPLER_DEFAULTS } from './sampler.js';
 import { showToast } from './utils.js';
+import { confirmDialog } from './confirm.js';
 
 const STORY_HEADING = 'STORY SO FAR';
 const BONDS_HEADING = 'BONDS';
@@ -132,7 +133,13 @@ async function triggerRun({ rebuild = false } = {}) {
     if (!chat) return;
     const agedOut = agedOutMessages();
     const upTo = agedOut.length ? agedOut[agedOut.length - 1].id : null;
-    if (upTo == null) { renderMemorySummaryCard(); return; }  // nothing outside the window yet
+    if (upTo == null) {
+        // Nothing is outside the context window. On an explicit rebuild that means
+        // a grown context now fits everything — clear any lingering stale summary.
+        if (rebuild) await clearSummary();
+        else renderMemorySummaryCard();
+        return;
+    }
     try {
         const st = await API.runSummary(chat.id, { up_to_msg_id: upTo, rebuild });
         applySummaryState(st);
@@ -188,6 +195,36 @@ async function disableSummariesForChat() {
 function rebuildSummary() {
     if (!state.activeChat?.summary_enabled) return;
     triggerRun({ rebuild: true });
+}
+
+/** Wipe the summary + watermark to empty (no LLM call). */
+async function clearSummary() {
+    const chat = state.activeChat;
+    if (!chat) return;
+    stopStatusPolling();
+    try {
+        const st = await API.resetSummary(chat.id);
+        applySummaryState(st);
+    } catch (e) {
+        showToast('Could not reset summary: ' + e.message);
+    }
+}
+
+/** Reset button: confirm (pins are discarded), then clear to a blank slate. */
+async function resetSummary() {
+    const chat = state.activeChat;
+    if (!chat?.summary_enabled) return;
+    const hasContent = (chat.summary?.lines?.length || 0) > 0;
+    if (hasContent) {
+        const ok = await confirmDialog({
+            title: 'Reset summary?',
+            message: 'This clears the generated summary and any pinned lines for this chat. '
+                + 'You can rebuild it from history afterward.',
+            confirmLabel: 'Reset',
+        });
+        if (!ok) return;
+    }
+    await clearSummary();
 }
 
 async function togglePin(index) {
@@ -300,8 +337,10 @@ export function renderMemorySummaryCard() {
     toggle.disabled = !chat;
 
     if (el.summaryConfigHint) el.summaryConfigHint.hidden = !(enabled && !summarizerConfigured());
-    if (el.summaryRebuildBtn) {
-        el.summaryRebuildBtn.disabled = !enabled || chat?.summary_status === 'running';
+    const busy = chat?.summary_status === 'running';
+    if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !enabled || busy;
+    if (el.summaryResetBtn) {
+        el.summaryResetBtn.disabled = !enabled || busy || !(chat?.summary?.lines?.length);
     }
     renderStatus();
     renderLines(enabled);
@@ -321,4 +360,5 @@ export function initSummaryHandlers() {
         else disableSummariesForChat();
     });
     el.summaryRebuildBtn?.addEventListener('click', rebuildSummary);
+    el.summaryResetBtn?.addEventListener('click', resetSummary);
 }

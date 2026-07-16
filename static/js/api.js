@@ -170,6 +170,9 @@ export const API = {
     async getSummaryStatus(chatId) {
         return jsonRequest(`/api/chats/${chatId}/summary/status`, { fallback: 'Failed to load summary status' });
     },
+    async resetSummary(chatId) {
+        return jsonRequest(`/api/chats/${chatId}/summary/reset`, { method: 'POST', fallback: 'Summary reset failed' });
+    },
 
     // Messages
     async getMessages(chatId) {

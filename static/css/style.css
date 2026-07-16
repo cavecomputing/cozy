@@ -5550,10 +5550,16 @@ input[type="checkbox"]:disabled {
 .summary-pin-btn.pinned { color: var(--accent-color); opacity: 1; }
 .summary-actions {
     display: flex;
+    gap: 0.4rem;
     margin-bottom: 0.5rem;
 }
-.summary-rebuild-btn svg { width: 14px; height: 14px; }
-.summary-rebuild-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.summary-actions .lorebook-flyout-manage { flex: 1; justify-content: center; }
+.summary-rebuild-btn svg,
+.summary-reset-btn svg { width: 14px; height: 14px; }
+.summary-rebuild-btn:disabled,
+.summary-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.summary-reset-btn { flex: 0 0 auto !important; }
+.summary-reset-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 
 /* Settings panel — global controls plus a responsive lorebook workspace */
 .lorebook-section-body {

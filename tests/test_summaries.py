@@ -218,6 +218,30 @@ def test_run_endpoint_missing_chat(client):
     assert r.status_code == 404
 
 
+def test_reset_endpoint_clears_summary_and_watermark(client, sample_chat, monkeypatch):
+    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+    ids = _add_messages(client, sample_chat['id'], 3)
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    # Pin a line so we can confirm pins are discarded too.
+    client.put(f'/api/chats/{sample_chat["id"]}',
+               json={'summary_json': {'lines': [{'section': 'bonds', 'text': 'keep?', 'pinned': True}]}})
+
+    r = client.post(f'/api/chats/{sample_chat["id"]}/summary/reset')
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body['summary'] == {'lines': []}
+    assert body['summary_up_to_msg_id'] is None
+    assert body['summary_status'] == 'idle'
+    with shared.get_db() as conn:
+        row = conn.execute('SELECT summary_json, summary_up_to_msg_id FROM chats WHERE id=?',
+                           (sample_chat['id'],)).fetchone()
+    assert row['summary_json'] == '' and row['summary_up_to_msg_id'] is None
+
+
+def test_reset_endpoint_missing_chat(client):
+    assert client.post('/api/chats/999999/summary/reset').status_code == 404
+
+
 def test_status_endpoint(client, sample_chat):
     r = client.get(f'/api/chats/{sample_chat["id"]}/summary/status')
     assert r.status_code == 200

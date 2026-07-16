@@ -207,6 +207,7 @@ export function initElements() {
         summaryStatus:       document.getElementById('summary-status'),
         summaryLines:        document.getElementById('summary-lines'),
         summaryRebuildBtn:   document.getElementById('summary-rebuild-btn'),
+        summaryResetBtn:     document.getElementById('summary-reset-btn'),
         summaryConfigHint:   document.getElementById('summary-config-hint'),
         // Auto Summaries — global settings tab
         summaryEndpoint:     document.getElementById('settings-summary-endpoint'),

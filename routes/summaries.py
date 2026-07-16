@@ -238,6 +238,26 @@ def run_summary(chat_id):
     return jsonify(_summary_state(fresh)), 202
 
 
+@summaries_bp.route('/api/chats/<int:chat_id>/summary/reset', methods=['POST'])
+def reset_summary(chat_id):
+    """Clear the summary, pins, and watermark — a clean slate, no LLM call.
+
+    Useful after changing the context size: growing it can leave a now-unneeded
+    summary lingering, and shrinking it may need a fresh start over a different set
+    of aged-out messages (follow with a run/rebuild to regenerate)."""
+    with get_db() as conn:
+        row = conn.execute('SELECT id FROM chats WHERE id=?', (chat_id,)).fetchone()
+        if not row:
+            return not_found('Chat')
+        conn.execute(
+            "UPDATE chats SET summary_json='', summary_up_to_msg_id=NULL, "
+            "summary_status='idle', summary_status_detail='' WHERE id=?",
+            (chat_id,)
+        )
+        fresh = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+    return jsonify(_summary_state(fresh))
+
+
 @summaries_bp.route('/api/chats/<int:chat_id>/summary/status', methods=['GET'])
 def summary_status(chat_id):
     """Current summary state for polling: status, progress detail, and the summary."""
