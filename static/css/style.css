@@ -5421,6 +5421,140 @@ input[type="checkbox"]:disabled {
     font-size: 0.72rem;
 }
 
+/* Auto Summary card (memory flyout) */
+.memory-card-header .summary-switch {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+.summary-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.summary-switch-track {
+    display: inline-block;
+    width: 34px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--border-color);
+    position: relative;
+    transition: background 0.15s ease;
+}
+.summary-switch-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.15s ease;
+}
+.summary-switch input:checked + .summary-switch-track {
+    background: var(--accent-color);
+}
+.summary-switch input:checked + .summary-switch-track::after {
+    transform: translateX(16px);
+}
+.summary-switch input:focus-visible + .summary-switch-track {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+.summary-switch input:disabled + .summary-switch-track {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.summary-status {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.summary-status:empty { display: none; }
+.summary-status.is-error,
+.summary-status.is-warning { color: var(--danger-color, #e5534b); }
+.summary-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex: none;
+}
+.summary-config-hint { margin-bottom: 0.5rem; }
+.summary-settings-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent-color);
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+}
+.summary-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    max-height: 40vh;
+    overflow-y: auto;
+    margin-bottom: 0.6rem;
+}
+.summary-group-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin: 0.4rem 0 0.15rem;
+}
+.summary-group-label:first-child { margin-top: 0; }
+.summary-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.2rem 0.15rem;
+    border-radius: var(--radius-sm);
+}
+.summary-line.pinned { background: var(--active-bg); }
+.summary-line-text {
+    font-size: 0.8rem;
+    line-height: 1.35;
+    color: var(--text-color);
+    flex: 1;
+}
+.summary-pin-btn {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    padding: 3px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.12s ease, color 0.12s ease;
+}
+.summary-pin-btn svg { width: 100%; height: 100%; display: block; }
+.summary-pin-btn:hover { opacity: 1; }
+.summary-pin-btn.pinned { color: var(--accent-color); opacity: 1; }
+.summary-actions {
+    display: flex;
+    margin-bottom: 0.5rem;
+}
+.summary-rebuild-btn svg { width: 14px; height: 14px; }
+.summary-rebuild-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Settings panel — global controls plus a responsive lorebook workspace */
 .lorebook-section-body {
     display: flex;

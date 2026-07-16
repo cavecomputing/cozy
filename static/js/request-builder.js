@@ -5,6 +5,7 @@ import { parseThinkingContent } from './thinking.js';
 import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
 import { selectContextMessages, truncateTextToTokens } from './tokenizer.js';
+import { summaryToText } from './summaries.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST BUILDER
@@ -52,6 +53,14 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         el.samplerMaxTokens?.value || SAMPLER_DEFAULTS.sampler_max_tokens, 10) || 0;
     const tokenLimit = ctxBudget > 0 ? Math.max(1, ctxBudget - maxResponseTokens) : 0;
     const stripThinking = !el.sendThinking?.checked;
+
+    // Auto Summaries: inject the chat's running summary when enabled, capped at a
+    // percentage of the context window (mirrors the author's-note pattern).
+    const summaryCapPct = parseFloat(state.summaryCapPct || '10') || 10;
+    const summaryCapTokens = ctxBudget > 0 ? Math.floor(ctxBudget * summaryCapPct / 100) : 0;
+    const summaryText = state.activeChat?.summary_enabled
+        ? truncateTextToTokens(summaryToText(state.activeChat?.summary), summaryCapTokens)
+        : '';
     msgs = selectContextMessages(msgs, {
         maxTokens: tokenLimit,
         stripThinking,
@@ -79,6 +88,7 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
         mesExamples:   c.mes_example || '',
         lorebook:      lorebookText,
         author_note:   truncateTextToTokens(state.activeChat?.author_note || '', state.authorNoteTokenLimit),
+        summary:       summaryText,
         system_prompt: c.system_prompt || '',
         post_history_instructions: c.post_history_instructions || '',
     };

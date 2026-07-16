@@ -38,6 +38,13 @@ export const state = {
     lorebookScanDepthOverride: 0,
     lorebookAlwaysInjectAll: false,
     extraRequestParams: '',
+    // Auto Summaries — global config (per-chat enablement lives on activeChat)
+    summaryApiEndpoint:  '',
+    summaryApiKeySet:    false,
+    summaryApiModel:     '',
+    summaryCapPct:       '10',
+    summaryTriggerInterval: '20',
+    _summaryPollTimer:   null,   // interval id while a run is polling
 };
 
 // Active LLM request controller — mutable ref shared across modules
@@ -195,6 +202,18 @@ export function initElements() {
         lorebookSave:        document.getElementById('settings-lorebook-save'),
         lorebookDestination: document.getElementById('settings-lorebook-destination'),
         extraParams: document.getElementById('settings-extra-params'),
+        // Auto Summaries — per-chat memory card (inside the memory flyout)
+        summaryToggle:       document.getElementById('summary-enable-toggle'),
+        summaryStatus:       document.getElementById('summary-status'),
+        summaryLines:        document.getElementById('summary-lines'),
+        summaryRebuildBtn:   document.getElementById('summary-rebuild-btn'),
+        summaryConfigHint:   document.getElementById('summary-config-hint'),
+        // Auto Summaries — global settings tab
+        summaryEndpoint:     document.getElementById('settings-summary-endpoint'),
+        summaryKey:          document.getElementById('settings-summary-key'),
+        summaryModel:        document.getElementById('settings-summary-model'),
+        summaryCapInput:     document.getElementById('settings-summary-cap-pct'),
+        summaryIntervalInput: document.getElementById('settings-summary-interval'),
     });
 }
 

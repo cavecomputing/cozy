@@ -297,6 +297,20 @@ function applySettingsToUI(s) {
     if (el.lorebookScanOverride) el.lorebookScanOverride.value = String(state.lorebookScanDepthOverride);
     state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';
     if (el.lorebookAlwaysInjectAll) el.lorebookAlwaysInjectAll.checked = state.lorebookAlwaysInjectAll;
+    // Auto Summaries config
+    state.summaryApiEndpoint = s.summary_api_endpoint || '';
+    state.summaryApiKeySet   = s.summary_api_key_set || false;
+    state.summaryApiModel    = s.summary_api_model || '';
+    state.summaryCapPct      = s.summary_cap_pct || '10';
+    state.summaryTriggerInterval = s.summary_trigger_interval || '20';
+    if (el.summaryEndpoint) el.summaryEndpoint.value = state.summaryApiEndpoint;
+    if (el.summaryKey) {
+        el.summaryKey.value = state.summaryApiKeySet ? '••••••••' : '';
+        el.summaryKey.placeholder = state.summaryApiKeySet ? 'Key saved (edit to change)' : 'sk-...';
+    }
+    if (el.summaryModel) el.summaryModel.value = state.summaryApiModel;
+    if (el.summaryCapInput) el.summaryCapInput.value = state.summaryCapPct;
+    if (el.summaryIntervalInput) el.summaryIntervalInput.value = state.summaryTriggerInterval;
     state.modelContextLength = state.modelDetails[state.apiModel] ?? null;
 }
 

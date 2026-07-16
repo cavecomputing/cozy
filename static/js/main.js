@@ -30,6 +30,7 @@ import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashC
 import { updateContextMeter } from './context-meter.js';
 import { initCharacterGallery } from './character-gallery.js';
 import { enhanceSettingsSelects } from './custom-select.js';
+import { initSummaryHandlers, renderMemorySummaryCard } from './summaries.js';
 
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
 marked.use({ breaks: true, gfm: true });
@@ -338,6 +339,34 @@ function bindSettingsHandlers() {
         queueLLMSettingsSave({ author_note_token_limit: String(state.authorNoteTokenLimit) });
     });
     el.settingsAuthorNoteLimit?.addEventListener('blur', flushLLMSettingsSave);
+
+    // Auto Summaries config — autosave while typing, flush on blur.
+    el.summaryEndpoint?.addEventListener('input', () => {
+        state.summaryApiEndpoint = el.summaryEndpoint.value;
+        queueLLMSettingsSave({ summary_api_endpoint: el.summaryEndpoint.value });
+    });
+    el.summaryEndpoint?.addEventListener('blur', flushLLMSettingsSave);
+    el.summaryKey?.addEventListener('input', () => {
+        state.summaryApiKeySet = !!el.summaryKey.value;
+        queueLLMSettingsSave({ summary_api_key: el.summaryKey.value });
+    });
+    el.summaryKey?.addEventListener('blur', flushLLMSettingsSave);
+    el.summaryModel?.addEventListener('input', () => {
+        state.summaryApiModel = el.summaryModel.value;
+        queueLLMSettingsSave({ summary_api_model: el.summaryModel.value });
+    });
+    el.summaryModel?.addEventListener('blur', flushLLMSettingsSave);
+    el.summaryCapInput?.addEventListener('input', () => {
+        state.summaryCapPct = el.summaryCapInput.value || '10';
+        queueLLMSettingsSave({ summary_cap_pct: state.summaryCapPct });
+        renderMemorySummaryCard();
+    });
+    el.summaryCapInput?.addEventListener('blur', flushLLMSettingsSave);
+    el.summaryIntervalInput?.addEventListener('input', () => {
+        state.summaryTriggerInterval = el.summaryIntervalInput.value || '20';
+        queueLLMSettingsSave({ summary_trigger_interval: state.summaryTriggerInterval });
+    });
+    el.summaryIntervalInput?.addEventListener('blur', flushLLMSettingsSave);
 
     // LLM API settings — autosave while typing, then flush on blur.
     el.apiEndpoint?.addEventListener('input', () => {
@@ -650,6 +679,7 @@ function bindMemoryHandlers() {
         if (!isOpen) {
             renderLorebookFlyout();
             loadAuthorNote();
+            renderMemorySummaryCard();
         } else {
             flushAuthorNote();
         }
@@ -679,6 +709,13 @@ function bindMemoryHandlers() {
         // Open settings on the lorebooks tab
         if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
         applySettingsSection('lorebooks', { drillIntoOnMobile: true });
+    });
+    // Summary config hint — deep-link to the Auto Summaries settings tab
+    el.summaryConfigHint?.querySelector('#summary-open-settings')?.addEventListener('click', e => {
+        e.stopPropagation();
+        el.memoryFlyout.hidden = true;
+        if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
+        applySettingsSection('summaries', { drillIntoOnMobile: true });
     });
 
     // Inline notice — dismiss
@@ -902,6 +939,7 @@ async function init() {
     bindCharacterHandlers();
     bindChatHandlers();
     bindMemoryHandlers();
+    initSummaryHandlers();
     bindMessageHandlers();
     bindComposerHandlers();
     bindPersonaHandlers();

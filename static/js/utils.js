@@ -61,7 +61,7 @@ export function syslogStamp() {
  * Supports conditional blocks: {{#var}}…{{/var}} drops out when var is empty.
  * @param {string} template — the raw template with {{var}} placeholders
  * @param {object} context  — { user, char, personality, scenario, description,
- *                              persona, mesExamples, lorebook, author_note,
+ *                              persona, mesExamples, lorebook, author_note, summary,
  *                              system_prompt, post_history_instructions,
  *                              idle_duration }
  * @returns {string} the resolved string
@@ -86,6 +86,7 @@ export function resolveTemplateVariables(template, context) {
         .replace(/\{\{mesExamples\}\}/gi,    context.mesExamples || '')
         .replace(/\{\{lorebook\}\}/gi,       context.lorebook || '')
         .replace(/\{\{author_note\}\}/gi,    context.author_note || '')
+        .replace(/\{\{summary\}\}/gi,        context.summary || '')
         .replace(/\{\{system_prompt\}\}/gi,  context.system_prompt || '')
         .replace(/\{\{post_history_instructions\}\}/gi,
                                                 context.post_history_instructions || '')

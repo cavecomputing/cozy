@@ -6,6 +6,7 @@ import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
 import { maybeAutoNameChat } from './chats.js';
 import { clearDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
+import { maybeTriggerSummary } from './summaries.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEND MESSAGE
@@ -59,6 +60,9 @@ export async function handleSend() {
         // Finalize: remove loading container and persist the real message
         loadingContainer.remove();
         await appendMessage('character', reply, true);
+        // Fire-and-forget: fold aged-out history into the summary if enough has
+        // accumulated. Never awaited — the send path must not block on it.
+        maybeTriggerSummary();
 
     } catch (err) {
         loadingContainer.remove();

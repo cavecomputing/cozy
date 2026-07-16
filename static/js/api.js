@@ -155,6 +155,22 @@ export const API = {
         });
     },
 
+    // Auto Summaries
+    async runSummary(chatId, { up_to_msg_id = null, rebuild = false } = {}) {
+        const r = await fetch(`/api/chats/${chatId}/summary/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ up_to_msg_id, rebuild }),
+        });
+        // 202 = started, 409 = already running — both return the current summary state.
+        if (r.status === 202 || r.status === 409) return r.json();
+        if (!r.ok) throw new Error(await apiError(r, 'Summary run failed'));
+        return r.json();
+    },
+    async getSummaryStatus(chatId) {
+        return jsonRequest(`/api/chats/${chatId}/summary/status`, { fallback: 'Failed to load summary status' });
+    },
+
     // Messages
     async getMessages(chatId) {
         return jsonRequest(`/api/chats/${chatId}/messages`, { fallback: 'Failed to load messages' });

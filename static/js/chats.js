@@ -6,6 +6,7 @@ import { renderMessages, appendMessage } from './messages.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
+import { onChatSelected } from './summaries.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHAT LIST
@@ -233,6 +234,7 @@ export async function selectChat(chat) {
     renderLorebookNotice();
     updateContextMeter();
     updateContextBoundary();
+    onChatSelected();
     savePrefs();
 }
 

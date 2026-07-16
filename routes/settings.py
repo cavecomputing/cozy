@@ -39,16 +39,23 @@ SETTINGS_KEYS = {
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',
     'extra_request_params',
+    # Auto Summaries — configuration (per-chat enablement lives on the chat row)
+    'summary_api_endpoint', 'summary_api_key', 'summary_api_model',
+    'summary_cap_pct', 'summary_trigger_interval',
 }
 
+# Settings keys holding secrets: masked on read, and skipped on write when the
+# masked placeholder is echoed back (so the real value isn't clobbered).
+SECRET_KEYS = ('api_key', 'summary_api_key')
 
-def mask_secret(value):
+
+def mask_secret(value, field='api_key'):
     if value:
         return {
-            'api_key_masked': value[:3] + '…' + value[-4:] if len(value) > 8 else '•••••',
-            'api_key_set': True,
+            f'{field}_masked': value[:3] + '…' + value[-4:] if len(value) > 8 else '•••••',
+            f'{field}_set': True,
         }
-    return {'api_key_masked': '', 'api_key_set': False}
+    return {f'{field}_masked': '', f'{field}_set': False}
 
 
 def is_masked_secret(value):
@@ -80,9 +87,10 @@ def upsert_setting(conn, key, value):
 def read_settings():
     s = get_settings()
     s.pop('context_max_messages', None)
-    # Never send the full API key to the frontend — mask it
-    s.update(mask_secret(s.get('api_key', '')))
-    s.pop('api_key', None)
+    # Never send full secret values to the frontend — mask them and strip the raw key.
+    for key in SECRET_KEYS:
+        s.update(mask_secret(s.get(key, ''), key))
+        s.pop(key, None)
     return jsonify(s)
 
 
@@ -93,9 +101,10 @@ def write_settings():
         for key in SETTINGS_KEYS:
             if key in data:
                 val = _setting_value(data[key])
-                # Allow clearing, or setting a new value
-                # For api_key, skip if the placeholder/masked value is sent back
-                if key == 'api_key' and is_masked_secret(val):
+                # Allow clearing, or setting a new value.
+                # For secret keys, skip if the placeholder/masked value is sent back
+                # so the stored key isn't clobbered by its own mask.
+                if key in SECRET_KEYS and is_masked_secret(val):
                     continue
                 upsert_setting(conn, key, val)
     return read_settings()

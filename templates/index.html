@@ -171,6 +171,10 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                                 <span>Lorebooks</span>
                             </button>
+                            <button class="settings-nav-item" data-section="summaries" role="tab" aria-selected="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path></svg>
+                                <span>Auto Summaries</span>
+                            </button>
                         </nav>
                         <div class="settings-pane" id="settings-pane">
                     <div class="settings-section" data-section="general">
@@ -640,6 +644,50 @@
                             </div>
                         </div>
                     </div>
+                    <div class="settings-section" data-section="summaries" hidden>
+                        <header class="settings-page-header">
+                            <h3>Auto Summaries</h3>
+                            <p>Keep a running memory of everything that scrolls out of the context window. Turn it on <strong>per chat</strong> from the memory button in the chat bar — this page just configures how it works.</p>
+                        </header>
+                        <div class="settings-section-body settings-section-stack">
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Summarizer model</h4>
+                                    <p>A separate OpenAI-compatible endpoint for summarizing — usually a cheaper/faster model than your main chat model. Leave any field blank to reuse the main API connection.</p>
+                                </header>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-summary-endpoint">Endpoint</label>
+                                    <span class="settings-row-hint">Blank = use main endpoint</span>
+                                    <input type="text" id="settings-summary-endpoint" class="form-input" placeholder="https://api.openai.com/v1">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-summary-key">API Key</label>
+                                    <input type="password" id="settings-summary-key" class="form-input" placeholder="sk-...">
+                                </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-summary-model">Model</label>
+                                    <span class="settings-row-hint">Blank = use main model</span>
+                                    <input type="text" id="settings-summary-model" class="form-input" placeholder="model-name" autocomplete="off" spellcheck="false">
+                                </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Behavior</h4>
+                                    <p>How large the summary may grow and how often it folds in aged-out messages.</p>
+                                </header>
+                                <div class="settings-row settings-row--inline">
+                                    <label class="settings-row-label" for="settings-summary-cap-pct">Size cap (% of context)</label>
+                                    <input type="number" id="settings-summary-cap-pct" class="form-input" min="1" max="90" step="1" value="10">
+                                </div>
+                                <p class="settings-hint">The summary is capped at this percentage of the Max Context Tokens budget. Pinned lines count inside this budget. Counts are estimates marked with <code>&#8776;</code>.</p>
+                                <div class="settings-row settings-row--inline">
+                                    <label class="settings-row-label" for="settings-summary-interval">Fold-in interval (messages)</label>
+                                    <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="20">
+                                </div>
+                                <p class="settings-hint">Aged-out messages accumulate until this many are waiting, then one summarize run folds them in. Larger = fewer, bigger summarizer calls.</p>
+                            </section>
+                        </div>
+                    </div>
                         </div><!-- /.settings-pane -->
                     </div><!-- /.settings-shell -->
                 </div>
@@ -1100,6 +1148,30 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                                 Manage lorebooks…
                             </button>
+                        </div>
+                    </section>
+                    <section class="memory-card" id="summary-card">
+                        <header class="memory-card-header">
+                            <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path></svg></span>
+                            <span class="section-label">Auto Summary</span>
+                            <label class="summary-switch" title="Summarize aged-out history for this chat">
+                                <input type="checkbox" id="summary-enable-toggle">
+                                <span class="summary-switch-track" aria-hidden="true"></span>
+                            </label>
+                        </header>
+                        <div class="memory-card-body">
+                            <div id="summary-status" class="summary-status" aria-live="polite"></div>
+                            <p id="summary-config-hint" class="memory-authornote-hint summary-config-hint" hidden>
+                                No summarizer configured — set a model in <button type="button" class="summary-settings-link" id="summary-open-settings">Settings → Auto Summaries</button>.
+                            </p>
+                            <div id="summary-lines" class="summary-lines" hidden></div>
+                            <div class="summary-actions">
+                                <button id="summary-rebuild-btn" class="lorebook-flyout-manage summary-rebuild-btn" type="button" disabled>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
+                                    Rebuild from history
+                                </button>
+                            </div>
+                            <p class="memory-authornote-hint">Injected via <code>&#123;&#123;summary&#125;&#125;</code> in your prompt template. Pin lines to keep them word-for-word.</p>
                         </div>
                     </section>
                 </div>

@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify, Response
 
 from card_store import get_character_card_data
 from shared import get_db, not_found, safe_download_name
+from summarizer import parse_summary_json, dump_summary_json
 
 chats_bp = Blueprint('chats', __name__)
 
@@ -18,6 +19,11 @@ def chat_to_dict(row):
     d['active_lorebook_id'] = d.get('active_lorebook_id')
     d['active_lorebook_embedded'] = bool(d.get('active_lorebook_embedded') or 0)
     d['lorebook_notice_dismissed'] = bool(d.get('lorebook_notice_dismissed') or 0)
+    if 'summary_enabled' in d:
+        d['summary_enabled'] = bool(d.get('summary_enabled') or 0)
+        # Expose the summary as a structured object (the raw summary_json string
+        # stays too, for pin-toggle round-trips).
+        d['summary'] = parse_summary_json(d.get('summary_json'))
     return d
 
 
@@ -295,6 +301,8 @@ def update_chat(chat_id):
         cur_lb_embedded = row['active_lorebook_embedded'] or 0
         cur_notice = row['lorebook_notice_dismissed'] or 0
         cur_author_note = row['author_note'] or ''
+        cur_summary_enabled = row['summary_enabled'] or 0
+        cur_summary_json = row['summary_json'] or ''
 
         # `active_lorebook_id`: explicit None clears, integer sets, omitted leaves alone.
         if 'active_lorebook_id' in data:
@@ -326,10 +334,24 @@ def update_chat(chat_id):
         if 'author_note' in data:
             cur_author_note = str(data['author_note'] or '')
 
+        # Auto Summaries: the client toggles enablement and edits pins (the whole
+        # summary object) here. The watermark (summary_up_to_msg_id) and status are
+        # server-managed by the summary run endpoint and are NOT accepted from the client.
+        if 'summary_enabled' in data:
+            cur_summary_enabled = 1 if data['summary_enabled'] else 0
+        if 'summary_json' in data:
+            raw = data['summary_json']
+            if isinstance(raw, (dict, list)):
+                raw = json.dumps(raw)
+            # Round-trip through the sanitizer so only well-formed lines are stored.
+            cur_summary_json = dump_summary_json(parse_summary_json(str(raw or '')))
+
         conn.execute(
             'UPDATE chats SET name=?, active_lorebook_id=?, active_lorebook_embedded=?, '
-            'lorebook_notice_dismissed=?, author_note=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
-            (name, cur_lb_id, cur_lb_embedded, cur_notice, cur_author_note, chat_id)
+            'lorebook_notice_dismissed=?, author_note=?, summary_enabled=?, summary_json=?, '
+            'updated_at=CURRENT_TIMESTAMP WHERE id=?',
+            (name, cur_lb_id, cur_lb_embedded, cur_notice, cur_author_note,
+             cur_summary_enabled, cur_summary_json, chat_id)
         )
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
         return jsonify(chat_to_dict(row))

@@ -71,6 +71,7 @@ from routes.personas import personas_bp
 from routes.settings import settings_bp
 from routes.llm import llm_bp
 from routes.lorebooks import lorebooks_bp
+from routes.summaries import summaries_bp
 
 for blueprint in (
     characters_bp,
@@ -80,6 +81,7 @@ for blueprint in (
     settings_bp,
     llm_bp,
     lorebooks_bp,
+    summaries_bp,
 ):
     app.register_blueprint(blueprint)
 
