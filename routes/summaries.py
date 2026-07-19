@@ -20,6 +20,8 @@ from routes.llm import _error_detail, _summary_llm_settings
 from routes.settings import get_settings
 from shared import get_db, not_found
 from summarizer import (
+    append_summary,
+    build_append_messages,
     build_summarizer_messages,
     build_tighten_messages,
     dump_summary_json,
@@ -123,6 +125,19 @@ def _trigger_interval(settings):
         return max(1, int(settings.get('summary_trigger_interval') or 20))
     except (TypeError, ValueError):
         return 20
+
+
+# While the summary sits below this fraction of the cap it grows additively; once it
+# crosses the line every batch compresses instead. The headroom (~20% of the cap) leaves
+# room for one batch's new bullets so ordinary appends don't immediately trip the cap.
+APPEND_CAP_FRACTION = 0.8
+
+
+def _should_append(summary_obj, cap_tokens):
+    """True when the running summary has room to accumulate rather than compress."""
+    if cap_tokens <= 0:  # unlimited context → never need to compress
+        return True
+    return estimate_tokens(summary_to_text(summary_obj)) <= APPEND_CAP_FRACTION * cap_tokens
 
 
 def _fit_summary_candidate(candidate, cap_tokens, ensure_active=None):
@@ -424,7 +439,12 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                         warning = write_warning
                 continue
 
-            messages = build_summarizer_messages(
+            # Accumulate detail while there is headroom; only rewrite/compress the whole
+            # summary once it approaches the cap. This keeps the memory additive instead
+            # of boiling the same few lines down on every batch.
+            append_mode = _should_append(summary_obj, cap_tokens)
+            build = build_append_messages if append_mode else build_summarizer_messages
+            messages = build(
                 summary_to_text(summary_obj), visible_chunk,
                 pinned_texts(summary_obj), cap_tokens
             )
@@ -437,7 +457,9 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             _assert_summary_active(
                 chat_id, require_running=require_running, job_token=job_token
             )
-            folded = merge_pins(parse_summarizer_output(reply), summary_obj)
+            parsed = parse_summarizer_output(reply)
+            candidate = append_summary(summary_obj, parsed) if append_mode else parsed
+            folded = merge_pins(candidate, summary_obj)
             summary_obj, batch_warning = _fit_summary_candidate(
                 folded,
                 cap_tokens,

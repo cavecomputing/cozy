@@ -11,6 +11,8 @@ import routes.chats as chat_routes
 from routes.settings import get_settings
 import routes.summaries as summaries
 from summarizer import (
+    append_summary,
+    build_append_messages,
     build_summarizer_messages,
     build_tighten_messages,
     dump_summary_json,
@@ -109,6 +111,58 @@ def test_build_summarizer_messages_includes_context():
     assert msgs[0]['role'] == 'system'
     joined = msgs[1]['content']
     assert 'PREV' in joined and 'keep me' in joined and 'hi' in joined and '3000' in joined
+
+
+# ── Append-mode pure logic ──────────────────────────────────────────────────
+
+def test_append_summary_accumulates_dedups_and_replaces_bonds():
+    prev = {'lines': [
+        {'section': 'story', 'text': 'S1', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: wary allies', 'pinned': False},
+    ]}
+    reply = {'lines': [
+        {'section': 'story', 'text': 'S1', 'pinned': False},   # duplicate — dropped
+        {'section': 'story', 'text': 'S2', 'pinned': False},   # new — appended
+        {'section': 'bonds', 'text': 'A & B: firm allies', 'pinned': False},  # replaces
+    ]}
+    out = append_summary(prev, reply)
+    story = [l['text'] for l in out['lines'] if l['section'] == 'story']
+    bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
+    assert story == ['S1', 'S2']              # accumulates, no duplicate
+    assert bonds == ['A & B: firm allies']    # bonds section replaced, not doubled
+    # Story block precedes bonds block (matches summary_to_text ordering).
+    sections = [l['section'] for l in out['lines']]
+    assert sections == ['story', 'story', 'bonds']
+    # Inputs are not mutated.
+    assert [l['text'] for l in prev['lines']] == ['S1', 'A & B: wary allies']
+
+
+def test_append_summary_first_batch_from_empty():
+    out = append_summary({'lines': []}, parse_summary('STORY SO FAR\n- first\n\nBONDS\n- A & B: allies'))
+    assert [l['text'] for l in out['lines']] == ['first', 'A & B: allies']
+
+
+def test_build_append_messages_asks_for_new_story_only():
+    from summarizer import APPEND_INSTRUCTIONS
+    msgs = build_append_messages(
+        'PREV', [{'role': 'user', 'content': 'hi there'}], ['keep me'], 3000)
+    assert msgs[0]['content'] == APPEND_INSTRUCTIONS
+    user = msgs[1]['content']
+    assert 'PREV' in user and 'keep me' in user and 'hi there' in user and '3000' in user
+    assert 'NEW story bullets' in user and 'BONDS' in user
+    assert 'Rewrite the running summary' not in user  # not the compress builder
+
+
+@pytest.mark.parametrize('used_pct, cap, expected', [
+    (0.5, 1000, True),    # comfortably below the 80% line
+    (0.95, 1000, False),  # above the line → compress
+    (2.0, 0, True),       # unlimited context → always append
+])
+def test_should_append_threshold(used_pct, cap, expected):
+    # Build a story whose token estimate is ~used_pct of cap (chars/4 heuristic).
+    target_tokens = int((cap or 1000) * used_pct)
+    obj = {'lines': [{'section': 'story', 'text': 'x' * (target_tokens * 4), 'pinned': False}]}
+    assert summaries._should_append(obj, cap) is expected
 
 
 def test_parse_summarizer_output_rejects_empty_and_malformed_content():
@@ -309,6 +363,102 @@ def test_run_job_semantically_tightens_before_hard_cap(client, sample_chat, monk
         ).fetchone()
     assert 'Essential context remains.' in summary_to_text(parse_summary_json(row['summary_json']))
     assert row['summary_up_to_msg_id'] == ids[-1]
+
+
+def test_append_mode_accumulates_story_across_batches(client, sample_chat, monkeypatch):
+    """The core fix: consecutive batches ADD story beats instead of compressing."""
+    from summarizer import APPEND_INSTRUCTIONS
+    client.put('/api/settings', json={'summary_trigger_interval': '1'})
+    replies = iter((
+        'STORY SO FAR\n- S1 happened\n\nBONDS\n- A & B: allies',
+        'STORY SO FAR\n- S2 happened\n\nBONDS\n- A & B: allies',
+    ))
+    calls = []
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages)
+        return next(replies)
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    ids = _add_messages(client, sample_chat['id'], 2)
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+
+    with shared.get_db() as conn:
+        row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
+                           (sample_chat['id'],)).fetchone()
+    story = summary_to_text(parse_summary_json(row['summary_json']))
+    assert 'S1 happened' in story and 'S2 happened' in story  # additive, both kept
+    # Both batches used the additive builder while under cap.
+    assert len(calls) == 2
+    assert all(m[0]['content'] == APPEND_INSTRUCTIONS for m in calls)
+
+
+def test_mode_switches_to_compress_near_cap(client, sample_chat, monkeypatch):
+    """Once the summary is near the cap, batches use the compress rewrite builder."""
+    from summarizer import SUMMARY_INSTRUCTIONS
+    client.put('/api/settings', json={'context_max_tokens': '100', 'summary_cap_pct': '10'})
+    calls = []
+    # iter covers a possible tighten follow-up against the tiny cap.
+    replies = iter(('STORY SO FAR\n- brief\n\nBONDS\n- A & B: allies',
+                    'STORY SO FAR\n- brief\n\nBONDS\n- A & B: allies'))
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages)
+        return next(replies, 'STORY SO FAR\n- brief\n\nBONDS\n- A & B: allies')
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    ids = _add_messages(client, sample_chat['id'], 2)
+    # Pre-seed a summary well over 0.8 * cap (cap ≈ 10 tokens here).
+    _store_summary(sample_chat['id'],
+                   {'lines': [{'section': 'story', 'text': 'x' * 200, 'pinned': False}]},
+                   watermark=ids[0])
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+
+    assert calls[0][0]['content'] == SUMMARY_INSTRUCTIONS  # compress, not append
+
+
+def test_append_overflow_triggers_tighten(client, sample_chat, monkeypatch):
+    """An append that overshoots the cap still gets the semantic tighten retry."""
+    from summarizer import APPEND_INSTRUCTIONS
+    client.put('/api/settings', json={'context_max_tokens': '500', 'summary_cap_pct': '10'})
+    over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}\n\nBONDS\n- A & B: allies"
+    tightened = 'STORY SO FAR\n- Tightened beat.\n\nBONDS\n- A & B: allies'
+    replies = iter((over_cap, tightened))
+    calls = []
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages)
+        return next(replies)
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    ids = _add_messages(client, sample_chat['id'], 2)
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+
+    assert len(calls) == 2
+    assert calls[0][0]['content'] == APPEND_INSTRUCTIONS       # first pass was additive
+    assert 'OVER-BUDGET SUMMARY DRAFT' in calls[1][1]['content']  # then a tighten pass
+
+
+def test_append_mode_merges_bonds_without_duplicating(client, sample_chat, monkeypatch):
+    """Append mode replaces the BONDS section, so a relationship stays a single line."""
+    monkeypatch.setattr(
+        summaries, 'call_summarizer',
+        lambda messages, cap_tokens=0: 'STORY SO FAR\n- new beat\n\nBONDS\n- A & B: close now')
+    ids = _add_messages(client, sample_chat['id'], 2)
+    _store_summary(sample_chat['id'], {'lines': [
+        {'section': 'story', 'text': 'earlier beat', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: uneasy', 'pinned': False},
+    ]}, watermark=ids[0])
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+
+    with shared.get_db() as conn:
+        row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
+                           (sample_chat['id'],)).fetchone()
+    obj = parse_summary_json(row['summary_json'])
+    bonds = [l['text'] for l in obj['lines'] if l['section'] == 'bonds']
+    story = [l['text'] for l in obj['lines'] if l['section'] == 'story']
+    assert bonds == ['A & B: close now']            # merged, not duplicated
+    assert story == ['earlier beat', 'new beat']    # story accumulated
 
 
 def test_run_job_strips_hidden_thinking_when_disabled(client, sample_chat, monkeypatch):

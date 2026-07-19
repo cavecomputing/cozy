@@ -27,6 +27,31 @@ THINKING_TAG_PAIRS = (
 )
 
 
+APPEND_INSTRUCTIONS = (
+    "You maintain a running memory summary of an ongoing roleplay so the AI keeps "
+    "remembering events that have scrolled out of its context window. You will be given "
+    "the CURRENT SUMMARY, any PINNED LINES, and a batch of NEW MESSAGES. The summary has "
+    "plenty of room, so ADD to it — do not compress what is already there.\n\n"
+    "OUTPUT FORMAT — exactly two headings, each followed by short `- ` bullet lines:\n"
+    "STORY SO FAR\n"
+    "- <one plot beat per line>\n\n"
+    "BONDS\n"
+    "- <one relationship per line: where it stands now + the key shared moment behind it>\n\n"
+    "RULES:\n"
+    "1. STORY SO FAR is ADDITIVE. Output ONLY new bullets for events that actually happen "
+    "in the NEW MESSAGES. Do NOT repeat, reword, reorder, or compress the existing story "
+    "lines — the system keeps them exactly as they are. If nothing new happened in the "
+    "story, output the STORY SO FAR heading with no bullets under it.\n"
+    "2. BONDS is CURRENT STATE, one line per relationship. Output the FULL updated BONDS "
+    "section: fold any new development into the existing line for that relationship rather "
+    "than adding a duplicate, and carry forward relationships the new messages did not touch.\n"
+    "3. PRESERVE THE WHY, NOT JUST THE WHAT — keep motivation, emotional stakes, and "
+    "circumstances in the new bullets, not hollow one-liners.\n"
+    "4. Keep every PINNED LINE EXACTLY as written, word-for-word.\n"
+    "Output ONLY the two headings and their bullet lines — no preamble, no commentary."
+)
+
+
 SUMMARY_INSTRUCTIONS = (
     "You maintain a running memory summary of an ongoing roleplay so the AI keeps "
     "remembering events that have scrolled out of its context window. You will be given "
@@ -299,6 +324,34 @@ def build_summarizer_messages(prev_text, batch_messages, pins, cap_tokens):
     ]
 
 
+def build_append_messages(prev_text, batch_messages, pins, cap_tokens):
+    """Assemble the ``messages`` array for one *additive* fold-in call.
+
+    Used while the summary is well under its size budget: the model returns only new
+    STORY bullets plus the full current BONDS section, and the worker keeps every
+    existing story line verbatim. Mirrors ``build_summarizer_messages``'s block shape.
+    """
+    convo = []
+    for msg in batch_messages:
+        who = 'User' if msg.get('role') == 'user' else 'Character'
+        convo.append(f"{who}: {msg.get('content', '')}")
+    convo_text = '\n\n'.join(convo)
+    pins_text = '\n'.join(f'- {p}' for p in pins) if pins else '(none)'
+    budget = f"under {cap_tokens}" if cap_tokens and cap_tokens > 0 else "within the given"
+    user = (
+        f"CURRENT SUMMARY:\n{prev_text or '(empty — this is the first batch)'}\n\n"
+        f"PINNED LINES (reproduce these EXACTLY, word-for-word):\n{pins_text}\n\n"
+        f"NEW MESSAGES TO FOLD IN:\n{convo_text}\n\n"
+        f"Add only NEW story bullets for what happens in the new messages, and output the "
+        f"full current BONDS section (merging, not duplicating). Do NOT rewrite or compress "
+        f"the existing story lines. Keep the whole summary {budget} tokens."
+    )
+    return [
+        {'role': 'system', 'content': APPEND_INSTRUCTIONS},
+        {'role': 'user', 'content': user},
+    ]
+
+
 def build_tighten_messages(candidate_text, pins, cap_tokens):
     """Build one semantic retry when a fold-in response misses the size budget."""
     pins_text = '\n'.join(f'- {p}' for p in pins) if pins else '(none)'
@@ -315,6 +368,36 @@ def build_tighten_messages(candidate_text, pins, cap_tokens):
         {'role': 'system', 'content': SUMMARY_INSTRUCTIONS},
         {'role': 'user', 'content': user},
     ]
+
+
+def append_summary(prev_obj, new_obj):
+    """Fold an *append-mode* reply into the existing summary.
+
+    STORY is additive: existing story lines are kept verbatim (order preserved) and any
+    new story line whose exact text is not already present is appended — so a model that
+    re-emits an existing beat, or an identical retried reply, stays idempotent. BONDS is
+    current-state: the reply's BONDS section replaces the old one. Returns fresh copies
+    and never mutates its inputs.
+    """
+    prev_story = [
+        dict(line) for line in summary_lines(prev_obj)
+        if line.get('section') != 'bonds'
+    ]
+    seen = {line['text'] for line in prev_story}
+    new_story = []
+    for line in summary_lines(new_obj):
+        if line.get('section') == 'bonds':
+            continue
+        text = line.get('text', '')
+        if text and text not in seen:
+            new_story.append({'section': 'story', 'text': text, 'pinned': bool(line.get('pinned'))})
+            seen.add(text)
+    new_bonds = [
+        {'section': 'bonds', 'text': line['text'], 'pinned': bool(line.get('pinned'))}
+        for line in summary_lines(new_obj)
+        if line.get('section') == 'bonds' and line.get('text')
+    ]
+    return {'lines': prev_story + new_story + new_bonds}
 
 
 def merge_pins(new_obj, prev_obj):
