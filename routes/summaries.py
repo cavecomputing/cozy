@@ -16,7 +16,7 @@ import requests as http_requests
 from flask import Blueprint, request, jsonify
 
 from routes.chats import chat_to_dict
-from routes.llm import _error_detail
+from routes.llm import _error_detail, _summary_llm_settings
 from routes.settings import get_settings
 from shared import get_db, not_found
 from summarizer import (
@@ -45,16 +45,6 @@ _job_tokens_lock = threading.RLock()
 
 
 # ── Summarizer LLM call ─────────────────────────────────────────────────────
-
-def _summary_llm_settings():
-    """(endpoint, api_key, model) for the summarizer, each falling back to the main
-    LLM setting when its ``summary_*`` counterpart is blank."""
-    s = get_settings()
-    endpoint = s.get('summary_api_endpoint') or s.get('api_endpoint', '')
-    api_key = s.get('summary_api_key') or s.get('api_key', '')
-    model = s.get('summary_api_model') or s.get('api_model', '')
-    return endpoint, api_key, model
-
 
 def call_summarizer(messages, cap_tokens=0):
     """One non-streaming summarizer completion. Mirrors ``test_llm`` in routes/llm.py."""

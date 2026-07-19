@@ -14,7 +14,14 @@ import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
-import { loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave, persistAutoSummariesEnabled, flushLLMSettingsSave, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
+import {
+    loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
+    persistAutoSummariesEnabled, flushLLMSettingsSave,
+    browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
+    selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
+    activatePreset, createNewPreset, deletePreset, searchModelsFromInput,
+    searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache,
+} from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
     updateSystemPromptContent, populateDefaultTemplateHelp,
@@ -365,21 +372,29 @@ function bindSettingsHandlers() {
     });
     el.summaryEndpoint?.addEventListener('input', () => {
         state.summaryApiEndpoint = el.summaryEndpoint.value;
+        clearSummaryModelListCache();
         queueLLMSettingsSave({ summary_api_endpoint: el.summaryEndpoint.value });
         renderMemorySummaryCard();
     });
     el.summaryEndpoint?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryKey?.addEventListener('input', () => {
         state.summaryApiKeySet = !!el.summaryKey.value;
+        clearSummaryModelListCache();
         queueLLMSettingsSave({ summary_api_key: el.summaryKey.value });
     });
     el.summaryKey?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryModel?.addEventListener('input', () => {
         state.summaryApiModel = el.summaryModel.value;
+        searchSummaryModelsFromInput();
         queueLLMSettingsSave({ summary_api_model: el.summaryModel.value });
         renderMemorySummaryCard();
     });
     el.summaryModel?.addEventListener('blur', flushLLMSettingsSave);
+    el.summaryRefreshModels?.addEventListener('click', browseSummaryModels);
+    el.summaryModelPickerMenu?.addEventListener('click', e => {
+        const btn = e.target.closest('.model-picker-item');
+        if (btn) selectSummaryModelFromMenu(btn.dataset.model);
+    });
     el.summaryCapInput?.addEventListener('input', () => {
         state.summaryCapPct = el.summaryCapInput.value || '10';
         queueLLMSettingsSave({ summary_cap_pct: state.summaryCapPct });
@@ -414,6 +429,12 @@ function bindSettingsHandlers() {
             && !el.refreshModels?.contains(e.target)
             && !el.apiModel?.contains(e.target)) {
             closeModelMenu();
+        }
+        if (el.summaryModelPickerMenu && !el.summaryModelPickerMenu.hidden
+            && !el.summaryModelPickerMenu.contains(e.target)
+            && !el.summaryRefreshModels?.contains(e.target)
+            && !el.summaryModel?.contains(e.target)) {
+            closeSummaryModelMenu();
         }
     });
     el.testApi?.addEventListener('click', testLLMConnection);

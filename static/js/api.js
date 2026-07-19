@@ -352,8 +352,9 @@ export const API = {
     },
 
     // LLM utility endpoints
-    async getModels() {
-        return jsonRequest('/api/llm/models', { fallback: 'Failed to fetch models' });
+    async getModels(profile = 'main') {
+        const query = profile === 'main' ? '' : `?profile=${encodeURIComponent(profile)}`;
+        return jsonRequest(`/api/llm/models${query}`, { fallback: 'Failed to fetch models' });
     },
     async testLLM() {
         return jsonRequest('/api/llm/test', { method: 'POST', fallback: 'Connection test failed' });
