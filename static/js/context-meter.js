@@ -3,6 +3,7 @@ import { scrollToBottom } from './utils.js';
 import { summaryToText } from './summaries.js';
 import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
+import { retargetTooltip } from './tooltips.js';
 
 export function getContextMaxTokens() {
     return getContextTokenBudget();
@@ -52,6 +53,14 @@ function renderSegments(analysis) {
         button.setAttribute('aria-label', `${segment.label}: approximately ${segment.tokens.toLocaleString()} tokens`);
         bar.appendChild(button);
     }
+
+    // Rebuilding detaches the segment an open tooltip may be anchored to
+    // (tapped open on touch, where nothing else dismisses it). Follow it to
+    // the same-source replacement so the numbers stay live, or dismiss it
+    // when that segment no longer exists.
+    retargetTooltip(previous => previous.classList?.contains('context-meter-segment')
+        ? bar.querySelector(`[data-source="${previous.dataset.source}"]`)
+        : null);
 }
 
 export function updateContextMeter() {

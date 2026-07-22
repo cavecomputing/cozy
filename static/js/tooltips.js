@@ -75,6 +75,23 @@ function hide() {
     activeTrigger = null;
 }
 
+/**
+ * Re-point an open tooltip after a UI region rebuilds its trigger nodes.
+ * A detached trigger can no longer position the bubble (its rect collapses
+ * to 0×0) or refresh its text; `resolve` maps it to the replacement node,
+ * and a null result hides the bubble instead.
+ */
+export function retargetTooltip(resolve) {
+    if (!activeTrigger || activeTrigger.isConnected) return;
+    const next = resolve?.(activeTrigger) || null;
+    if (next) {
+        activeTrigger = next;
+        show(next);
+    } else {
+        hide();
+    }
+}
+
 export function initTooltips() {
     document.addEventListener('pointerover', e => {
         const t = e.target.closest(TRIGGER_SELECTOR);
@@ -97,7 +114,17 @@ export function initTooltips() {
         }
     });
     document.addEventListener('focusout', e => {
-        if (e.target.closest(TRIGGER_SELECTOR)) hide();
+        const t = e.target.closest?.(TRIGGER_SELECTOR);
+        if (!t) return;
+        // A re-render that removes a focused trigger fires focusout while the
+        // node is still connected — that is not the user leaving. Decide a
+        // task later: by then a removed trigger is detached (and
+        // retargetTooltip has re-anchored or dismissed the bubble), while a
+        // genuine blur leaves it connected. setTimeout rather than rAF so the
+        // check is not deferred indefinitely in a hidden tab.
+        setTimeout(() => {
+            if (t.isConnected && activeTrigger === t) hide();
+        }, 0);
     });
     // Touch devices do not have a durable hover state. Tapping a segment
     // focuses its button and keeps the shared tooltip visible until the next
