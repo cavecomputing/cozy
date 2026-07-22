@@ -74,14 +74,14 @@ export function updateContextMeter() {
     renderSegments(analysis);
 
     if (analysis.maxTokens <= 0) {
-        el.contextTokenLabel.textContent = `≈ ${analysis.allocatedTokens.toLocaleString()} used · no limit`;
+        el.contextTokenLabel.textContent = `${analysis.allocatedTokens.toLocaleString()} · no limit`;
         el.contextTokenMeter.dataset.level = 'ok';
     } else if (analysis.overflowTokens > 0) {
-        el.contextTokenLabel.textContent = `≈ ${analysis.allocatedTokens.toLocaleString()} used / ${analysis.maxTokens.toLocaleString()} · ${analysis.overflowTokens.toLocaleString()} over`;
+        el.contextTokenLabel.textContent = `${analysis.allocatedTokens.toLocaleString()} / ${analysis.maxTokens.toLocaleString()} · ${analysis.overflowTokens.toLocaleString()} over`;
         el.contextTokenMeter.dataset.level = 'danger';
     } else {
         const pct = Math.min(100, Math.round((analysis.allocatedTokens / analysis.maxTokens) * 100));
-        el.contextTokenLabel.textContent = `≈ ${analysis.allocatedTokens.toLocaleString()} used / ${analysis.maxTokens.toLocaleString()}`;
+        el.contextTokenLabel.textContent = `${analysis.allocatedTokens.toLocaleString()} / ${analysis.maxTokens.toLocaleString()}`;
         el.contextTokenMeter.dataset.level = pct >= 90 ? 'danger' : (pct >= 70 ? 'warn' : 'ok');
     }
 
