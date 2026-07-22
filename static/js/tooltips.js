@@ -1,12 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // TOOLTIPS — single shared bubble portal, escapes overflow:hidden ancestors
 // ═══════════════════════════════════════════════════════════════════════════
-// Triggers are any element with class `.help-tip` and a `data-tip` attribute
-// containing the tooltip's HTML. Placement is picked from {above, below,
-// right, left} based on viewport space.
+// Triggers are help badges and context-meter segments with a `data-tip`
+// attribute containing the tooltip's HTML. Placement is picked from {above,
+// below, right, left} based on viewport space.
 
 let portal = null;
 let activeTrigger = null;
+const TRIGGER_SELECTOR = '.help-tip, .context-meter-segment';
 
 function ensurePortal() {
     if (portal) return portal;
@@ -76,27 +77,39 @@ function hide() {
 
 export function initTooltips() {
     document.addEventListener('pointerover', e => {
-        const t = e.target.closest('.help-tip');
+        const t = e.target.closest(TRIGGER_SELECTOR);
         if (t && t !== activeTrigger) {
             activeTrigger = t;
             show(t);
         }
     });
     document.addEventListener('pointerout', e => {
-        const t = e.target.closest('.help-tip');
+        const t = e.target.closest(TRIGGER_SELECTOR);
         if (!t) return;
-        const next = e.relatedTarget?.closest?.('.help-tip');
+        const next = e.relatedTarget?.closest?.(TRIGGER_SELECTOR);
         if (next !== t) hide();
     });
     document.addEventListener('focusin', e => {
-        const t = e.target.closest('.help-tip');
+        const t = e.target.closest(TRIGGER_SELECTOR);
         if (t) {
             activeTrigger = t;
             show(t);
         }
     });
     document.addEventListener('focusout', e => {
-        if (e.target.closest('.help-tip')) hide();
+        if (e.target.closest(TRIGGER_SELECTOR)) hide();
+    });
+    // Touch devices do not have a durable hover state. Tapping a segment
+    // focuses its button and keeps the shared tooltip visible until the next
+    // outside tap.
+    document.addEventListener('click', e => {
+        const t = e.target.closest(TRIGGER_SELECTOR);
+        if (t) {
+            activeTrigger = t;
+            show(t);
+        } else if (activeTrigger?.matches('.context-meter-segment')) {
+            hide();
+        }
     });
     window.addEventListener('scroll', () => {
         if (activeTrigger) show(activeTrigger);

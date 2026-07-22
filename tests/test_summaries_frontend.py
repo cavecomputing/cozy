@@ -75,7 +75,9 @@ def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
 
         assert.equal(calls.length, 1);
         assert.equal(calls[0].chatId, 7);
-        assert.equal(calls[0].up_to_msg_id, 1);
+        // Full context accounting includes message framing and fixed prompt
+        // content, so the first two turns are outside this tiny 32-token window.
+        assert.equal(calls[0].up_to_msg_id, 2);
     """
     run_node_module(code)
 
@@ -475,7 +477,7 @@ def test_send_guard_waits_for_summary_run_before_resolving():
         const guard = ensureSummaryReadyForSend().then(() => { ready = true; });
         await runStarted;
         assert.equal(ready, false);
-        assert.equal(requestedUpTo, 1);
+        assert.equal(requestedUpTo, 2);
 
         release({
             id: 7,
@@ -515,7 +517,7 @@ def test_send_guard_joins_active_background_run_without_posting_again():
                 id: 7,
                 summary_enabled: true,
                 summary: { lines: [] },
-                summary_up_to_msg_id: 1,
+                summary_up_to_msg_id: 2,
                 summary_status: 'idle',
                 summary_status_detail: '',
             };
@@ -525,7 +527,7 @@ def test_send_guard_joins_active_background_run_without_posting_again():
 
         assert.equal(runCalls, 0);
         assert.equal(statusCalls, 1);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 1);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
     """
     run_node_module(code)
 
@@ -552,7 +554,7 @@ def test_send_guard_waits_when_run_endpoint_reports_already_running():
                 id: 7,
                 summary_enabled: true,
                 summary: { lines: [] },
-                summary_up_to_msg_id: 1,
+                summary_up_to_msg_id: 2,
                 summary_status: 'idle',
                 summary_status_detail: '',
             };
@@ -564,7 +566,7 @@ def test_send_guard_waits_when_run_endpoint_reports_already_running():
 
         assert.equal(runCalls, 1);
         assert.equal(statusCalls, 1);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 1);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
     """
     run_node_module(code)
 
@@ -1179,6 +1181,6 @@ def test_global_off_cancellation_state_allows_immediate_catchup_on_resume():
         await onGlobalSummarySettingChanged();
 
         assert.equal(runs, 1);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 1);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
     """
     run_node_module(code)

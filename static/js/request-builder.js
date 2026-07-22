@@ -1,34 +1,12 @@
 import { state, el } from './state.js';
-import { resolveTemplateVariables } from './utils.js';
-import { resolveLorebookEntries } from './lorebook.js';
-import { parseThinkingContent } from './thinking.js';
 import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
-import { selectContextMessages } from './tokenizer.js';
 import { summaryToText } from './summaries.js';
-import { getRawHistoryMessages, getRawMessageTokenBudget } from './context-budget.js';
+import { analyzeContext } from './context-analysis.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Pick the active lorebook for the current chat.
- * Priority: chat says "use embedded" → character's character_book.
- *           chat has standalone id → that DB lorebook's `book` JSON.
- *           otherwise null.
- */
-function resolveActiveLorebook(chat, character, lorebooks) {
-    if (!chat) return character?.character_book || character?.data?.character_book || null;
-    if (chat.active_lorebook_embedded) {
-        return character?.character_book || character?.data?.character_book || null;
-    }
-    if (chat.active_lorebook_id != null) {
-        const entry = lorebooks?.find(b => b.id === chat.active_lorebook_id);
-        return entry?.book || null;
-    }
-    return null;
-}
 
 /**
  * Build an OpenAI-compatible chat completion payload from current state.
@@ -36,125 +14,11 @@ function resolveActiveLorebook(chat, character, lorebooks) {
  * @param {string|null} [nudge=null] — hidden user message appended to nudge continuation
  */
 export function buildChatPayload(excludeLastN = 0, nudge = null) {
-    const c = state.activeCharacter || {};
-    const p = state.activePersona || {};
-    const sp = state.systemPrompts.find(s => s.id === state.activeSystemPromptId);
-
-    // 1. Build context-limited message slice — lorebook scan needs it before
-    //    template resolution.
-    let msgs = getRawHistoryMessages(state.messages, { excludeLastN });
-    // 0 = no cap (entire history sent). Otherwise, fill back-to-front until the
-    // approximate token budget is hit — but first carve out room for the reply.
-    // The configured budget is the whole context window; if history is allowed
-    // to fill all of it the model has no space left to answer and llama.cpp
-    // truncates the response mid-sentence (truncated=1). Reserve Max Response
-    // Tokens so prompt + reply fit the window.
-    const stripThinking = !el.sendThinking?.checked;
-
-    // Auto Summaries: inject the chat's running summary when enabled. The stored
-    // summary is already held within its size cap server-side (enforce_cap), so
-    // it's injected as-is.
     const summaryText = state.autoSummariesEnabled !== false
         && state.activeChat?.summary_enabled
         ? summaryToText(state.activeChat?.summary)
         : '';
-    // The summary shares the model context with raw chat history. Reserve its
-    // actual rendered size before selecting recent messages so request building
-    // and the aged-out boundary use the same budget.
-    const tokenLimit = getRawMessageTokenBudget(summaryText);
-    msgs = selectContextMessages(msgs, {
-        maxTokens: tokenLimit,
-        stripThinking,
-    });
-
-    // 2. Resolve lorebook entries against the context window.
-    const activeBook = resolveActiveLorebook(state.activeChat, c, state.lorebooks);
-    const override = parseInt(state.lorebookScanDepthOverride, 10) || 0;
-    const bookForResolver = (activeBook && override > 0)
-        ? { ...activeBook, scan_depth: override }
-        : activeBook;
-    const lorebookContents = resolveLorebookEntries(bookForResolver, msgs, {
-        alwaysInjectAll: state.lorebookAlwaysInjectAll,
-    });
-    const lorebookText = lorebookContents.join('\n---\n');
-
-    // 3. Build the template context.
-    const ctx = {
-        user:          p.name || 'User',
-        char:          c.name || '',
-        personality:   c.personality || '',
-        scenario:      c.scenario || '',
-        description:   c.description || '',
-        persona:       p.description || '',
-        mesExamples:   c.mes_example || '',
-        lorebook:      lorebookText,
-        author_note:   state.activeChat?.author_note || '',
-        summary:       summaryText,
-        system_prompt: c.system_prompt || '',
-        post_history_instructions: c.post_history_instructions || '',
-        user_message:  '',   // set per-turn below when the User template wraps it
-    };
-    ctx.post_history_instructions = resolveTemplateVariables(ctx.post_history_instructions, ctx);
-
-    // 4. Resolve the active prompt-builder template into the system message.
-    const template = sp ? sp.content : '';
-    const userTemplate = sp ? (sp.post_history_content || '') : '';
-    const sysContent = resolveTemplateVariables(template, ctx);
-
-    const messages = [];
-    if (sysContent) messages.push({ role: 'system', content: sysContent });
-
-    // The "User" template (stored as post_history_content) works two ways. When
-    // it uses {{user_message}}, the final user turn is rendered THROUGH it in
-    // place — letting lore, author-note, etc. be positioned around the user's
-    // own text. When it doesn't, it's appended after the history as a trailing
-    // reminder (the classic post-history behavior). wrapsUserMessage picks the
-    // path; lastUserIdx marks the turn to wrap.
-    const wrapsUserMessage = /\{\{user_message\}\}/i.test(userTemplate);
-    let lastUserIdx = -1;
-    if (wrapsUserMessage) {
-        for (let i = msgs.length - 1; i >= 0; i--) {
-            if (msgs[i].role === 'user') { lastUserIdx = i; break; }
-        }
-    }
-
-    // 5. Chat history (map character → assistant), optionally limited. The final
-    //    user turn is rendered through the User template in place when it wraps.
-    for (let i = 0; i < msgs.length; i++) {
-        const msg = msgs[i];
-        let content = msg.text;
-        if (stripThinking) {
-            content = parseThinkingContent(content).response;
-        }
-        if (!content) continue;
-        if (wrapsUserMessage && i === lastUserIdx) {
-            ctx.user_message = content;
-            messages.push({ role: 'user', content: resolveTemplateVariables(userTemplate, ctx) });
-        } else {
-            messages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content });
-        }
-    }
-
-    // 6. Otherwise append the User template as a user-role turn after the history
-    //    (also the fallback when wrapping was requested but there was no user
-    //    turn to wrap). User role avoids mid-conversation system messages.
-    if (!wrapsUserMessage || lastUserIdx === -1) {
-        const rendered = resolveTemplateVariables(userTemplate, ctx);
-        if (rendered) messages.push({ role: 'user', content: rendered });
-    }
-
-    // A raw {{summary}} token is not proof that memory survived rendering: it
-    // may sit inside a false conditional. Inspect the actual rendered turns,
-    // then add a system fallback only when the exact non-empty summary is gone.
-    if (summaryText && !messages.some(message => message.content.includes(summaryText))) {
-        const fallback = `[MEMORY — STORY SO FAR]\n${summaryText}`;
-        const system = messages.find(message => message.role === 'system');
-        if (system) system.content += `\n\n${fallback}`;
-        else messages.unshift({ role: 'system', content: fallback });
-    }
-
-    // 7. Nudge — hidden continuation prompt, not persisted to chat
-    if (nudge) messages.push({ role: 'user', content: nudge });
+    const analysis = analyzeContext({ excludeLastN, nudge, summaryText });
 
     // Sampler settings (only include active sampler groups)
     const samplers = {};
@@ -170,7 +34,7 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     }
     if (samplers.seed === -1) samplers.seed = Math.floor(Math.random() * 2147483647);
 
-    const payload = { model: state.apiModel || '', messages: enforceAlternation(messages), ...samplers };
+    const payload = { model: state.apiModel || '', messages: analysis.messages, ...samplers };
 
     if (state.extraRequestParams) {
         try {
@@ -184,37 +48,6 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     }
 
     return payload;
-}
-
-function enforceAlternation(arr) {
-    let out = [];
-    for (const msg of arr) {
-        if (out.length > 0 && out[out.length - 1].role === msg.role) {
-            out[out.length - 1].content += '\n\n' + msg.content;
-        } else {
-            out.push({ ...msg });
-        }
-    }
-
-    const firstNonSys = out.findIndex(m => m.role !== 'system');
-    if (firstNonSys !== -1 && out[firstNonSys].role === 'assistant') {
-        if (firstNonSys > 0 && out[firstNonSys - 1].role === 'system') {
-            out[firstNonSys - 1].content += '\n\n[Character Greeting]\n' + out[firstNonSys].content;
-            out.splice(firstNonSys, 1);
-        } else {
-            out.splice(firstNonSys, 0, { role: 'user', content: '[Start]' });
-        }
-    }
-
-    const final = [];
-    for (const msg of out) {
-        if (final.length > 0 && final[final.length - 1].role === msg.role) {
-            final[final.length - 1].content += '\n\n' + msg.content;
-        } else {
-            final.push(msg);
-        }
-    }
-    return final;
 }
 
 /** Preview helper — returns the same payload buildChatPayload would send right now. */

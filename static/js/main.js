@@ -399,6 +399,7 @@ function bindSettingsHandlers() {
         state.summaryCapPct = el.summaryCapInput.value || '10';
         queueLLMSettingsSave({ summary_cap_pct: state.summaryCapPct });
         renderMemorySummaryCard();
+        updateContextMeter();
     });
     el.summaryCapInput?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryIntervalInput?.addEventListener('input', () => {
@@ -450,14 +451,22 @@ function bindSettingsHandlers() {
         if (btn) switchPromptBuilderMode(btn.dataset.promptBuilderTab);
     });
     el.syspromptSelect?.addEventListener('change', () => {
-        selectSystemPrompt(el.syspromptSelect.value);
+        selectSystemPrompt(el.syspromptSelect.value).then(() => {
+            updateContextMeter();
+            updateContextBoundary();
+        });
     });
     // Prompt editors — debounced autosave while typing, flush on blur.
-    const saveSystemPromptDebounced = debounce(updateSystemPromptContent, 500);
+    const refreshSystemPrompt = async () => {
+        await updateSystemPromptContent();
+        updateContextMeter();
+        updateContextBoundary();
+    };
+    const saveSystemPromptDebounced = debounce(refreshSystemPrompt, 500);
     el.syspromptContent?.addEventListener('input', saveSystemPromptDebounced);
-    el.syspromptContent?.addEventListener('blur', updateSystemPromptContent);
+    el.syspromptContent?.addEventListener('blur', refreshSystemPrompt);
     el.postHistoryContent?.addEventListener('input', saveSystemPromptDebounced);
-    el.postHistoryContent?.addEventListener('blur', updateSystemPromptContent);
+    el.postHistoryContent?.addEventListener('blur', refreshSystemPrompt);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);
     el.syspromptPreview?.addEventListener('click', () => {
@@ -539,6 +548,10 @@ function bindSettingsHandlers() {
     for (const [key, elName] of Object.entries(SAMPLER_FIELDS)) {
         el[elName]?.addEventListener('input', () => {
             queueLLMSettingsSave({ [key]: el[elName].value });
+            if (key === 'sampler_max_tokens') {
+                updateContextMeter();
+                updateContextBoundary();
+            }
         });
         el[elName]?.addEventListener('blur', flushLLMSettingsSave);
     }
@@ -556,6 +569,7 @@ function bindSettingsHandlers() {
         queueLLMSettingsSave({ context_max_tokens: state.contextMaxTokens });
         updateContextSizeWarning();
         updateContextMeter();
+        updateContextBoundary();
     });
     el.settingsContextTokens?.addEventListener('blur', flushLLMSettingsSave);
 
@@ -575,6 +589,7 @@ function bindSettingsHandlers() {
     el.sendThinking?.addEventListener('change', () => {
         queueLLMSettingsSave({ send_thinking: el.sendThinking.checked ? '1' : '0' });
         updateContextMeter();
+        updateContextBoundary();
     });
 }
 

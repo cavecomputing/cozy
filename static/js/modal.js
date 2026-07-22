@@ -5,6 +5,7 @@ import { renderCharList, selectCharacter, deleteCharacter } from './characters.j
 import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
+import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CHARACTER MODAL
@@ -201,6 +202,8 @@ async function save() {
             renderLorebookFlyout();
             renderLorebookNotice();
             updateComposerState();
+            updateContextMeter();
+            updateContextBoundary();
         } else if (!editingCharId) {
             await selectCharacter(char.id);
         }

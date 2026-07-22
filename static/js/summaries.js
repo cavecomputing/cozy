@@ -9,10 +9,9 @@
 
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { estimateTextTokens, selectContextMessages } from './tokenizer.js';
-import {
-    getContextTokenBudget, getRawHistoryMessages, getRawMessageTokenBudget,
-} from './context-budget.js';
+import { estimateTextTokens } from './tokenizer.js';
+import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
+import { analyzeContext } from './context-analysis.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
@@ -75,31 +74,26 @@ function triggerInterval() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 20;
 }
 
-// Token budget left for raw messages once the reply space and the injected
-// summary are carved out — the mirror of buildChatPayload's calculation, so the
-// "which messages have aged out" boundary matches what actually gets sent.
-function messageBudget(summaryTextOverride = null) {
-    const summaryText = summaryTextOverride == null
-        ? (summariesActive() ? summaryToText(state.activeChat.summary) : '')
-        : summaryTextOverride;
-    return getRawMessageTokenBudget(summaryText);
-}
-
 // ── Aged-out message detection ──────────────────────────────────────────────
 function agedOutMessages(excludeLastN = 0, {
     includeSummarized = false,
     summaryTextOverride = null,
 } = {}) {
     if (!state.activeChat) return [];
-    const budget = messageBudget(summaryTextOverride);
-    if (budget <= 0) return [];
-    const stripThinking = !el.sendThinking?.checked;
+    if (getContextTokenBudget() <= 0) return [];
     const candidates = getRawHistoryMessages(state.messages, {
         excludeLastN,
         includeSummarized,
     });
-    const selected = selectContextMessages(candidates, { maxTokens: budget, stripThinking });
-    const agedCount = candidates.length - selected.length;
+    const summaryText = summaryTextOverride == null
+        ? (summariesActive() ? summaryToText(state.activeChat.summary) : '')
+        : summaryTextOverride;
+    const analysis = analyzeContext({
+        excludeLastN,
+        includeSummarized,
+        summaryText,
+    });
+    const agedCount = candidates.length - analysis.selectedMessages.length;
     return agedCount > 0 ? candidates.slice(0, agedCount) : [];
 }
 
