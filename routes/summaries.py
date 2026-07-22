@@ -60,11 +60,13 @@ def call_summarizer(messages, cap_tokens=0):
         headers['Authorization'] = f'Bearer {api_key}'
     payload = {'model': model, 'messages': messages, 'stream': False}
     if cap_tokens and cap_tokens > 0:
-        # Keep one summary update to one bounded provider call. The small floor
-        # leaves room for the required headings when a test or unusual setup has
-        # configured an impractically tiny summary budget; enforce_cap trims the
-        # parsed result locally afterward.
-        payload['max_tokens'] = max(128, int(cap_tokens))
+        # One bounded provider call per update, but with headroom over the cap:
+        # a compress-mode reply re-emits the whole summary at ~cap tokens, and
+        # provider truncation chops the newest text (the BONDS tail) while the
+        # local enforce_cap trims oldest-first. The floor keeps room for the
+        # required headings — and for reasoning models, whose thinking spends
+        # this same budget — when the configured cap is tiny.
+        payload['max_tokens'] = max(512, int(cap_tokens * 1.25))
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=180)
         r.raise_for_status()
@@ -79,6 +81,13 @@ def call_summarizer(messages, cap_tokens=0):
     choices = body.get('choices')
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         raise RuntimeError('Summarizer endpoint returned no completion choice')
+    if choices[0].get('finish_reason') == 'length':
+        # A truncated reply can still parse (the cut lands mid-bullet or right
+        # after a heading) and would retire history against chopped memory.
+        raise RuntimeError(
+            'Summarizer response was cut off by its completion token limit; '
+            'try a larger context size or summary cap'
+        )
     message = choices[0].get('message')
     if not isinstance(message, dict):
         raise RuntimeError('Summarizer endpoint returned a malformed completion message')

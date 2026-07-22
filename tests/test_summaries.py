@@ -263,8 +263,12 @@ def test_call_summarizer_rejects_malformed_completion_body(client, monkeypatch, 
         summaries.call_summarizer([{'role': 'user', 'content': 'summarize'}])
 
 
-@pytest.mark.parametrize(('cap_tokens', 'expected'), [(50, 128), (500, 500)])
-def test_call_summarizer_bounds_single_response(client, monkeypatch, cap_tokens, expected):
+@pytest.mark.parametrize(('cap_tokens', 'expected'), [(50, 512), (500, 625), (4000, 5000)])
+def test_call_summarizer_bounds_single_response_with_headroom(
+        client, monkeypatch, cap_tokens, expected):
+    """The completion stays bounded but keeps headroom over the cap: a
+    compress-mode overshoot must hit enforce_cap's oldest-first trim, not the
+    provider's newest-first truncation."""
     client.put('/api/settings', json={
         'summary_api_endpoint': 'http://summarizer',
         'summary_api_model': 'summary-model',
@@ -288,6 +292,30 @@ def test_call_summarizer_bounds_single_response(client, monkeypatch, cap_tokens,
         [{'role': 'user', 'content': 'summarize'}], cap_tokens
     ) == CANNED
     assert captured['max_tokens'] == expected
+
+
+def test_call_summarizer_rejects_length_truncated_completion(client, monkeypatch):
+    """finish_reason == 'length' means chopped memory; it must fail the batch
+    rather than being parsed (a cut mid-bullet still parses cleanly)."""
+    client.put('/api/settings', json={
+        'summary_api_endpoint': 'http://summarizer',
+        'summary_api_model': 'summary-model',
+    })
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {'choices': [{
+                'finish_reason': 'length',
+                'message': {'content': 'STORY SO FAR\n- Beat.\n\nBONDS\n- A & B: allies bound by the'},
+            }]}
+
+    monkeypatch.setattr(summaries.http_requests, 'post', lambda *a, **k: FakeResponse())
+
+    with pytest.raises(RuntimeError, match='cut off'):
+        summaries.call_summarizer([{'role': 'user', 'content': 'summarize'}], 500)
 
 
 def test_run_job_folds_and_advances_watermark(client, sample_chat, monkeypatch):
