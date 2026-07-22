@@ -64,7 +64,10 @@ function resolveTrackedTemplate(template, context, {
     const trackedContext = { ...context };
     let markerSequence = 0;
     for (const [key, value] of Object.entries(context)) {
-        if (value == null || String(value) === '') continue;
+        // {{#var}} blocks treat whitespace-only values as empty (see
+        // resolveTemplateVariables); wrapping them in markers would make them
+        // truthy and leak the block's wrapper text into the outgoing prompt.
+        if (value == null || String(value).trim() === '') continue;
         const source = variableSources[key] || SOURCE_BY_VARIABLE[key];
         if (!source) continue;
         const id = `${markerSequence++}`;

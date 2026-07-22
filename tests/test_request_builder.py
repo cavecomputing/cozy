@@ -73,6 +73,39 @@ def test_chat_payload_uses_active_custom_system_prompt_template():
     run_node_module(code)
 
 
+def test_whitespace_only_values_still_drop_their_conditional_blocks():
+    """Source tracking must not make a whitespace-only value truthy in {{#var}}.
+
+    Imported cards commonly carry fields like `"scenario": " "`; the legacy
+    builder dropped those blocks, and the marker-based resolver must agree or
+    wrapper labels leak into the outgoing prompt with nothing after them.
+    """
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira', scenario: ' ' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: 'SYSTEM.{{#scenario}}\nScenario: {{scenario}}{{/scenario}}'
+                + '{{#author_note}}\nAUTHOR NOTE: {{author_note}}{{/author_note}}',
+            post_history_content: '',
+        }];
+        state.activeChat = { author_note: '   ' };
+        state.messages = [{ id: 1, role: 'user', text: 'hi' }];
+
+        const payload = buildChatPayload();
+        assert.equal(payload.messages[0].role, 'system');
+        assert.equal(payload.messages[0].content, 'SYSTEM.');
+
+        // A real value still resolves and is attributed to its source.
+        state.activeChat.author_note = 'Keep it cozy.';
+        const analysis = analyzeContext({});
+        assert.match(analysis.messages[0].content, /AUTHOR NOTE: Keep it cozy\./);
+        assert.doesNotMatch(analysis.messages[0].content, /Scenario:/);
+        assert.ok(analysis.segments.some(segment => segment.id === 'author_note'));
+    """
+    run_node_module(code)
+
+
 def test_default_post_history_template_preserves_character_card_behavior():
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = {
