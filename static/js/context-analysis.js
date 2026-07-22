@@ -369,12 +369,6 @@ function sameSelection(left, right) {
     return left.every((message, index) => message === right[index]);
 }
 
-function summaryCapTokens(maxTokens) {
-    if (maxTokens <= 0) return 0;
-    const pct = parseFloat(state.summaryCapPct || '10') || 10;
-    return Math.max(0, Math.floor(maxTokens * pct / 100));
-}
-
 /**
  * Build the exact context messages plus the source-aware accounting used by
  * the meter, transcript boundary, summary aging, and outgoing request.
@@ -384,7 +378,6 @@ export function analyzeContext({
     nudge = null,
     draftText = '',
     summaryText = '',
-    summaryEnabled = null,
     includeSummarized = false,
     messages = state.messages,
 } = {}) {
@@ -450,7 +443,6 @@ export function analyzeContext({
     const selectedMessageIds = selected
         .filter(message => !message._isDraft && message.id != null)
         .map(message => message.id);
-    const summaryCapacityActive = summaryEnabled == null ? !!summaryText : !!summaryEnabled;
 
     return {
         messages: assembled.messages,
@@ -466,6 +458,5 @@ export function analyzeContext({
         unusedTokens,
         overflowTokens,
         summaryTokens: assembled.tokenCounts.get('auto_summary') || 0,
-        summaryCapTokens: summaryCapacityActive ? summaryCapTokens(maxTokens) : 0,
     };
 }

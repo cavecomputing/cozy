@@ -477,8 +477,7 @@ def test_context_analysis_attributes_every_semantic_source_and_reconciles_totals
             analysis.segments.reduce((sum, segment) => sum + segment.tokens, 0),
             analysis.maxTokens,
         );
-        assert.equal(analysis.summaryCapTokens, 100);
-        assert.ok(analysis.summaryTokens < analysis.summaryCapTokens);
+        assert.ok(analysis.summaryTokens > 0);
         assert.deepEqual(analysis.selectedMessageIds, [1, 2]);
         assert.match(JSON.stringify(analysis.messages), /Search the observatory\./);
     """
@@ -568,31 +567,7 @@ def test_summary_fallback_is_attributed_and_unlimited_context_has_no_unused_segm
         assert.ok(byId.get('auto_summary') > 0);
         assert.ok(byId.get('response_reserve') > 0);
         assert.equal(byId.has('unused'), false);
-        assert.equal(analysis.summaryCapTokens, 0);
         assert.equal(analysis.overflowTokens, 0);
         assert.match(analysis.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
-    """
-    run_node_module(code)
-
-
-def test_empty_active_summary_exposes_capacity_without_counting_usage():
-    code = BASE_NODE_SETUP + r"""
-        state.contextMaxTokens = '1000';
-        el.settingsContextTokens = { value: '1000' };
-        el.samplerMaxTokens = { value: '100' };
-        state.summaryCapPct = '10';
-        state.activeCharacter = { name: 'Mira' };
-        state.activeChat = { summary_enabled: true };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{ id: 1, content: 'SYSTEM', post_history_content: '' }];
-        state.messages = [{ id: 1, role: 'user', text: 'Hello.' }];
-
-        const active = analyzeContext({ summaryText: '', summaryEnabled: true });
-        assert.equal(active.summaryTokens, 0);
-        assert.equal(active.summaryCapTokens, 100);
-        assert.equal(active.segments.some(segment => segment.id === 'auto_summary'), false);
-
-        const disabled = analyzeContext({ summaryText: '', summaryEnabled: false });
-        assert.equal(disabled.summaryCapTokens, 0);
     """
     run_node_module(code)

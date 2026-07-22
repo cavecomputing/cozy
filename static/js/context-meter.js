@@ -16,11 +16,8 @@ function activeSummaryText() {
 }
 
 export function getCurrentContextAnalysis({ includeDraft = false } = {}) {
-    const summaryEnabled = state.autoSummariesEnabled !== false
-        && !!state.activeChat?.summary_enabled;
     return analyzeContext({
         summaryText: activeSummaryText(),
-        summaryEnabled,
         draftText: includeDraft ? el.userInput?.value || '' : '',
     });
 }
@@ -31,11 +28,6 @@ function tooltipForSegment(segment, analysis) {
         ? `${((segment.tokens / analysis.maxTokens) * 100).toFixed(1)}% of context`
         : `${((segment.tokens / Math.max(1, analysis.allocatedTokens)) * 100).toFixed(1)}% of accounted tokens`;
     let detail = `≈ ${formatted} tokens · ${pct}`;
-    if (segment.id === 'auto_summary' && analysis.summaryCapTokens > 0) {
-        const headroom = Math.max(0, analysis.summaryCapTokens - analysis.summaryTokens);
-        detail += `<br>Cap: ≈ ${analysis.summaryCapTokens.toLocaleString()} tokens`;
-        if (headroom > 0) detail += ` · ${headroom.toLocaleString()} available`;
-    }
     if (segment.id === 'unused') detail += '<br>Available for future conversation context.';
     if (segment.id === 'response_reserve') detail += '<br>Held back so the model has room to answer.';
     return `<strong>${segment.label}</strong><br>${detail}`;
@@ -59,26 +51,6 @@ function renderSegments(analysis) {
         button.style.flexBasis = `${(segment.tokens / denominator) * 100}%`;
         button.setAttribute('aria-label', `${segment.label}: approximately ${segment.tokens.toLocaleString()} tokens`);
         bar.appendChild(button);
-
-    }
-
-    if (el.contextSummaryCap) {
-        const headroom = Math.max(0, analysis.summaryCapTokens - analysis.summaryTokens);
-        const canShowCap = analysis.maxTokens > 0
-            && analysis.overflowTokens === 0
-            && headroom > 0;
-        if (canShowCap) {
-            const beforeSummary = analysis.segments
-                .filter(segment => [
-                    'system_prompt', 'character_card', 'persona', 'lorebook', 'author_note',
-                ].includes(segment.id))
-                .reduce((sum, segment) => sum + segment.tokens, 0);
-            el.contextSummaryCap.style.left = `${(beforeSummary / analysis.maxTokens) * 100}%`;
-            el.contextSummaryCap.style.width = `${(analysis.summaryCapTokens / analysis.maxTokens) * 100}%`;
-            el.contextSummaryCap.hidden = false;
-        } else {
-            el.contextSummaryCap.hidden = true;
-        }
     }
 }
 

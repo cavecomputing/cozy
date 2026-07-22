@@ -165,7 +165,6 @@ export function initElements() {
         contextTokenMeter:   document.getElementById('context-token-meter'),
         contextTokenLabel:   document.getElementById('context-token-label'),
         contextTokenBar:     document.getElementById('context-token-bar'),
-        contextSummaryCap:   document.getElementById('context-summary-cap'),
         apiPreset:           document.getElementById('settings-api-preset'),
         presetNew:           document.getElementById('settings-preset-new'),
         presetDelete:        document.getElementById('settings-preset-delete'),

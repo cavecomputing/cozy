@@ -1753,20 +1753,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     background: color-mix(in srgb, var(--border-color) 70%, var(--bg-color));
 }
 
-.context-summary-cap {
-    position: absolute;
-    z-index: 3;
-    bottom: 0;
-    height: 3px;
-    border-right: 1px solid color-mix(in srgb, #c7d2fe 80%, transparent);
-    background: repeating-linear-gradient(
-        135deg,
-        color-mix(in srgb, #c7d2fe 76%, transparent) 0 2px,
-        transparent 2px 4px
-    );
-    pointer-events: none;
-}
-
 .context-token-meter[data-level="warn"] .context-token-meter-track {
     box-shadow: inset 0 0 0 1px var(--warning-color, #b97a00);
 }
