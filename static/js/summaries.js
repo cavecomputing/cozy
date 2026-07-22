@@ -130,6 +130,18 @@ function automaticRunTarget(excludeLastN = 0) {
     return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+/**
+ * Retire only the messages that are currently outside the final prompt. This is
+ * used while stabilizing an explicit rebuild: normal background updates round
+ * up to an interval for headroom, but doing that here would make a completed
+ * rebuild unexpectedly discard another full block of raw context.
+ */
+function exactRunTarget(excludeLastN = 0) {
+    const agedOut = agedOutUnsummarized(excludeLastN);
+    const id = agedOut[agedOut.length - 1]?.id;
+    return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 function summarizedCount() {
     const wm = state.activeChat?.summary_up_to_msg_id || 0;
     if (!wm) return 0;
@@ -274,7 +286,7 @@ async function waitForSummaryCompletion(chatId, initialState, signal) {
 
 async function triggerRun({ rebuild = false, awaitCompletion = false,
                             chatId = state.activeChat?.id, signal,
-                            excludeLastN = 0 } = {}) {
+                            excludeLastN = 0, exactTarget = false } = {}) {
     if (chatId == null || state.activeChat?.id !== chatId) return null;
 
     try {
@@ -324,7 +336,7 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
     const agedOutIds = agedOut.map(m => m.id).filter(id => Number.isInteger(id) && id > 0);
     const upTo = rebuild
         ? (agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null)
-        : automaticRunTarget(excludeLastN);
+        : (exactTarget ? exactRunTarget(excludeLastN) : automaticRunTarget(excludeLastN));
     if (upTo == null) {
         // Nothing is outside the context window. On an explicit rebuild that means
         // a grown context now fits everything — clear any lingering stale summary.
@@ -448,10 +460,42 @@ async function disableSummariesForChat() {
     }
 }
 
-function rebuildSummary() {
+async function rebuildSummary() {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
-    return triggerRun({ rebuild: true, chatId: chat.id });
+    const chatId = chat.id;
+    try {
+        await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
+
+        // The replacement summary's final size is unknowable before the rebuild
+        // finishes. Injecting it can move the context boundary and age out a few
+        // more messages. Fold those in now, to a fixed point, so reopening the
+        // chat cannot discover and launch a surprise follow-up batch.
+        let previousWatermark = state.activeChat?.summary_up_to_msg_id || 0;
+        let stalledRuns = 0;
+        while (state.activeChat?.id === chatId && summariesActive(state.activeChat)
+            && agedOutUnsummarized().length > 0) {
+            await triggerRun({
+                awaitCompletion: true,
+                chatId,
+                exactTarget: true,
+            });
+            if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
+
+            const watermark = state.activeChat.summary_up_to_msg_id || 0;
+            if (watermark <= previousWatermark) {
+                stalledRuns += 1;
+                if (stalledRuns >= 2) {
+                    throw new Error('Summary rebuild could not stabilize the context boundary.');
+                }
+            } else {
+                stalledRuns = 0;
+                previousWatermark = watermark;
+            }
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') showToast('Summary rebuild failed: ' + e.message);
+    }
 }
 
 /** Wipe the summary + watermark to empty (no LLM call). */

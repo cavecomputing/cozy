@@ -1142,6 +1142,101 @@ def test_rebuild_clears_stale_summary_when_full_history_fits_without_it():
     run_node_module(code)
 
 
+def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_run():
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import {
+            initSummaryHandlers,
+            maybeTriggerSummary,
+        } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = {
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.settingsContextTokens = { value: '202' };
+        el.samplerMaxTokens = { value: '10' };
+        el.sendThinking = { checked: true };
+        state.autoSummariesEnabled = true;
+        state.summaryTriggerInterval = '20';
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'summary-model';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: null,
+            summary: { lines: [] },
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+
+        const rebuiltSummary = {
+            lines: [{ section: 'story', text: 'x'.repeat(40) }],
+        };
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            if (options.rebuild) {
+                return {
+                    id: chatId,
+                    summary_enabled: true,
+                    summary: { lines: [] },
+                    summary_up_to_msg_id: null,
+                    summary_status: 'running',
+                    summary_status_detail: 'Summarizing…',
+                };
+            }
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: rebuiltSummary,
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+        API.getSummaryStatus = async chatId => ({
+            id: chatId,
+            summary_enabled: true,
+            summary: rebuiltSummary,
+            summary_up_to_msg_id: calls[0].up_to_msg_id,
+            summary_status: 'idle',
+            summary_status_detail: '',
+        });
+
+        const nativeSetTimeout = globalThis.setTimeout;
+        globalThis.setTimeout = (fn, _ms) => nativeSetTimeout(fn, 0);
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.deepEqual(calls.map(call => ({
+            upTo: call.up_to_msg_id,
+            rebuild: call.rebuild,
+        })), [
+            { upTo: 2, rebuild: true },
+            // The final summary displaced messages 3 and 4. Stabilization folds
+            // in exactly those two instead of rounding through message 22.
+            { upTo: 4, rebuild: false },
+        ]);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 4);
+
+        await maybeTriggerSummary();
+        assert.equal(calls.length, 2);
+    """
+    run_node_module(code)
+
+
 def test_global_off_cancellation_state_allows_immediate_catchup_on_resume():
     code = BASE_SETUP + r"""
         const {
