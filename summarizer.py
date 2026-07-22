@@ -358,8 +358,10 @@ def append_summary(prev_obj, new_obj):
     STORY is additive: existing story lines are kept verbatim (order preserved) and any
     new story line whose exact text is not already present is appended — so a model that
     re-emits an existing beat, or an identical retried reply, stays idempotent. BONDS is
-    current-state: the reply's BONDS section replaces the old one. Returns fresh copies
-    and never mutates its inputs.
+    current-state: the reply's BONDS section replaces the old one — unless the reply has
+    no bonds bullets at all, in which case the previous section is carried forward (a
+    model may wrongly generalize the additive story rule to BONDS and omit unchanged
+    relationships). Returns fresh copies and never mutates its inputs.
     """
     prev_story = [
         dict(line) for line in summary_lines(prev_obj)
@@ -379,6 +381,13 @@ def append_summary(prev_obj, new_obj):
         for line in summary_lines(new_obj)
         if line.get('section') == 'bonds' and line.get('text')
     ]
+    if not new_bonds:
+        # An empty BONDS section is accepted by the parser (only the heading is
+        # required), so replacing here would silently erase every unpinned bond.
+        new_bonds = [
+            dict(line) for line in summary_lines(prev_obj)
+            if line.get('section') == 'bonds'
+        ]
     return {'lines': prev_story + new_story + new_bonds}
 
 

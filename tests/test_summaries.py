@@ -141,6 +141,23 @@ def test_append_summary_first_batch_from_empty():
     assert [l['text'] for l in out['lines']] == ['first', 'A & B: allies']
 
 
+def test_append_summary_keeps_previous_bonds_when_reply_has_none():
+    """A reply with an empty BONDS section must not erase relationship state."""
+    prev = {'lines': [
+        {'section': 'story', 'text': 'S1', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: wary allies', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & C: owes a debt', 'pinned': True},
+    ]}
+    # parse_summarizer_output accepts a bare BONDS heading with no bullets.
+    reply = parse_summarizer_output('STORY SO FAR\n- S2\n\nBONDS')
+    out = append_summary(prev, reply)
+    bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
+    assert bonds == ['A & B: wary allies', 'A & C: owes a debt']
+    assert [l['text'] for l in out['lines'] if l['section'] == 'story'] == ['S1', 'S2']
+    # Carried-forward lines keep their pin state.
+    assert [l['pinned'] for l in out['lines'] if l['section'] == 'bonds'] == [False, True]
+
+
 def test_build_append_messages_asks_for_new_story_only():
     from summarizer import APPEND_INSTRUCTIONS
     msgs = build_append_messages(
@@ -477,6 +494,27 @@ def test_append_mode_merges_bonds_without_duplicating(client, sample_chat, monke
     story = [l['text'] for l in obj['lines'] if l['section'] == 'story']
     assert bonds == ['A & B: close now']            # merged, not duplicated
     assert story == ['earlier beat', 'new beat']    # story accumulated
+
+
+def test_append_mode_survives_reply_with_empty_bonds_section(client, sample_chat, monkeypatch):
+    """A batch whose reply omits BONDS bullets keeps the stored relationship state."""
+    monkeypatch.setattr(
+        summaries, 'call_summarizer',
+        lambda messages, cap_tokens=0: 'STORY SO FAR\n- new beat\n\nBONDS')
+    ids = _add_messages(client, sample_chat['id'], 2)
+    _store_summary(sample_chat['id'], {'lines': [
+        {'section': 'story', 'text': 'earlier beat', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: uneasy', 'pinned': False},
+    ]}, watermark=ids[0])
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+
+    with shared.get_db() as conn:
+        row = conn.execute('SELECT summary_json, summary_status FROM chats WHERE id=?',
+                           (sample_chat['id'],)).fetchone()
+    obj = parse_summary_json(row['summary_json'])
+    assert row['summary_status'] == 'idle'
+    assert [l['text'] for l in obj['lines'] if l['section'] == 'bonds'] == ['A & B: uneasy']
+    assert [l['text'] for l in obj['lines'] if l['section'] == 'story'] == ['earlier beat', 'new beat']
 
 
 def test_run_job_strips_hidden_thinking_when_disabled(client, sample_chat, monkeypatch):
