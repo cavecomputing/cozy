@@ -476,6 +476,17 @@ async function rebuildSummary() {
     if (!summariesActive(chat)) return;
     const chatId = chat.id;
     try {
+        // A run already in flight would swallow this click through triggerRun's
+        // join branch and never issue the actual rebuild. Wait it out first; a
+        // failed background run must not block its own replacement.
+        if (state.activeChat?.summary_status === 'running') {
+            try {
+                await waitForSummaryCompletion(chatId, { summary_status: 'running' });
+            } catch (e) {
+                if (e.name === 'AbortError') throw e;
+            }
+            if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
+        }
         await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
 
         // The replacement summary's final size is unknowable before the rebuild

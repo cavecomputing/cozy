@@ -1271,6 +1271,85 @@ def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_ru
     run_node_module(code)
 
 
+def test_rebuild_click_during_background_run_still_issues_the_rebuild():
+    """triggerRun's join branch must not consume the rebuild request itself:
+    wait out the in-flight run, then post an actual rebuild."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import { initSummaryHandlers } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = {
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.settingsContextTokens = { value: '202' };
+        el.samplerMaxTokens = { value: '10' };
+        el.sendThinking = { checked: true };
+        state.autoSummariesEnabled = true;
+        state.summaryTriggerInterval = '20';
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'summary-model';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: null,
+            summary: { lines: [] },
+            summary_status: 'running',
+            summary_status_detail: 'Summarizing…',
+        };
+        state.chats = [state.activeChat];
+
+        const calls = [];
+        let statusCalls = 0;
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: null,
+                summary_status: 'running',
+                summary_status_detail: 'Summarizing…',
+            };
+        };
+        API.getSummaryStatus = async chatId => {
+            statusCalls += 1;
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                // First poll resolves the joined background run; later polls
+                // report the completed rebuild.
+                summary_up_to_msg_id: statusCalls === 1 ? null : calls[0]?.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        const nativeSetTimeout = globalThis.setTimeout;
+        globalThis.setTimeout = (fn, _ms) => nativeSetTimeout(fn, 0);
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].rebuild, true);
+        assert.equal(calls[0].up_to_msg_id, 2);
+        assert.ok(statusCalls >= 2);  // joined the in-flight run before rebuilding
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
+    """
+    run_node_module(code)
+
+
 def test_global_off_cancellation_state_allows_immediate_catchup_on_resume():
     code = BASE_SETUP + r"""
         const {
