@@ -23,7 +23,6 @@ from summarizer import (
     append_summary,
     build_append_messages,
     build_summarizer_messages,
-    build_tighten_messages,
     dump_summary_json,
     enforce_cap,
     estimate_tokens,
@@ -61,9 +60,11 @@ def call_summarizer(messages, cap_tokens=0):
         headers['Authorization'] = f'Bearer {api_key}'
     payload = {'model': model, 'messages': messages, 'stream': False}
     if cap_tokens and cap_tokens > 0:
-        # Give the model room to reach the cap without the endpoint's low default
-        # max_tokens truncating it; enforce_cap trims anything over afterward.
-        payload['max_tokens'] = max(512, int(cap_tokens * 1.5))
+        # Keep one summary update to one bounded provider call. The small floor
+        # leaves room for the required headings when a test or unusual setup has
+        # configured an impractically tiny summary budget; enforce_cap trims the
+        # parsed result locally afterward.
+        payload['max_tokens'] = max(128, int(cap_tokens))
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=180)
         r.raise_for_status()
@@ -140,18 +141,8 @@ def _should_append(summary_obj, cap_tokens):
     return estimate_tokens(summary_to_text(summary_obj)) <= APPEND_CAP_FRACTION * cap_tokens
 
 
-def _fit_summary_candidate(candidate, cap_tokens, ensure_active=None):
-    """Give an over-budget draft one semantic tighten retry before hard trimming."""
-    if cap_tokens > 0 and estimate_tokens(summary_to_text(candidate)) > cap_tokens:
-        if ensure_active:
-            ensure_active()
-        messages = build_tighten_messages(
-            summary_to_text(candidate), pinned_texts(candidate), cap_tokens
-        )
-        reply = call_summarizer(messages, cap_tokens)
-        if ensure_active:
-            ensure_active()
-        candidate = merge_pins(parse_summarizer_output(reply), candidate)
+def _fit_summary_candidate(candidate, cap_tokens):
+    """Enforce the configured cap locally without making a second provider call."""
     return enforce_cap(candidate, cap_tokens)
 
 
@@ -460,13 +451,7 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             parsed = parse_summarizer_output(reply)
             candidate = append_summary(summary_obj, parsed) if append_mode else parsed
             folded = merge_pins(candidate, summary_obj)
-            summary_obj, batch_warning = _fit_summary_candidate(
-                folded,
-                cap_tokens,
-                ensure_active=lambda: _assert_summary_active(
-                    chat_id, require_running=require_running, job_token=job_token
-                ),
-            )
+            summary_obj, batch_warning = _fit_summary_candidate(folded, cap_tokens)
             if batch_warning:
                 warning = batch_warning
 

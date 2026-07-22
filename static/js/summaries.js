@@ -70,6 +70,11 @@ function capTokens() {
     return ctx > 0 ? Math.floor(ctx * pct / 100) : 0;
 }
 
+function triggerInterval() {
+    const parsed = parseInt(state.summaryTriggerInterval || '20', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 20;
+}
+
 // Token budget left for raw messages once the reply space and the injected
 // summary are carved out — the mirror of buildChatPayload's calculation, so the
 // "which messages have aged out" boundary matches what actually gets sent.
@@ -101,6 +106,34 @@ function agedOutMessages(excludeLastN = 0, {
 function agedOutUnsummarized(excludeLastN = 0) {
     const wm = state.activeChat?.summary_up_to_msg_id || 0;
     return agedOutMessages(excludeLastN).filter(m => (m.id || 0) > wm);
+}
+
+/**
+ * Pick the inclusive watermark for an automatic update. Once any unsummarized
+ * history falls outside the raw token budget, retire whole interval-sized blocks
+ * so ordinary chatting has room to grow before another paid summary call.
+ *
+ * Prefer to keep the newest two eligible messages verbatim. Under severe token
+ * pressure we may consume the older of those two, but the newest message is never
+ * selected; this also preserves the live user turn during swipe regeneration.
+ */
+function automaticRunTarget(excludeLastN = 0) {
+    const candidates = getRawHistoryMessages(state.messages, { excludeLastN });
+    const agedCount = agedOutMessages(excludeLastN).length;
+    if (agedCount === 0 || candidates.length <= 1) return null;
+
+    const interval = triggerInterval();
+    const roundedCount = Math.ceil(agedCount / interval) * interval;
+    const preferredMax = Math.max(0, candidates.length - 2);
+    const absoluteMax = candidates.length - 1;
+    const targetCount = Math.min(
+        absoluteMax,
+        Math.max(agedCount, Math.min(roundedCount, preferredMax)),
+    );
+    if (targetCount <= 0) return null;
+
+    const id = candidates[targetCount - 1]?.id;
+    return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 function summarizedCount() {
@@ -295,7 +328,9 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
 
     const agedOut = agedOutMessages(excludeLastN, { includeSummarized: rebuild });
     const agedOutIds = agedOut.map(m => m.id).filter(id => Number.isInteger(id) && id > 0);
-    const upTo = agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null;
+    const upTo = rebuild
+        ? (agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null)
+        : automaticRunTarget(excludeLastN);
     if (upTo == null) {
         // Nothing is outside the context window. On an explicit rebuild that means
         // a grown context now fits everything — clear any lingering stale summary.

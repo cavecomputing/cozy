@@ -80,6 +80,91 @@ def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
     run_node_module(code)
 
 
+def test_first_boundary_retires_a_full_interval_block():
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].up_to_msg_id, 20);
+    """
+    run_node_module(code)
+
+
+def test_interval_waits_for_context_pressure_and_then_retires_next_block():
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 44 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat.summary_up_to_msg_id = 20;
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+        assert.deepEqual(calls, []);
+
+        state.messages.push({
+            id: 45,
+            role: 'user',
+            text: 'm-44-abcdefghij',
+        });
+        await maybeTriggerSummary();
+        assert.deepEqual(calls, [40]);
+    """
+    run_node_module(code)
+
+
+def test_interval_does_not_summarize_early_when_everything_fits():
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '1000';
+        state.messages = Array.from({ length: 40 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `message-${i}`,
+        }));
+        let calls = 0;
+        API.runSummary = async () => { calls += 1; };
+
+        await maybeTriggerSummary();
+
+        assert.equal(calls, 0);
+    """
+    run_node_module(code)
+
+
 def test_summary_trigger_waits_for_debounced_settings_save():
     code = BASE_SETUP + r"""
         const { queueLLMSettingsSave } = await import('./static/js/llm-settings.js');

@@ -14,7 +14,6 @@ from summarizer import (
     append_summary,
     build_append_messages,
     build_summarizer_messages,
-    build_tighten_messages,
     dump_summary_json,
     enforce_cap,
     estimate_tokens,
@@ -195,13 +194,6 @@ def test_enforce_cap_never_erases_a_nonempty_summary():
     assert warning
 
 
-def test_build_tighten_messages_requests_semantic_rewrite():
-    messages = build_tighten_messages('long draft', ['pin me'], 100)
-    prompt = messages[1]['content']
-    assert 'OVER-BUDGET' in prompt and 'no more than 100' in prompt
-    assert 'pin me' in prompt and 'no new chat history' in prompt
-
-
 # ── Helpers for endpoint/worker tests ───────────────────────────────────────
 
 def _add_messages(client, chat_id, n):
@@ -252,6 +244,34 @@ def test_call_summarizer_rejects_malformed_completion_body(client, monkeypatch, 
 
     with pytest.raises(RuntimeError):
         summaries.call_summarizer([{'role': 'user', 'content': 'summarize'}])
+
+
+@pytest.mark.parametrize(('cap_tokens', 'expected'), [(50, 128), (500, 500)])
+def test_call_summarizer_bounds_single_response(client, monkeypatch, cap_tokens, expected):
+    client.put('/api/settings', json={
+        'summary_api_endpoint': 'http://summarizer',
+        'summary_api_model': 'summary-model',
+    })
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {'choices': [{'message': {'content': CANNED}}]}
+
+    def fake_post(*args, **kwargs):
+        captured.update(kwargs['json'])
+        return FakeResponse()
+
+    monkeypatch.setattr(summaries.http_requests, 'post', fake_post)
+
+    assert summaries.call_summarizer(
+        [{'role': 'user', 'content': 'summarize'}], cap_tokens
+    ) == CANNED
+    assert captured['max_tokens'] == expected
+
 
 def test_run_job_folds_and_advances_watermark(client, sample_chat, monkeypatch):
     calls = []
@@ -336,32 +356,30 @@ def test_run_job_rejects_invalid_model_content_without_advancing(
     assert row['summary_status'] == 'error'
 
 
-def test_run_job_semantically_tightens_before_hard_cap(client, sample_chat, monkeypatch):
+def test_run_job_caps_overlong_summary_without_second_call(client, sample_chat, monkeypatch):
     client.put('/api/settings', json={
         'context_max_tokens': '500',
         'summary_cap_pct': '10',
     })
     over_cap = f"STORY SO FAR\n- {'important context ' * 100}\n\nBONDS\n- A & B: trust"
-    tightened = 'STORY SO FAR\n- Essential context remains.\n\nBONDS\n- A & B: trust.'
-    replies = iter((over_cap, tightened))
     calls = []
 
     def complete(messages, cap_tokens=0):
         calls.append(messages)
-        return next(replies)
+        return over_cap
 
     monkeypatch.setattr(summaries, 'call_summarizer', complete)
     ids = _add_messages(client, sample_chat['id'], 2)
     summaries._run_summary_job(sample_chat['id'], ids[-1])
 
-    assert len(calls) == 2
-    assert 'OVER-BUDGET SUMMARY DRAFT' in calls[1][1]['content']
+    assert len(calls) == 1
     with shared.get_db() as conn:
         row = conn.execute(
             'SELECT summary_json, summary_up_to_msg_id FROM chats WHERE id=?',
             (sample_chat['id'],),
         ).fetchone()
-    assert 'Essential context remains.' in summary_to_text(parse_summary_json(row['summary_json']))
+    stored = summary_to_text(parse_summary_json(row['summary_json']))
+    assert estimate_tokens(stored) <= 50
     assert row['summary_up_to_msg_id'] == ids[-1]
 
 
@@ -398,9 +416,7 @@ def test_mode_switches_to_compress_near_cap(client, sample_chat, monkeypatch):
     from summarizer import SUMMARY_INSTRUCTIONS
     client.put('/api/settings', json={'context_max_tokens': '100', 'summary_cap_pct': '10'})
     calls = []
-    # iter covers a possible tighten follow-up against the tiny cap.
-    replies = iter(('STORY SO FAR\n- brief\n\nBONDS\n- A & B: allies',
-                    'STORY SO FAR\n- brief\n\nBONDS\n- A & B: allies'))
+    replies = iter(('STORY SO FAR\n- brief\n\nBONDS\n- A & B: allies',))
 
     def complete(messages, cap_tokens=0):
         calls.append(messages)
@@ -417,26 +433,28 @@ def test_mode_switches_to_compress_near_cap(client, sample_chat, monkeypatch):
     assert calls[0][0]['content'] == SUMMARY_INSTRUCTIONS  # compress, not append
 
 
-def test_append_overflow_triggers_tighten(client, sample_chat, monkeypatch):
-    """An append that overshoots the cap still gets the semantic tighten retry."""
+def test_append_overflow_is_trimmed_without_second_call(client, sample_chat, monkeypatch):
+    """An additive reply that overshoots the cap is trimmed locally."""
     from summarizer import APPEND_INSTRUCTIONS
     client.put('/api/settings', json={'context_max_tokens': '500', 'summary_cap_pct': '10'})
     over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}\n\nBONDS\n- A & B: allies"
-    tightened = 'STORY SO FAR\n- Tightened beat.\n\nBONDS\n- A & B: allies'
-    replies = iter((over_cap, tightened))
     calls = []
 
     def complete(messages, cap_tokens=0):
         calls.append(messages)
-        return next(replies)
+        return over_cap
 
     monkeypatch.setattr(summaries, 'call_summarizer', complete)
     ids = _add_messages(client, sample_chat['id'], 2)
     summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
 
-    assert len(calls) == 2
-    assert calls[0][0]['content'] == APPEND_INSTRUCTIONS       # first pass was additive
-    assert 'OVER-BUDGET SUMMARY DRAFT' in calls[1][1]['content']  # then a tighten pass
+    assert len(calls) == 1
+    assert calls[0][0]['content'] == APPEND_INSTRUCTIONS
+    with shared.get_db() as conn:
+        raw = conn.execute(
+            'SELECT summary_json FROM chats WHERE id=?', (sample_chat['id'],)
+        ).fetchone()[0]
+    assert estimate_tokens(summary_to_text(parse_summary_json(raw))) <= 50
 
 
 def test_append_mode_merges_bonds_without_duplicating(client, sample_chat, monkeypatch):

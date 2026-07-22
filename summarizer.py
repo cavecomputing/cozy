@@ -352,24 +352,6 @@ def build_append_messages(prev_text, batch_messages, pins, cap_tokens):
     ]
 
 
-def build_tighten_messages(candidate_text, pins, cap_tokens):
-    """Build one semantic retry when a fold-in response misses the size budget."""
-    pins_text = '\n'.join(f'- {p}' for p in pins) if pins else '(none)'
-    user = (
-        f"OVER-BUDGET SUMMARY DRAFT:\n{candidate_text}\n\n"
-        f"PINNED LINES (reproduce these EXACTLY, word-for-word):\n{pins_text}\n\n"
-        f"This draft is too long. Rewrite and tighten it to no more than {cap_tokens} "
-        "tokens total, including headings and bullets. There is no new chat history to "
-        "add. Merge or compress older unpinned details while preserving relationships, "
-        "motivations, unresolved threads, and every pinned line. Output only the required "
-        "STORY SO FAR and BONDS format."
-    )
-    return [
-        {'role': 'system', 'content': SUMMARY_INSTRUCTIONS},
-        {'role': 'user', 'content': user},
-    ]
-
-
 def append_summary(prev_obj, new_obj):
     """Fold an *append-mode* reply into the existing summary.
 

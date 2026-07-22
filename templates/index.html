@@ -688,10 +688,10 @@
                                 </div>
                                 <p class="settings-hint">The summary is capped at this percentage of the Max Context Tokens budget. Pinned lines count inside this budget. Counts are estimates marked with <code>&#8776;</code>.</p>
                                 <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-summary-interval">Messages per summarizer batch</label>
+                                    <label class="settings-row-label" for="settings-summary-interval">Summarize every (messages)</label>
                                     <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="20">
                                 </div>
-                                <p class="settings-hint">Updates start as soon as history leaves the context window. This controls how many messages each summarizer call folds in; larger values mean fewer, bigger calls.</p>
+                                <p class="settings-hint">Once context begins filling, Cozy replaces the oldest messages in blocks of this size. User and character messages each count as one. Exceptionally large messages may require an earlier safety update so no history is forgotten.</p>
                             </section>
                         </div>
                     </div>
