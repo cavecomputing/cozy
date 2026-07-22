@@ -112,6 +112,40 @@ def test_first_boundary_retires_a_full_interval_block():
     run_node_module(code)
 
 
+def test_run_target_skips_unpersisted_message_at_the_boundary():
+    """A message that failed to save has no id; the run must fall back to the
+    nearest persisted id instead of skipping the update entirely."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        // The message the interval boundary lands on (see the block test above)
+        // never persisted.
+        delete state.messages[19].id;
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        assert.deepEqual(calls, [19]);
+    """
+    run_node_module(code)
+
+
 def test_interval_waits_for_context_pressure_and_then_retires_next_block():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';

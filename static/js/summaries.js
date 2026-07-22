@@ -126,8 +126,21 @@ function automaticRunTarget(excludeLastN = 0) {
     );
     if (targetCount <= 0) return null;
 
-    const id = candidates[targetCount - 1]?.id;
-    return Number.isInteger(id) && id > 0 ? id : null;
+    return newestRetirableId(candidates.slice(0, targetCount));
+}
+
+/**
+ * Newest id in a candidate block that the worker can actually retire. A message
+ * that failed to persist has no id and never reaches the DB the worker reads;
+ * landing exactly on one must fall back to the nearest saved message rather
+ * than giving up on the whole run.
+ */
+function newestRetirableId(messages) {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+        const id = messages[i]?.id;
+        if (Number.isInteger(id) && id > 0) return id;
+    }
+    return null;
 }
 
 /**
@@ -137,9 +150,7 @@ function automaticRunTarget(excludeLastN = 0) {
  * rebuild unexpectedly discard another full block of raw context.
  */
 function exactRunTarget(excludeLastN = 0) {
-    const agedOut = agedOutUnsummarized(excludeLastN);
-    const id = agedOut[agedOut.length - 1]?.id;
-    return Number.isInteger(id) && id > 0 ? id : null;
+    return newestRetirableId(agedOutUnsummarized(excludeLastN));
 }
 
 function summarizedCount() {
