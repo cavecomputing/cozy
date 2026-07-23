@@ -23,12 +23,19 @@ export function getCurrentContextAnalysis({ includeDraft = false } = {}) {
     });
 }
 
-function tooltipForSegment(segment, analysis) {
+export function tooltipForSegment(segment, analysis) {
     const formatted = segment.tokens.toLocaleString();
     const pct = analysis.maxTokens > 0
         ? `${((segment.tokens / analysis.maxTokens) * 100).toFixed(1)}% of context`
         : `${((segment.tokens / Math.max(1, analysis.allocatedTokens)) * 100).toFixed(1)}% of accounted tokens`;
     let detail = `≈ ${formatted} tokens · ${pct}`;
+    if (segment.id === 'message_history') {
+        const inWindow = analysis.selectedMessageIds?.length || 0;
+        const total = state.messages?.length || 0;
+        detail += total > inWindow
+            ? `<br>Reaches back ${inWindow} message${inWindow === 1 ? '' : 's'} (of ${total}); older turns live in the summary or are out of the window.`
+            : `<br>Reaches back through all ${total} message${total === 1 ? '' : 's'}.`;
+    }
     if (segment.id === 'unused') detail += '<br>Available for future conversation context.';
     if (segment.id === 'response_reserve') detail += '<br>Held back so the model has room to answer.';
     return `<strong>${segment.label}</strong><br>${detail}`;

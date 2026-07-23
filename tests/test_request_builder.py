@@ -552,6 +552,75 @@ def test_full_context_budget_trims_history_after_fixed_prompt_sources():
     run_node_module(code)
 
 
+def test_message_history_tooltip_reports_how_far_context_reaches():
+    """The message-history segment tooltip states how many messages are in the
+    live window, and how many total, when older turns are trimmed/summarized."""
+    code = BASE_NODE_SETUP + r"""
+        import { tooltipForSegment } from './static/js/context-meter.js';
+
+        state.contextMaxTokens = '120';
+        el.settingsContextTokens = { value: '120' };
+        el.samplerMaxTokens = { value: '20' };
+        state.activeCharacter = {
+            name: 'Mira',
+            description: 'x'.repeat(100),
+            system_prompt: 'y'.repeat(80),
+        };
+        state.activeChat = { summary_enabled: false, author_note: 'z'.repeat(60) };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: '{{system_prompt}} {{description}} {{author_note}}',
+            post_history_content: '',
+        }];
+        state.messages = Array.from({ length: 10 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `turn-${i}-${'a'.repeat(20)}`,
+        }));
+
+        const analysis = analyzeContext();
+        const inWindow = analysis.selectedMessageIds.length;
+        assert.ok(inWindow > 0 && inWindow < state.messages.length);
+        const segment = analysis.segments.find(s => s.id === 'message_history');
+        const tip = tooltipForSegment(segment, analysis);
+        const plural = inWindow === 1 ? '' : 's';
+        assert.match(tip, new RegExp(`Reaches back ${inWindow} message${plural} \\(of 10\\)`));
+    """
+    run_node_module(code)
+
+
+def test_message_history_tooltip_when_every_message_fits():
+    """With no context limit the tooltip reports that every message is in range."""
+    code = BASE_NODE_SETUP + r"""
+        import { tooltipForSegment } from './static/js/context-meter.js';
+
+        state.contextMaxTokens = '0';
+        el.settingsContextTokens = { value: '0' };
+        el.samplerMaxTokens = { value: '30' };
+        state.activeCharacter = { name: 'Mira' };
+        state.activeChat = { summary_enabled: false };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: 'CUSTOM INSTRUCTIONS',
+            post_history_content: '',
+        }];
+        state.messages = [
+            { id: 1, role: 'user', text: 'first' },
+            { id: 2, role: 'character', text: 'second' },
+            { id: 3, role: 'user', text: 'third' },
+        ];
+
+        const analysis = analyzeContext();
+        assert.equal(analysis.selectedMessageIds.length, state.messages.length);
+        const segment = analysis.segments.find(s => s.id === 'message_history');
+        const tip = tooltipForSegment(segment, analysis);
+        assert.match(tip, /Reaches back through all 3 messages\./);
+    """
+    run_node_module(code)
+
+
 def test_context_analysis_keeps_latest_turn_and_reports_unavoidable_overflow():
     code = BASE_NODE_SETUP + r"""
         state.contextMaxTokens = '20';
