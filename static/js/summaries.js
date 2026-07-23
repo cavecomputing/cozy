@@ -9,7 +9,7 @@
 
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { estimateTextTokens } from './tokenizer.js';
+import { estimateMessageTokens, estimateTextTokens } from './tokenizer.js';
 import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
@@ -75,12 +75,13 @@ function triggerInterval() {
 }
 
 // ── Aged-out message detection ──────────────────────────────────────────────
-function agedOutMessages(excludeLastN = 0, {
+function windowAssessment(excludeLastN = 0, {
     includeSummarized = false,
     summaryTextOverride = null,
 } = {}) {
-    if (!state.activeChat) return [];
-    if (getContextTokenBudget() <= 0) return [];
+    if (!state.activeChat || getContextTokenBudget() <= 0) {
+        return { candidates: [], agedOut: [], analysis: null };
+    }
     const candidates = getRawHistoryMessages(state.messages, {
         excludeLastN,
         includeSummarized,
@@ -94,7 +95,58 @@ function agedOutMessages(excludeLastN = 0, {
         summaryText,
     });
     const agedCount = candidates.length - analysis.selectedMessages.length;
-    return agedCount > 0 ? candidates.slice(0, agedCount) : [];
+    return {
+        candidates,
+        agedOut: agedCount > 0 ? candidates.slice(0, agedCount) : [],
+        analysis,
+    };
+}
+
+function agedOutMessages(excludeLastN = 0, options = {}) {
+    return windowAssessment(excludeLastN, options).agedOut;
+}
+
+// When anything ages out of a contiguous window, the unused space left behind
+// must be smaller than what the next message (the first one that failed to
+// fit) would have cost — otherwise the selection would have grown to include
+// it. A measurement that leaves far more room than that contradicts itself,
+// and acting on it would summarize messages that still fit (observed once in
+// production as a chat-wide history wipe from a transient mis-measure). The
+// slack covers alternation/template overhead and estimate drift.
+const UNTRUSTED_WINDOW_TOAST = 'Memory update skipped: the context measurement '
+    + 'contradicts itself (details in the browser console). Chat history was not touched.';
+
+export function untrustedContextAssessment({ candidates, agedOut, analysis }, label) {
+    if (!analysis || agedOut.length === 0 || analysis.maxTokens <= 0) return false;
+    const nextMessage = agedOut[agedOut.length - 1];
+    if (!nextMessage) return false;
+    const nextCost = estimateMessageTokens(
+        { content: nextMessage.text },
+        { stripThinking: !el.sendThinking?.checked },
+    );
+    const slack = Math.max(256, Math.floor(analysis.maxTokens * 0.05));
+    if (analysis.unusedTokens <= 2 * nextCost + slack) return false;
+    console.warn(
+        `Cozy: ${label} refused — ${agedOut.length} of ${candidates.length} messages measured `
+        + `as outside the context window while ${analysis.unusedTokens} of ${analysis.maxTokens} `
+        + `tokens sit unused (the next message would only cost ≈${nextCost}). Retiring history `
+        + 'on this measurement would summarize messages that still fit.',
+        {
+            maxTokens: analysis.maxTokens,
+            responseReserve: analysis.responseTokens,
+            promptTokens: analysis.promptTokens,
+            unusedTokens: analysis.unusedTokens,
+            nextMessageCost: nextCost,
+            selectedMessages: analysis.selectedMessages.length,
+            firstSelectedId: analysis.firstSelectedMessageId,
+            segments: analysis.segments,
+        },
+    );
+    return true;
+}
+
+function windowMeasurementUntrusted(excludeLastN, label, options = {}) {
+    return untrustedContextAssessment(windowAssessment(excludeLastN, options), label);
 }
 
 function agedOutUnsummarized(excludeLastN = 0) {
@@ -112,35 +164,42 @@ function agedOutUnsummarized(excludeLastN = 0) {
  * selected; this also preserves the live user turn during swipe regeneration.
  */
 function automaticRunTarget(excludeLastN = 0) {
-    const candidates = getRawHistoryMessages(state.messages, { excludeLastN });
-    const agedCount = agedOutMessages(excludeLastN).length;
+    const assessment = windowAssessment(excludeLastN);
+    const { candidates, agedOut } = assessment;
+    const agedCount = agedOut.length;
     if (agedCount === 0 || candidates.length <= 1) return null;
+    if (untrustedContextAssessment(assessment, 'automatic memory update')) return null;
 
     const interval = triggerInterval();
     const roundedCount = Math.ceil(agedCount / interval) * interval;
     const preferredMax = Math.max(0, candidates.length - 2);
     const absoluteMax = candidates.length - 1;
+    // One interval block per run, however large the backlog: callers loop (the
+    // send preflight) or re-fire per turn, so a big backlog drains in bounded
+    // bites — and a single bad measurement can never retire more than a block.
     const targetCount = Math.min(
         absoluteMax,
+        interval,
         Math.max(agedCount, Math.min(roundedCount, preferredMax)),
     );
     if (targetCount <= 0) return null;
 
-    return newestRetirableId(candidates.slice(0, targetCount));
+    return oldestRetirableId(candidates, targetCount);
 }
 
 /**
- * Newest id in a candidate block that the worker can actually retire. A message
- * that failed to persist has no id and never reaches the DB the worker reads;
- * landing exactly on one must fall back to the nearest saved message rather
- * than giving up on the whole run.
+ * Id of the targetCount-th oldest persisted candidate. The server retires an
+ * id range (everything at or below the target), so pick by id order rather
+ * than array position — a mis-ordered or partially-saved state.messages must
+ * never widen the range — and always leave the newest persisted message raw.
  */
-function newestRetirableId(messages) {
-    for (let i = messages.length - 1; i >= 0; i -= 1) {
-        const id = messages[i]?.id;
-        if (Number.isInteger(id) && id > 0) return id;
-    }
-    return null;
+function oldestRetirableId(candidates, targetCount) {
+    const ids = candidates
+        .map(message => message?.id)
+        .filter(id => Number.isInteger(id) && id > 0)
+        .sort((a, b) => a - b);
+    const count = Math.min(targetCount, ids.length - 1);
+    return count > 0 ? ids[count - 1] : null;
 }
 
 /**
@@ -150,7 +209,16 @@ function newestRetirableId(messages) {
  * rebuild unexpectedly discard another full block of raw context.
  */
 function exactRunTarget(excludeLastN = 0) {
-    return newestRetirableId(agedOutUnsummarized(excludeLastN));
+    const assessment = windowAssessment(excludeLastN);
+    const wm = state.activeChat?.summary_up_to_msg_id || 0;
+    const pending = assessment.agedOut.filter(m => (m.id || 0) > wm);
+    if (!pending.length) return null;
+    if (untrustedContextAssessment(assessment, 'rebuild stabilization')) return null;
+    const ids = pending
+        .map(message => message?.id)
+        .filter(id => Number.isInteger(id) && id > 0)
+        .sort((a, b) => a - b);
+    return ids.length ? ids[ids.length - 1] : null;
 }
 
 function summarizedCount() {
@@ -385,6 +453,12 @@ export async function ensureSummaryReadyForSend(signal, { excludeLastN = 0 } = {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
     if (agedOutUnsummarized(excludeLastN).length === 0) return;
+    // A refused (self-contradictory) measurement must not stall the send:
+    // proceed without updating memory rather than retiring history wrongly.
+    if (windowMeasurementUntrusted(excludeLastN, 'pre-send memory update')) {
+        showToast(UNTRUSTED_WINDOW_TOAST);
+        return;
+    }
     if (!summarizerConfigured()) {
         throw new Error('Configure an Auto Summaries endpoint and model before sending so aged-out history is not forgotten.');
     }
@@ -422,6 +496,10 @@ export function maybeTriggerSummary() {
     if (chat.summary_status === 'running') return;
     if (!summarizerConfigured()) return;
     if (agedOutUnsummarized().length === 0) return;
+    if (windowMeasurementUntrusted(0, 'automatic memory update')) {
+        showToast(UNTRUSTED_WINDOW_TOAST);
+        return;
+    }
     return triggerRun({ chatId: chat.id });
 }
 
@@ -447,7 +525,8 @@ async function enableSummariesForChat() {
         renderMemorySummaryCard();  // arms the feature; hint tells the user to configure
         return;
     }
-    // Immediately back-fill the entire out-of-context backlog.
+    // Start back-filling the out-of-context backlog; runs fold one interval
+    // block at a time, and the send preflight loop drains whatever remains.
     return triggerRun({ chatId: chat.id });
 }
 
@@ -487,6 +566,13 @@ async function rebuildSummary() {
             }
             if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
         }
+        // A rebuild recomputes the boundary over the full transcript; refuse it
+        // outright on a self-contradictory measurement instead of rewriting the
+        // watermark from bad numbers.
+        if (windowMeasurementUntrusted(0, 'summary rebuild', { includeSummarized: true })) {
+            showToast(UNTRUSTED_WINDOW_TOAST);
+            return;
+        }
         await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
 
         // The replacement summary's final size is unknowable before the rebuild
@@ -496,7 +582,8 @@ async function rebuildSummary() {
         let previousWatermark = state.activeChat?.summary_up_to_msg_id || 0;
         let stalledRuns = 0;
         while (state.activeChat?.id === chatId && summariesActive(state.activeChat)
-            && agedOutUnsummarized().length > 0) {
+            && agedOutUnsummarized().length > 0
+            && !windowMeasurementUntrusted(0, 'rebuild stabilization')) {
             await triggerRun({
                 awaitCompletion: true,
                 chatId,

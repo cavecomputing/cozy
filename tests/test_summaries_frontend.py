@@ -124,7 +124,8 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
             text: `m-${i}-abcdefghij`,
         }));
         // The message the interval boundary lands on (see the block test above)
-        // never persisted.
+        // never persisted. Retirement counts the oldest PERSISTED ids, so the
+        // block becomes ids 1..19 plus 21.
         delete state.messages[19].id;
         const calls = [];
         API.runSummary = async (chatId, options) => {
@@ -141,7 +142,115 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
 
         await maybeTriggerSummary();
 
-        assert.deepEqual(calls, [19]);
+        assert.deepEqual(calls, [21]);
+    """
+    run_node_module(code)
+
+
+def test_run_target_follows_id_order_not_array_position():
+    """The server retires an id RANGE, so the target must be picked from id
+    order — a mis-ordered state.messages must never widen the range."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        // Simulate an ordering bug: a recent message sits at the position the
+        // interval boundary lands on.
+        [state.messages[19], state.messages[23]] = [state.messages[23], state.messages[19]];
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        // The 20 oldest ids end at 20 — not id 24, which happens to occupy
+        // position 19 in the mis-ordered array.
+        assert.deepEqual(calls, [20]);
+    """
+    run_node_module(code)
+
+
+def test_untrusted_assessment_matrix():
+    """Unit matrix for the self-contradiction guard, including the exact
+    numbers from the production incident (64k window, 44k unused, ~2.3k next
+    message) and the states that must stay trusted."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { el } from './static/js/state.js';
+        import { untrustedContextAssessment } from './static/js/summaries.js';
+
+        el.sendThinking = { checked: true };
+        console.warn = () => {};
+        const msg = tokens => ({ id: 1, role: 'user', text: 'x'.repeat(tokens * 4) });
+        const assess = (maxTokens, unusedTokens, nextTokens, aged = 10) => ({
+            candidates: Array.from({ length: aged + 3 }, () => msg(10)),
+            agedOut: [...Array.from({ length: aged - 1 }, () => msg(10)), msg(nextTokens)],
+            analysis: {
+                maxTokens, unusedTokens,
+                responseTokens: 0, promptTokens: maxTokens - unusedTokens,
+                selectedMessages: [], firstSelectedMessageId: null, segments: [],
+            },
+        });
+
+        // The production wipe: 44,068 unused vs a ~2,327-token next message.
+        assert.equal(untrustedContextAssessment(assess(65536, 44068, 2327), 't'), true);
+        // Legit granularity: tiny budget, unused ≈ one message.
+        assert.equal(untrustedContextAssessment(assess(32, 11, 11), 't'), false);
+        // Oversized-message dam: unused huge but the next message is bigger.
+        assert.equal(untrustedContextAssessment(assess(65536, 43000, 45000), 't'), false);
+        // Normal pressure: near-zero unused.
+        assert.equal(untrustedContextAssessment(assess(65536, 900, 2300), 't'), false);
+        // Nothing aged out -> nothing to distrust.
+        assert.equal(untrustedContextAssessment(
+            { candidates: [], agedOut: [], analysis: null }, 't'), false);
+    """
+    run_node_module(code)
+
+
+def test_backlog_drains_in_interval_blocks_and_dam_damage_is_bounded():
+    """A big backlog retires one interval block per run, and an oversized
+    message that dams the window costs at most one block per event."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '2000';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 30 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        // A ~3000-token message third from the end: bigger than the whole
+        // window, so everything older measures as aged out.
+        state.messages[27].text = 'x'.repeat(12000);
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+        // 28 messages aged, but one run retires exactly one 20-block of the
+        // oldest ids — never the whole backlog in a single request.
+        assert.deepEqual(calls, [20]);
     """
     run_node_module(code)
 
