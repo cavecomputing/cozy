@@ -61,7 +61,7 @@ SUMMARY_INSTRUCTIONS = (
     "STORY SO FAR\n"
     "- <one plot beat per line>\n\n"
     "BONDS\n"
-    "- <one relationship per line: where it stands now + the key shared moment behind it>\n\n"
+    "- <one relationship per line: where it stands now + the key shared moments behind it>\n\n"
     "RULES:\n"
     "1. Prioritise RELATIONSHIPS and the specific moments that formed them, then "
     "unresolved threads/promises/debts, then plot events (as the reason for a bond, not "
