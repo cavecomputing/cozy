@@ -174,13 +174,20 @@ function automaticRunTarget(excludeLastN = 0) {
     const roundedCount = Math.ceil(agedCount / interval) * interval;
     const preferredMax = Math.max(0, candidates.length - 2);
     const absoluteMax = candidates.length - 1;
-    // One interval block per run, however large the backlog: callers loop (the
-    // send preflight) or re-fire per turn, so a big backlog drains in bounded
-    // bites — and a single bad measurement can never retire more than a block.
+    // Rounding up to an interval block prepays headroom by also retiring some
+    // messages that still fit. Two hard bounds on that: one block per run,
+    // however large the backlog (callers loop, so it drains in bounded bites),
+    // and never more than half of the currently-fitting messages — when a big
+    // prompt or small context makes the whole window smaller than one block,
+    // block-rounding must not collapse it to almost nothing (the 32k-era wipe:
+    // an 11-message window with a 20-message interval retired all but 2, on
+    // every single update).
+    const fittingCount = candidates.length - agedCount;
+    const headroomMax = agedCount + Math.floor(fittingCount / 2);
     const targetCount = Math.min(
         absoluteMax,
         interval,
-        Math.max(agedCount, Math.min(roundedCount, preferredMax)),
+        Math.max(agedCount, Math.min(roundedCount, preferredMax, headroomMax)),
     );
     if (targetCount <= 0) return null;
 

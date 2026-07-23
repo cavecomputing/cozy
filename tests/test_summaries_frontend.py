@@ -107,7 +107,9 @@ def test_first_boundary_retires_a_full_interval_block():
         await maybeTriggerSummary();
 
         assert.equal(calls.length, 1);
-        assert.equal(calls[0].up_to_msg_id, 20);
+        // aged (2) + half of the 23 fitting messages: rounding prepays
+        // headroom but may never consume more than half the live window.
+        assert.equal(calls[0].up_to_msg_id, 13);
     """
     run_node_module(code)
 
@@ -123,10 +125,10 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
             role: i % 2 ? 'character' : 'user',
             text: `m-${i}-abcdefghij`,
         }));
-        // The message the interval boundary lands on (see the block test above)
-        // never persisted. Retirement counts the oldest PERSISTED ids, so the
-        // block becomes ids 1..19 plus 21.
-        delete state.messages[19].id;
+        // The message the run boundary lands on (id 13 — see the block test
+        // above) never persisted. Retirement counts the oldest PERSISTED ids,
+        // so the block becomes ids 1..12 plus 14.
+        delete state.messages[12].id;
         const calls = [];
         API.runSummary = async (chatId, options) => {
             calls.push(options.up_to_msg_id);
@@ -142,7 +144,7 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
 
         await maybeTriggerSummary();
 
-        assert.deepEqual(calls, [21]);
+        assert.deepEqual(calls, [14]);
     """
     run_node_module(code)
 
@@ -158,9 +160,10 @@ def test_run_target_follows_id_order_not_array_position():
             role: i % 2 ? 'character' : 'user',
             text: `m-${i}-abcdefghij`,
         }));
-        // Simulate an ordering bug: a recent message sits at the position the
-        // interval boundary lands on.
-        [state.messages[19], state.messages[23]] = [state.messages[23], state.messages[19]];
+        // Simulate an ordering bug: a recent message sits at a position inside
+        // the block the run boundary covers. Same-parity positions keep the
+        // user/character alternation (and thus the token math) unchanged.
+        [state.messages[10], state.messages[22]] = [state.messages[22], state.messages[10]];
         const calls = [];
         API.runSummary = async (chatId, options) => {
             calls.push(options.up_to_msg_id);
@@ -176,9 +179,51 @@ def test_run_target_follows_id_order_not_array_position():
 
         await maybeTriggerSummary();
 
-        // The 20 oldest ids end at 20 — not id 24, which happens to occupy
-        // position 19 in the mis-ordered array.
-        assert.deepEqual(calls, [20]);
+        // The 13 oldest ids end at 13 — not id 23, which happens to occupy
+        // position 10 in the mis-ordered array.
+        assert.deepEqual(calls, [13]);
+    """
+    run_node_module(code)
+
+
+def test_small_window_is_never_collapsed_by_block_rounding():
+    """When the whole window holds fewer messages than one interval block
+    (big prompt or small context), rounding must retire at most half of the
+    still-fitting messages — not everything but the newest two. This is the
+    32k-era production wipe."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        // Long-ish turns: the 12-message candidate set (smaller than the
+        // 20-message interval) holds ~26 tokens each, so only ~7 fit.
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-` + 'abcdefghij'.repeat(8),
+        }));
+        state.activeChat.summary_up_to_msg_id = 13;
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        assert.equal(calls.length, 1);
+        const remaining = 25 - calls[0];
+        // The old formula kept only the newest 2 (upTo 23). At least half of
+        // the messages that still fit must survive the run.
+        assert.ok(remaining >= 4,
+            `kept only ${remaining} messages (upTo ${calls[0]})`);
+        assert.ok(calls[0] > 13, 'still retires the aged messages');
     """
     run_node_module(code)
 
@@ -287,7 +332,9 @@ def test_interval_waits_for_context_pressure_and_then_retires_next_block():
             text: 'm-44-abcdefghij',
         });
         await maybeTriggerSummary();
-        assert.deepEqual(calls, [40]);
+        // One message aged; the rounded block is capped at half the 24 fitting
+        // messages, so the next retirement covers ids 21..33.
+        assert.deepEqual(calls, [33]);
     """
     run_node_module(code)
 
