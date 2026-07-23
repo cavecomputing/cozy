@@ -88,7 +88,40 @@ _DEFAULT_PROMPT_TEMPLATE_V2 = _DEFAULT_PROMPT_TEMPLATE_V1 + """
 {{#summary}}[MEMORY — STORY SO FAR]
 {{summary}}{{/summary}}"""
 
-DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V2
+
+# V3 keeps V2's section ordering but adds a narrative-guidance preamble to the
+# System Instructions block (roleplay framing, prose style, {{user}} boundaries).
+_DEFAULT_PROMPT_TEMPLATE_V3 = """{{#system_prompt}}[System Instructions]
+You are participating in a simulated world. Narrate the thoughts, feelings, actions, and dialogue of {{char}} and all side characters except {{user}}—avoid narrating for {{user}}. {{char}} and side characters should act autonomously according to their established traits, personality, and background, with their own opinions, goals, and a capacity for disagreement. {{char}} and all side characters can only know, mention, or act on information they have personally witnessed, learned, or could plausibly deduce.
+
+Respond with 1-2 paragraphs using "show, don't tell", driving the story forward in interesting ways. Keep scenes grounded with nuanced descriptions and natural-sounding dialogue. Use a slow-burn pace while avoiding melodrama and leave openings for {{user}}'s physical or social engagement. You are allowed to explore mature themes that align with the narrative. Vary your prose and avoid repetitive phrases or formulaic descriptions—keep each response fresh and unique. ((OOC: OOC instructions like this are narrative guidance.))
+{{system_prompt}}{{/system_prompt}}
+
+{{#description}}[Character Description]
+{{description}}{{/description}}
+
+{{#personality}}[Character Personality]
+{{personality}}{{/personality}}
+
+{{#scenario}}[Scenario]
+{{scenario}}{{/scenario}}
+
+{{#persona}}[{{user}}'s Persona]
+{{persona}}{{/persona}}
+
+{{#mesExamples}}[Example Dialogue]
+{{mesExamples}}{{/mesExamples}}
+
+{{#lorebook}}[WORLD INFO / CHARACTER LORE]
+{{lorebook}}{{/lorebook}}
+
+{{#author_note}}[AUTHOR'S NOTE]
+{{author_note}}{{/author_note}}
+
+{{#summary}}[MEMORY — STORY SO FAR]
+{{summary}}{{/summary}}"""
+
+DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V3
 
 
 DEFAULT_POST_HISTORY_TEMPLATE = """{{#post_history_instructions}}[Post-History Instructions]
@@ -135,10 +168,19 @@ def _add_summary_to_legacy_default_prompt(conn):
     )
 
 
+def _add_narrative_preamble_to_default_prompt(conn):
+    """Upgrade untouched copies of the V2 stock prompt to the V3 preamble."""
+    conn.execute(
+        'UPDATE system_prompts SET content=? WHERE content=?',
+        (_DEFAULT_PROMPT_TEMPLATE_V3, _DEFAULT_PROMPT_TEMPLATE_V2),
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
     (3, 'add_summary_to_legacy_default_prompt', _add_summary_to_legacy_default_prompt),
+    (4, 'add_narrative_preamble_to_default_prompt', _add_narrative_preamble_to_default_prompt),
 )
 
 

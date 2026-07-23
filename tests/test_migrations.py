@@ -223,7 +223,10 @@ class TestSchemaMigrationLedger:
 
     def test_summary_prompt_migration_preserves_customized_prompt(self):
         custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V1 + '\n\nCustom instructions.'
-        migration_version = shared.MIGRATIONS[-1][0]
+        migration_version = next(
+            v for v, name, _ in shared.MIGRATIONS
+            if name == 'add_summary_to_legacy_default_prompt'
+        )
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
@@ -247,6 +250,56 @@ class TestSchemaMigrationLedger:
             ).fetchone()
         assert prompt['content'] == custom_prompt
         assert migration['name'] == 'add_summary_to_legacy_default_prompt'
+
+    def test_unversioned_upgrade_adds_narrative_preamble_to_default_prompt(self):
+        migration_version = next(
+            v for v, name, _ in shared.MIGRATIONS
+            if name == 'add_narrative_preamble_to_default_prompt'
+        )
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE system_prompts SET content=? WHERE name=?',
+                (shared._DEFAULT_PROMPT_TEMPLATE_V2, 'Default'),
+            )
+            conn.execute(
+                'DELETE FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            )
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+        assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V3
+        assert 'simulated world' in prompt['content']
+
+    def test_narrative_preamble_migration_preserves_customized_prompt(self):
+        custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V2 + '\n\nCustom instructions.'
+        migration_version = next(
+            v for v, name, _ in shared.MIGRATIONS
+            if name == 'add_narrative_preamble_to_default_prompt'
+        )
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE system_prompts SET content=? WHERE name=?',
+                (custom_prompt, 'Default'),
+            )
+            conn.execute(
+                'DELETE FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            )
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+        assert prompt['content'] == custom_prompt
 
     def test_init_db_runs_twice_safely(self):
         """Running init_db repeatedly on an existing DB should be a no-op."""

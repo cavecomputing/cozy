@@ -5,7 +5,7 @@ import { state, el, llm, initElements } from './state.js';
 import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
-    debounce, updateComposerState,
+    debounce, updateComposerState, copyText,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
@@ -427,9 +427,10 @@ function bindSettingsHandlers() {
         const which = copyBtn.dataset.copyDefault === 'post-history'
             ? 'prompt-help-default-post-history' : 'prompt-help-default-system';
         const text = document.getElementById(which)?.textContent || '';
-        navigator.clipboard.writeText(text)
-            .then(() => showToast('Copied default template', 'success', 2000))
-            .catch(() => showToast('Could not copy template'));
+        copyText(text)
+            .then(ok => ok
+                ? showToast('Copied default template', 'success', 2000)
+                : showToast('Could not copy template'));
     });
     // Import / export dropdown
     const closeSyspromptIoMenu = () => {
@@ -819,9 +820,10 @@ function bindMessageHandlers() {
                 msgEl.closest('.message-container').remove();
             }
         } else if (e.target.closest('.copy-msg-btn')) {
-            navigator.clipboard.writeText(msgEl.dataset.rawText || '')
-                .then(() => showToast('Copied message', 'success', 2000))
-                .catch(() => showToast('Could not copy message'));
+            copyText(msgEl.dataset.rawText || '')
+                .then(ok => ok
+                    ? showToast('Copied message', 'success', 2000)
+                    : showToast('Could not copy message'));
         } else if (e.target.closest('.fork-msg-btn')) {
             if (!state.activeChat || !msgEl.dataset.msgId) return;
             try {

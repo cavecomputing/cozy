@@ -302,6 +302,40 @@ export function closeMobileSidebar({ restoreFocus = true, immediate = false } = 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CLIPBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+/**
+ * Copy text to the clipboard, resolving true on success and false on failure.
+ * navigator.clipboard is undefined in insecure contexts (e.g. Cozy served over
+ * a plain-http LAN IP, which is common on mobile), so fall back to a hidden
+ * textarea + execCommand there instead of throwing.
+ */
+export async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch {
+            // Fall through to the legacy path below.
+        }
+    }
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+    } catch {
+        return false;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DEBOUNCE
 // ═══════════════════════════════════════════════════════════════════════════
 export function debounce(fn, ms) {
