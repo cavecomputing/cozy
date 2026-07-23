@@ -130,8 +130,8 @@ function showSwipe(msgEl, swipes, idx) {
     const swipeParsed = parseThinkingContent(newText);
     const prevThink = msgBody.querySelector('.thinking-block');
     if (prevThink) prevThink.remove();
-    if (swipeParsed.thinking) renderThinkingBlock(msgBody, swipeParsed);
-    renderMarkdown(contentEl, swipeParsed.thinking ? swipeParsed.response : newText);
+    renderThinkingBlock(msgBody, swipeParsed);
+    renderMarkdown(contentEl, swipeParsed.hasThinking ? swipeParsed.response : newText);
 
     const stateMsg = findStateMsg(swipes, msgEl);
     if (stateMsg) {
@@ -313,11 +313,11 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     content.className = 'message-content';
 
     const parsed = parseThinkingContent(text);
-    renderMarkdown(content, parsed.thinking ? parsed.response : text);
+    renderMarkdown(content, parsed.hasThinking ? parsed.response : text);
 
     msgBody.append(msgHeader, headerDivider, content);
 
-    if (parsed.thinking) renderThinkingBlock(msgBody, parsed);
+    if (parsed.hasThinking) renderThinkingBlock(msgBody, parsed);
     message.append(avatarDiv, msgBody);
     wrapper.append(message);
 
@@ -422,7 +422,7 @@ export function startEditing(messageEl) {
     state.currentEdit = { element: messageEl, contentDiv, actionsBar };
 
     const editParsed = parseThinkingContent(messageEl.dataset.rawText);
-    contentDiv.textContent = editParsed.thinking ? editParsed.response : messageEl.dataset.rawText;
+    contentDiv.textContent = editParsed.hasThinking ? editParsed.response : messageEl.dataset.rawText;
     contentDiv.contentEditable = 'plaintext-only';
     // preventScroll: don't let the browser "scroll the focused element into
     // view". The message sits inside the #chat-scroll container, and on iOS
@@ -456,7 +456,7 @@ export function finishEditing(save) {
     const originalText = messageEl.dataset.originalText;
     const originalParsed = parseThinkingContent(originalText);
     const editedResponse = save ? contentDiv.textContent.trim() : null;
-    if (save && !editedResponse) { state.currentEdit = null; return; }
+    if (save && !editedResponse) return;
     // Reattach the original thinking segment so it persists through the edit
     const rawText = save
         ? (originalParsed.thinkingSegment
@@ -498,10 +498,12 @@ export function finishEditing(save) {
         }
     }
 
-    // Re-render markdown with updated text (response only — thinking stays in its block)
+    // Re-render both parts from the same parsed result. This also removes a
+    // stale block if an edit/cancel follows an interrupted reasoning stream.
     messageEl.dataset.rawText = rawText;
     const finalParsed = parseThinkingContent(rawText);
-    renderMarkdown(contentDiv, finalParsed.thinking ? finalParsed.response : rawText);
+    renderThinkingBlock(messageEl.querySelector('.msg-body'), finalParsed, { collapse: true });
+    renderMarkdown(contentDiv, finalParsed.hasThinking ? finalParsed.response : rawText);
     delete messageEl.dataset.originalText;
 
     // Restore the correct toolbar (preserve swipe state)

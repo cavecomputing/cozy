@@ -9,7 +9,7 @@ export const THINKING_TAG_PAIRS = [
 ];
 
 export function parseThinkingContent(text) {
-    if (!text) return { thinking: null, response: text };
+    if (!text) return { thinking: null, response: text, hasThinking: false };
 
     // Find the first matching open tag
     let bestOpen = -1, matched = null;
@@ -20,7 +20,7 @@ export function parseThinkingContent(text) {
             matched = pair;
         }
     }
-    if (!matched) return { thinking: null, response: text };
+    if (!matched) return { thinking: null, response: text, hasThinking: false };
 
     const closeIdx = text.indexOf(matched.close, bestOpen + matched.open.length);
     if (closeIdx === -1) {
@@ -29,19 +29,28 @@ export function parseThinkingContent(text) {
             thinking: text.slice(bestOpen + matched.open.length),
             response: text.slice(0, bestOpen),
             incomplete: true,
+            hasThinking: true,
+            // Edits need a complete segment to reattach. Closing an interrupted
+            // block here prevents the edited response from becoming reasoning.
+            thinkingSegment: text.slice(bestOpen) + matched.close,
         };
     }
     const thinking = text.slice(bestOpen + matched.open.length, closeIdx);
     const response = text.slice(0, bestOpen) + text.slice(closeIdx + matched.close.length);
     // thinkingSegment keeps the tags so callers can reassemble the full text
     const thinkingSegment = text.slice(bestOpen, closeIdx + matched.close.length);
-    return { thinking: thinking.trim(), response: response.trim(), thinkingSegment };
+    return {
+        thinking: thinking.trim(),
+        response: response.trim(),
+        thinkingSegment,
+        hasThinking: true,
+    };
 }
 
 /** Render or update the thinking block above message content. */
-export function renderThinkingBlock(msgBody, parsed) {
+export function renderThinkingBlock(msgBody, parsed, { collapse = false } = {}) {
     let block = msgBody.querySelector('.thinking-block');
-    if (!parsed.thinking && !parsed.incomplete) {
+    if (!parsed.hasThinking) {
         if (block) block.remove();
         return;
     }
@@ -65,4 +74,8 @@ export function renderThinkingBlock(msgBody, parsed) {
     label.textContent = parsed.incomplete ? 'Thinking\u2026' : 'Thinking';
     const thinkContent = block.querySelector('.thinking-content');
     thinkContent.innerHTML = DOMPurify.sanitize(marked.parse(parsed.thinking || ''));
+    if (collapse) {
+        block.querySelector('.thinking-toggle').classList.remove('open');
+        thinkContent.classList.remove('open');
+    }
 }
