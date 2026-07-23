@@ -29,9 +29,7 @@ export function getRawHistoryMessages(messages = state.messages, {
     const candidates = excludeLastN > 0
         ? source.slice(0, -excludeLastN)
         : source;
-    if (includeSummarized
-        || state.autoSummariesEnabled === false
-        || !state.activeChat?.summary_enabled) {
+    if (includeSummarized || !state.activeChat?.summary_enabled) {
         return candidates;
     }
 

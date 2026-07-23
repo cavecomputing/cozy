@@ -40,7 +40,7 @@ SETTINGS_KEYS = {
     'extra_request_params',
     # Auto Summaries — configuration (per-chat enablement lives on the chat row)
     'summary_api_endpoint', 'summary_api_key', 'summary_api_model',
-    'summary_cap_pct', 'summary_trigger_interval', 'auto_summaries_enabled',
+    'summary_cap_pct', 'summary_trigger_interval',
 }
 
 # Settings keys holding secrets: masked on read, and skipped on write when the
@@ -104,14 +104,6 @@ def write_settings():
                 if key in SECRET_KEYS and is_masked_secret(val):
                     continue
                 upsert_setting(conn, key, val)
-        if ('auto_summaries_enabled' in data
-                and _setting_value(data['auto_summaries_enabled']) == '0'):
-            # The gate change and cancellation commit together. A worker already in an
-            # HTTP call will see idle afterward and discard its response.
-            conn.execute(
-                "UPDATE chats SET summary_status='idle', summary_status_detail='' "
-                "WHERE summary_status='running'"
-            )
     return read_settings()
 
 

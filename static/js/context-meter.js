@@ -12,8 +12,7 @@ export function getContextMaxTokens() {
 }
 
 function activeSummaryText() {
-    return state.autoSummariesEnabled !== false
-        && state.activeChat?.summary_enabled
+    return state.activeChat?.summary_enabled
         ? summaryToText(state.activeChat.summary)
         : '';
 }

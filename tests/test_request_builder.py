@@ -263,16 +263,10 @@ def test_summary_tokens_reduce_the_raw_message_budget():
         };
         const withSummary = buildChatPayload();
 
-        state.autoSummariesEnabled = false;
-        const globallyPaused = buildChatPayload();
-
         const rawWithout = withoutSummary.messages.filter(m => /message-\d+-/.test(m.content));
         const rawWith = withSummary.messages.filter(m => /message-\d+-/.test(m.content));
-        const rawPaused = globallyPaused.messages.filter(m => /message-\d+-/.test(m.content));
         assert.equal(rawWithout.length, 7);
         assert.equal(rawWith.length, 4);
-        assert.equal(rawPaused.length, 7);
-        assert.doesNotMatch(JSON.stringify(globallyPaused.messages), /STORY SO FAR/);
     """
     run_node_module(code)
 

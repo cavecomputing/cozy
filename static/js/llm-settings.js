@@ -58,12 +58,6 @@ export function queueMainApiKeySave(value) {
     return true;
 }
 
-/** Persist the global summaries gate immediately; workers read it server-side. */
-export function persistAutoSummariesEnabled(enabled) {
-    queueLLMSettingsSave({ auto_summaries_enabled: enabled ? '1' : '0' });
-    return flushLLMSettingsSave({ strict: true });
-}
-
 async function drainLLMSettingsQueue() {
     // There is only ever one drain. Besides making the barrier deterministic,
     // this prevents an older failed snapshot from being restored behind a
@@ -344,13 +338,11 @@ function applySettingsToUI(s) {
     state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';
     if (el.lorebookAlwaysInjectAll) el.lorebookAlwaysInjectAll.checked = state.lorebookAlwaysInjectAll;
     // Auto Summaries config
-    state.autoSummariesEnabled = s.auto_summaries_enabled !== '0';
     state.summaryApiEndpoint = s.summary_api_endpoint || '';
     state.summaryApiKeySet   = s.summary_api_key_set || false;
     state.summaryApiModel    = s.summary_api_model || '';
     state.summaryCapPct      = s.summary_cap_pct || '10';
     state.summaryTriggerInterval = s.summary_trigger_interval || '20';
-    if (el.summaryGlobalToggle) el.summaryGlobalToggle.checked = state.autoSummariesEnabled;
     if (el.summaryEndpoint) el.summaryEndpoint.value = state.summaryApiEndpoint;
     if (el.summaryKey) {
         el.summaryKey.value = state.summaryApiKeySet ? '••••••••' : '';

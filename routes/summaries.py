@@ -173,23 +173,19 @@ def _release_job_generation(chat_id, job_token):
 def _check_job_active(row, require_running):
     if not require_running:
         return
-    if (row['summary_status'] != 'running'
-            or not row['summary_enabled']
-            or row['auto_summaries_enabled'] == '0'):
+    if row['summary_status'] != 'running' or not row['summary_enabled']:
         raise _SummaryPaused
 
 
 def _assert_summary_active(chat_id, require_running=False, job_token=None):
-    """Re-check both feature gates around every potentially slow model call."""
+    """Re-check the per-chat gate around every potentially slow model call."""
     if not require_running:
         return
     with _job_tokens_lock:
         _require_job_generation(chat_id, job_token)
         with get_db() as conn:
             row = conn.execute(
-                'SELECT c.summary_status, c.summary_enabled, '
-                "COALESCE((SELECT value FROM settings "
-                "WHERE key='auto_summaries_enabled'), '1') AS auto_summaries_enabled "
+                'SELECT c.summary_status, c.summary_enabled '
                 'FROM chats c WHERE c.id=?',
                 (chat_id,),
             ).fetchone()
@@ -273,9 +269,7 @@ def _refresh_pin_edits(chat_id, candidate, baseline, require_running=False,
         _require_job_generation(chat_id, job_token)
         with get_db() as conn:
             row = conn.execute(
-                'SELECT c.summary_json, c.summary_status, c.summary_enabled, '
-                "COALESCE((SELECT value FROM settings "
-                "WHERE key='auto_summaries_enabled'), '1') AS auto_summaries_enabled "
+                'SELECT c.summary_json, c.summary_status, c.summary_enabled '
                 'FROM chats c WHERE c.id=?',
                 (chat_id,),
             ).fetchone()
@@ -295,9 +289,7 @@ def _persist_summary(chat_id, candidate, baseline, watermark, cap_tokens,
             # Serialize this read/modify/write with the dedicated pin endpoint.
             conn.execute('BEGIN IMMEDIATE')
             row = conn.execute(
-                'SELECT c.summary_json, c.summary_status, c.summary_enabled, '
-                "COALESCE((SELECT value FROM settings "
-                "WHERE key='auto_summaries_enabled'), '1') AS auto_summaries_enabled "
+                'SELECT c.summary_json, c.summary_status, c.summary_enabled '
                 'FROM chats c WHERE c.id=?',
                 (chat_id,),
             ).fetchone()
@@ -556,11 +548,6 @@ def run_summary(chat_id):
             row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
             if not row:
                 return not_found('Chat')
-            feature_gate = conn.execute(
-                'SELECT value FROM settings WHERE key=?', ('auto_summaries_enabled',)
-            ).fetchone()
-            if feature_gate and feature_gate['value'] == '0':
-                return jsonify({'error': 'Auto Summaries are disabled in Settings'}), 409
             boundary = conn.execute(
                 'SELECT 1 FROM messages WHERE id=? AND chat_id=?',
                 (up_to_msg_id, chat_id),

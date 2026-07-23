@@ -14,7 +14,7 @@ import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
-import { loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave, persistAutoSummariesEnabled, flushLLMSettingsSave, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
+import { loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave, flushLLMSettingsSave, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
     updateSystemPromptContent, populateDefaultTemplateHelp,
@@ -31,8 +31,7 @@ import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { initCharacterGallery } from './character-gallery.js';
 import { enhanceSettingsSelects } from './custom-select.js';
 import {
-    initSummaryHandlers, onGlobalSummarySettingChanged, renderMemorySummaryCard,
-    markSummaryRunsCancelled, setSummaryBudgetChangeHandler,
+    initSummaryHandlers, renderMemorySummaryCard, setSummaryBudgetChangeHandler,
 } from './summaries.js';
 
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
@@ -337,32 +336,6 @@ function bindSettingsHandlers() {
         saveLLMSettings({ show_collapse_button: state.showCollapseButton ? '1' : '0' });
     });
     // Auto Summaries config — autosave while typing, flush on blur.
-    el.summaryGlobalToggle?.addEventListener('change', async () => {
-        const previous = state.autoSummariesEnabled;
-        const enabled = el.summaryGlobalToggle.checked;
-        state.autoSummariesEnabled = enabled;
-        const gateSave = persistAutoSummariesEnabled(enabled);
-        // Pausing stops local behavior immediately; resuming starts only after
-        // the backend feature gate has been persisted.
-        if (!enabled) onGlobalSummarySettingChanged();
-        updateContextMeter();
-        updateContextBoundary();
-        try {
-            await gateSave;
-        } catch (e) {
-            state.autoSummariesEnabled = previous;
-            el.summaryGlobalToggle.checked = previous;
-            queueLLMSettingsSave({
-                auto_summaries_enabled: previous ? '1' : '0',
-            });
-            onGlobalSummarySettingChanged();
-            updateContextMeter();
-            updateContextBoundary();
-            return;
-        }
-        if (enabled) await onGlobalSummarySettingChanged();
-        else markSummaryRunsCancelled();
-    });
     el.summaryEndpoint?.addEventListener('input', () => {
         state.summaryApiEndpoint = el.summaryEndpoint.value;
         queueLLMSettingsSave({ summary_api_endpoint: el.summaryEndpoint.value });

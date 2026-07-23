@@ -365,9 +365,9 @@ def init_db():
             "INSERT INTO settings (key, value) VALUES ('extra_request_params', '') "
             "ON CONFLICT(key) DO NOTHING"
         )
-        # Auto Summaries — global feature gate plus per-chat behavior defaults.
+        # Auto Summaries — summarizer config defaults (per-chat enablement lives
+        # on the chat row).
         for _sk, _sv in (
-            ('auto_summaries_enabled', '1'),
             ('summary_api_endpoint', ''),
             ('summary_api_key', ''),
             ('summary_api_model', ''),

@@ -318,36 +318,6 @@ def test_connection_test_and_model_fetch_flush_settings_before_api_calls():
     run_node_module(code)
 
 
-def test_global_gate_save_is_immediate_and_awaitable():
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { state } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import { persistAutoSummariesEnabled } from './static/js/llm-settings.js';
-
-        state.activePresetId = null;
-        let release;
-        let markStarted;
-        const started = new Promise(resolve => { markStarted = resolve; });
-        let saved = false;
-        API.saveSettings = async fields => {
-            assert.deepEqual(fields, { auto_summaries_enabled: '0' });
-            markStarted();
-            await new Promise(resolve => { release = resolve; });
-            saved = true;
-            return {};
-        };
-
-        const persisting = persistAutoSummariesEnabled(false);
-        await started;
-        assert.equal(saved, false);
-        release();
-        await persisting;
-        assert.equal(saved, true);
-    """
-    run_node_module(code)
-
-
 def test_main_api_key_queue_ignores_masks_but_persists_empty_clear():
     code = r"""
         import assert from 'node:assert/strict';
@@ -493,20 +463,20 @@ def test_send_guard_stops_waiting_when_summaries_are_paused():
         API.runSummary = async (chatId, options) => {
             markRunStarted();
             await new Promise(resolve => { releaseRun = resolve; });
+            // The chat was disabled mid-run; the server commits that in the reply.
             return {
                 id: chatId,
-                summary_enabled: true,
+                summary_enabled: false,
                 summary: { lines: [] },
                 summary_up_to_msg_id: null,
-                summary_status: 'running',
-                summary_status_detail: 'Summarizing...',
+                summary_status: 'idle',
+                summary_status_detail: '',
             };
         };
         API.getSummaryStatus = async () => { statusCalls += 1; };
 
         const guard = ensureSummaryReadyForSend();
         await runStarted;
-        state.autoSummariesEnabled = false;
         releaseRun();
         await guard;
 
@@ -574,31 +544,6 @@ def test_summary_state_completion_and_reset_refresh_context_budget_hook():
             summary_status_detail: '',
         }, 7);
         assert.equal(refreshes, 2);
-    """
-    run_node_module(code)
-
-
-def test_global_pause_disables_summary_behavior_and_per_chat_actions():
-    code = BASE_SETUP + r"""
-        const { renderMemorySummaryCard } = await import('./static/js/summaries.js');
-        state.autoSummariesEnabled = false;
-        el.apiEndpoint.value = '';
-        state.apiModel = '';
-        el.summaryToggle = {};
-        el.summaryRebuildBtn = {};
-        el.summaryResetBtn = {};
-        let runCalls = 0;
-        API.runSummary = async () => { runCalls += 1; };
-
-        await ensureSummaryReadyForSend();
-        await maybeTriggerSummary();
-        renderMemorySummaryCard();
-
-        assert.equal(runCalls, 0);
-        assert.equal(el.summaryToggle.checked, true);
-        assert.equal(el.summaryToggle.disabled, true);
-        assert.equal(el.summaryRebuildBtn.disabled, true);
-        assert.equal(el.summaryResetBtn.disabled, true);
     """
     run_node_module(code)
 
@@ -814,7 +759,6 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
         state.systemPrompts = [{ id: 1, content: 'Reply as {{char}}.' }];
         state.activeSystemPromptId = 1;
         state.activeSamplers = new Set();
-        state.autoSummariesEnabled = true;
         state.summaryApiEndpoint = '';
         state.summaryApiModel = '';
         state.messages = Array.from({ length: 4 }, (_, i) => ({
@@ -908,7 +852,6 @@ def test_context_boundary_starts_before_first_post_watermark_message_when_all_fi
         import { state, el } from './static/js/state.js';
         import { updateContextBoundary } from './static/js/context-meter.js';
 
-        state.autoSummariesEnabled = true;
         state.activeChat = {
             id: 7,
             summary_enabled: true,
@@ -958,7 +901,6 @@ def test_context_boundary_follows_last_message_when_summary_covers_everything():
         import { state, el } from './static/js/state.js';
         import { updateContextBoundary } from './static/js/context-meter.js';
 
-        state.autoSummariesEnabled = true;
         state.activeChat = {
             id: 7,
             summary_enabled: true,
@@ -1013,7 +955,6 @@ def test_rebuild_clears_stale_summary_when_full_history_fits_without_it():
         el.settingsContextTokens = { value: '32' };
         el.samplerMaxTokens = { value: '10' };
         el.sendThinking = { checked: true };
-        state.autoSummariesEnabled = true;
         state.messages = [
             { id: 1, role: 'user', text: 'message-0-abcdefghijklmno' },
             { id: 2, role: 'character', text: 'message-1-abcdefghijklmno' },
@@ -1055,45 +996,3 @@ def test_rebuild_clears_stale_summary_when_full_history_fits_without_it():
     run_node_module(code)
 
 
-def test_global_off_cancellation_state_allows_immediate_catchup_on_resume():
-    code = BASE_SETUP + r"""
-        const {
-            markSummaryRunsCancelled,
-            onGlobalSummarySettingChanged,
-        } = await import('./static/js/summaries.js');
-
-        state.autoSummariesEnabled = false;
-        state.activeChat.summary_status = 'running';
-        state.activeChat.summary_status_detail = 'Summarizing 1 message...';
-        markSummaryRunsCancelled();
-        assert.equal(state.activeChat.summary_status, 'idle');
-        assert.equal(state.activeChat.summary_status_detail, '');
-
-        let runs = 0;
-        API.getSummaryStatus = async chatId => ({
-            id: chatId,
-            summary_enabled: true,
-            summary: { lines: [] },
-            summary_up_to_msg_id: null,
-            summary_status: 'idle',
-            summary_status_detail: '',
-        });
-        API.runSummary = async (chatId, options) => {
-            runs += 1;
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: { lines: [] },
-                summary_up_to_msg_id: options.up_to_msg_id,
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-
-        state.autoSummariesEnabled = true;
-        await onGlobalSummarySettingChanged();
-
-        assert.equal(runs, 1);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 1);
-    """
-    run_node_module(code)

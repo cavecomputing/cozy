@@ -415,7 +415,7 @@ def test_thinking_only_rebuild_publishes_pins_without_model_call(
     assert row['summary_up_to_msg_id'] == message_id
 
 
-def test_global_pause_discards_inflight_result_and_keeps_last_checkpoint(
+def test_pause_discards_inflight_result_and_keeps_last_checkpoint(
         client, sample_chat, monkeypatch):
     cid = sample_chat['id']
     client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
@@ -433,7 +433,7 @@ def test_global_pause_discards_inflight_result_and_keeps_last_checkpoint(
         nonlocal calls
         calls += 1
         if calls == 2:
-            client.put('/api/settings', json={'auto_summaries_enabled': '0'})
+            client.put(f'/api/chats/{cid}', json={'summary_enabled': False})
         return CANNED
 
     monkeypatch.setattr(summaries, 'call_summarizer', pause_on_second_call)
@@ -489,9 +489,8 @@ def test_per_chat_pause_during_rebuild_preserves_previous_state(
     assert row['summary_status_detail'] == ''
 
 
-@pytest.mark.parametrize('pause_scope', ['global', 'chat'])
 def test_disable_reenable_new_run_cannot_revive_old_worker(
-        client, sample_chat, monkeypatch, pause_scope):
+        client, sample_chat, monkeypatch):
     cid = sample_chat['id']
     client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
     message_id = _add_messages(client, cid, 1)[0]
@@ -509,20 +508,9 @@ def test_disable_reenable_new_run_cannot_revive_old_worker(
     old_token = spawned_tokens[0]
 
     def replace_run_during_old_call(messages, cap_tokens=0):
-        if pause_scope == 'global':
-            client.put('/api/settings', json={'auto_summaries_enabled': '0'})
-            with shared.get_db() as conn:
-                paused_row = conn.execute(
-                    'SELECT summary_status, summary_status_detail FROM chats WHERE id=?',
-                    (cid,),
-                ).fetchone()
-            assert paused_row['summary_status'] == 'idle'
-            assert paused_row['summary_status_detail'] == ''
-            client.put('/api/settings', json={'auto_summaries_enabled': '1'})
-        else:
-            paused = client.put(f'/api/chats/{cid}', json={'summary_enabled': False})
-            assert paused.get_json()['summary_status'] == 'idle'
-            client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
+        paused = client.put(f'/api/chats/{cid}', json={'summary_enabled': False})
+        assert paused.get_json()['summary_status'] == 'idle'
+        client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
 
         replacement = client.post(
             f'/api/chats/{cid}/summary/run', json={'up_to_msg_id': message_id}
@@ -574,7 +562,7 @@ def test_terminal_worker_releases_current_generation_when_status_cannot_change(
     assert summaries._job_tokens.get(cid) == job_token
 
     if terminal_event == 'pause':
-        paused = client.put('/api/settings', json={'auto_summaries_enabled': '0'})
+        paused = client.put(f'/api/chats/{cid}', json={'summary_enabled': False})
         assert paused.status_code == 200
     else:
         deleted = client.delete(f'/api/chats/{cid}')
@@ -721,21 +709,6 @@ def test_run_endpoint_rejects_boundary_from_another_chat(
 
     assert response.status_code == 400
     assert 'this chat' in response.get_json()['error']
-
-
-def test_run_endpoint_honors_global_feature_gate(client, sample_chat, monkeypatch):
-    message_id = _add_messages(client, sample_chat['id'], 1)[0]
-    client.put(f'/api/chats/{sample_chat["id"]}', json={'summary_enabled': True})
-    client.put('/api/settings', json={'auto_summaries_enabled': '0'})
-    monkeypatch.setattr(summaries, '_spawn_job', lambda *a, **k: None)
-
-    response = client.post(
-        f'/api/chats/{sample_chat["id"]}/summary/run',
-        json={'up_to_msg_id': message_id},
-    )
-
-    assert response.status_code == 409
-    assert 'disabled' in response.get_json()['error']
 
 
 def test_run_endpoint_honors_per_chat_feature_gate(client, sample_chat, monkeypatch):
@@ -1004,7 +977,6 @@ def test_config_defaults_seeded(client):
     s = get_settings()
     assert s['summary_cap_pct'] == '10'
     assert s['summary_trigger_interval'] == '20'
-    assert s['auto_summaries_enabled'] == '1'
 
 
 def test_unlimited_context_disables_summary_cap():

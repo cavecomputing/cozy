@@ -54,8 +54,7 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
     // Auto Summaries: inject the chat's running summary when enabled. The stored
     // summary is already held within its size cap server-side (enforce_cap), so
     // it's injected as-is.
-    const summaryText = state.autoSummariesEnabled !== false
-        && state.activeChat?.summary_enabled
+    const summaryText = state.activeChat?.summary_enabled
         ? summaryToText(state.activeChat?.summary)
         : '';
     // The summary shares the model context with raw chat history. Reserve its

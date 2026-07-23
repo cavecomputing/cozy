@@ -77,13 +77,6 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['show_gallery_button'] == '0'
 
-    def test_auto_summaries_global_gate_defaults_on_and_persists(self, client):
-        r = client.get('/api/settings')
-        assert r.get_json()['auto_summaries_enabled'] == '1'
-        client.put('/api/settings', json={'auto_summaries_enabled': '0'})
-        r = client.get('/api/settings')
-        assert r.get_json()['auto_summaries_enabled'] == '0'
-
     def test_context_token_zero_means_no_cap(self, client):
         # 0 is a valid value meaning "no cap" — round-trip preserves the literal "0"
         # so the frontend's `"0" || default` truthy-string check still picks it up.

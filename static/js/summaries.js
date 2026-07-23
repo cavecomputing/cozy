@@ -29,12 +29,8 @@ export function setSummaryBudgetChangeHandler(handler) {
     summaryBudgetChangeHandler = typeof handler === 'function' ? handler : null;
 }
 
-function globallyEnabled() {
-    return state.autoSummariesEnabled !== false;
-}
-
 function summariesActive(chat = state.activeChat) {
-    return globallyEnabled() && !!chat?.summary_enabled;
+    return !!chat?.summary_enabled;
 }
 
 // ── Rendering the summary object to text (mirror of summarizer.summary_to_text) ──
@@ -387,10 +383,6 @@ async function enableSummariesForChat() {
     // The update belongs to the chat where the toggle was clicked. Never use
     // the newly selected chat's messages if the user switched during the PUT.
     if (state.activeChat?.id !== chat.id) return;
-    if (!globallyEnabled()) {
-        renderMemorySummaryCard();
-        return;
-    }
     if (!summarizerConfigured()) {
         renderMemorySummaryCard();  // arms the feature; hint tells the user to configure
         return;
@@ -485,10 +477,6 @@ function renderStatus() {
     box.className = 'summary-status';
     box.textContent = '';
     if (!chat || !chat.summary_enabled) return;
-    if (!globallyEnabled()) {
-        box.textContent = 'Paused globally — saved summary memory is retained.';
-        return;
-    }
 
     const status = chat.summary_status || 'idle';
     if (status === 'running') {
@@ -530,7 +518,7 @@ function renderLines(enabled) {
     if (!box) return;
     box.innerHTML = '';
     const lines = (enabled && state.activeChat?.summary?.lines) || [];
-    const busy = !globallyEnabled() || state.activeChat?.summary_status === 'running';
+    const busy = state.activeChat?.summary_status === 'running';
     if (!lines.length) { box.hidden = true; return; }
     box.hidden = false;
 
@@ -576,21 +564,18 @@ export function renderMemorySummaryCard() {
     if (!toggle) return;  // card not in the DOM
     const chat = state.activeChat;
     const enabled = !!(chat && chat.summary_enabled);
-    const available = globallyEnabled();
 
     toggle.checked = enabled;
-    toggle.disabled = !chat || !available;
-    toggle.title = available
-        ? 'Summarize aged-out history for this chat'
-        : 'Auto Summaries are paused globally in Settings';
+    toggle.disabled = !chat;
+    toggle.title = 'Summarize aged-out history for this chat';
 
     if (el.summaryConfigHint) {
-        el.summaryConfigHint.hidden = !(available && enabled && !summarizerConfigured());
+        el.summaryConfigHint.hidden = !(enabled && !summarizerConfigured());
     }
     const busy = chat?.summary_status === 'running';
-    if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !available || !enabled || busy;
+    if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !enabled || busy;
     if (el.summaryResetBtn) {
-        el.summaryResetBtn.disabled = !available || !enabled || busy
+        el.summaryResetBtn.disabled = !enabled || busy
             || !(chat?.summary?.lines?.length);
     }
     renderStatus();
@@ -607,29 +592,6 @@ export function onChatSelected() {
         startStatusPolling(state.activeChat.id);
         maybeTriggerSummary();
     }
-}
-
-/** Apply the global pause/resume switch without changing any per-chat state. */
-export function onGlobalSummarySettingChanged() {
-    stopStatusPolling();
-    renderMemorySummaryCard();
-    if (summariesActive()) {
-        startStatusPolling(state.activeChat.id);
-        return maybeTriggerSummary();
-    }
-}
-
-/** Reconcile local state after the persisted global OFF gate cancels workers. */
-export function markSummaryRunsCancelled() {
-    const chats = new Set(state.chats || []);
-    if (state.activeChat) chats.add(state.activeChat);
-    for (const chat of chats) {
-        if (chat?.summary_status === 'running') {
-            chat.summary_status = 'idle';
-            chat.summary_status_detail = '';
-        }
-    }
-    renderMemorySummaryCard();
 }
 
 /** Wire the memory-card controls. Call once at startup. */
