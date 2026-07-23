@@ -18,6 +18,9 @@ const deleteBtn = document.getElementById('modal-delete-btn');
 const exportWrap    = document.getElementById('export-dropdown-wrap');
 const exportTrigger = document.getElementById('export-card-btn');
 const exportMenu    = document.getElementById('export-menu');
+const exportLabel   = document.getElementById('export-menu-export-label');
+const exportSep     = document.getElementById('export-menu-sep');
+const exportItems   = exportMenu.querySelectorAll('[data-export-item]');
 
 const avatarPreview = document.getElementById('modal-avatar-preview');
 const avatarInput   = document.getElementById('avatar-file-input');
@@ -141,7 +144,10 @@ function open(char = null) {
     importInput.value = '';
     switchTab('basic');
     titleEl.textContent = char ? 'Edit Character' : 'New Character';
-    exportWrap.hidden = !char;                      // only show export on edit, not create
+    // Export only makes sense when editing an existing card; import is always available
+    exportLabel.hidden = !char;
+    exportSep.hidden = !char;
+    exportItems.forEach(li => { li.hidden = !char; });
     exportMenu.hidden = true;                       // always close dropdown on open
     exportWrap.classList.remove('open');
     exportTrigger.setAttribute('aria-expanded', 'false');
@@ -238,7 +244,7 @@ importInput.addEventListener('change', async () => {
     }
 });
 
-// Export dropdown — single trigger button toggles the menu
+// Import/Export dropdown — single trigger button toggles the menu
 exportTrigger.addEventListener('click', e => {
     e.stopPropagation();
     const opening = exportMenu.hidden;
@@ -246,11 +252,15 @@ exportTrigger.addEventListener('click', e => {
     exportWrap.classList.toggle('open', opening);
     exportTrigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
 });
-// Clicking a menu item triggers the download and closes the menu
+// Clicking a menu item triggers import or an export download, then closes the menu
 exportMenu.addEventListener('click', e => {
-    const btn = e.target.closest('[data-fmt]');
-    if (!btn || !editingCharId) return;
-    API.exportCard(editingCharId, fields.name.value.trim(), btn.dataset.fmt);
+    const btn = e.target.closest('[data-fmt], [data-action="import"]');
+    if (!btn) return;
+    if (btn.dataset.action === 'import') {
+        importInput.click();
+    } else if (editingCharId) {
+        API.exportCard(editingCharId, fields.name.value.trim(), btn.dataset.fmt);
+    }
     exportMenu.hidden = true;
     exportWrap.classList.remove('open');
     exportTrigger.setAttribute('aria-expanded', 'false');

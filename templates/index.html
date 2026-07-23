@@ -690,22 +690,22 @@
                 <div class="modal-header panel-header">
                     <h2 id="modal-title" class="section-label panel-title panel-title--left">New Character</h2>
                     <div class="modal-header-actions">
-                        <div class="export-dropdown" id="export-dropdown-wrap" hidden>
+                        <div class="export-dropdown" id="export-dropdown-wrap">
                             <button id="export-card-btn" class="btn btn-secondary btn-sm export-trigger-btn" aria-haspopup="true" aria-expanded="false">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                Export
+                                Import/Export
                                 <svg class="export-trigger-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </button>
                             <ul class="export-menu" id="export-menu" hidden role="menu">
-                                <li><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
-                                <li><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
+                                <li class="gallery-menu-label" id="export-menu-export-label" role="presentation">Export</li>
+                                <li data-export-item><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
+                                <li data-export-item><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
+                                <li class="gallery-menu-sep" id="export-menu-sep" role="separator"></li>
+                                <li class="gallery-menu-label" role="presentation">Import</li>
+                                <li><button data-action="import" role="menuitem">From file (.json / .png)</button></li>
                             </ul>
-                        </div>
-                        <label class="btn btn-secondary btn-sm" title="Import character card (.json or .png)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                            Import
                             <input type="file" id="import-file-input" accept=".json,.png" hidden>
-                        </label>
+                        </div>
                         <button id="modal-close-btn" class="icon-btn" aria-label="Close">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
