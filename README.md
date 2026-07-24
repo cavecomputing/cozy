@@ -109,7 +109,10 @@ old releases may not upgrade cleanly after being left behind for a long time.
 
 ## License
 
-Cozy is available under the [MIT License](LICENSE).
+Cozy is available under the [Apache License 2.0](LICENSE).
+
+Redistributions and derivative works must preserve the attribution in
+[NOTICE](NOTICE), including a reference to the original Cozy repository.
 
 ---
 
