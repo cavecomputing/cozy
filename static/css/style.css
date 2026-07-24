@@ -2929,9 +2929,9 @@ input[type="checkbox"]:disabled {
     padding-top: 0.65rem;
 }
 
+/* Full width, matching the API cards in the section above. */
 .sampler-card {
-    width: min(100%, 720px);
-    max-width: 720px;
+    width: 100%;
 }
 
 /* Help bubble sits inline, just right of the "Samplers" heading. */
