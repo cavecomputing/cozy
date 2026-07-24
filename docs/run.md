@@ -40,7 +40,7 @@ The directory will be created automatically if it doesn't exist. Subdirectories 
 
 ```bash
 cd docker
-docker compose up --build
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
 The app is available at `http://localhost`. Data is stored in `data/` at the project root, mounted into the container at `/data`.
