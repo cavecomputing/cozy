@@ -37,7 +37,12 @@ export function tooltipForSegment(segment, analysis) {
     }
     if (segment.id === 'unused') detail += '<br>Available for future conversation context.';
     if (segment.id === 'response_reserve') detail += '<br>Held back so the model has room to answer.';
-    return `<strong>${segment.label}</strong><br>${detail}`;
+    const hasDuplicate = analysis.segments
+        .some(other => other !== segment && other.id === segment.id);
+    const zoneLabel = segment.zone === 'system' ? 'System template'
+        : (segment.zone === 'user' ? 'User template' : '');
+    const placement = hasDuplicate && zoneLabel ? ` · ${zoneLabel}` : '';
+    return `<strong>${segment.label}${placement}</strong><br>${detail}`;
 }
 
 function renderSegments(analysis) {
@@ -54,18 +59,27 @@ function renderSegments(analysis) {
         button.type = 'button';
         button.className = 'context-meter-segment';
         button.dataset.source = segment.id;
+        button.dataset.segmentKey = segment.key;
         button.dataset.tip = tooltipForSegment(segment, analysis);
         button.style.flexBasis = `${(segment.tokens / denominator) * 100}%`;
-        button.setAttribute('aria-label', `${segment.label}: approximately ${segment.tokens.toLocaleString()} tokens`);
+        const hasDuplicate = analysis.segments
+            .some(other => other !== segment && other.id === segment.id);
+        const zoneLabel = segment.zone === 'system' ? 'System template'
+            : (segment.zone === 'user' ? 'User template' : '');
+        const placement = hasDuplicate && zoneLabel ? `, ${zoneLabel}` : '';
+        button.setAttribute(
+            'aria-label',
+            `${segment.label}${placement}: approximately ${segment.tokens.toLocaleString()} tokens`,
+        );
         bar.appendChild(button);
     }
 
     // Rebuilding detaches the segment an open tooltip may be anchored to
     // (tapped open on touch, where nothing else dismisses it). Follow it to
-    // the same-source replacement so the numbers stay live, or dismiss it
+    // the same ordered replacement so the numbers stay live, or dismiss it
     // when that segment no longer exists.
     retargetTooltip(previous => previous.classList?.contains('context-meter-segment')
-        ? bar.querySelector(`[data-source="${previous.dataset.source}"]`)
+        ? bar.querySelector(`[data-segment-key="${previous.dataset.segmentKey}"]`)
         : null);
 }
 

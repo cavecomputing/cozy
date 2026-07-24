@@ -44,6 +44,16 @@ const SOURCE_BY_VARIABLE = {
     post_history_instructions: 'character_card',
 };
 
+const ZONE_ORDER = new Map([
+    ['system', 0],
+    ['history', 1],
+    ['user', 2],
+]);
+
+function defaultZoneForSource(source) {
+    return ['message_history', 'current_draft'].includes(source) ? 'history' : 'system';
+}
+
 function normalizeResolvedText(text) {
     return String(text || '').replace(/\n{3,}/g, '\n\n').trim();
 }
@@ -57,6 +67,7 @@ function normalizeResolvedText(text) {
 function resolveTrackedTemplate(template, context, {
     defaultSource = 'system_prompt',
     variableSources = {},
+    zone = 'system',
 } = {}) {
     if (!template) return { content: '', fragments: [] };
 
@@ -91,6 +102,7 @@ function resolveTrackedTemplate(template, context, {
         if (match.index > cursor) {
             fragments.push({
                 source: stack.at(-1)?.source || defaultSource,
+                zone,
                 text: marked.slice(cursor, match.index),
             });
         }
@@ -106,6 +118,7 @@ function resolveTrackedTemplate(template, context, {
     if (cursor < marked.length) {
         fragments.push({
             source: stack.at(-1)?.source || defaultSource,
+            zone,
             text: marked.slice(cursor),
         });
     }
@@ -129,12 +142,19 @@ function resolveActiveLorebook(chat, character, lorebooks) {
     return null;
 }
 
-function trackedMessage(role, content, source, overheadSource = source) {
+function trackedMessage(
+    role,
+    content,
+    source,
+    overheadSource = source,
+    zone = defaultZoneForSource(source),
+) {
     return {
         role,
         content,
-        fragments: content ? [{ source, text: content }] : [],
+        fragments: content ? [{ source, zone, text: content }] : [],
         overheadSource,
+        overheadZone: zone,
     };
 }
 
@@ -144,10 +164,15 @@ function mergeTrackedMessages(left, right, separator = '\n\n') {
         content: `${left.content}${separator}${right.content}`,
         fragments: [
             ...left.fragments,
-            { source: right.overheadSource || right.fragments[0]?.source || 'system_prompt', text: separator },
+            {
+                source: right.overheadSource || right.fragments[0]?.source || 'system_prompt',
+                zone: right.overheadZone || right.fragments[0]?.zone || 'system',
+                text: separator,
+            },
             ...right.fragments,
         ],
         overheadSource: left.overheadSource || right.overheadSource,
+        overheadZone: left.overheadZone || right.overheadZone,
     };
 }
 
@@ -203,27 +228,74 @@ function allocateInteger(total, weights) {
 
 function countTrackedTokens(messages) {
     const counts = new Map();
-    const add = (source, tokens) => {
+    const buckets = new Map();
+    let nextOrder = 0;
+    const ensureBucket = (source, zone) => {
+        const normalizedZone = ['message_history', 'current_draft'].includes(source)
+            ? 'history'
+            : (zone || defaultZoneForSource(source));
+        const key = `${normalizedZone}:${source}`;
+        if (!buckets.has(key)) {
+            buckets.set(key, {
+                key,
+                id: source,
+                zone: normalizedZone,
+                order: nextOrder++,
+                tokens: 0,
+            });
+        }
+        return buckets.get(key);
+    };
+    const addSource = (source, tokens) => {
         if (tokens <= 0) return;
         counts.set(source, (counts.get(source) || 0) + tokens);
+    };
+    const addBucket = (source, zone, tokens) => {
+        if (tokens <= 0) return;
+        ensureBucket(source, zone).tokens += tokens;
     };
 
     for (const message of messages) {
         const contentTokens = estimateTextTokens(message.content);
-        const weights = new Map();
+        const sourceWeights = new Map();
+        const bucketWeights = new Map();
         for (const fragment of message.fragments) {
             const weight = estimateTextTokens(fragment.text);
-            weights.set(fragment.source, (weights.get(fragment.source) || 0) + weight);
+            const bucket = ensureBucket(fragment.source, fragment.zone);
+            sourceWeights.set(
+                fragment.source,
+                (sourceWeights.get(fragment.source) || 0) + weight,
+            );
+            bucketWeights.set(bucket.key, (bucketWeights.get(bucket.key) || 0) + weight);
         }
-        for (const [source, tokens] of allocateInteger(contentTokens, weights)) add(source, tokens);
+        for (const [source, tokens] of allocateInteger(contentTokens, sourceWeights)) {
+            addSource(source, tokens);
+            const sourceBucketWeights = new Map(
+                [...bucketWeights].filter(([key]) => buckets.get(key).id === source),
+            );
+            for (const [key, bucketTokens] of allocateInteger(tokens, sourceBucketWeights)) {
+                const bucket = buckets.get(key);
+                addBucket(bucket.id, bucket.zone, bucketTokens);
+            }
+        }
 
         const overhead = estimateMessageTokens({ content: message.content }) - contentTokens;
         const overheadSource = message.overheadSource
-            || [...weights.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+            || [...sourceWeights.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
             || 'system_prompt';
-        add(overheadSource, overhead);
+        const overheadZone = message.overheadZone || defaultZoneForSource(overheadSource);
+        addSource(overheadSource, overhead);
+        addBucket(overheadSource, overheadZone, overhead);
     }
-    return counts;
+    return {
+        bySource: counts,
+        buckets: [...buckets.values()]
+            .filter(bucket => bucket.tokens > 0)
+            .sort((left, right) => {
+                const zoneDelta = ZONE_ORDER.get(left.zone) - ZONE_ORDER.get(right.zone);
+                return zoneDelta || left.order - right.order;
+            }),
+    };
 }
 
 function makeTemplateContext(character, persona, lorebookText, summaryText) {
@@ -271,7 +343,7 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
 
     const systemTemplate = prompt?.content || '';
     const userTemplate = prompt?.post_history_content || '';
-    const system = resolveTrackedTemplate(systemTemplate, context);
+    const system = resolveTrackedTemplate(systemTemplate, context, { zone: 'system' });
     const messages = [];
     if (system.content) {
         messages.push({
@@ -279,6 +351,7 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
             content: system.content,
             fragments: system.fragments,
             overheadSource: 'system_prompt',
+            overheadZone: 'system',
         });
     }
 
@@ -304,12 +377,14 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
             context.user_message = content;
             const rendered = resolveTrackedTemplate(userTemplate, context, {
                 variableSources: { user_message: source },
+                zone: 'user',
             });
             messages.push({
                 role: 'user',
                 content: rendered.content,
                 fragments: rendered.fragments,
                 overheadSource: source,
+                overheadZone: 'history',
             });
         } else {
             messages.push(trackedMessage(
@@ -321,13 +396,14 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
     }
 
     if (!wrapsUserMessage || lastUserIndex === -1) {
-        const rendered = resolveTrackedTemplate(userTemplate, context);
+        const rendered = resolveTrackedTemplate(userTemplate, context, { zone: 'user' });
         if (rendered.content) {
             messages.push({
                 role: 'user',
                 content: rendered.content,
                 fragments: rendered.fragments,
                 overheadSource: 'system_prompt',
+                overheadZone: 'user',
             });
         }
     }
@@ -340,18 +416,19 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
         if (systemMessage) {
             systemMessage.content += `\n\n${header}${summaryText}`;
             systemMessage.fragments.push(
-                { source: 'system_prompt', text: `\n\n${header}` },
-                { source: 'auto_summary', text: summaryText },
+                { source: 'system_prompt', zone: 'system', text: `\n\n${header}` },
+                { source: 'auto_summary', zone: 'system', text: summaryText },
             );
         } else {
             messages.unshift({
                 role: 'system',
                 content: `${header}${summaryText}`,
                 fragments: [
-                    { source: 'system_prompt', text: header },
-                    { source: 'auto_summary', text: summaryText },
+                    { source: 'system_prompt', zone: 'system', text: header },
+                    { source: 'auto_summary', zone: 'system', text: summaryText },
                 ],
                 overheadSource: 'system_prompt',
+                overheadZone: 'system',
             });
         }
     }
@@ -359,10 +436,12 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
     if (nudge) messages.push(trackedMessage('user', nudge, 'current_draft'));
 
     const trackedMessages = enforceTrackedAlternation(messages);
+    const tokenAccounting = countTrackedTokens(trackedMessages);
     return {
         trackedMessages,
         messages: trackedMessages.map(message => ({ role: message.role, content: message.content })),
-        tokenCounts: countTrackedTokens(trackedMessages),
+        tokenCounts: tokenAccounting.bySource,
+        segmentBuckets: tokenAccounting.buckets,
         lorebookContents,
     };
 }
@@ -436,12 +515,31 @@ export function analyzeContext({
     const overflowTokens = maxTokens > 0 ? Math.max(0, allocatedTokens - maxTokens) : 0;
     const unusedTokens = maxTokens > 0 ? Math.max(0, maxTokens - allocatedTokens) : 0;
     const labels = new Map(CONTEXT_SOURCES.map(source => [source.id, source.label]));
-    const segments = CONTEXT_SOURCES.map(source => {
-        let tokens = assembled.tokenCounts.get(source.id) || 0;
-        if (source.id === 'response_reserve') tokens = responseTokens;
-        if (source.id === 'unused') tokens = unusedTokens;
-        return { id: source.id, label: labels.get(source.id), tokens };
-    }).filter(segment => segment.tokens > 0);
+    const segments = assembled.segmentBuckets.map(bucket => ({
+        key: bucket.key,
+        id: bucket.id,
+        zone: bucket.zone,
+        label: labels.get(bucket.id),
+        tokens: bucket.tokens,
+    }));
+    if (responseTokens > 0) {
+        segments.push({
+            key: 'capacity:response_reserve',
+            id: 'response_reserve',
+            zone: 'capacity',
+            label: labels.get('response_reserve'),
+            tokens: responseTokens,
+        });
+    }
+    if (unusedTokens > 0) {
+        segments.push({
+            key: 'capacity:unused',
+            id: 'unused',
+            zone: 'capacity',
+            label: labels.get('unused'),
+            tokens: unusedTokens,
+        });
+    }
 
     const selectedMessageIds = selected
         .filter(message => !message._isDraft && message.id != null)

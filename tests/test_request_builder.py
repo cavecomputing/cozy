@@ -536,6 +536,80 @@ def test_context_analysis_attributes_every_semantic_source_and_reconciles_totals
     run_node_module(code)
 
 
+def test_context_segments_follow_system_history_user_prompt_order():
+    code = BASE_NODE_SETUP + r"""
+        import { tooltipForSegment } from './static/js/context-meter.js';
+
+        state.contextMaxTokens = '0';
+        el.settingsContextTokens = { value: '0' };
+        el.samplerMaxTokens = { value: '40' };
+        state.activeCharacter = {
+            name: 'Mira',
+            description: 'A careful cartographer.',
+            character_book: {
+                entries: [{
+                    enabled: true,
+                    constant: true,
+                    insertion_order: 1,
+                    content: 'The observatory stands above the sea.',
+                }],
+            },
+        };
+        state.activePersona = { name: 'Morgan', description: 'An inquisitive sailor.' };
+        state.activeChat = {
+            summary_enabled: false,
+            active_lorebook_embedded: true,
+            author_note: 'Keep the brass key important.',
+        };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: '{{#summary}}{{summary}}{{/summary}}{{persona}}{{lorebook}}{{description}}',
+            post_history_content: '{{author_note}}{{persona}}{{author_note}}{{user_message}}{{lorebook}}',
+        }];
+        state.messages = [{ id: 1, role: 'user', text: 'Where are we?' }];
+
+        const analysis = analyzeContext({ draftText: 'Search the observatory.' });
+        assert.deepEqual(
+            analysis.segments.map(segment => segment.key),
+            [
+                'system:persona',
+                'system:lorebook',
+                'system:character_card',
+                'system:system_prompt',
+                'history:message_history',
+                'history:current_draft',
+                'user:author_note',
+                'user:persona',
+                'user:lorebook',
+                'capacity:response_reserve',
+            ],
+        );
+
+        const personaSegments = analysis.segments.filter(segment => segment.id === 'persona');
+        assert.equal(personaSegments.length, 2);
+        assert.deepEqual(personaSegments.map(segment => segment.zone), ['system', 'user']);
+        assert.equal(
+            analysis.segments.filter(segment => segment.id === 'author_note').length,
+            1,
+            'repeated variables within one tab should be combined',
+        );
+        assert.equal(
+            analysis.segments.some(segment => segment.id === 'auto_summary'),
+            false,
+            'an empty conditional should not create a segment',
+        );
+
+        const promptTotal = analysis.segments
+            .filter(segment => !['response_reserve', 'unused'].includes(segment.id))
+            .reduce((sum, segment) => sum + segment.tokens, 0);
+        assert.equal(promptTotal, analysis.promptTokens);
+        assert.match(tooltipForSegment(personaSegments[0], analysis), /System template/);
+        assert.match(tooltipForSegment(personaSegments[1], analysis), /User template/);
+    """
+    run_node_module(code)
+
+
 def test_full_context_budget_trims_history_after_fixed_prompt_sources():
     code = BASE_NODE_SETUP + r"""
         state.contextMaxTokens = '120';
