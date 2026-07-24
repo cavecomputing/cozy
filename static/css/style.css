@@ -2598,8 +2598,10 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     cursor: not-allowed;
 }
 
+/* Bleeds to the same -0.25rem as the row dividers so the group border starts
+   and ends exactly where the dividers above and below it do. */
 .sampler-group {
-    margin: 0.45rem 0;
+    margin: 0.45rem -0.25rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     overflow: hidden;
@@ -2612,12 +2614,15 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-secondary);
-    padding: 0.3rem 0.5rem;
+    padding: 0.3rem 0.55rem;
     background-color: var(--hover-bg);
 }
 
+/* 0.55rem + the group's 1px border lands grouped labels on the same column as
+   ungrouped ones (which sit at -0.25rem margin + 0.6rem padding); the vertical
+   padding matches too, so grouped and ungrouped rows are the same height. */
 .sampler-group .settings-row {
-    padding: 0.35rem 0.5rem;
+    padding: 0.45rem 0.55rem;
 }
 
 .sampler-group .settings-row + .settings-row {
@@ -2948,6 +2953,11 @@ input[type="checkbox"]:disabled {
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.85rem;
+    /* Same bleed + inset as the rows below: the heading sits on the label
+       column, the gear on the input column, and the Advanced rule below runs
+       the full width of the row dividers. */
+    margin-inline: -0.25rem;
+    padding-inline: 0.6rem;
 }
 .sampler-subsection-title {
     min-width: 0;
@@ -2960,8 +2970,8 @@ input[type="checkbox"]:disabled {
 }
 
 .sampler-empty-state {
-    margin: 0;
-    padding: 0.65rem 0.6rem;
+    margin: 0 -0.25rem;
+    padding: 0.65rem 0.55rem;
     border: 1px dashed var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
