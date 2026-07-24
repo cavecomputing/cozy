@@ -8,7 +8,7 @@
 
 Cozy works with SillyTavern-compatible V2 character cards and OpenAI-style LLM
 servers. It includes personas, lorebooks, prompt presets, Auto Summaries,
-character collections, themes, and chat import/export.
+character collections, themes, and chat import/export. It also might inspire feelings of being cozy and safe as supported by 1 out of 10 non existant doctors.
 
 > [!IMPORTANT]
 > Cozy changes frequently and is not a stable release. Back up your data before
