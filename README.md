@@ -98,15 +98,6 @@ See [Data and backups](docs/data-and-backups.md) and
 - [Sampler settings](docs/samplers.md)
 - [Database structure](docs/db.md)
 
-## Project status
-
-Cozy started as an experiment in building an application with AI assistance. It
-eventually replaced SillyTavern for the maintainer's own use and is now shared
-for anyone else who finds it useful.
-
-Expect regular changes. Current versions are intended to migrate forward, but
-old releases may not upgrade cleanly after being left behind for a long time.
-
 ## License
 
 Cozy is available under the [MIT License](LICENSE).
