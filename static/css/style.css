@@ -2456,6 +2456,24 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     outline: none;
 }
 
+/* Neutral "field not used by active prompt" marker — a muted ⊘ glyph, not an
+   alarm. Omitting a field is often deliberate, so no accent recolor on hover. */
+.field-unused-marker {
+    border: none;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    font-size: 0.85rem;
+    font-weight: 400;
+    padding-top: 0;
+}
+
+.field-unused-marker:hover,
+.field-unused-marker:focus-visible {
+    color: var(--text-secondary);
+    border-color: transparent;
+    opacity: 1;
+}
+
 .help-tip-portal {
     position: fixed;
     z-index: 9999;

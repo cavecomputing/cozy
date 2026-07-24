@@ -735,15 +735,15 @@
                 <div class="modal-body">
                     <div class="tab-panel active" id="tab-basic" role="tabpanel">
                         <div class="form-group">
-                            <label class="form-label" for="cf-description">Description</label>
+                            <label class="form-label" for="cf-description">Description<span id="cf-description-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{description}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-description" class="form-textarea" rows="5" placeholder="Describe the character — appearance, background, personality traits…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-personality">Personality</label>
+                            <label class="form-label" for="cf-personality">Personality<span id="cf-personality-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{personality}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-personality" class="form-textarea" rows="3" placeholder="A short summary of personality (e.g. curious, sarcastic, warm)…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-scenario">Scenario</label>
+                            <label class="form-label" for="cf-scenario">Scenario<span id="cf-scenario-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{scenario}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-scenario" class="form-textarea" rows="3" placeholder="The current situation or setting where the story takes place…"></textarea>
                         </div>
                     </div>
@@ -761,17 +761,17 @@
                             </button>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-mes-example">Example Messages</label>
+                            <label class="form-label" for="cf-mes-example">Example Messages<span id="cf-mes-example-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{mesExamples}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-mes-example" class="form-textarea" rows="6" placeholder="{% raw %}&lt;START&gt;&#10;{{user}}: &quot;Tell me about yourself.&quot;&#10;{{char}}: *smiles warmly* &quot;Not much to tell, really.&quot;&#10;&lt;START&gt;&#10;{{user}}: &quot;What do you like to do?&quot;&#10;{{char}}: &quot;Reading, mostly. The quiet kind of evening you can lose yourself in.&quot;{% endraw %}"></textarea>
                         </div>
                     </div>
                     <div class="tab-panel" id="tab-advanced" role="tabpanel" hidden>
                         <div class="form-group">
-                            <label class="form-label" for="cf-system-prompt">System Prompt</label>
+                            <label class="form-label" for="cf-system-prompt">System Prompt<span id="cf-system-prompt-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{system_prompt}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-system-prompt" class="form-textarea" rows="4" placeholder="Overrides the global system prompt when this character is active…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-post-history">Post History Instructions</label>
+                            <label class="form-label" for="cf-post-history">Post History Instructions<span id="cf-post-history-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{post_history_instructions}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-post-history" class="form-textarea" rows="3" placeholder="Instructions injected after the chat history…"></textarea>
                         </div>
                         <div class="form-group">

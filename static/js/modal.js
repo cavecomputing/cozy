@@ -44,6 +44,51 @@ const fields = {
     version:       document.getElementById('cf-version'),
 };
 
+// Fields that map to prompt template variables. When a field has content but
+// the active template doesn't reference its {{variable}}, that content is
+// silently dropped from the prompt — so we surface a neutral marker next to the
+// label. (mes_example → mesExamples camelCase does not auto-derive.)
+const PROMPT_FIELD_VARS = [
+    ['description',   'description'],
+    ['personality',   'personality'],
+    ['scenario',      'scenario'],
+    ['mes_example',   'mesExamples'],
+    ['system_prompt', 'system_prompt'],
+    ['post_history',  'post_history_instructions'],
+];
+
+const fieldMarkers = {
+    description:   document.getElementById('cf-description-marker'),
+    personality:   document.getElementById('cf-personality-marker'),
+    scenario:      document.getElementById('cf-scenario-marker'),
+    mes_example:   document.getElementById('cf-mes-example-marker'),
+    system_prompt: document.getElementById('cf-system-prompt-marker'),
+    post_history:  document.getElementById('cf-post-history-marker'),
+};
+
+/** True if the active prompt template references {{name}} or {{#name}}. */
+function templateHasVar(name) {
+    const sp = state.systemPrompts.find(s => s.id === state.activeSystemPromptId);
+    if (!sp) return true;  // no active template resolvable → don't mark (avoid false alarms)
+    const re = new RegExp('\\{\\{#?' + name + '\\}\\}', 'i');
+    return re.test(sp.content || '') || re.test(sp.post_history_content || '');
+}
+
+/** Show/hide the ⊘ marker for each prompt field based on content + template use. */
+function updateFieldMarkers() {
+    for (const [key, varName] of PROMPT_FIELD_VARS) {
+        const marker = fieldMarkers[key];
+        if (!marker) continue;
+        const hasContent = fields[key].value.trim() !== '';
+        marker.hidden = !(hasContent && !templateHasVar(varName));
+    }
+}
+
+// Live-update markers as the user types into (or clears) any prompt field.
+for (const [key] of PROMPT_FIELD_VARS) {
+    fields[key].addEventListener('input', updateFieldMarkers);
+}
+
 const altGreetingsList = document.getElementById('alt-greetings-list');
 const addGreetingBtn   = document.getElementById('add-greeting-btn');
 const tagsChipList     = document.getElementById('tags-chip-list');
@@ -156,6 +201,7 @@ function open(char = null) {
     if (avatarRequired) avatarRequired.hidden = !!char;
     if (char) populate(char);
     else      clearForm();
+    updateFieldMarkers();
     overlay.hidden = false;
     requestAnimationFrame(() => fields.name.focus());
 }
