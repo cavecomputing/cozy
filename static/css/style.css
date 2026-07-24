@@ -2962,11 +2962,12 @@ input[type="checkbox"]:disabled {
 .sampler-subsection-title {
     min-width: 0;
 }
-/* Obvious break between the core and advanced groups within the one card. */
+/* Break between the core and advanced groups within the one card. No rule
+   here: it sat directly under the last core sampler and read as that row's
+   own bottom divider, unevenly spaced from the row above it. Whitespace and
+   the "Advanced samplers" heading carry the break instead. */
 .sampler-subsection-header--advanced {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-color);
+    margin-top: 1.25rem;
 }
 
 .sampler-empty-state {
