@@ -70,6 +70,37 @@ function triggerInterval() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 20;
 }
 
+/**
+ * Estimate the token headroom needed for roughly ``targetMessages`` future
+ * messages. A capped average follows genuinely longer conversations without
+ * letting one exceptional paste/reply make an automatic update retire a huge
+ * raw-history block.
+ */
+export function estimateTargetHeadroomTokens(messages, targetMessages, {
+    stripThinking = !el.sendThinking?.checked,
+} = {}) {
+    const count = Number.isFinite(targetMessages) && targetMessages > 0
+        ? Math.floor(targetMessages)
+        : 0;
+    if (!count || !Array.isArray(messages) || messages.length === 0) return 0;
+
+    const costs = messages.slice(-count).map(message => estimateMessageTokens(
+        { content: message?.text || '' },
+        { stripThinking },
+    ));
+    const sorted = [...costs].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2
+        ? sorted[middle]
+        : (sorted[middle - 1] + sorted[middle]) / 2;
+    const outlierCap = Math.max(1, median * 2);
+    const cappedTotal = costs.reduce(
+        (sum, cost) => sum + Math.min(cost, outlierCap),
+        0,
+    );
+    return Math.ceil((cappedTotal / costs.length) * count);
+}
+
 // ── Aged-out message detection ──────────────────────────────────────────────
 function windowAssessment(excludeLastN = 0, {
     includeSummarized = false,
@@ -152,8 +183,10 @@ function agedOutUnsummarized(excludeLastN = 0) {
 
 /**
  * Pick the inclusive watermark for an automatic update. Once any unsummarized
- * history falls outside the raw token budget, retire whole interval-sized blocks
- * so ordinary chatting has room to grow before another paid summary call.
+ * history falls outside the raw token budget, retire enough additional fitting
+ * history to make token headroom for roughly ``triggerInterval()`` more messages.
+ * The interval remains the per-call message ceiling as well as the user-facing
+ * target, so saved settings and server batching keep the same contract.
  *
  * Prefer to keep the newest two eligible messages verbatim. Under severe token
  * pressure we may consume the older of those two, but the newest message is never
@@ -161,30 +194,40 @@ function agedOutUnsummarized(excludeLastN = 0) {
  */
 function automaticRunTarget(excludeLastN = 0) {
     const assessment = windowAssessment(excludeLastN);
-    const { candidates, agedOut } = assessment;
+    const { candidates, agedOut, analysis } = assessment;
     const agedCount = agedOut.length;
     if (agedCount === 0 || candidates.length <= 1) return null;
     if (untrustedContextAssessment(assessment, 'automatic memory update')) return null;
 
     const interval = triggerInterval();
-    const roundedCount = Math.ceil(agedCount / interval) * interval;
     const preferredMax = Math.max(0, candidates.length - 2);
     const absoluteMax = candidates.length - 1;
-    // Rounding up to an interval block prepays headroom by also retiring some
-    // messages that still fit. Two hard bounds on that: one block per run,
-    // however large the backlog (callers loop, so it drains in bounded bites),
-    // and never more than half of the currently-fitting messages — when a big
-    // prompt or small context makes the whole window smaller than one block,
-    // block-rounding must not collapse it to almost nothing (the 32k-era wipe:
-    // an 11-message window with a 20-message interval retired all but 2, on
-    // every single update).
+    // Prepaying headroom must never consume more than half of the currently
+    // fitting messages. This bounds estimator drift and prevents the 32k-era
+    // wipe where a small live window was collapsed to almost nothing.
     const fittingCount = candidates.length - agedCount;
     const headroomMax = agedCount + Math.floor(fittingCount / 2);
-    const targetCount = Math.min(
+    const maxTargetCount = Math.min(
         absoluteMax,
         interval,
-        Math.max(agedCount, Math.min(roundedCount, preferredMax, headroomMax)),
+        Math.max(agedCount, Math.min(preferredMax, headroomMax)),
     );
+    let targetCount = Math.min(agedCount, interval);
+    if (targetCount < agedCount) {
+        // A large aged-out backlog drains in bounded interval-sized calls.
+        return oldestRetirableId(candidates, targetCount);
+    }
+
+    const desiredHeadroom = estimateTargetHeadroomTokens(candidates, interval);
+    let projectedHeadroom = analysis.unusedTokens;
+    while (targetCount < maxTargetCount && projectedHeadroom < desiredHeadroom) {
+        const next = candidates[targetCount];
+        projectedHeadroom += estimateMessageTokens(
+            { content: next?.text || '' },
+            { stripThinking: !el.sendThinking?.checked },
+        );
+        targetCount += 1;
+    }
     if (targetCount <= 0) return null;
 
     return oldestRetirableId(candidates, targetCount);

@@ -669,7 +669,7 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Behavior</h4>
-                                    <p>How large the summary may grow and how many messages each model call processes.</p>
+                                    <p>How large the summary may grow and how much room each update aims to create.</p>
                                 </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-summary-cap-pct">Size cap (% of context)</label>
@@ -677,10 +677,10 @@
                                 </div>
                                 <p class="settings-hint">The summary is capped at this percentage of the Max Context Tokens budget. Pinned lines count inside this budget. Counts are estimates marked with <code>&#8776;</code>.</p>
                                 <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-summary-interval">Summarize every (messages)</label>
+                                    <label class="settings-row-label" for="settings-summary-interval">Aim for this many messages between updates</label>
                                     <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="20">
                                 </div>
-                                <p class="settings-hint">Once context begins filling, Cozy replaces the oldest messages in blocks of this size. User and character messages each count as one. Exceptionally large messages may require an earlier safety update so no history is forgotten.</p>
+                                <p class="settings-hint">When history first falls outside the context window, Cozy estimates recent message sizes and makes room for about this many more. User and character messages each count as one. Exceptionally large messages may require an earlier safety update.</p>
                             </section>
                         </div>
                     </div>

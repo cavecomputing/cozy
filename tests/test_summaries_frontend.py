@@ -25,6 +25,7 @@ BASE_SETUP = r"""
     import { state, el } from './static/js/state.js';
     import { API } from './static/js/api.js';
     import {
+        estimateTargetHeadroomTokens,
         ensureSummaryReadyForSend,
         maybeTriggerSummary,
     } from './static/js/summaries.js';
@@ -56,6 +57,46 @@ BASE_SETUP = r"""
 """
 
 
+def test_target_headroom_uses_recent_message_average():
+    code = BASE_SETUP + r"""
+        const messages = Array.from({ length: 20 }, () => ({
+            role: 'user',
+            text: 'x'.repeat(40),
+        }));
+
+        // 10 text tokens + 4 message-framing tokens, projected across 20
+        // future messages.
+        assert.equal(estimateTargetHeadroomTokens(messages, 20), 280);
+    """
+    run_node_module(code)
+
+
+def test_target_headroom_caps_one_large_outlier_at_twice_the_median():
+    code = BASE_SETUP + r"""
+        const messages = Array.from({ length: 19 }, () => ({
+            role: 'user',
+            text: 'x'.repeat(40),
+        }));
+        messages.push({ role: 'character', text: 'x'.repeat(4000) });
+
+        // Typical cost is 14; the 1004-token outlier contributes at most 28.
+        assert.equal(estimateTargetHeadroomTokens(messages, 20), 294);
+    """
+    run_node_module(code)
+
+
+def test_target_headroom_projects_from_a_short_available_sample():
+    code = BASE_SETUP + r"""
+        const messages = Array.from({ length: 4 }, () => ({
+            role: 'user',
+            text: 'x'.repeat(40),
+        }));
+
+        assert.equal(estimateTargetHeadroomTokens(messages, 20), 280);
+    """
+    run_node_module(code)
+
+
 def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
     code = BASE_SETUP + r"""
         const calls = [];
@@ -82,7 +123,7 @@ def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
     run_node_module(code)
 
 
-def test_first_boundary_retires_a_full_interval_block():
+def test_first_boundary_creates_adaptive_headroom_within_safety_bound():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
@@ -107,9 +148,43 @@ def test_first_boundary_retires_a_full_interval_block():
         await maybeTriggerSummary();
 
         assert.equal(calls.length, 1);
-        // aged (2) + half of the 23 fitting messages: rounding prepays
-        // headroom but may never consume more than half the live window.
+        // The token target wants more room, but prepayment may never consume
+        // more than half of the 23 fitting messages.
         assert.equal(calls[0].up_to_msg_id, 13);
+    """
+    run_node_module(code)
+
+
+def test_adaptive_target_retires_fewer_large_old_messages_for_small_recent_average():
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '280';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            // Five older messages are much larger than the twenty-message
+            // sample that predicts the upcoming conversation.
+            text: i < 5 ? 'x'.repeat(100) : 'x'.repeat(10),
+        }));
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        // One message is aged out. Four more large old messages plus three
+        // small ones create the projected headroom, well before the old
+        // half-window message-count cap at id 13.
+        assert.deepEqual(calls, [8]);
     """
     run_node_module(code)
 
@@ -186,9 +261,9 @@ def test_run_target_follows_id_order_not_array_position():
     run_node_module(code)
 
 
-def test_small_window_is_never_collapsed_by_block_rounding():
-    """When the whole window holds fewer messages than one interval block
-    (big prompt or small context), rounding must retire at most half of the
+def test_small_window_is_never_collapsed_by_adaptive_headroom():
+    """When the whole window holds fewer messages than the configured target
+    (big prompt or small context), prepayment must retire at most half of the
     still-fitting messages — not everything but the newest two. This is the
     32k-era production wipe."""
     code = BASE_SETUP + r"""
@@ -300,7 +375,7 @@ def test_backlog_drains_in_interval_blocks_and_dam_damage_is_bounded():
     run_node_module(code)
 
 
-def test_interval_waits_for_context_pressure_and_then_retires_next_block():
+def test_message_target_waits_for_context_pressure_then_creates_headroom():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
@@ -332,14 +407,14 @@ def test_interval_waits_for_context_pressure_and_then_retires_next_block():
             text: 'm-44-abcdefghij',
         });
         await maybeTriggerSummary();
-        // One message aged; the rounded block is capped at half the 24 fitting
+        // One message aged; the token target is capped at half the 24 fitting
         // messages, so the next retirement covers ids 21..33.
         assert.deepEqual(calls, [33]);
     """
     run_node_module(code)
 
 
-def test_interval_does_not_summarize_early_when_everything_fits():
+def test_message_target_does_not_summarize_early_when_everything_fits():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '1000';
         state.messages = Array.from({ length: 40 }, (_, i) => ({
