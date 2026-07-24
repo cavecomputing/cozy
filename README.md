@@ -27,7 +27,7 @@ App runs on http://localhost:5001.
 
 ```bash
 cd docker
-docker compose up --build
+docker compose up -d --build
 ```
 
 ## Documentation
