@@ -14,7 +14,14 @@ import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm } from './personas.js';
 import { handleSend } from './send.js';
-import { loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave, flushLLMSettingsSave, browseModels, closeModelMenu, selectModelFromMenu, testLLMConnection, activatePreset, createNewPreset, deletePreset, searchModelsFromInput, clearModelListCache } from './llm-settings.js';
+import {
+    loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
+    flushLLMSettingsSave,
+    browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
+    selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
+    activatePreset, createNewPreset, deletePreset, searchModelsFromInput,
+    searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache,
+} from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
     updateSystemPromptContent, populateDefaultTemplateHelp,
@@ -338,25 +345,34 @@ function bindSettingsHandlers() {
     // Auto Summaries config — autosave while typing, flush on blur.
     el.summaryEndpoint?.addEventListener('input', () => {
         state.summaryApiEndpoint = el.summaryEndpoint.value;
+        clearSummaryModelListCache();
         queueLLMSettingsSave({ summary_api_endpoint: el.summaryEndpoint.value });
         renderMemorySummaryCard();
     });
     el.summaryEndpoint?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryKey?.addEventListener('input', () => {
         state.summaryApiKeySet = !!el.summaryKey.value;
+        clearSummaryModelListCache();
         queueLLMSettingsSave({ summary_api_key: el.summaryKey.value });
     });
     el.summaryKey?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryModel?.addEventListener('input', () => {
         state.summaryApiModel = el.summaryModel.value;
+        searchSummaryModelsFromInput();
         queueLLMSettingsSave({ summary_api_model: el.summaryModel.value });
         renderMemorySummaryCard();
     });
     el.summaryModel?.addEventListener('blur', flushLLMSettingsSave);
+    el.summaryRefreshModels?.addEventListener('click', browseSummaryModels);
+    el.summaryModelPickerMenu?.addEventListener('click', e => {
+        const btn = e.target.closest('.model-picker-item');
+        if (btn) selectSummaryModelFromMenu(btn.dataset.model);
+    });
     el.summaryCapInput?.addEventListener('input', () => {
         state.summaryCapPct = el.summaryCapInput.value || '10';
         queueLLMSettingsSave({ summary_cap_pct: state.summaryCapPct });
         renderMemorySummaryCard();
+        updateContextMeter();
     });
     el.summaryCapInput?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryIntervalInput?.addEventListener('input', () => {
@@ -388,6 +404,12 @@ function bindSettingsHandlers() {
             && !el.apiModel?.contains(e.target)) {
             closeModelMenu();
         }
+        if (el.summaryModelPickerMenu && !el.summaryModelPickerMenu.hidden
+            && !el.summaryModelPickerMenu.contains(e.target)
+            && !el.summaryRefreshModels?.contains(e.target)
+            && !el.summaryModel?.contains(e.target)) {
+            closeSummaryModelMenu();
+        }
     });
     el.testApi?.addEventListener('click', testLLMConnection);
 
@@ -402,14 +424,22 @@ function bindSettingsHandlers() {
         if (btn) switchPromptBuilderMode(btn.dataset.promptBuilderTab);
     });
     el.syspromptSelect?.addEventListener('change', () => {
-        selectSystemPrompt(el.syspromptSelect.value);
+        selectSystemPrompt(el.syspromptSelect.value).then(() => {
+            updateContextMeter();
+            updateContextBoundary();
+        });
     });
     // Prompt editors — debounced autosave while typing, flush on blur.
-    const saveSystemPromptDebounced = debounce(updateSystemPromptContent, 500);
+    const refreshSystemPrompt = async () => {
+        await updateSystemPromptContent();
+        updateContextMeter();
+        updateContextBoundary();
+    };
+    const saveSystemPromptDebounced = debounce(refreshSystemPrompt, 500);
     el.syspromptContent?.addEventListener('input', saveSystemPromptDebounced);
-    el.syspromptContent?.addEventListener('blur', updateSystemPromptContent);
+    el.syspromptContent?.addEventListener('blur', refreshSystemPrompt);
     el.postHistoryContent?.addEventListener('input', saveSystemPromptDebounced);
-    el.postHistoryContent?.addEventListener('blur', updateSystemPromptContent);
+    el.postHistoryContent?.addEventListener('blur', refreshSystemPrompt);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);
     el.syspromptPreview?.addEventListener('click', () => {
@@ -492,6 +522,10 @@ function bindSettingsHandlers() {
     for (const [key, elName] of Object.entries(SAMPLER_FIELDS)) {
         el[elName]?.addEventListener('input', () => {
             queueLLMSettingsSave({ [key]: el[elName].value });
+            if (key === 'sampler_max_tokens') {
+                updateContextMeter();
+                updateContextBoundary();
+            }
         });
         el[elName]?.addEventListener('blur', flushLLMSettingsSave);
     }
@@ -509,6 +543,7 @@ function bindSettingsHandlers() {
         queueLLMSettingsSave({ context_max_tokens: state.contextMaxTokens });
         updateContextSizeWarning();
         updateContextMeter();
+        updateContextBoundary();
     });
     el.settingsContextTokens?.addEventListener('blur', flushLLMSettingsSave);
 
@@ -528,6 +563,7 @@ function bindSettingsHandlers() {
     el.sendThinking?.addEventListener('change', () => {
         queueLLMSettingsSave({ send_thinking: el.sendThinking.checked ? '1' : '0' });
         updateContextMeter();
+        updateContextBoundary();
     });
 }
 
@@ -855,11 +891,15 @@ function bindComposerHandlers() {
         if (handleSlashKeydown(e)) return;
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     });
+    // The meter runs the full context analysis (template + lorebook
+    // resolution); per-keystroke that adds up on long chats and slower
+    // phones, and the draft segment does not need letter-level latency.
+    const updateContextMeterAfterTyping = debounce(updateContextMeter, 150);
     el.userInput.addEventListener('input', () => {
         autoResize(el.userInput);
         saveDraftDebounced();
         updateSlashCommands();
-        updateContextMeter();
+        updateContextMeterAfterTyping();
     });
     autoResize(el.userInput);
 }

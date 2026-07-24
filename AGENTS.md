@@ -1,6 +1,12 @@
-# AGENTS.md
+# CLAUDE.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Git workflow
+
+Commit directly to `main` once work is complete and verified — this project does not use feature branches or PRs. After finishing a task, stage the relevant files and commit with a descriptive message (don't wait to be asked). Only commit files that belong to the task; leave unrelated pre-existing changes and stray untracked files alone.
+
+**Never push.** The user always pushes themselves. Commit locally and stop there — do not run `git push`.
 
 ## Run / test
 
@@ -11,7 +17,7 @@ uv run python app.py
 # Custom data directory (default: ./data)
 COZY_DATA_DIR=/path/to/data uv run python app.py
 
-# Tests (always run through uv)
+# Tests (use `uv run` — the bare `python`/`pytest` on PATH may not resolve the project env)
 uv run pytest                                 # full suite
 uv run pytest tests/test_characters.py        # one file
 uv run pytest tests/test_characters.py::test_name -x   # one test, stop on fail
@@ -19,20 +25,6 @@ uv run pytest tests/test_characters.py::test_name -x   # one test, stop on fail
 # Docker (host port 80 -> container 5001)
 cd docker && docker compose up --build
 ```
-
-Use `uv run ...` for Python execution and testing in this repo. Do not start with bare `python` or bare `pytest` unless the user explicitly asks for that.
-
-## Git workflow
-
-Commit directly to `main` unless the user explicitly asks for a branch or PR workflow.
-
-Before committing code changes:
-
-1. Run the relevant `uv run pytest ...` target, and prefer the full `uv run pytest` suite when the change touches shared route, DB, import/export, or frontend/API behavior.
-2. Add or update tests when the change introduces behavior, fixes a bug, changes response shapes, touches persistence, or covers a regression-prone path.
-3. For frontend/UI changes, start the dev server with `uv run python app.py`, open the app in the in-harness browser, exercise the affected workflow, and check that the relevant screens are not visually broken on desktop and mobile-sized viewports when practical.
-4. For CSS/template/layout changes, verify the affected UI visually rather than relying only on backend tests.
-5. If the dev server or browser smoke test is blocked by the environment, say so clearly in the final note and run the closest available substitute, such as Flask test-client checks or syntax checks.
 
 Production (Docker) runs gunicorn with the `gthread` worker class — required because `/api/llm/chat` streams SSE and the default sync worker buffers responses.
 
@@ -42,13 +34,15 @@ Single-process Flask app. Entry point [app.py](app.py) registers eight blueprint
 
 ### Data lives in two places
 
-Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`). Routes that need card data read it from the PNG via [png_utils.py](png_utils.py) at request time.
+Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`, plus `pinned_at`/`archived_at` for pin & archive state). Routes that need card data read it from the PNG via [png_utils.py](png_utils.py) at request time.
 
-Everything else (chats, messages, message_swipes, personas, settings, system_prompts, api_presets, lorebooks) lives in `data/cozy_chat.db`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py). Keep startup idempotent so calling `init_db()` repeatedly is safe.
+Everything else lives in `data/cozy_chat.db`: `character_collections` and `character_collection_members` (the gallery/collection grouping), `chats`, `messages`, `message_swipes`, `personas`, `settings`, `system_prompts`, `api_presets`, and `lorebooks`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py). Keep startup idempotent so calling `init_db()` repeatedly is safe — existing-DB column additions go through the `PRAGMA table_info` / `ALTER TABLE ADD COLUMN` migration block near the end of `init_db()`.
 
 ### Prompt template system
 
 System prompts are not plain text — they are Mustache-ish templates with `{{variable}}` and `{{#var}}…{{/var}}` conditional sections (see `DEFAULT_PROMPT_TEMPLATE` in [shared.py](shared.py)). Fresh databases seed the default template directly, with `{{system_prompt}}` left as a live variable for per-character instructions.
+
+Each saved prompt is **paired**: a `content` (system) template and a `post_history_content` template injected after the chat history (`DEFAULT_POST_HISTORY_TEMPLATE` in [shared.py](shared.py)). Both are stored on the `system_prompts` row and travel together through the import/export endpoints in [routes/settings.py](routes/settings.py).
 
 ### LLM proxy and streaming
 
@@ -63,3 +57,5 @@ CSS files in [static/themes/](static/themes/) are built-in; user-added themes li
 [tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR`. [app.py](app.py) and route modules resolve data paths through `shared`, so new path constants used at runtime should follow the same pattern or be included in the fixture when tests need to isolate them.
 
 When creating a character in tests, use `make_minimal_png()` from [png_utils.py](png_utils.py) — anything smaller is rejected by Pillow.
+
+[tests/test_request_builder.py](tests/test_request_builder.py) exercises the frontend prompt-assembly logic ([static/js/request-builder.js](static/js/request-builder.js)) by shelling out to `node`. These tests **skip** (not fail) when `node` isn't on PATH, so a green run on a machine without Node isn't actually covering that module.

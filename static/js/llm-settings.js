@@ -6,12 +6,31 @@ import { confirmDialog } from './confirm.js';
 
 const MODEL_SEARCH_DEBOUNCE_MS = 250;
 const SETTINGS_SAVE_DEBOUNCE_MS = 500;
-let modelSearchTimer = null;
-let modelFetchRequestId = 0;
-let modelListLoaded = false;
 let settingsSaveTimer = null;
 let pendingSettings = {};
 let settingsDrainInFlight = null;
+const modelPickers = {
+    main: {
+        input: 'apiModel',
+        button: 'refreshModels',
+        menu: 'modelPickerMenu',
+        models: [],
+        details: {},
+        searchTimer: null,
+        requestId: 0,
+        loaded: false,
+    },
+    summary: {
+        input: 'summaryModel',
+        button: 'summaryRefreshModels',
+        menu: 'summaryModelPickerMenu',
+        models: [],
+        details: {},
+        searchTimer: null,
+        requestId: 0,
+        loaded: false,
+    },
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LLM SETTINGS
@@ -111,24 +130,36 @@ export async function flushLLMSettingsSave({ strict = false } = {}) {
     return result;
 }
 
-function setModelMenuOpen(open) {
-    if (!el.modelPickerMenu) return;
-    el.modelPickerMenu.hidden = !open;
-    if (el.refreshModels) el.refreshModels.setAttribute('aria-expanded', String(open));
-    if (el.apiModel) el.apiModel.setAttribute('aria-expanded', String(open));
+function pickerElements(profile) {
+    const picker = modelPickers[profile];
+    return {
+        picker,
+        input: el[picker.input],
+        button: el[picker.button],
+        menu: el[picker.menu],
+    };
 }
 
-function renderModelMenu(models, emptyText = 'No models found') {
-    if (!el.modelPickerMenu) return;
-    el.modelPickerMenu.innerHTML = '';
+function setModelMenuOpen(profile, open) {
+    const { input, button, menu } = pickerElements(profile);
+    if (!menu) return;
+    menu.hidden = !open;
+    button?.setAttribute('aria-expanded', String(open));
+    input?.setAttribute('aria-expanded', String(open));
+}
+
+function renderModelMenu(profile, models, emptyText = 'No models found') {
+    const { input, menu } = pickerElements(profile);
+    if (!menu) return;
+    menu.innerHTML = '';
     if (!models || models.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'model-picker-empty';
         empty.textContent = emptyText;
-        el.modelPickerMenu.appendChild(empty);
+        menu.appendChild(empty);
         return;
     }
-    const current = el.apiModel?.value || '';
+    const current = input?.value || '';
     models.forEach((m, i) => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -136,113 +167,147 @@ function renderModelMenu(models, emptyText = 'No models found') {
         btn.dataset.model = m;
         btn.textContent = m;
         btn.setAttribute('role', 'option');
-        btn.id = `model-picker-option-${i}`;
+        btn.id = `${profile}-model-picker-option-${i}`;
         if (m === current) btn.classList.add('active');
-        el.modelPickerMenu.appendChild(btn);
+        menu.appendChild(btn);
     });
 }
 
-export function closeModelMenu() {
-    if (!el.modelPickerMenu) return;
-    setModelMenuOpen(false);
+function closePicker(profile) {
+    setModelMenuOpen(profile, false);
 }
 
-export function selectModelFromMenu(name) {
-    if (!el.apiModel) return;
-    el.apiModel.value = name;
-    state.apiModel = name;
-    state.modelContextLength = state.modelDetails[name] ?? null;
-    queueLLMSettingsSave({ api_model: name });
-    updateContextSizeWarning();
-    closeModelMenu();
+function selectPickerModel(profile, name) {
+    const { input, picker } = pickerElements(profile);
+    if (!input) return;
+    input.value = name;
+    if (profile === 'summary') {
+        state.summaryApiModel = name;
+        queueLLMSettingsSave({ summary_api_model: name });
+    } else {
+        state.apiModel = name;
+        state.modelContextLength = picker.details[name] ?? null;
+        queueLLMSettingsSave({ api_model: name });
+        updateContextSizeWarning();
+    }
+    closePicker(profile);
 }
 
-function filterModels(query) {
+function filterModels(profile, query) {
+    const { picker } = pickerElements(profile);
     const q = query.trim().toLowerCase();
-    if (!q) return state.modelList;
-    return state.modelList.filter(m => m.toLowerCase().includes(q));
+    if (!q) return picker.models;
+    return picker.models.filter(m => m.toLowerCase().includes(q));
 }
 
-async function loadModels() {
-    const requestId = ++modelFetchRequestId;
-    const body = await API.getModels();
-    if (requestId !== modelFetchRequestId) return false;
-    state.modelList = body.models || [];
-    state.modelDetails = body.model_details || {};
-    modelListLoaded = true;
-    state.modelContextLength = state.modelDetails[el.apiModel?.value || ''] ?? null;
-    updateContextSizeWarning();
+async function loadModels(profile) {
+    const { picker, input } = pickerElements(profile);
+    const requestId = ++picker.requestId;
+    const body = await API.getModels(profile);
+    if (requestId !== picker.requestId) return false;
+    picker.models = body.models || [];
+    picker.details = body.model_details || {};
+    picker.loaded = true;
+    if (profile === 'main') {
+        state.modelList = picker.models;
+        state.modelDetails = picker.details;
+        state.modelContextLength = picker.details[input?.value || ''] ?? null;
+        updateContextSizeWarning();
+    }
     return true;
 }
 
-function openModelSearchResults(query) {
+function openModelSearchResults(profile, query) {
     const trimmed = query.trim();
-    const matches = filterModels(query);
-    renderModelMenu(matches, trimmed ? 'No matching models' : 'No models found');
-    setModelMenuOpen(true);
+    const matches = filterModels(profile, query);
+    renderModelMenu(profile, matches, trimmed ? 'No matching models' : 'No models found');
+    setModelMenuOpen(profile, true);
 }
 
-/** Fetch the model list from the configured endpoint and open the picker menu. */
-export async function fetchModels({ force = false, filter = '' } = {}) {
-    if (!el.refreshModels || !el.apiModel || !el.modelPickerMenu) return;
-    if (!force && !filter && !el.modelPickerMenu.hidden) { closeModelMenu(); return; }
+async function fetchPickerModels(profile, { force = false, filter = '' } = {}) {
+    const { picker, input, button, menu } = pickerElements(profile);
+    if (!button || !input || !menu) return;
+    if (!force && !filter && !menu.hidden) {
+        closePicker(profile);
+        return;
+    }
 
-    el.refreshModels.classList.add('spinning');
-    el.testResult.textContent = '';
-    el.testResult.className = 'settings-test-result';
+    button.classList.add('spinning');
+    if (profile === 'main' && el.testResult) {
+        el.testResult.textContent = '';
+        el.testResult.className = 'settings-test-result';
+    }
     try {
         await flushLLMSettingsSave({ strict: true });
-        if (force || !modelListLoaded) await loadModels();
+        if (force || !picker.loaded) await loadModels(profile);
         if (filter) {
-            openModelSearchResults(filter);
+            openModelSearchResults(profile, filter);
         } else {
-            renderModelMenu(state.modelList);
-            setModelMenuOpen(true);
+            renderModelMenu(profile, picker.models);
+            setModelMenuOpen(profile, true);
         }
     } catch (e) {
-        renderModelMenu([], 'Failed to fetch: ' + e.message);
-        const empty = el.modelPickerMenu.querySelector('.model-picker-empty');
+        renderModelMenu(profile, [], 'Failed to fetch: ' + e.message);
+        const empty = menu.querySelector('.model-picker-empty');
         if (empty) empty.textContent = 'Failed to fetch: ' + e.message;
-        setModelMenuOpen(true);
+        setModelMenuOpen(profile, true);
     } finally {
-        el.refreshModels.classList.remove('spinning');
+        button.classList.remove('spinning');
     }
 }
 
-export function browseModels() {
-    return fetchModels({ force: true });
+function browsePickerModels(profile) {
+    return fetchPickerModels(profile, { force: true });
 }
 
-export function searchModelsFromInput() {
-    if (!el.apiModel || !el.modelPickerMenu) return;
-    clearTimeout(modelSearchTimer);
-    const query = el.apiModel.value;
-    modelSearchTimer = setTimeout(async () => {
+function searchPickerModels(profile) {
+    const { picker, input, menu } = pickerElements(profile);
+    if (!input || !menu) return;
+    clearTimeout(picker.searchTimer);
+    const query = input.value;
+    picker.searchTimer = setTimeout(async () => {
         const trimmed = query.trim();
         if (!trimmed) {
-            closeModelMenu();
+            closePicker(profile);
             return;
         }
 
-        if (modelListLoaded) {
-            openModelSearchResults(query);
+        if (picker.loaded) {
+            openModelSearchResults(profile, query);
             return;
         }
 
-        renderModelMenu([], 'Loading models...');
-        setModelMenuOpen(true);
-        await fetchModels({ filter: query });
+        renderModelMenu(profile, [], 'Loading models...');
+        setModelMenuOpen(profile, true);
+        await fetchPickerModels(profile, { filter: query });
     }, MODEL_SEARCH_DEBOUNCE_MS);
 }
 
-export function clearModelListCache() {
-    modelFetchRequestId += 1;
-    modelListLoaded = false;
-    state.modelList = [];
-    state.modelDetails = {};
-    state.modelContextLength = null;
-    closeModelMenu();
+function clearPickerCache(profile) {
+    const { picker } = pickerElements(profile);
+    picker.requestId += 1;
+    picker.loaded = false;
+    picker.models = [];
+    picker.details = {};
+    closePicker(profile);
+    if (profile === 'main') {
+        state.modelList = [];
+        state.modelDetails = {};
+        state.modelContextLength = null;
+    }
 }
+
+export const fetchModels = options => fetchPickerModels('main', options);
+export const browseModels = () => fetchModels({ force: true });
+export const browseSummaryModels = () => browsePickerModels('summary');
+export const searchModelsFromInput = () => searchPickerModels('main');
+export const searchSummaryModelsFromInput = () => searchPickerModels('summary');
+export const closeModelMenu = () => closePicker('main');
+export const closeSummaryModelMenu = () => closePicker('summary');
+export const selectModelFromMenu = name => selectPickerModel('main', name);
+export const selectSummaryModelFromMenu = name => selectPickerModel('summary', name);
+export const clearModelListCache = () => clearPickerCache('main');
+export const clearSummaryModelListCache = () => clearPickerCache('summary');
 
 export async function testLLMConnection() {
     if (!el.testApi || !el.testResult) return;

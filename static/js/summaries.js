@@ -9,10 +9,9 @@
 
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { estimateTextTokens, selectContextMessages } from './tokenizer.js';
-import {
-    getContextTokenBudget, getRawHistoryMessages, getRawMessageTokenBudget,
-} from './context-budget.js';
+import { estimateMessageTokens, estimateTextTokens } from './tokenizer.js';
+import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
+import { analyzeContext } from './context-analysis.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
@@ -66,37 +65,163 @@ function capTokens() {
     return ctx > 0 ? Math.floor(ctx * pct / 100) : 0;
 }
 
-// Token budget left for raw messages once the reply space and the injected
-// summary are carved out — the mirror of buildChatPayload's calculation, so the
-// "which messages have aged out" boundary matches what actually gets sent.
-function messageBudget(summaryTextOverride = null) {
-    const summaryText = summaryTextOverride == null
-        ? (summariesActive() ? summaryToText(state.activeChat.summary) : '')
-        : summaryTextOverride;
-    return getRawMessageTokenBudget(summaryText);
+function triggerInterval() {
+    const parsed = parseInt(state.summaryTriggerInterval || '20', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 20;
 }
 
 // ── Aged-out message detection ──────────────────────────────────────────────
-function agedOutMessages(excludeLastN = 0, {
+function windowAssessment(excludeLastN = 0, {
     includeSummarized = false,
     summaryTextOverride = null,
 } = {}) {
-    if (!state.activeChat) return [];
-    const budget = messageBudget(summaryTextOverride);
-    if (budget <= 0) return [];
-    const stripThinking = !el.sendThinking?.checked;
+    if (!state.activeChat || getContextTokenBudget() <= 0) {
+        return { candidates: [], agedOut: [], analysis: null };
+    }
     const candidates = getRawHistoryMessages(state.messages, {
         excludeLastN,
         includeSummarized,
     });
-    const selected = selectContextMessages(candidates, { maxTokens: budget, stripThinking });
-    const agedCount = candidates.length - selected.length;
-    return agedCount > 0 ? candidates.slice(0, agedCount) : [];
+    const summaryText = summaryTextOverride == null
+        ? (summariesActive() ? summaryToText(state.activeChat.summary) : '')
+        : summaryTextOverride;
+    const analysis = analyzeContext({
+        excludeLastN,
+        includeSummarized,
+        summaryText,
+    });
+    const agedCount = candidates.length - analysis.selectedMessages.length;
+    return {
+        candidates,
+        agedOut: agedCount > 0 ? candidates.slice(0, agedCount) : [],
+        analysis,
+    };
+}
+
+function agedOutMessages(excludeLastN = 0, options = {}) {
+    return windowAssessment(excludeLastN, options).agedOut;
+}
+
+// When anything ages out of a contiguous window, the unused space left behind
+// must be smaller than what the next message (the first one that failed to
+// fit) would have cost — otherwise the selection would have grown to include
+// it. A measurement that leaves far more room than that contradicts itself,
+// and acting on it would summarize messages that still fit (observed once in
+// production as a chat-wide history wipe from a transient mis-measure). The
+// slack covers alternation/template overhead and estimate drift.
+const UNTRUSTED_WINDOW_TOAST = 'Memory update skipped: the context measurement '
+    + 'contradicts itself (details in the browser console). Chat history was not touched.';
+
+export function untrustedContextAssessment({ candidates, agedOut, analysis }, label) {
+    if (!analysis || agedOut.length === 0 || analysis.maxTokens <= 0) return false;
+    const nextMessage = agedOut[agedOut.length - 1];
+    if (!nextMessage) return false;
+    const nextCost = estimateMessageTokens(
+        { content: nextMessage.text },
+        { stripThinking: !el.sendThinking?.checked },
+    );
+    const slack = Math.max(256, Math.floor(analysis.maxTokens * 0.05));
+    if (analysis.unusedTokens <= 2 * nextCost + slack) return false;
+    console.warn(
+        `Cozy: ${label} refused — ${agedOut.length} of ${candidates.length} messages measured `
+        + `as outside the context window while ${analysis.unusedTokens} of ${analysis.maxTokens} `
+        + `tokens sit unused (the next message would only cost ≈${nextCost}). Retiring history `
+        + 'on this measurement would summarize messages that still fit.',
+        {
+            maxTokens: analysis.maxTokens,
+            responseReserve: analysis.responseTokens,
+            promptTokens: analysis.promptTokens,
+            unusedTokens: analysis.unusedTokens,
+            nextMessageCost: nextCost,
+            selectedMessages: analysis.selectedMessages.length,
+            firstSelectedId: analysis.firstSelectedMessageId,
+            segments: analysis.segments,
+        },
+    );
+    return true;
+}
+
+function windowMeasurementUntrusted(excludeLastN, label, options = {}) {
+    return untrustedContextAssessment(windowAssessment(excludeLastN, options), label);
 }
 
 function agedOutUnsummarized(excludeLastN = 0) {
     const wm = state.activeChat?.summary_up_to_msg_id || 0;
     return agedOutMessages(excludeLastN).filter(m => (m.id || 0) > wm);
+}
+
+/**
+ * Pick the inclusive watermark for an automatic update. Once any unsummarized
+ * history falls outside the raw token budget, retire whole interval-sized blocks
+ * so ordinary chatting has room to grow before another paid summary call.
+ *
+ * Prefer to keep the newest two eligible messages verbatim. Under severe token
+ * pressure we may consume the older of those two, but the newest message is never
+ * selected; this also preserves the live user turn during swipe regeneration.
+ */
+function automaticRunTarget(excludeLastN = 0) {
+    const assessment = windowAssessment(excludeLastN);
+    const { candidates, agedOut } = assessment;
+    const agedCount = agedOut.length;
+    if (agedCount === 0 || candidates.length <= 1) return null;
+    if (untrustedContextAssessment(assessment, 'automatic memory update')) return null;
+
+    const interval = triggerInterval();
+    const roundedCount = Math.ceil(agedCount / interval) * interval;
+    const preferredMax = Math.max(0, candidates.length - 2);
+    const absoluteMax = candidates.length - 1;
+    // Rounding up to an interval block prepays headroom by also retiring some
+    // messages that still fit. Two hard bounds on that: one block per run,
+    // however large the backlog (callers loop, so it drains in bounded bites),
+    // and never more than half of the currently-fitting messages — when a big
+    // prompt or small context makes the whole window smaller than one block,
+    // block-rounding must not collapse it to almost nothing (the 32k-era wipe:
+    // an 11-message window with a 20-message interval retired all but 2, on
+    // every single update).
+    const fittingCount = candidates.length - agedCount;
+    const headroomMax = agedCount + Math.floor(fittingCount / 2);
+    const targetCount = Math.min(
+        absoluteMax,
+        interval,
+        Math.max(agedCount, Math.min(roundedCount, preferredMax, headroomMax)),
+    );
+    if (targetCount <= 0) return null;
+
+    return oldestRetirableId(candidates, targetCount);
+}
+
+/**
+ * Id of the targetCount-th oldest persisted candidate. The server retires an
+ * id range (everything at or below the target), so pick by id order rather
+ * than array position — a mis-ordered or partially-saved state.messages must
+ * never widen the range — and always leave the newest persisted message raw.
+ */
+function oldestRetirableId(candidates, targetCount) {
+    const ids = candidates
+        .map(message => message?.id)
+        .filter(id => Number.isInteger(id) && id > 0)
+        .sort((a, b) => a - b);
+    const count = Math.min(targetCount, ids.length - 1);
+    return count > 0 ? ids[count - 1] : null;
+}
+
+/**
+ * Retire only the messages that are currently outside the final prompt. This is
+ * used while stabilizing an explicit rebuild: normal background updates round
+ * up to an interval for headroom, but doing that here would make a completed
+ * rebuild unexpectedly discard another full block of raw context.
+ */
+function exactRunTarget(excludeLastN = 0) {
+    const assessment = windowAssessment(excludeLastN);
+    const wm = state.activeChat?.summary_up_to_msg_id || 0;
+    const pending = assessment.agedOut.filter(m => (m.id || 0) > wm);
+    if (!pending.length) return null;
+    if (untrustedContextAssessment(assessment, 'rebuild stabilization')) return null;
+    const ids = pending
+        .map(message => message?.id)
+        .filter(id => Number.isInteger(id) && id > 0)
+        .sort((a, b) => a - b);
+    return ids.length ? ids[ids.length - 1] : null;
 }
 
 function summarizedCount() {
@@ -243,7 +368,7 @@ async function waitForSummaryCompletion(chatId, initialState, signal) {
 
 async function triggerRun({ rebuild = false, awaitCompletion = false,
                             chatId = state.activeChat?.id, signal,
-                            excludeLastN = 0 } = {}) {
+                            excludeLastN = 0, exactTarget = false } = {}) {
     if (chatId == null || state.activeChat?.id !== chatId) return null;
 
     try {
@@ -291,7 +416,9 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
 
     const agedOut = agedOutMessages(excludeLastN, { includeSummarized: rebuild });
     const agedOutIds = agedOut.map(m => m.id).filter(id => Number.isInteger(id) && id > 0);
-    const upTo = agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null;
+    const upTo = rebuild
+        ? (agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null)
+        : (exactTarget ? exactRunTarget(excludeLastN) : automaticRunTarget(excludeLastN));
     if (upTo == null) {
         // Nothing is outside the context window. On an explicit rebuild that means
         // a grown context now fits everything — clear any lingering stale summary.
@@ -329,6 +456,12 @@ export async function ensureSummaryReadyForSend(signal, { excludeLastN = 0 } = {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
     if (agedOutUnsummarized(excludeLastN).length === 0) return;
+    // A refused (self-contradictory) measurement must not stall the send:
+    // proceed without updating memory rather than retiring history wrongly.
+    if (windowMeasurementUntrusted(excludeLastN, 'pre-send memory update')) {
+        showToast(UNTRUSTED_WINDOW_TOAST);
+        return;
+    }
     if (!summarizerConfigured()) {
         throw new Error('Configure an Auto Summaries endpoint and model before sending so aged-out history is not forgotten.');
     }
@@ -366,6 +499,10 @@ export function maybeTriggerSummary() {
     if (chat.summary_status === 'running') return;
     if (!summarizerConfigured()) return;
     if (agedOutUnsummarized().length === 0) return;
+    if (windowMeasurementUntrusted(0, 'automatic memory update')) {
+        showToast(UNTRUSTED_WINDOW_TOAST);
+        return;
+    }
     return triggerRun({ chatId: chat.id });
 }
 
@@ -387,7 +524,8 @@ async function enableSummariesForChat() {
         renderMemorySummaryCard();  // arms the feature; hint tells the user to configure
         return;
     }
-    // Immediately back-fill the entire out-of-context backlog.
+    // Start back-filling the out-of-context backlog; runs fold one interval
+    // block at a time, and the send preflight loop drains whatever remains.
     return triggerRun({ chatId: chat.id });
 }
 
@@ -411,10 +549,61 @@ async function disableSummariesForChat() {
     }
 }
 
-function rebuildSummary() {
+async function rebuildSummary() {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
-    return triggerRun({ rebuild: true, chatId: chat.id });
+    const chatId = chat.id;
+    try {
+        // A run already in flight would swallow this click through triggerRun's
+        // join branch and never issue the actual rebuild. Wait it out first; a
+        // failed background run must not block its own replacement.
+        if (state.activeChat?.summary_status === 'running') {
+            try {
+                await waitForSummaryCompletion(chatId, { summary_status: 'running' });
+            } catch (e) {
+                if (e.name === 'AbortError') throw e;
+            }
+            if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
+        }
+        // A rebuild recomputes the boundary over the full transcript; refuse it
+        // outright on a self-contradictory measurement instead of rewriting the
+        // watermark from bad numbers.
+        if (windowMeasurementUntrusted(0, 'summary rebuild', { includeSummarized: true })) {
+            showToast(UNTRUSTED_WINDOW_TOAST);
+            return;
+        }
+        await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
+
+        // The replacement summary's final size is unknowable before the rebuild
+        // finishes. Injecting it can move the context boundary and age out a few
+        // more messages. Fold those in now, to a fixed point, so reopening the
+        // chat cannot discover and launch a surprise follow-up batch.
+        let previousWatermark = state.activeChat?.summary_up_to_msg_id || 0;
+        let stalledRuns = 0;
+        while (state.activeChat?.id === chatId && summariesActive(state.activeChat)
+            && agedOutUnsummarized().length > 0
+            && !windowMeasurementUntrusted(0, 'rebuild stabilization')) {
+            await triggerRun({
+                awaitCompletion: true,
+                chatId,
+                exactTarget: true,
+            });
+            if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
+
+            const watermark = state.activeChat.summary_up_to_msg_id || 0;
+            if (watermark <= previousWatermark) {
+                stalledRuns += 1;
+                if (stalledRuns >= 2) {
+                    throw new Error('Summary rebuild could not stabilize the context boundary.');
+                }
+            } else {
+                stalledRuns = 0;
+                previousWatermark = watermark;
+            }
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') showToast('Summary rebuild failed: ' + e.message);
+    }
 }
 
 /** Wipe the summary + watermark to empty (no LLM call). */

@@ -16,12 +16,13 @@ import requests as http_requests
 from flask import Blueprint, request, jsonify
 
 from routes.chats import chat_to_dict
-from routes.llm import _error_detail
+from routes.llm import _error_detail, _summary_llm_settings
 from routes.settings import get_settings
 from shared import get_db, not_found
 from summarizer import (
+    append_summary,
+    build_append_messages,
     build_summarizer_messages,
-    build_tighten_messages,
     dump_summary_json,
     enforce_cap,
     estimate_tokens,
@@ -46,16 +47,6 @@ _job_tokens_lock = threading.RLock()
 
 # ── Summarizer LLM call ─────────────────────────────────────────────────────
 
-def _summary_llm_settings():
-    """(endpoint, api_key, model) for the summarizer, each falling back to the main
-    LLM setting when its ``summary_*`` counterpart is blank."""
-    s = get_settings()
-    endpoint = s.get('summary_api_endpoint') or s.get('api_endpoint', '')
-    api_key = s.get('summary_api_key') or s.get('api_key', '')
-    model = s.get('summary_api_model') or s.get('api_model', '')
-    return endpoint, api_key, model
-
-
 def call_summarizer(messages, cap_tokens=0):
     """One non-streaming summarizer completion. Mirrors ``test_llm`` in routes/llm.py."""
     endpoint, api_key, model = _summary_llm_settings()
@@ -69,9 +60,13 @@ def call_summarizer(messages, cap_tokens=0):
         headers['Authorization'] = f'Bearer {api_key}'
     payload = {'model': model, 'messages': messages, 'stream': False}
     if cap_tokens and cap_tokens > 0:
-        # Give the model room to reach the cap without the endpoint's low default
-        # max_tokens truncating it; enforce_cap trims anything over afterward.
-        payload['max_tokens'] = max(512, int(cap_tokens * 1.5))
+        # One bounded provider call per update, but with headroom over the cap:
+        # a compress-mode reply re-emits the whole summary at ~cap tokens, and
+        # provider truncation chops the newest text (the BONDS tail) while the
+        # local enforce_cap trims oldest-first. The floor keeps room for the
+        # required headings — and for reasoning models, whose thinking spends
+        # this same budget — when the configured cap is tiny.
+        payload['max_tokens'] = max(512, int(cap_tokens * 1.25))
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=180)
         r.raise_for_status()
@@ -86,6 +81,13 @@ def call_summarizer(messages, cap_tokens=0):
     choices = body.get('choices')
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         raise RuntimeError('Summarizer endpoint returned no completion choice')
+    if choices[0].get('finish_reason') == 'length':
+        # A truncated reply can still parse (the cut lands mid-bullet or right
+        # after a heading) and would retire history against chopped memory.
+        raise RuntimeError(
+            'Summarizer response was cut off by its completion token limit; '
+            'try a larger context size or summary cap'
+        )
     message = choices[0].get('message')
     if not isinstance(message, dict):
         raise RuntimeError('Summarizer endpoint returned a malformed completion message')
@@ -135,18 +137,21 @@ def _trigger_interval(settings):
         return 20
 
 
-def _fit_summary_candidate(candidate, cap_tokens, ensure_active=None):
-    """Give an over-budget draft one semantic tighten retry before hard trimming."""
-    if cap_tokens > 0 and estimate_tokens(summary_to_text(candidate)) > cap_tokens:
-        if ensure_active:
-            ensure_active()
-        messages = build_tighten_messages(
-            summary_to_text(candidate), pinned_texts(candidate), cap_tokens
-        )
-        reply = call_summarizer(messages, cap_tokens)
-        if ensure_active:
-            ensure_active()
-        candidate = merge_pins(parse_summarizer_output(reply), candidate)
+# While the summary sits below this fraction of the cap it grows additively; once it
+# crosses the line every batch compresses instead. The headroom (~20% of the cap) leaves
+# room for one batch's new bullets so ordinary appends don't immediately trip the cap.
+APPEND_CAP_FRACTION = 0.8
+
+
+def _should_append(summary_obj, cap_tokens):
+    """True when the running summary has room to accumulate rather than compress."""
+    if cap_tokens <= 0:  # unlimited context → never need to compress
+        return True
+    return estimate_tokens(summary_to_text(summary_obj)) <= APPEND_CAP_FRACTION * cap_tokens
+
+
+def _fit_summary_candidate(candidate, cap_tokens):
+    """Enforce the configured cap locally without making a second provider call."""
     return enforce_cap(candidate, cap_tokens)
 
 
@@ -426,7 +431,12 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                         warning = write_warning
                 continue
 
-            messages = build_summarizer_messages(
+            # Accumulate detail while there is headroom; only rewrite/compress the whole
+            # summary once it approaches the cap. This keeps the memory additive instead
+            # of boiling the same few lines down on every batch.
+            append_mode = _should_append(summary_obj, cap_tokens)
+            build = build_append_messages if append_mode else build_summarizer_messages
+            messages = build(
                 summary_to_text(summary_obj), visible_chunk,
                 pinned_texts(summary_obj), cap_tokens
             )
@@ -439,14 +449,10 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             _assert_summary_active(
                 chat_id, require_running=require_running, job_token=job_token
             )
-            folded = merge_pins(parse_summarizer_output(reply), summary_obj)
-            summary_obj, batch_warning = _fit_summary_candidate(
-                folded,
-                cap_tokens,
-                ensure_active=lambda: _assert_summary_active(
-                    chat_id, require_running=require_running, job_token=job_token
-                ),
-            )
+            parsed = parse_summarizer_output(reply)
+            candidate = append_summary(summary_obj, parsed) if append_mode else parsed
+            folded = merge_pins(candidate, summary_obj)
+            summary_obj, batch_warning = _fit_summary_candidate(folded, cap_tokens)
             if batch_warning:
                 warning = batch_warning
 

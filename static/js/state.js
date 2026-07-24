@@ -209,6 +209,8 @@ export function initElements() {
         summaryEndpoint:     document.getElementById('settings-summary-endpoint'),
         summaryKey:          document.getElementById('settings-summary-key'),
         summaryModel:        document.getElementById('settings-summary-model'),
+        summaryRefreshModels: document.getElementById('settings-summary-refresh-models'),
+        summaryModelPickerMenu: document.getElementById('summary-model-picker-menu'),
         summaryCapInput:     document.getElementById('settings-summary-cap-pct'),
         summaryIntervalInput: document.getElementById('settings-summary-interval'),
     });

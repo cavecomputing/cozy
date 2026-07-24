@@ -19,6 +19,7 @@ data/
 .claude/
 .codex
 .codex/
+.playwright-mcp/
 
 # OS metadata
 .DS_Store

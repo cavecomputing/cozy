@@ -75,7 +75,284 @@ def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
 
         assert.equal(calls.length, 1);
         assert.equal(calls[0].chatId, 7);
-        assert.equal(calls[0].up_to_msg_id, 1);
+        // Full context accounting includes message framing and fixed prompt
+        // content, so the first two turns are outside this tiny 32-token window.
+        assert.equal(calls[0].up_to_msg_id, 2);
+    """
+    run_node_module(code)
+
+
+def test_first_boundary_retires_a_full_interval_block():
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        assert.equal(calls.length, 1);
+        // aged (2) + half of the 23 fitting messages: rounding prepays
+        // headroom but may never consume more than half the live window.
+        assert.equal(calls[0].up_to_msg_id, 13);
+    """
+    run_node_module(code)
+
+
+def test_run_target_skips_unpersisted_message_at_the_boundary():
+    """A message that failed to save has no id; the run must fall back to the
+    nearest persisted id instead of skipping the update entirely."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        // The message the run boundary lands on (id 13 — see the block test
+        // above) never persisted. Retirement counts the oldest PERSISTED ids,
+        // so the block becomes ids 1..12 plus 14.
+        delete state.messages[12].id;
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        assert.deepEqual(calls, [14]);
+    """
+    run_node_module(code)
+
+
+def test_run_target_follows_id_order_not_array_position():
+    """The server retires an id RANGE, so the target must be picked from id
+    order — a mis-ordered state.messages must never widen the range."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        // Simulate an ordering bug: a recent message sits at a position inside
+        // the block the run boundary covers. Same-parity positions keep the
+        // user/character alternation (and thus the token math) unchanged.
+        [state.messages[10], state.messages[22]] = [state.messages[22], state.messages[10]];
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        // The 13 oldest ids end at 13 — not id 23, which happens to occupy
+        // position 10 in the mis-ordered array.
+        assert.deepEqual(calls, [13]);
+    """
+    run_node_module(code)
+
+
+def test_small_window_is_never_collapsed_by_block_rounding():
+    """When the whole window holds fewer messages than one interval block
+    (big prompt or small context), rounding must retire at most half of the
+    still-fitting messages — not everything but the newest two. This is the
+    32k-era production wipe."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        // Long-ish turns: the 12-message candidate set (smaller than the
+        // 20-message interval) holds ~26 tokens each, so only ~7 fit.
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-` + 'abcdefghij'.repeat(8),
+        }));
+        state.activeChat.summary_up_to_msg_id = 13;
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+
+        assert.equal(calls.length, 1);
+        const remaining = 25 - calls[0];
+        // The old formula kept only the newest 2 (upTo 23). At least half of
+        // the messages that still fit must survive the run.
+        assert.ok(remaining >= 4,
+            `kept only ${remaining} messages (upTo ${calls[0]})`);
+        assert.ok(calls[0] > 13, 'still retires the aged messages');
+    """
+    run_node_module(code)
+
+
+def test_untrusted_assessment_matrix():
+    """Unit matrix for the self-contradiction guard, including the exact
+    numbers from the production incident (64k window, 44k unused, ~2.3k next
+    message) and the states that must stay trusted."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { el } from './static/js/state.js';
+        import { untrustedContextAssessment } from './static/js/summaries.js';
+
+        el.sendThinking = { checked: true };
+        console.warn = () => {};
+        const msg = tokens => ({ id: 1, role: 'user', text: 'x'.repeat(tokens * 4) });
+        const assess = (maxTokens, unusedTokens, nextTokens, aged = 10) => ({
+            candidates: Array.from({ length: aged + 3 }, () => msg(10)),
+            agedOut: [...Array.from({ length: aged - 1 }, () => msg(10)), msg(nextTokens)],
+            analysis: {
+                maxTokens, unusedTokens,
+                responseTokens: 0, promptTokens: maxTokens - unusedTokens,
+                selectedMessages: [], firstSelectedMessageId: null, segments: [],
+            },
+        });
+
+        // The production wipe: 44,068 unused vs a ~2,327-token next message.
+        assert.equal(untrustedContextAssessment(assess(65536, 44068, 2327), 't'), true);
+        // Legit granularity: tiny budget, unused ≈ one message.
+        assert.equal(untrustedContextAssessment(assess(32, 11, 11), 't'), false);
+        // Oversized-message dam: unused huge but the next message is bigger.
+        assert.equal(untrustedContextAssessment(assess(65536, 43000, 45000), 't'), false);
+        // Normal pressure: near-zero unused.
+        assert.equal(untrustedContextAssessment(assess(65536, 900, 2300), 't'), false);
+        // Nothing aged out -> nothing to distrust.
+        assert.equal(untrustedContextAssessment(
+            { candidates: [], agedOut: [], analysis: null }, 't'), false);
+    """
+    run_node_module(code)
+
+
+def test_backlog_drains_in_interval_blocks_and_dam_damage_is_bounded():
+    """A big backlog retires one interval block per run, and an oversized
+    message that dams the window costs at most one block per event."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '2000';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 30 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        // A ~3000-token message third from the end: bigger than the whole
+        // window, so everything older measures as aged out.
+        state.messages[27].text = 'x'.repeat(12000);
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+        // 28 messages aged, but one run retires exactly one 20-block of the
+        // oldest ids — never the whole backlog in a single request.
+        assert.deepEqual(calls, [20]);
+    """
+    run_node_module(code)
+
+
+def test_interval_waits_for_context_pressure_and_then_retires_next_block():
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.messages = Array.from({ length: 44 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat.summary_up_to_msg_id = 20;
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+        assert.deepEqual(calls, []);
+
+        state.messages.push({
+            id: 45,
+            role: 'user',
+            text: 'm-44-abcdefghij',
+        });
+        await maybeTriggerSummary();
+        // One message aged; the rounded block is capped at half the 24 fitting
+        // messages, so the next retirement covers ids 21..33.
+        assert.deepEqual(calls, [33]);
+    """
+    run_node_module(code)
+
+
+def test_interval_does_not_summarize_early_when_everything_fits():
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '1000';
+        state.messages = Array.from({ length: 40 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `message-${i}`,
+        }));
+        let calls = 0;
+        API.runSummary = async () => { calls += 1; };
+
+        await maybeTriggerSummary();
+
+        assert.equal(calls, 0);
     """
     run_node_module(code)
 
@@ -360,7 +637,7 @@ def test_send_guard_waits_for_summary_run_before_resolving():
         const guard = ensureSummaryReadyForSend().then(() => { ready = true; });
         await runStarted;
         assert.equal(ready, false);
-        assert.equal(requestedUpTo, 1);
+        assert.equal(requestedUpTo, 2);
 
         release({
             id: 7,
@@ -400,7 +677,7 @@ def test_send_guard_joins_active_background_run_without_posting_again():
                 id: 7,
                 summary_enabled: true,
                 summary: { lines: [] },
-                summary_up_to_msg_id: 1,
+                summary_up_to_msg_id: 2,
                 summary_status: 'idle',
                 summary_status_detail: '',
             };
@@ -410,7 +687,7 @@ def test_send_guard_joins_active_background_run_without_posting_again():
 
         assert.equal(runCalls, 0);
         assert.equal(statusCalls, 1);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 1);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
     """
     run_node_module(code)
 
@@ -437,7 +714,7 @@ def test_send_guard_waits_when_run_endpoint_reports_already_running():
                 id: 7,
                 summary_enabled: true,
                 summary: { lines: [] },
-                summary_up_to_msg_id: 1,
+                summary_up_to_msg_id: 2,
                 summary_status: 'idle',
                 summary_status_detail: '',
             };
@@ -449,7 +726,7 @@ def test_send_guard_waits_when_run_endpoint_reports_already_running():
 
         assert.equal(runCalls, 1);
         assert.equal(statusCalls, 1);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 1);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
     """
     run_node_module(code)
 
@@ -996,3 +1273,175 @@ def test_rebuild_clears_stale_summary_when_full_history_fits_without_it():
     run_node_module(code)
 
 
+def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_run():
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import {
+            initSummaryHandlers,
+            maybeTriggerSummary,
+        } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = {
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.settingsContextTokens = { value: '202' };
+        el.samplerMaxTokens = { value: '10' };
+        el.sendThinking = { checked: true };
+        state.autoSummariesEnabled = true;
+        state.summaryTriggerInterval = '20';
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'summary-model';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: null,
+            summary: { lines: [] },
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+
+        const rebuiltSummary = {
+            lines: [{ section: 'story', text: 'x'.repeat(40) }],
+        };
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            if (options.rebuild) {
+                return {
+                    id: chatId,
+                    summary_enabled: true,
+                    summary: { lines: [] },
+                    summary_up_to_msg_id: null,
+                    summary_status: 'running',
+                    summary_status_detail: 'Summarizing…',
+                };
+            }
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: rebuiltSummary,
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+        API.getSummaryStatus = async chatId => ({
+            id: chatId,
+            summary_enabled: true,
+            summary: rebuiltSummary,
+            summary_up_to_msg_id: calls[0].up_to_msg_id,
+            summary_status: 'idle',
+            summary_status_detail: '',
+        });
+
+        const nativeSetTimeout = globalThis.setTimeout;
+        globalThis.setTimeout = (fn, _ms) => nativeSetTimeout(fn, 0);
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.deepEqual(calls.map(call => ({
+            upTo: call.up_to_msg_id,
+            rebuild: call.rebuild,
+        })), [
+            { upTo: 2, rebuild: true },
+            // The final summary displaced messages 3 and 4. Stabilization folds
+            // in exactly those two instead of rounding through message 22.
+            { upTo: 4, rebuild: false },
+        ]);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 4);
+
+        await maybeTriggerSummary();
+        assert.equal(calls.length, 2);
+    """
+    run_node_module(code)
+
+
+def test_rebuild_click_during_background_run_still_issues_the_rebuild():
+    """triggerRun's join branch must not consume the rebuild request itself:
+    wait out the in-flight run, then post an actual rebuild."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import { initSummaryHandlers } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = {
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.settingsContextTokens = { value: '202' };
+        el.samplerMaxTokens = { value: '10' };
+        el.sendThinking = { checked: true };
+        state.autoSummariesEnabled = true;
+        state.summaryTriggerInterval = '20';
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'summary-model';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: null,
+            summary: { lines: [] },
+            summary_status: 'running',
+            summary_status_detail: 'Summarizing…',
+        };
+        state.chats = [state.activeChat];
+
+        const calls = [];
+        let statusCalls = 0;
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: null,
+                summary_status: 'running',
+                summary_status_detail: 'Summarizing…',
+            };
+        };
+        API.getSummaryStatus = async chatId => {
+            statusCalls += 1;
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                // First poll resolves the joined background run; later polls
+                // report the completed rebuild.
+                summary_up_to_msg_id: statusCalls === 1 ? null : calls[0]?.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        const nativeSetTimeout = globalThis.setTimeout;
+        globalThis.setTimeout = (fn, _ms) => nativeSetTimeout(fn, 0);
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].rebuild, true);
+        assert.equal(calls[0].up_to_msg_id, 2);
+        assert.ok(statusCalls >= 2);  // joined the in-flight run before rebuilding
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
+    """
+    run_node_module(code)

@@ -1679,7 +1679,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 
 .context-token-meter {
     order: 1;
-    pointer-events: none;
+    pointer-events: auto;
     display: flex;
     align-items: center;
     gap: 0.55rem;
@@ -1697,28 +1697,77 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 .context-token-meter-track {
+    position: relative;
     flex: 1;
-    height: 3px;
+    height: 8px;
     overflow: hidden;
     border-radius: 999px;
     background-color: var(--border-color);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-color) 12%, transparent);
 }
 
-.context-token-meter-track span {
-    display: block;
-    width: 0;
+.context-token-meter-segments {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    width: 100%;
     height: 100%;
+    overflow: hidden;
     border-radius: inherit;
-    background-color: var(--success-color, #3f9f63);
-    transition: width 0.16s ease-out, background-color 0.16s ease-out;
 }
 
-.context-token-meter[data-level="warn"] .context-token-meter-track span {
-    background-color: var(--warning-color, #b97a00);
+.context-meter-segment {
+    position: relative;
+    z-index: 1;
+    display: block;
+    min-width: 1px;
+    height: 100%;
+    flex: 0 1 auto;
+    padding: 0;
+    border: 0;
+    border-right: 1px solid color-mix(in srgb, var(--bg-color) 46%, transparent);
+    border-radius: 0;
+    cursor: help;
+    transition: filter 0.12s ease, opacity 0.12s ease;
 }
 
-.context-token-meter[data-level="danger"] .context-token-meter-track span {
-    background-color: var(--danger-color, #c94a4a);
+.context-meter-segment:last-child { border-right: 0; }
+.context-meter-segment:hover,
+.context-meter-segment:focus-visible {
+    z-index: 4;
+    filter: brightness(1.2) saturate(1.12);
+    outline: 2px solid color-mix(in srgb, var(--text-color) 72%, transparent);
+    outline-offset: -2px;
+}
+
+.context-meter-segment[data-source="system_prompt"]    { background: #8b5cf6; }
+.context-meter-segment[data-source="character_card"]   { background: #ec4899; }
+.context-meter-segment[data-source="persona"]          { background: #06b6d4; }
+.context-meter-segment[data-source="lorebook"]         { background: #22c55e; }
+.context-meter-segment[data-source="author_note"]      { background: #eab308; }
+.context-meter-segment[data-source="auto_summary"]     { background: #6366f1; }
+.context-meter-segment[data-source="message_history"]  { background: #3b82f6; }
+.context-meter-segment[data-source="current_draft"]    { background: #14b8a6; }
+.context-meter-segment[data-source="response_reserve"] { background: #f97316; }
+.context-meter-segment[data-source="unused"] {
+    background: color-mix(in srgb, var(--border-color) 70%, var(--bg-color));
+}
+
+.context-token-meter[data-level="warn"] .context-token-meter-track {
+    box-shadow: inset 0 0 0 1px var(--warning-color, #b97a00);
+}
+
+.context-token-meter[data-level="danger"] .context-token-meter-track {
+    box-shadow: inset 0 0 0 1px var(--danger-color, #c94a4a),
+                0 0 0 1px color-mix(in srgb, var(--danger-color, #c94a4a) 30%, transparent);
+}
+
+.context-token-meter[data-level="warn"] #context-token-label {
+    color: var(--warning-color, #b97a00);
+}
+
+.context-token-meter[data-level="danger"] #context-token-label {
+    color: var(--danger-color, #c94a4a);
 }
 
 #send-btn {

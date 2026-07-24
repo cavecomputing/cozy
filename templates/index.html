@@ -657,7 +657,13 @@
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-summary-model">Model</label>
                                     <span class="settings-row-hint">Blank = use main model</span>
-                                    <input type="text" id="settings-summary-model" class="form-input" placeholder="model-name" autocomplete="off" spellcheck="false">
+                                    <div class="settings-model-row model-picker-row">
+                                        <input type="text" id="settings-summary-model" class="form-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="summary-model-picker-menu" aria-expanded="false">
+                                        <button id="settings-summary-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <div id="summary-model-picker-menu" class="model-picker-menu" hidden role="listbox"></div>
+                                    </div>
                                 </div>
                             </section>
                             <section class="settings-card">
@@ -671,10 +677,10 @@
                                 </div>
                                 <p class="settings-hint">The summary is capped at this percentage of the Max Context Tokens budget. Pinned lines count inside this budget. Counts are estimates marked with <code>&#8776;</code>.</p>
                                 <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-summary-interval">Messages per summarizer batch</label>
+                                    <label class="settings-row-label" for="settings-summary-interval">Summarize every (messages)</label>
                                     <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="20">
                                 </div>
-                                <p class="settings-hint">Updates start as soon as history leaves the context window. This controls how many messages each summarizer call folds in; larger values mean fewer, bigger calls.</p>
+                                <p class="settings-hint">Once context begins filling, Cozy replaces the oldest messages in blocks of this size. User and character messages each count as one. Exceptionally large messages may require an earlier safety update so no history is forgotten.</p>
                             </section>
                         </div>
                     </div>
@@ -1192,8 +1198,10 @@
                 </button>
             </div>
             <div id="context-token-meter" class="context-token-meter" hidden>
-                <div class="context-token-meter-track"><span id="context-token-bar"></span></div>
-                <span id="context-token-label">≈ 0 / 4,096</span>
+                <div class="context-token-meter-track" role="meter" aria-label="Context usage">
+                    <span id="context-token-bar" class="context-token-meter-segments"></span>
+                </div>
+                <span id="context-token-label">0 / 4,096</span>
             </div>
         </div>
     </main>

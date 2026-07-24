@@ -600,6 +600,70 @@ class TestLLMProxy:
         assert body['models'] == ['aion-labs/aion-2.0', 'aion-labs/aion-rp-llama-3.1-8b']
         assert body['model_details']['aion-labs/aion-2.0'] == 131072
 
+    def test_models_endpoint_uses_summary_profile_credentials(self, client, monkeypatch):
+        captured = {}
+
+        class ModelsResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {'data': [{'id': 'summary-model'}]}
+
+        def fake_get(url, **kwargs):
+            captured['url'] = url
+            captured['headers'] = kwargs['headers']
+            return ModelsResponse()
+
+        monkeypatch.setattr(llm_module.http_requests, 'get', fake_get)
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://main.test/v1',
+            'api_key': 'main-key',
+            'summary_api_endpoint': 'http://summary.test/v1',
+            'summary_api_key': 'summary-key',
+        })
+
+        r = client.get('/api/llm/models?profile=summary')
+
+        assert r.status_code == 200
+        assert r.get_json()['models'] == ['summary-model']
+        assert captured['url'] == 'http://summary.test/v1/models'
+        assert captured['headers']['Authorization'] == 'Bearer summary-key'
+
+    def test_models_endpoint_summary_profile_falls_back_per_field(self, client, monkeypatch):
+        captured = {}
+
+        class ModelsResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {'data': []}
+
+        def fake_get(url, **kwargs):
+            captured['url'] = url
+            captured['headers'] = kwargs['headers']
+            return ModelsResponse()
+
+        monkeypatch.setattr(llm_module.http_requests, 'get', fake_get)
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://main.test/v1',
+            'api_key': 'main-key',
+            'summary_api_endpoint': 'http://summary.test/v1',
+            'summary_api_key': '',
+        })
+
+        r = client.get('/api/llm/models?profile=summary')
+
+        assert r.status_code == 200
+        assert captured['url'] == 'http://summary.test/v1/models'
+        assert captured['headers']['Authorization'] == 'Bearer main-key'
+
+    def test_models_endpoint_rejects_invalid_profile(self, client):
+        r = client.get('/api/llm/models?profile=unknown')
+        assert r.status_code == 400
+        assert r.get_json() == {'ok': False, 'error': 'Invalid model profile'}
+
     def test_test_endpoint_requires_endpoint(self, client):
         r = client.post('/api/llm/test')
         assert r.status_code == 400

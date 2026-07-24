@@ -6,6 +6,7 @@ import { confirmDialog } from './confirm.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
 import { renderLorebookList } from './lorebooks.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
+import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
 const DESKTOP_QUERY = '(min-width: 769px)';
 const DEFAULT_COLLECTION_ICON = '◇';
@@ -516,6 +517,10 @@ async function saveSelected() {
         }
         renderCharList();
         renderLorebookList();
+        if (state.activeCharacter?.id === updated.id) {
+            updateContextMeter();
+            updateContextBoundary();
+        }
         await refreshData({ keepSelection: true });
         showToast('Character saved', 'success');
     } catch (err) {

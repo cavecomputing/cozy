@@ -6,6 +6,7 @@ import { API } from './api.js';
 import { showToast, updateComposerState } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { estimateTextTokens } from './tokenizer.js';
+import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
 // Editor state — purely local, swapped wholesale on selection change.
 // `kind` is 'standalone' or 'embedded'. `id` is the lorebook id (standalone)
@@ -396,6 +397,8 @@ export async function saveLorebook() {
         renderLorebookFlyout();
         updateComposerState();
         fillDestinationOptions();
+        updateContextMeter();
+        updateContextBoundary();
     } catch (e) {
         showToast('Save failed: ' + e.message);
     }
@@ -424,6 +427,8 @@ export async function deleteLorebook(kind, id) {
             else renderLorebookList();
             renderLorebookFlyout();
             updateComposerState();
+            updateContextMeter();
+            updateContextBoundary();
             showToast('Lorebook deleted', 'success');
         } catch (e) {
             showToast('Delete failed: ' + e.message);
@@ -443,6 +448,8 @@ export async function deleteLorebook(kind, id) {
             else renderLorebookList();
             renderLorebookFlyout();
             updateComposerState();
+            updateContextMeter();
+            updateContextBoundary();
             showToast('Embedded lorebook removed', 'success');
         } catch (e) {
             showToast('Remove failed: ' + e.message);
@@ -587,6 +594,8 @@ async function setActiveLorebook(sel) {
         renderLorebookFlyout();
         renderLorebookNotice();
         updateComposerState();
+        updateContextMeter();
+        updateContextBoundary();
     } catch (e) {
         showToast('Failed to set lorebook: ' + e.message);
     }
@@ -622,6 +631,8 @@ async function saveAuthorNote() {
         state.activeChat = updated;
         const idx = state.chats.findIndex(c => c.id === chat.id);
         if (idx >= 0) state.chats[idx] = updated;
+        updateContextMeter();
+        updateContextBoundary();
     } catch (e) {
         showToast('Failed to save note: ' + e.message);
     }

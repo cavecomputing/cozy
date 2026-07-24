@@ -34,9 +34,26 @@ def _llm_settings():
     return s.get('api_endpoint', ''), s.get('api_key', ''), s.get('api_model', '')
 
 
+def _summary_llm_settings():
+    """Return summarizer settings, falling back to the main connection per field."""
+    s = get_settings()
+    return (
+        s.get('summary_api_endpoint') or s.get('api_endpoint', ''),
+        s.get('summary_api_key') or s.get('api_key', ''),
+        s.get('summary_api_model') or s.get('api_model', ''),
+    )
+
+
 @llm_bp.route('/api/llm/models', methods=['GET'])
 def list_models():
-    endpoint, api_key, _ = _llm_settings()
+    profile = request.args.get('profile', 'main')
+    if profile not in ('main', 'summary'):
+        return jsonify({'ok': False, 'error': 'Invalid model profile'}), 400
+
+    if profile == 'summary':
+        endpoint, api_key, _ = _summary_llm_settings()
+    else:
+        endpoint, api_key, _ = _llm_settings()
     if not endpoint:
         return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
     url = endpoint.rstrip('/') + '/models'

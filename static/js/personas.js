@@ -2,6 +2,7 @@ import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { showToast, savePrefs, applyAvatar } from './utils.js';
 import { confirmDialog } from './confirm.js';
+import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PERSONAS
@@ -88,6 +89,8 @@ export function renderPersonaList() {
             updateUserProfile();
             renderPersonaList();
             savePrefs();
+            updateContextMeter();
+            updateContextBoundary();
         });
 
         el.personaList.appendChild(opt);
@@ -176,6 +179,8 @@ export function showPersonaForm(editPersona = null) {
             updateUserProfile();
             renderPersonaList();
             savePrefs();
+            updateContextMeter();
+            updateContextBoundary();
         } catch (err) { console.error(err); showToast(err.message || 'Connection failed', 'error'); }
         saveBtnEl.disabled = false;
         cleanup();
