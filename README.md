@@ -98,6 +98,7 @@ I run this thing privately behind tailscale and a reverse proxy and inside a con
 - [Troubleshooting](docs/troubleshooting.md)
 - [Auto Summaries](docs/auto-summaries.md)
 - [Sampler settings](docs/samplers.md)
+- [User themes](docs/themes.md)
 - [Database structure](docs/db.md)
 
 ## License
