@@ -8,7 +8,7 @@
 
 Cozy works with SillyTavern-compatible V2 character cards and OpenAI-style LLM
 servers. It includes personas, lorebooks, prompt presets, Auto Summaries,
-character collections, themes, and chat import/export.
+character collections, themes, and chat import/export. It also might inspire feelings of being cozy and safe as supported by 1 out of 10 non existant doctors.
 
 > [!IMPORTANT]
 > Cozy changes frequently and is not a stable release. Back up your data before
@@ -97,15 +97,6 @@ See [Data and backups](docs/data-and-backups.md) and
 - [Auto Summaries](docs/auto-summaries.md)
 - [Sampler settings](docs/samplers.md)
 - [Database structure](docs/db.md)
-
-## Project status
-
-Cozy started as an experiment in building an application with AI assistance. It
-eventually replaced SillyTavern for the maintainer's own use and is now shared
-for anyone else who finds it useful.
-
-Expect regular changes. Current versions are intended to migrate forward, but
-old releases may not upgrade cleanly after being left behind for a long time.
 
 ## License
 
