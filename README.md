@@ -88,6 +88,8 @@ to the public internet.
 See [Data and backups](docs/data-and-backups.md) and
 [Security](SECURITY.md) before changing the network configuration.
 
+I run this thing privately behind tailscale and a reverse proxy and inside a container. I don't care about security past the network layer and I'm not concerned if my data inside this gets hosed. If that concerns you, do not use this software.
+
 ## Documentation
 
 - [Getting started](docs/getting-started.md)
