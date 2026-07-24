@@ -10,7 +10,7 @@
 
 Cozy is a lightweight, self-hosted chat interface for SillyTavern-compatible
 V2 character cards. It supports personas, lorebooks, prompt presets, themes,
-and any OpenAI-compatible LLM endpoint.
+and any OpenAI-compatible LLM endpoint. And it makes you feel nice and cozy but that is subjective.
 
 ## Quick start
 
