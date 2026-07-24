@@ -29,6 +29,9 @@ App runs on http://localhost:5001.
 cd docker
 docker compose -f docker/docker-compose.yml up -d --build
 ```
+### Updates
+
+Simply run `git pull` and then rerun with the Python or Docker instructions.
 
 ## Documentation
 
