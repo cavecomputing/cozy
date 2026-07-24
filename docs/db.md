@@ -197,13 +197,17 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-Migration 1 is an intentional baseline marker that retires a historical
-duplicate-greeting repair. Databases that predate the ledger are treated as
-already repaired so startup never again risks deleting a legitimate repeated
-greeting. Migration 2 deletes the retired `context_max_messages` setting from
-older databases; context limits are token-based now. Migration 3 upgrades only
-untouched copies of the former stock system-prompt template so they include the
-Auto Summary variable; customized prompts are preserved exactly.
+The migration ledger currently contains six migrations:
+
+1. Retire the historical duplicate-greeting repair.
+2. Delete the retired `context_max_messages` setting.
+3. Add Auto Summary memory to untouched copies of the old default prompt.
+4. Add the narrative preamble to untouched copies of the default prompt.
+5. Upgrade untouched default prompts to the V4 paired-template layout.
+6. Upgrade untouched post-history templates to the current house style.
+
+Prompt migrations change only known stock templates. Customized prompts are
+preserved.
 
 ## Seeded data
 
@@ -212,6 +216,8 @@ On first run, the database is seeded with:
 - **Default persona**: "Default User" (tagline: "The brave adventurer", `is_default = 1`)
 - **Default system prompt**: "Default" with paired main and post-history Prompt Builder templates
 - **Default settings**: context token budget (`32768`), visible context meter, an
-  empty extra-request-parameters value, Auto Summaries enabled globally, blank
-  summarizer endpoint/key/model overrides, a 10% summary cap, and 20 messages per
-  summarizer batch
+  empty extra-request-parameters value, blank summarizer endpoint/key/model
+  overrides, a 10% summary cap, and 20 messages per summarizer batch
+
+Auto Summaries are disabled on new chats until the user enables them for that
+chat.

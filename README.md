@@ -3,41 +3,110 @@
 </p>
 
 <p align="center">
-  A single-user Flask web app for chatting with LLM character cards.
+  A self-hosted, single-user app for chatting with LLM character cards.
 </p>
 
-## About
+Cozy works with SillyTavern-compatible V2 character cards and OpenAI-style LLM
+servers. It includes personas, lorebooks, prompt presets, Auto Summaries,
+character collections, themes, and chat import/export.
 
-Cozy is a lightweight, self-hosted chat interface for SillyTavern-compatible
-V2 character cards. It supports personas, lorebooks, prompt presets, themes,
-and any OpenAI-compatible LLM endpoint. And it makes you feel nice and cozy but that is subjective.
+> [!IMPORTANT]
+> Cozy changes frequently and is not a stable release. Back up your data before
+> updating. Downgrading to an older version is not supported.
 
 ## Quick start
 
+Run all commands from the repository root.
+
+### Docker
+
+Requirements: Git, Docker, and Docker Compose.
+
+```bash
+git clone https://github.com/cavecomputing/cozy.git
+cd cozy
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+Open <http://localhost:5001>.
+
 ### Python
+
+Requirements: Git, Python 3.12 or newer, and
+[uv](https://docs.astral.sh/uv/).
+
+```bash
+git clone https://github.com/cavecomputing/cozy.git
+cd cozy
+uv sync
+uv run python app.py
+```
+
+Open <http://localhost:5001>.
+
+## First-time setup
+
+1. Open Cozy.
+2. Open **Settings**.
+3. Enter the base URL for your LLM server, such as
+   `http://localhost:8080/v1`.
+4. Enter an API key if your server requires one.
+5. Select a model and test the connection.
+6. Import or create a character.
+
+The server must provide an OpenAI-style streaming `/chat/completions` endpoint.
+Model listing and advanced sampler support vary by server.
+
+## Updating
+
+Back up `data/`, then run:
+
+```bash
+git pull
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+For a Python installation, replace the Docker command with:
 
 ```bash
 uv sync
 uv run python app.py
 ```
 
-App runs on http://localhost:5001.
+Database migrations run automatically when Cozy starts.
 
-### Docker
+## Data and security
 
-```bash
-cd docker
-docker compose -f docker/docker-compose.yml up -d --build
-```
-### Updates
+Cozy stores chats, settings, API keys, and other private data in `data/`.
+Character cards and avatar images are stored beside the database in that
+directory.
 
-Simply run `git pull` and then rerun with the Python or Docker instructions.
+Cozy has no login screen or user authentication. Its default Python and Docker
+configurations listen only on the local computer. Do not expose Cozy directly
+to the public internet.
+
+See [Data and backups](docs/data-and-backups.md) and
+[Security](SECURITY.md) before changing the network configuration.
 
 ## Documentation
 
-- [docs/run.md](docs/run.md) — running the app
-- [docs/db.md](docs/db.md) — database schema
+- [Getting started](docs/getting-started.md)
+- [Running and updating Cozy](docs/run.md)
+- [Data and backups](docs/data-and-backups.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Auto Summaries](docs/auto-summaries.md)
+- [Sampler settings](docs/samplers.md)
+- [Database structure](docs/db.md)
 
----
-Howdy! This whole app is vibe coded slop. If that bothers you...🤷
-The code is going to see constant changes most of the time and I'm never going to call it stable. Though I'm currently trying to avoid breaking changes between version and ensuring there are proper migrations to keep things stableish. If you try to checkout an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take vibe coding but then it completely replaced SillyTavern for my use. Maybe other people will like it? I dunno but AI can be purty neat.
+## Project status
+
+Cozy started as an experiment in building an application with AI assistance. It
+eventually replaced SillyTavern for the maintainer's own use and is now shared
+for anyone else who finds it useful.
+
+Expect regular changes. Current versions are intended to migrate forward, but
+old releases may not upgrade cleanly after being left behind for a long time.
+
+## License
+
+Cozy is available under the [MIT License](LICENSE).

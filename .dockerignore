@@ -1,11 +1,15 @@
 .venv
+node_modules
 __pycache__
 .pytest_cache
 .git
 .claude
+.codex
+.playwright-mcp
 tests
 *.db
 *.pyc
+*.log
 ._*
 .DS_Store
 data
