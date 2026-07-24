@@ -24,7 +24,7 @@ import {
 } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
-    updateSystemPromptContent, populateDefaultTemplateHelp,
+    updateSystemPromptContent, syncActivePromptFromEditors, populateDefaultTemplateHelp,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode,
 } from './system-prompts.js';
@@ -414,7 +414,12 @@ function bindSettingsHandlers() {
     el.testApi?.addEventListener('click', testLLMConnection);
 
     // API presets
-    el.apiPreset?.addEventListener('change', () => activatePreset(el.apiPreset.value));
+    el.apiPreset?.addEventListener('change', () => {
+        activatePreset(el.apiPreset.value).then(() => {
+            updateContextMeter();
+            updateContextBoundary();
+        });
+    });
     el.presetNew?.addEventListener('click', createNewPreset);
     el.presetDelete?.addEventListener('click', deletePreset);
 
@@ -430,16 +435,22 @@ function bindSettingsHandlers() {
         });
     });
     // Prompt editors — debounced autosave while typing, flush on blur.
-    const refreshSystemPrompt = async () => {
+    const persistSystemPrompt = async () => {
         await updateSystemPromptContent();
+    };
+    const saveSystemPromptDebounced = debounce(persistSystemPrompt, 500);
+    const handleSystemPromptInput = () => {
+        // Context analysis reads the active prompt from state. Keep that draft
+        // in sync immediately; persistence can remain debounced.
+        syncActivePromptFromEditors();
         updateContextMeter();
         updateContextBoundary();
+        saveSystemPromptDebounced();
     };
-    const saveSystemPromptDebounced = debounce(refreshSystemPrompt, 500);
-    el.syspromptContent?.addEventListener('input', saveSystemPromptDebounced);
-    el.syspromptContent?.addEventListener('blur', refreshSystemPrompt);
-    el.postHistoryContent?.addEventListener('input', saveSystemPromptDebounced);
-    el.postHistoryContent?.addEventListener('blur', refreshSystemPrompt);
+    el.syspromptContent?.addEventListener('input', handleSystemPromptInput);
+    el.syspromptContent?.addEventListener('blur', persistSystemPrompt);
+    el.postHistoryContent?.addEventListener('input', handleSystemPromptInput);
+    el.postHistoryContent?.addEventListener('blur', persistSystemPrompt);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);
     el.syspromptPreview?.addEventListener('click', () => {
@@ -538,13 +549,16 @@ function bindSettingsHandlers() {
     el.extraParams?.addEventListener('blur', flushLLMSettingsSave);
 
     // Context budget — autosave while editing and update warning + meter.
-    el.settingsContextTokens?.addEventListener('input', () => {
+    const handleContextTokenInput = () => {
         state.contextMaxTokens = el.settingsContextTokens.value || '0';
         queueLLMSettingsSave({ context_max_tokens: state.contextMaxTokens });
         updateContextSizeWarning();
         updateContextMeter();
         updateContextBoundary();
-    });
+    };
+    el.settingsContextTokens?.addEventListener('input', handleContextTokenInput);
+    // Some embedded/mobile number controls only dispatch change on commit.
+    el.settingsContextTokens?.addEventListener('change', handleContextTokenInput);
     el.settingsContextTokens?.addEventListener('blur', flushLLMSettingsSave);
 
     // Model input — search suggestions and autosave while typing.

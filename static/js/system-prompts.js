@@ -13,7 +13,7 @@ function activePrompt() {
     return state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
 }
 
-function syncActivePromptFromEditors() {
+export function syncActivePromptFromEditors() {
     const p = activePrompt();
     if (!p) return null;
     if (el.syspromptContent) p.content = el.syspromptContent.value;

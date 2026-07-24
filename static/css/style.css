@@ -801,6 +801,7 @@ body {
 
     #persona-dropup > #persona-create-btn {
         margin: 0.25rem 0.5rem 0.5rem;
+        width: auto;
     }
 
     #persona-dropup > #persona-inline-form {

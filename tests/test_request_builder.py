@@ -73,6 +73,31 @@ def test_chat_payload_uses_active_custom_system_prompt_template():
     run_node_module(code)
 
 
+def test_prompt_editor_draft_syncs_active_prompt_before_persistence():
+    """The token meter should see prompt edits without waiting for autosave."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { syncActivePromptFromEditors } from './static/js/system-prompts.js';
+
+        state.activeSystemPromptId = 2;
+        state.systemPrompts = [{
+            id: 2,
+            content: 'old system',
+            post_history_content: 'old user',
+        }];
+        el.syspromptContent = { value: 'live system draft' };
+        el.postHistoryContent = { value: 'live user draft' };
+
+        const active = syncActivePromptFromEditors();
+
+        assert.equal(active.content, 'live system draft');
+        assert.equal(active.post_history_content, 'live user draft');
+        assert.equal(state.systemPrompts[0], active);
+    """
+    run_node_module(code)
+
+
 def test_whitespace_only_values_still_drop_their_conditional_blocks():
     """Source tracking must not make a whitespace-only value truthy in {{#var}}.
 
