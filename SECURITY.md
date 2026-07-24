@@ -25,6 +25,4 @@ directory and do not commit it to Git.
 
 ## Reporting a vulnerability
 
-Use GitHub's private **Report a vulnerability** option if it is available for
-the repository. Do not include API keys, chat logs, or other private data in a
-public issue.
+Message me or something I don't know. Probably won't fix it 🤷
