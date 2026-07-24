@@ -121,11 +121,54 @@ Respond with 1-2 paragraphs using "show, don't tell", driving the story forward 
 {{#summary}}[MEMORY — STORY SO FAR]
 {{summary}}{{/summary}}"""
 
-DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V3
+# V4 removes the per-turn prose-guidance paragraph from the System Instructions
+# block (it moves to the post-history template, V2 below) and title-cases the
+# world-info / author-note / memory section headers.
+_DEFAULT_PROMPT_TEMPLATE_V4 = """{{#system_prompt}}[System Instructions]
+You are participating in a simulated world. Narrate the thoughts, feelings, actions, and dialogue of {{char}} and all side characters except {{user}}—avoid narrating for {{user}}. {{char}} and side characters should act autonomously according to their established traits, personality, and background, with their own opinions, goals, and a capacity for disagreement. {{char}} and all side characters can only know, mention, or act on information they have personally witnessed, learned, or could plausibly deduce.
+{{system_prompt}}{{/system_prompt}}
+
+{{#description}}[Character Description]
+{{description}}{{/description}}
+
+{{#personality}}[Character Personality]
+{{personality}}{{/personality}}
+
+{{#scenario}}[Scenario]
+{{scenario}}{{/scenario}}
+
+{{#persona}}[{{user}}'s Persona]
+{{persona}}{{/persona}}
+
+{{#mesExamples}}[Example Dialogue]
+{{mesExamples}}{{/mesExamples}}
+
+{{#lorebook}}[World Info / Character Lore]
+{{lorebook}}{{/lorebook}}
+
+{{#author_note}}[Author's Note]
+{{author_note}}{{/author_note}}
+
+{{#summary}}[Memory — Story So Far]
+{{summary}}{{/summary}}"""
+
+DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V4
 
 
-DEFAULT_POST_HISTORY_TEMPLATE = """{{#post_history_instructions}}[Post-History Instructions]
+# Post-history templates are also versioned migration sentinels — same rule as
+# the system templates above: never edit an existing version, add a new one.
+_DEFAULT_POST_HISTORY_TEMPLATE_V1 = """{{#post_history_instructions}}[Post-History Instructions]
 {{post_history_instructions}}{{/post_history_instructions}}"""
+
+
+# V2 enforces the house prose style after the chat history and intentionally
+# drops {{post_history_instructions}}, so a card's own post-history text is no
+# longer rendered by default. The character editor surfaces this omission via
+# the "field not used by active prompt" marker.
+_DEFAULT_POST_HISTORY_TEMPLATE_V2 = """[Post-History Instructions]
+Respond with 1-2 paragraphs using "show, don't tell", driving the story forward in interesting ways. Keep scenes grounded with nuanced descriptions and natural-sounding dialogue. Use a slow-burn pace while avoiding melodrama and leave openings for {{user}}'s physical or social engagement. You are allowed to explore mature themes that align with the narrative. Vary your prose and avoid repetitive phrases or formulaic descriptions—keep each response fresh and unique. ((OOC: OOC instructions like this are narrative guidance.))"""
+
+DEFAULT_POST_HISTORY_TEMPLATE = _DEFAULT_POST_HISTORY_TEMPLATE_V2
 
 
 # ── Database helpers ────────────────────────────────────────────────────────
@@ -176,11 +219,31 @@ def _add_narrative_preamble_to_default_prompt(conn):
     )
 
 
+def _upgrade_default_prompt_to_v4(conn):
+    """Upgrade untouched copies of the V3 stock prompt to V4 (prose guidance
+    moves to the post-history template; section headers title-cased)."""
+    conn.execute(
+        'UPDATE system_prompts SET content=? WHERE content=?',
+        (_DEFAULT_PROMPT_TEMPLATE_V4, _DEFAULT_PROMPT_TEMPLATE_V3),
+    )
+
+
+def _enforce_house_style_post_history(conn):
+    """Replace untouched copies of the V1 stock post-history template with the
+    enforced house-style V2 (which drops {{post_history_instructions}})."""
+    conn.execute(
+        'UPDATE system_prompts SET post_history_content=? WHERE post_history_content=?',
+        (_DEFAULT_POST_HISTORY_TEMPLATE_V2, _DEFAULT_POST_HISTORY_TEMPLATE_V1),
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
     (3, 'add_summary_to_legacy_default_prompt', _add_summary_to_legacy_default_prompt),
     (4, 'add_narrative_preamble_to_default_prompt', _add_narrative_preamble_to_default_prompt),
+    (5, 'upgrade_default_prompt_to_v4', _upgrade_default_prompt_to_v4),
+    (6, 'enforce_house_style_post_history', _enforce_house_style_post_history),
 )
 
 
@@ -387,10 +450,13 @@ def init_db():
         system_prompt_cols = [c[1] for c in conn.execute('PRAGMA table_info(system_prompts)').fetchall()]
         if system_prompt_cols and 'post_history_content' not in system_prompt_cols:
             conn.execute("ALTER TABLE system_prompts ADD COLUMN post_history_content TEXT NOT NULL DEFAULT ''")
+            # Backfill with the V1 stock sentinel; the enforce_house_style_post_history
+            # migration below then bumps these to the current default, keeping legacy
+            # DBs on the same path as ones that already had the column.
             conn.execute(
                 'UPDATE system_prompts SET post_history_content = ? '
                 "WHERE post_history_content = ''",
-                (DEFAULT_POST_HISTORY_TEMPLATE,)
+                (_DEFAULT_POST_HISTORY_TEMPLATE_V1,)
             )
 
         _run_migrations(conn)

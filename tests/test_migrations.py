@@ -301,6 +301,106 @@ class TestSchemaMigrationLedger:
             ).fetchone()
         assert prompt['content'] == custom_prompt
 
+    def test_unversioned_upgrade_upgrades_default_prompt_to_v4(self):
+        migration_version = next(
+            v for v, name, _ in shared.MIGRATIONS
+            if name == 'upgrade_default_prompt_to_v4'
+        )
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE system_prompts SET content=? WHERE name=?',
+                (shared._DEFAULT_PROMPT_TEMPLATE_V3, 'Default'),
+            )
+            conn.execute(
+                'DELETE FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            )
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+        assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V4
+        assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
+
+    def test_v4_prompt_migration_preserves_customized_prompt(self):
+        custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V3 + '\n\nCustom instructions.'
+        migration_version = next(
+            v for v, name, _ in shared.MIGRATIONS
+            if name == 'upgrade_default_prompt_to_v4'
+        )
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE system_prompts SET content=? WHERE name=?',
+                (custom_prompt, 'Default'),
+            )
+            conn.execute(
+                'DELETE FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            )
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+        assert prompt['content'] == custom_prompt
+
+    def test_enforce_house_style_post_history_upgrades_untouched(self):
+        migration_version = next(
+            v for v, name, _ in shared.MIGRATIONS
+            if name == 'enforce_house_style_post_history'
+        )
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE system_prompts SET post_history_content=? WHERE name=?',
+                (shared._DEFAULT_POST_HISTORY_TEMPLATE_V1, 'Default'),
+            )
+            conn.execute(
+                'DELETE FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            )
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT post_history_content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+        assert prompt['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
+        assert '{{post_history_instructions}}' not in prompt['post_history_content']
+
+    def test_post_history_migration_preserves_customized(self):
+        custom_phi = shared._DEFAULT_POST_HISTORY_TEMPLATE_V1 + '\n\nExtra house rule.'
+        migration_version = next(
+            v for v, name, _ in shared.MIGRATIONS
+            if name == 'enforce_house_style_post_history'
+        )
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE system_prompts SET post_history_content=? WHERE name=?',
+                (custom_phi, 'Default'),
+            )
+            conn.execute(
+                'DELETE FROM schema_migrations WHERE version=?',
+                (migration_version,),
+            )
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            prompt = conn.execute(
+                'SELECT post_history_content FROM system_prompts WHERE name=?',
+                ('Default',),
+            ).fetchone()
+        assert prompt['post_history_content'] == custom_phi
+
     def test_init_db_runs_twice_safely(self):
         """Running init_db repeatedly on an existing DB should be a no-op."""
         shared.init_db()

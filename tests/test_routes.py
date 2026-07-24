@@ -103,10 +103,10 @@ class TestSystemPrompts:
         assert '{{#system_prompt}}' in prompts[0]['content']
         # New installs get the Author's Note variable seeded automatically.
         assert '{{author_note}}' in prompts[0]['content']
-        assert prompts[0]['post_history_content'] == (
-            '{{#post_history_instructions}}[Post-History Instructions]\n'
-            '{{post_history_instructions}}{{/post_history_instructions}}'
-        )
+        # The default post-history enforces the house style and intentionally
+        # omits {{post_history_instructions}}.
+        assert prompts[0]['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
+        assert '{{post_history_instructions}}' not in prompts[0]['post_history_content']
 
     def test_create_prompt(self, client):
         r = client.post('/api/system-prompts', json={
@@ -199,10 +199,8 @@ class TestSystemPrompts:
         assert r.status_code == 201
         body = r.get_json()
         assert body['name'] == 'Imported Prompt'
-        assert body['post_history_content'] == (
-            '{{#post_history_instructions}}[Post-History Instructions]\n'
-            '{{post_history_instructions}}{{/post_history_instructions}}'
-        )
+        # Omitted post_history_content falls back to the current default.
+        assert body['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
 
     def test_import_prompt_accepts_legacy_system_only_json(self, client):
         r = client.post(
@@ -214,7 +212,7 @@ class TestSystemPrompts:
         body = r.get_json()
         assert body['name'] == 'Legacy'
         assert body['content'] == 'system only'
-        assert body['post_history_content'].startswith('{{#post_history_instructions}}')
+        assert body['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
 
     def test_export_missing_prompt_returns_404(self, client):
         r = client.get('/api/system-prompts/99999/export')
@@ -230,7 +228,9 @@ class TestSystemPrompts:
         for var in ('{{#system_prompt}}', '{{#description}}', '{{#personality}}',
                     '{{#scenario}}', '{{#persona}}', '{{#mesExamples}}', '{{#lorebook}}'):
             assert var in data['template']
-        assert '{{#post_history_instructions}}' in data['post_history_template']
+        # The default post-history is the enforced house style (no card variable).
+        assert data['post_history_template'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
+        assert '((OOC:' in data['post_history_template']
 
 class TestMessages:
     def test_add_message_creates_swipe(self, client, sample_chat):
