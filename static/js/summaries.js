@@ -250,9 +250,9 @@ function oldestRetirableId(candidates, targetCount) {
 
 /**
  * Retire only the messages that are currently outside the final prompt. This is
- * used while stabilizing an explicit rebuild: normal background updates round
- * up to an interval for headroom, but doing that here would make a completed
- * rebuild unexpectedly discard another full block of raw context.
+ * used while stabilizing an explicit rebuild: normal background updates also
+ * prepay token headroom for future messages, but doing that here would make a
+ * completed rebuild unexpectedly discard raw context that still fits.
  */
 function exactRunTarget(excludeLastN = 0) {
     const assessment = windowAssessment(excludeLastN);
