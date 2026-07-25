@@ -11,6 +11,8 @@ import shared
 from shared import get_db
 from png_utils import extract_png_chara, write_png_chara
 
+Image.MAX_IMAGE_PIXELS = shared.MAX_IMAGE_PIXELS
+
 CARD_DATA_DEFAULTS = {
     'name': 'Unnamed',
     'description': '',

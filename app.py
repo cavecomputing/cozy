@@ -6,6 +6,7 @@ from flask import Flask, render_template, jsonify, send_from_directory
 from werkzeug.exceptions import HTTPException
 
 import shared
+import thumbs
 
 log = logging.getLogger('cozy')
 
@@ -32,6 +33,19 @@ def serve_character_avatar(filename):
 @app.route('/personas/<path:filename>')
 def serve_persona_avatar(filename):
     return send_from_directory(shared.PERSONAS_DIR, filename)
+
+
+# Downscaled copies of the above, generated on demand. The URL names the source
+# file and the wanted size; thumbs.py maps that to a content-addressed cache
+# entry, so callers never need to know the key. See thumbs.py.
+@app.route('/thumbs/characters/<int:size>/<path:filename>')
+def serve_character_thumb(size, filename):
+    return thumbs.serve(shared.CHARACTERS_DIR, size, filename)
+
+
+@app.route('/thumbs/personas/<int:size>/<path:filename>')
+def serve_persona_thumb(size, filename):
+    return thumbs.serve(shared.PERSONAS_DIR, size, filename)
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────

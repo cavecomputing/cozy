@@ -26,6 +26,10 @@ BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
 # first run of a fresh install — see seed_default_characters().
 BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+# Cap on decoded image dimensions (~8000x8000). Character cards and persona
+# avatars are user-supplied, and a small crafted file can otherwise expand to
+# gigabytes once decoded. Applied to Pillow by every module that decodes.
+MAX_IMAGE_PIXELS = 64_000_000
 
 
 def validate_image_extension(file_storage):
