@@ -84,7 +84,7 @@ For a Python installation, replace the Docker command with:
 
 ```bash
 uv sync
-uv run python app.py
+uv run app.py
 ```
 
 Database migrations run automatically when Cozy starts.
