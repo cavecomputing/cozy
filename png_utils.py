@@ -3,8 +3,16 @@
 import json
 import base64
 import binascii
+import hashlib
 import struct
 import zlib
+
+# Chunks that define the rendered image. Everything else (tEXt/iTXt/zTXt, time
+# stamps, colour-management hints) can change without changing a single pixel.
+PIXEL_CHUNKS = frozenset((
+    b'IHDR', b'PLTE', b'tRNS', b'IDAT',
+    b'acTL', b'fcTL', b'fdAT',   # APNG animation frames
+))
 
 
 def make_minimal_png() -> bytes:
@@ -123,3 +131,44 @@ def extract_png_chara(file_bytes: bytes):
             break
 
     return None
+
+
+def png_pixel_key(file_bytes: bytes):
+    """
+    Return a 16-hex-char key identifying a PNG's *image content* only.
+
+    Hashes just the chunks that define the rendered pixels (see PIXEL_CHUNKS),
+    so embedding or editing a 'chara' tEXt chunk leaves the key unchanged.
+    That matters because a character card's CRC changes on every text edit
+    while its artwork does not — keying derived images on this instead means
+    editing a card's description doesn't orphan its thumbnails.
+
+    Returns None if *file_bytes* is not a walkable PNG; callers fall back to a
+    stat-based key for other formats.
+    """
+    if file_bytes[:8] != b'\x89PNG\r\n\x1a\n':
+        return None
+
+    digest = hashlib.blake2b(digest_size=8)
+    pos = 8
+    saw_ihdr = False
+    while pos + 8 <= len(file_bytes):
+        try:
+            chunk_len = struct.unpack('>I', file_bytes[pos:pos + 4])[0]
+        except struct.error:
+            return None
+        chunk_type = file_bytes[pos + 4:pos + 8]
+        end = pos + 8 + chunk_len
+        if end + 4 > len(file_bytes):
+            return None                      # truncated mid-chunk
+        if chunk_type in PIXEL_CHUNKS:
+            saw_ihdr = saw_ihdr or chunk_type == b'IHDR'
+            # Length and type are implied by the payload's position in the
+            # stream, but hashing them keeps chunk boundaries unambiguous.
+            digest.update(chunk_type)
+            digest.update(file_bytes[pos + 8:end])
+        pos = end + 4                        # skip the chunk's trailing CRC
+        if chunk_type == b'IEND':
+            break
+
+    return digest.hexdigest() if saw_ihdr else None
