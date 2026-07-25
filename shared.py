@@ -17,6 +17,10 @@ DATABASE     = os.path.join(DATA_DIR, 'cozy_chat.db')
 CHARACTERS_DIR = os.path.join(DATA_DIR, 'characters')
 PERSONAS_DIR   = os.path.join(DATA_DIR, 'personas')
 THEMES_DIR     = os.path.join(DATA_DIR, 'themes')
+# Derived avatar thumbnails, generated on demand from CHARACTERS_DIR and
+# PERSONAS_DIR. Pure cache — safe to delete at any time; entries regenerate on
+# the next request. See thumbs.py.
+THUMBS_DIR     = os.path.join(DATA_DIR, 'thumbs')
 BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
 # Character cards shipped with Cozy. Copied into CHARACTERS_DIR once, on the
 # first run of a fresh install — see seed_default_characters().
@@ -43,6 +47,7 @@ def persona_avatar_url(avatar_path, updated_at):
 os.makedirs(CHARACTERS_DIR, exist_ok=True)
 os.makedirs(PERSONAS_DIR, exist_ok=True)
 os.makedirs(THEMES_DIR, exist_ok=True)
+os.makedirs(THUMBS_DIR, exist_ok=True)
 
 
 def not_found(resource):

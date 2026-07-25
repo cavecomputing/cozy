@@ -19,7 +19,7 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
-RUN mkdir -p /data/characters /data/personas /data/themes \
+RUN mkdir -p /data/characters /data/personas /data/themes /data/thumbs \
  && chown -R cozy:cozy /app /data
 
 ENV COZY_DATA_DIR=/data

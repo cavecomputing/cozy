@@ -32,12 +32,18 @@ def _test_db(tmp_path, monkeypatch):
     chars_dir = str(tmp_path / 'characters')
     personas_dir = str(tmp_path / 'personas')
     themes_dir = str(tmp_path / 'themes')
-    for d in (chars_dir, personas_dir, themes_dir):
+    # Thumbnails are keyed by image content, and nearly every test uses the same
+    # 1x1 make_minimal_png(). Without a per-test cache dir they would all share
+    # one filename in the session-scoped import dir, making any "was a thumbnail
+    # generated?" assertion depend on test order.
+    thumbs_dir = str(tmp_path / 'thumbs')
+    for d in (chars_dir, personas_dir, themes_dir, thumbs_dir):
         os.makedirs(d, exist_ok=True)
     monkeypatch.setattr(shared, 'DATABASE', db_path)
     monkeypatch.setattr(shared, 'CHARACTERS_DIR', chars_dir)
     monkeypatch.setattr(shared, 'PERSONAS_DIR', personas_dir)
     monkeypatch.setattr(shared, 'THEMES_DIR', themes_dir)
+    monkeypatch.setattr(shared, 'THUMBS_DIR', thumbs_dir)
     shared.init_db()
     yield db_path
 
