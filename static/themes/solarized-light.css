@@ -56,7 +56,7 @@
     --rp-intense-shadow:  0 0 6px rgba(220, 50, 47, 0.25);
     --rp-strike-opacity:  0.45;
     --rp-hr-opacity:      0.25;
-    --img-max-width:      300px;
+    --img-max-width:      100%;
     --code-bg:            rgba(88, 110, 117, 0.12);
     --code-border:        rgba(88, 110, 117, 0.22);
     --pre-bg:             rgba(88, 110, 117, 0.10);
