@@ -244,15 +244,40 @@ export function hideEmptyState() {
     if (el.emptyState) el.emptyState.hidden = true;
 }
 
-/** Set avatar element — background-image if URL, else initials. */
-export function applyAvatar(avatarEl, obj, fallbackName = '?') {
+// Server-side thumbnail tiers (see thumbs.py). SM covers every circular
+// avatar, MD the square gallery tile, LG the hero banner and expanded avatar.
+export const AVATAR = { SM: 128, MD: 512, LG: 1024 };
+
+/**
+ * Rewrite an avatar URL to request a downscaled copy.
+ * Leaves anything that isn't a served avatar path alone, so blob: and
+ * data: URLs used for upload previews pass through untouched.
+ */
+function thumbUrl(url, size) {
+    if (!url || !size) return url;
+    const m = /^\/(characters|personas)\/(.+?)(\?.*)?$/.exec(url);
+    if (!m) return url;
+    return `/thumbs/${m[1]}/${size}/${m[2]}${m[3] || ''}`;
+}
+
+/** Set avatar element — background-image if URL, else initials.
+ *  Pass a size from AVATAR to use a thumbnail; omitting it serves the full
+ *  image, so a call site that hasn't opted in is slow rather than blurry. */
+export function applyAvatar(avatarEl, obj, fallbackName = '?', size = null) {
     if (obj && obj.avatar_url) {
-        avatarEl.style.backgroundImage = `url('${obj.avatar_url}')`;
+        const src = thumbUrl(obj.avatar_url, size);
+        avatarEl.style.backgroundImage = `url('${src}')`;
         avatarEl.dataset.hasImage = 'true';
+        avatarEl.dataset.thumbSrc = src;
+        // Kept so click-to-expand can swap up to a full-quality image whose
+        // dimensions still carry the card's true aspect ratio.
+        avatarEl.dataset.largeSrc = thumbUrl(obj.avatar_url, AVATAR.LG);
         avatarEl.textContent = '';
     } else {
         avatarEl.style.backgroundImage = '';
         avatarEl.dataset.hasImage = 'false';
+        delete avatarEl.dataset.thumbSrc;
+        delete avatarEl.dataset.largeSrc;
         avatarEl.textContent = getInitials((obj && obj.name) || fallbackName);
     }
 }

@@ -825,10 +825,15 @@ function bindMessageHandlers() {
                 avatar.classList.remove('avatar-expanded');
                 avatar.style.width = '';
                 avatar.style.height = '';
+                if (avatar.dataset.thumbSrc) {
+                    avatar.style.backgroundImage = `url('${avatar.dataset.thumbSrc}')`;
+                }
             } else {
-                const bg = avatar.style.backgroundImage;
-                const match = bg.match(/url\(['"]?([^'"()]+)['"]?\)/);
-                if (!match) return;
+                // The displayed image is a small square thumbnail, so expand
+                // against the large one — it carries the card's real aspect
+                // ratio and enough detail for a 300px box.
+                const large = avatar.dataset.largeSrc;
+                if (!large) return;
                 const img = new Image();
                 img.onload = () => {
                     const maxDim = 300;
@@ -837,9 +842,10 @@ function bindMessageHandlers() {
                     else        { w = Math.round(maxDim * (w / h)); h = maxDim; }
                     avatar.style.width = w + 'px';
                     avatar.style.height = h + 'px';
+                    avatar.style.backgroundImage = `url('${large}')`;
                     avatar.classList.add('avatar-expanded');
                 };
-                img.src = match[1];
+                img.src = large;
             }
             return;
         }
