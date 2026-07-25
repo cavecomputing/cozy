@@ -4,6 +4,7 @@ import json
 import os
 from io import BytesIO
 
+import card_store
 import shared
 import routes.characters as characters_module
 from helpers import v2_card
@@ -399,6 +400,90 @@ class TestSync:
         chars = client.get('/api/characters').get_json()
         names = [c['name'] for c in chars]
         assert 'WalkIn' in names
+
+    def test_identical_copy_of_indexed_card_gets_its_own_row(self, client, sample_character):
+        # Copying a card file gives two files with one CRC. Matching by CRC first
+        # would hand the copy the original's row, so the original would vanish
+        # from the listing and the two files would swap names request to request.
+        src = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        with open(src, 'rb') as f:
+            content = f.read()
+        with open(os.path.join(shared.CHARACTERS_DIR, 'copy.png'), 'wb') as f:
+            f.write(content)
+
+        chars = client.get('/api/characters').get_json()
+        filenames = sorted(c['filename'] for c in chars)
+        assert filenames == sorted([sample_character['filename'], 'copy.png'])
+
+    def test_card_overwritten_by_a_copy_of_another_card(self, client, sample_character):
+        # Two indexed cards, then one file is replaced by a byte-copy of the
+        # other. Both rows now share a CRC; matching by CRC first tries to rename
+        # the first row onto the second's filename and trips the UNIQUE index.
+        other = client.post('/api/characters', data={
+            'data': json.dumps({'name': 'Other'}),
+            'image': (BytesIO(make_minimal_png()), 'other.png', 'image/png'),
+        }, content_type='multipart/form-data').get_json()
+
+        src = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        with open(src, 'rb') as f:
+            content = f.read()
+        with open(os.path.join(shared.CHARACTERS_DIR, other['filename']), 'wb') as f:
+            f.write(content)
+
+        r = client.get('/api/characters')
+        assert r.status_code == 200
+        # Both files still on disk, so both rows stay present and neither is missing.
+        chars = r.get_json()
+        assert sorted(c['filename'] for c in chars) == sorted(
+            [sample_character['filename'], other['filename']]
+        )
+        assert all(c['missing'] is False for c in chars)
+
+    def test_unchanged_files_are_not_reread(self, client, sample_character, monkeypatch):
+        client.get('/api/characters')      # prime the memos
+
+        crc_reads, card_reads = [], []
+        real_crc = card_store.file_crc
+        real_card = card_store.read_character_card
+        monkeypatch.setattr(card_store, 'file_crc',
+                            lambda p: (crc_reads.append(p), real_crc(p))[1])
+        monkeypatch.setattr(card_store, 'read_character_card',
+                            lambda p: (card_reads.append(p), real_card(p))[1])
+
+        assert client.get('/api/characters').status_code == 200
+        assert crc_reads == []
+        assert card_reads == []
+
+        # Touch the file and repeat, so a spy that silently never fires cannot
+        # make the assertions above pass for the wrong reason.
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        st = os.stat(path)
+        os.utime(path, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000_000))
+
+        assert client.get('/api/characters').status_code == 200
+        assert crc_reads == [path]
+        assert card_reads == [path]
+
+    def test_edited_card_is_reread(self, client, sample_character):
+        before = client.get('/api/characters').get_json()[0]
+        client.put(f'/api/characters/{sample_character["id"]}',
+                   json={'description': 'Rewritten on disk.'})
+
+        after = client.get('/api/characters').get_json()[0]
+        assert after['description'] == 'Rewritten on disk.'
+        # avatar_url carries ?v={crc} as the browser cache-buster, so a stale
+        # CRC here would leave clients showing the old image.
+        assert after['avatar_url'] != before['avatar_url']
+
+    def test_new_file_appears_without_a_restart(self, client, sample_character):
+        client.get('/api/characters')      # prime the memos
+
+        path = os.path.join(shared.CHARACTERS_DIR, 'latecomer.png')
+        with open(path, 'wb') as f:
+            f.write(_png_with_card(v2_card(name='Latecomer')))
+
+        chars = client.get('/api/characters').get_json()
+        assert 'Latecomer' in [c['name'] for c in chars]
 
     def test_sync_after_restoring_file_clears_missing_flag(self, client, sample_character):
         path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])

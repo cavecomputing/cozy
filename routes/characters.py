@@ -10,8 +10,9 @@ from werkzeug.utils import secure_filename
 
 import shared
 from card_store import (
-    CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, get_character_card, normalize_to_v2,
-    normalize_character_book, read_character_card, write_character_card,
+    CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, file_crc_cached, get_character_card,
+    normalize_to_v2, normalize_character_book, read_character_card, read_character_card_cached,
+    write_character_card,
 )
 from shared import get_db, not_found
 from png_utils import make_minimal_png, write_png_chara, extract_png_chara
@@ -120,19 +121,27 @@ def _char_json(conn, row):
     collections = _collections_for_char(conn, row['id'])
     if row['missing']:
         return jsonify(_char_to_dict(row, collections=collections))
-    card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+    # Cached reader: this path only serializes the card, never mutates it.
+    card = read_character_card_cached(os.path.join(shared.CHARACTERS_DIR, row['filename']))
     return jsonify(_char_to_dict(row, card, collections))
 
 
 def _sync_characters(conn):
     """Reconcile data/characters/ folder with the DB index."""
-    # Scan disk
+    # Scan disk. scandir gives is_file() straight from the directory read, and
+    # file_crc_cached does the one stat it needs, so an unchanged library costs
+    # a stat per card here instead of a full read of every file.
     disk_files = {}
-    for f in os.listdir(shared.CHARACTERS_DIR):
-        if f.lower().endswith('.png') and not f.startswith('.'):
-            filepath = os.path.join(shared.CHARACTERS_DIR, f)
-            if os.path.isfile(filepath):
-                disk_files[f] = file_crc(filepath)
+    with os.scandir(shared.CHARACTERS_DIR) as entries:
+        for entry in entries:
+            name = entry.name
+            if not name.lower().endswith('.png') or name.startswith('.'):
+                continue
+            if not entry.is_file():
+                continue
+            crc = file_crc_cached(entry.path)
+            if crc is not None:      # vanished between listing and stat
+                disk_files[name] = crc
 
     # Fetch DB records
     db_rows = conn.execute('SELECT * FROM characters').fetchall()
@@ -141,30 +150,37 @@ def _sync_characters(conn):
         db_by_crc.setdefault(r['crc'], r)
     db_by_filename = {r['filename']: r for r in db_rows}
     matched_ids = set()
-    disk_filenames = set(disk_files.keys())
 
+    # Pass 1: a file whose exact name is already indexed keeps that row. This
+    # has to finish before any CRC matching starts — byte-identical cards share
+    # a CRC, so a copy processed first would otherwise claim the original's row
+    # and rename it, dropping the original from the listing entirely.
+    unclaimed = []
     for filename, crc in disk_files.items():
-        if crc in db_by_crc:
-            row = db_by_crc[crc]
-            matched_ids.add(row['id'])
-            if row['filename'] != filename or row['missing']:
-                # If the new filename is taken by a stale DB entry, remove it first
-                stale = db_by_filename.get(filename)
-                if stale and stale['id'] != row['id'] and stale['filename'] not in disk_filenames:
-                    conn.execute('DELETE FROM characters WHERE id=?', (stale['id'],))
-                conn.execute('UPDATE characters SET filename=?, missing=0 WHERE id=?',
-                             (filename, row['id']))
-        elif filename in db_by_filename:
-            row = db_by_filename[filename]
-            matched_ids.add(row['id'])
+        row = db_by_filename.get(filename)
+        if row is None:
+            unclaimed.append((filename, crc))
+            continue
+        matched_ids.add(row['id'])
+        if row['crc'] != crc or row['missing']:
             conn.execute('UPDATE characters SET crc=?, missing=0 WHERE id=?',
                          (crc, row['id']))
-        else:
-            cur = conn.execute(
-                'INSERT INTO characters (filename, crc) VALUES (?, ?)',
-                (filename, crc)
-            )
-            matched_ids.add(cur.lastrowid)
+
+    # Pass 2: whatever is left is either a rename or genuinely new. Only an
+    # unclaimed row can be moved, so a filename is never assigned to two rows.
+    for filename, crc in unclaimed:
+        row = db_by_crc.get(crc)
+        if row is not None and row['id'] not in matched_ids:
+            matched_ids.add(row['id'])
+            conn.execute('UPDATE characters SET filename=?, missing=0 WHERE id=?',
+                         (filename, row['id']))
+            continue
+
+        cur = conn.execute(
+            'INSERT INTO characters (filename, crc) VALUES (?, ?)',
+            (filename, crc)
+        )
+        matched_ids.add(cur.lastrowid)
 
     for row in db_rows:
         if row['id'] not in matched_ids and not row['missing']:
@@ -193,7 +209,9 @@ def list_characters():
             if row['missing']:
                 result.append(_char_to_dict(row, collections=collections.get(row['id'], [])))
             else:
-                card = read_character_card(os.path.join(shared.CHARACTERS_DIR, row['filename']))
+                card = read_character_card_cached(
+                    os.path.join(shared.CHARACTERS_DIR, row['filename'])
+                )
                 result.append(_char_to_dict(row, card, collections.get(row['id'], [])))
         return jsonify(result)
 
