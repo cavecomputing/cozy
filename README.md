@@ -28,6 +28,7 @@ Run all commands from the repository root.
 
 ### Docker
 
+*The intended deployment method.*   
 Requirements: Git, Docker, and Docker Compose.
 
 ```bash
@@ -47,7 +48,7 @@ Requirements: Git, Python 3.12 or newer, and
 git clone https://github.com/cavecomputing/cozy.git
 cd cozy
 uv sync
-uv run python app.py
+uv run app.py
 ```
 
 Open <http://localhost:5001>.
