@@ -2,7 +2,9 @@ import { state, el, llm } from './state.js';
 import { autoResize, showToast, showApiNotice, hideApiNotice, maybeScrollToBottom, setSendButtonMode, updateComposerState } from './utils.js';
 import { appendMessage, renderMarkdown } from './messages.js';
 import { generateResponse } from './request-builder.js';
-import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
+import {
+    parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
+} from './thinking.js';
 import { maybeAutoNameChat } from './chats.js';
 import { clearDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
@@ -39,7 +41,12 @@ export async function handleSend() {
     autoResize(el.userInput);
     state.autoScroll = true;
 
+    // The reply belongs to the chat that was open when the request went out —
+    // switching chats mid-stream must not redirect it into the new one.
+    const chatId = state.activeChat.id;
+
     llm.abortController = new AbortController();
+    llm.stopRequested = false;
     const { signal } = llm.abortController;
     setSendButtonMode('stop');
     el.sendBtn.disabled = false;
@@ -59,35 +66,57 @@ export async function handleSend() {
     const msgBody = loadingMsg.querySelector('.msg-body');
     contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
 
+    // Kept in step with the stream so a Stop can still salvage it.
+    let streamed = '';
+    let reply = null;
+    let failed = false;
     try {
         // Persisting this user turn can move an older message outside the raw
         // context window. Fold that newly aged-out history into memory before
         // building the request so no turn falls between the two.
         await ensureSummaryReadyForSend(signal);
 
-        const reply = await generateResponse(0, (accumulated) => {
+        reply = await generateResponse(0, (accumulated) => {
+            streamed = accumulated;
             const parsed = parseThinkingContent(accumulated);
             renderThinkingBlock(msgBody, parsed);
             renderMarkdown(contentEl, parsed.response);
             maybeScrollToBottom();
         }, signal, nudge);
 
-        // Finalize: remove loading container and persist the real message
-        loadingContainer.remove();
-        await appendMessage('character', reply, true);
-        // Fold any history displaced by the new reply in the background. The
-        // next send's preflight waits for this job if it is still running.
-        maybeTriggerSummary();
-
     } catch (err) {
-        loadingContainer.remove();
         if (err.name !== 'AbortError') {
+            failed = true;
             console.error('LLM error:', err);
             showToast(err.message);
+        } else if (llm.stopRequested) {
+            // Stopped on purpose — keep the text as an ordinary reply. An
+            // implicit abort (chat switch) leaves stopRequested false and falls
+            // through to the discard below. Reasoning with no response yet is
+            // dropped: analyzeContext strips thinking, so it would persist as a
+            // blank bubble that never reaches the model again.
+            if (hasVisibleResponse(streamed)) reply = closeIncompleteThinking(streamed);
         }
     } finally {
         llm.abortController = null;
+        llm.stopRequested = false;
         setSendButtonMode('send');
         updateComposerState();
     }
+
+    loadingContainer.remove();
+    // appendMessage persists against whatever chat is active now, so a reply
+    // that outlived its chat has to be dropped rather than misfiled.
+    if (state.activeChat?.id !== chatId) return;
+    if (!reply) {
+        // Nothing salvaged. A stop is silent and a failure already toasted; a
+        // stream that simply completed empty is worth saying out loud, since
+        // otherwise the message POST answers with an opaque 400.
+        if (!failed && !signal.aborted) showToast('The model returned no text');
+        return;
+    }
+    await appendMessage('character', reply, true);
+    // Fold any history displaced by the new reply in the background. The
+    // next send's preflight waits for this job if it is still running.
+    maybeTriggerSummary();
 }

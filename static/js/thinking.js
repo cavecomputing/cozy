@@ -47,6 +47,25 @@ export function parseThinkingContent(text) {
     };
 }
 
+/** True when text carries body content outside of any thinking block. */
+export function hasVisibleResponse(text) {
+    return Boolean(text && parseThinkingContent(text).response.trim());
+}
+
+/**
+ * Close a thinking block left hanging by an interrupted stream. api.js only
+ * appends the close tag once content tokens arrive, so text captured mid-stream
+ * can carry an open tag; persisting that would make a later edit's text read
+ * back as reasoning.
+ */
+export function closeIncompleteThinking(text) {
+    if (!text) return '';
+    const parsed = parseThinkingContent(text);
+    if (!parsed.incomplete) return text;
+    // Thinking first, matching how finishEditing reassembles an edited message.
+    return parsed.thinkingSegment + parsed.response;
+}
+
 /** Render or update the thinking block above message content. */
 export function renderThinkingBlock(msgBody, parsed, { collapse = false } = {}) {
     let block = msgBody.querySelector('.thinking-block');

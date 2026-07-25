@@ -142,6 +142,17 @@ export function maybeScrollToBottom() {
     if (state.autoScroll) scrollToBottom();
 }
 
+/**
+ * Cancel the in-flight generation at the user's request. Unlike a bare
+ * `abort()` (see selectChat), this keeps whatever has streamed so far — the
+ * generation's catch block reads `stopRequested` to decide.
+ */
+export function stopGeneration() {
+    if (!llm.abortController) return;
+    llm.stopRequested = true;
+    llm.abortController.abort();
+}
+
 export function setSendButtonMode(mode) {
     const isStop = mode === 'stop';
     el.sendBtn.innerHTML = isStop ? STOP_SVG : SEND_SVG;

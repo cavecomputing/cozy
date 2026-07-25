@@ -156,6 +156,9 @@ export async function loadChats(charId) {
 
 export async function selectChat(chat) {
     saveDraft();
+    // A bare abort, not stopGeneration(): leaving a chat discards the partial
+    // reply. It belongs to the chat we're leaving, but persistence targets the
+    // chat we're entering, so there is nowhere safe to put it.
     if (llm.abortController) llm.abortController.abort();
 
     state.activeChat = chat;

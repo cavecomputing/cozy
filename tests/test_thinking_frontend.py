@@ -34,6 +34,40 @@ def test_thinking_parser_reports_tags_independently_of_content():
     """)
 
 
+def test_visible_response_ignores_thinking_only_text():
+    """A stream stopped mid-reasoning has nothing worth persisting."""
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { hasVisibleResponse } from './static/js/thinking.js';
+
+        assert.equal(hasVisibleResponse('<think>still reasoning'), false);
+        assert.equal(hasVisibleResponse('<think>done</think>   '), false);
+        assert.equal(hasVisibleResponse(''), false);
+        assert.equal(hasVisibleResponse(null), false);
+
+        assert.equal(hasVisibleResponse('<think>done</think>An answer'), true);
+        assert.equal(hasVisibleResponse('Just an answer'), true);
+    """)
+
+
+def test_close_incomplete_thinking_terminates_an_interrupted_block():
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { closeIncompleteThinking, parseThinkingContent } from './static/js/thinking.js';
+
+        const closed = closeIncompleteThinking('<think>cut off here');
+        assert.equal(closed, '<think>cut off here</think>');
+        // The result must re-parse as a complete block, or a later edit to the
+        // message would be swallowed into the reasoning.
+        assert.equal(parseThinkingContent(closed).incomplete, undefined);
+
+        // Already-closed and tag-free text pass through untouched.
+        assert.equal(closeIncompleteThinking('<think>r</think>body'), '<think>r</think>body');
+        assert.equal(closeIncompleteThinking('plain body'), 'plain body');
+        assert.equal(closeIncompleteThinking(''), '');
+    """)
+
+
 def test_incomplete_thinking_is_normalized_for_message_edits():
     run_node_module(r"""
         import assert from 'node:assert/strict';

@@ -5,7 +5,7 @@ import { state, el, llm, initElements } from './state.js';
 import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
-    debounce, updateComposerState, copyText,
+    debounce, updateComposerState, copyText, stopGeneration,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
@@ -669,7 +669,7 @@ function bindChatHandlers() {
         if (llm.abortController) {
             e.preventDefault();
             e.stopPropagation();
-            llm.abortController.abort();
+            stopGeneration();
             return;
         }
         Flyouts.closeAllExcept(null);
@@ -898,7 +898,7 @@ function bindComposerHandlers() {
 
     // Send / Stop
     el.sendBtn.addEventListener('click', () => {
-        if (llm.abortController) llm.abortController.abort();
+        if (llm.abortController) stopGeneration();
         else handleSend();
     });
     el.userInput.addEventListener('keydown', e => {

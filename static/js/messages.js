@@ -5,7 +5,9 @@ import {
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode,
 } from './utils.js';
-import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
+import {
+    parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
+} from './thinking.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { generateResponse } from './request-builder.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
@@ -54,6 +56,18 @@ function updateSwipeNav(msgEl, swipes, idx, isGreeting) {
     next.title = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
 }
 
+/**
+ * Render a message body from raw swipe text. Drops any existing thinking block
+ * first — the text is a different swipe, so an old (or half-streamed) block
+ * must not survive into it.
+ */
+function renderSwipeBody(msgBody, contentEl, text) {
+    const parsed = parseThinkingContent(text);
+    msgBody.querySelector('.thinking-block')?.remove();
+    renderThinkingBlock(msgBody, parsed);
+    renderMarkdown(contentEl, parsed.hasThinking ? parsed.response : text);
+}
+
 export async function generateSwipe(msgEl, swipes, idx) {
     if (!state.apiModel) {
         showApiNotice();
@@ -68,16 +82,20 @@ export async function generateSwipe(msgEl, swipes, idx) {
 
     contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
     llm.abortController = new AbortController();
+    llm.stopRequested = false;
     const regenSignal = llm.abortController.signal;
     setSendButtonMode('stop');
     el.sendBtn.disabled = false;
     updateComposerState();
 
     let newContent;
+    // Kept in step with the stream so a Stop can still salvage it.
+    let streamed = '';
     try {
         await flushLLMSettingsSave({ strict: true });
         await ensureSummaryReadyForSend(regenSignal, { excludeLastN: 1 });
         newContent = await generateResponse(1, (accumulated) => {
+            streamed = accumulated;
             const parsed = parseThinkingContent(accumulated);
             renderThinkingBlock(msgBody, parsed);
             renderMarkdown(contentEl, parsed.response);
@@ -88,11 +106,21 @@ export async function generateSwipe(msgEl, swipes, idx) {
             console.error('Regen error:', err);
             showToast(err.message);
         }
-        const prevText = swipes[idx]?.content || '';
-        renderMarkdown(contentEl, prevText);
-        return null;
+        // An explicit Stop keeps its partial as a swipe of its own, so the
+        // previous one stays reachable by swiping left. Anything else — an
+        // error, a chat switch, or reasoning that never reached a response —
+        // falls back to the swipe that was on screen.
+        const kept = err.name === 'AbortError' && llm.stopRequested && hasVisibleResponse(streamed)
+            ? closeIncompleteThinking(streamed)
+            : '';
+        if (!kept) {
+            renderSwipeBody(msgBody, contentEl, swipes[idx]?.content || '');
+            return null;
+        }
+        newContent = kept;
     } finally {
         llm.abortController = null;
+        llm.stopRequested = false;
         setSendButtonMode('send');
         updateComposerState();
     }
@@ -127,11 +155,7 @@ function showSwipe(msgEl, swipes, idx) {
     const contentEl = msgEl.querySelector('.message-content');
     const msgBody = msgEl.querySelector('.msg-body');
     msgEl.dataset.rawText = newText;
-    const swipeParsed = parseThinkingContent(newText);
-    const prevThink = msgBody.querySelector('.thinking-block');
-    if (prevThink) prevThink.remove();
-    renderThinkingBlock(msgBody, swipeParsed);
-    renderMarkdown(contentEl, swipeParsed.hasThinking ? swipeParsed.response : newText);
+    renderSwipeBody(msgBody, contentEl, newText);
 
     const stateMsg = findStateMsg(swipes, msgEl);
     if (stateMsg) {
