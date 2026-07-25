@@ -1489,13 +1489,27 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     pointer-events: none;
     display: flex;
     flex-direction: column;
+
+    /* Vertical rhythm of the composer stack: flyouts / token meter / textarea.
+       The same gap is used above and below the meter so a flyout sits the same
+       distance off the meter as the meter does off the textarea. */
+    --composer-meter-gap: 0.28rem;
+    --composer-meter-height: 0px;
+}
+
+/* Meter row height = the label's line box (line-height: 1), which is taller
+   than the 8px track. Only claim the space when the meter is actually shown. */
+#input-container:has(.context-token-meter:not([hidden])) {
+    --composer-meter-height: 0.72rem;
 }
 
 
 /* ── Chat flyout popover ─────────────────────────────────────────────────── */
 .chat-flyout {
     position: absolute;
-    bottom: calc(100% + 11px);
+    /* 100% is #input-wrapper's padding box, so add its top border to reach the
+       visible edge before clearing the token meter. */
+    bottom: calc(100% + 1px + var(--composer-meter-height) + var(--composer-meter-gap) * 2);
     left: -1px;
     width: max-content;
     min-width: 160px;
@@ -1686,7 +1700,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     gap: 0.55rem;
     width: 100%;
     max-width: var(--chat-max-width, 56rem);
-    margin: 0 auto 0.28rem;
+    margin: 0 auto var(--composer-meter-gap);
     padding: 0;
     color: var(--text-secondary);
     font-size: 0.72rem;
