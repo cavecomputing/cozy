@@ -15,14 +15,18 @@ model blank to use the matching main connection value.
 Settings:
 
 - **Size cap:** Maximum summary size as a percentage of the context window.
-- **Messages between updates:** How many additional messages Cozy aims to make
-  room for when context pressure triggers a summary update. Cozy estimates this
-  token headroom from recent message sizes. The same value limits the number of
-  old messages processed by one summarizer request.
+- **Batch size:** How many of the oldest messages Cozy folds into the summary in
+  one update. The same value limits the number of old messages processed by one
+  summarizer request.
 
-The message target is approximate rather than a strict schedule. Cozy does not
-summarize while everything fits, and an unusually long message can force an
-earlier update. One user or character message counts as one message.
+Cozy does not summarize while everything still fits. Once the oldest message no
+longer fits, it summarizes exactly one batch and drops those messages from the
+raw transcript. One user or character message counts as one message, whatever
+its length.
+
+A larger batch means fewer, better-compressed updates, but a bigger drop in
+verbatim history each time one runs. If a chat holds fewer messages than the
+batch size, Cozy retires what it can and always keeps the newest message.
 
 Summarization sends old chat content to the selected LLM server and may add API
 cost or local processing time.

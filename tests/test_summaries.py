@@ -1210,7 +1210,7 @@ def test_summary_llm_settings_fallback(client):
 def test_config_defaults_seeded(client):
     s = get_settings()
     assert s['summary_cap_pct'] == '10'
-    assert s['summary_trigger_interval'] == '20'
+    assert s['summary_trigger_interval'] == '10'
 
 
 def test_unlimited_context_disables_summary_cap():

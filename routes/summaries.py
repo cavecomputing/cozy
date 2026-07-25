@@ -132,9 +132,9 @@ def _cap_tokens(settings):
 
 def _trigger_interval(settings):
     try:
-        return max(1, int(settings.get('summary_trigger_interval') or 20))
+        return max(1, int(settings.get('summary_trigger_interval') or 10))
     except (TypeError, ValueError):
-        return 20
+        return 10
 
 
 # While the summary sits below this fraction of the cap it grows additively; once it

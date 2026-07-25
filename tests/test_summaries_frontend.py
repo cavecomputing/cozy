@@ -25,7 +25,6 @@ BASE_SETUP = r"""
     import { state, el } from './static/js/state.js';
     import { API } from './static/js/api.js';
     import {
-        estimateTargetHeadroomTokens,
         ensureSummaryReadyForSend,
         maybeTriggerSummary,
     } from './static/js/summaries.js';
@@ -57,46 +56,6 @@ BASE_SETUP = r"""
 """
 
 
-def test_target_headroom_uses_recent_message_average():
-    code = BASE_SETUP + r"""
-        const messages = Array.from({ length: 20 }, () => ({
-            role: 'user',
-            text: 'x'.repeat(40),
-        }));
-
-        // 10 text tokens + 4 message-framing tokens, projected across 20
-        // future messages.
-        assert.equal(estimateTargetHeadroomTokens(messages, 20), 280);
-    """
-    run_node_module(code)
-
-
-def test_target_headroom_caps_one_large_outlier_at_twice_the_median():
-    code = BASE_SETUP + r"""
-        const messages = Array.from({ length: 19 }, () => ({
-            role: 'user',
-            text: 'x'.repeat(40),
-        }));
-        messages.push({ role: 'character', text: 'x'.repeat(4000) });
-
-        // Typical cost is 14; the 1004-token outlier contributes at most 28.
-        assert.equal(estimateTargetHeadroomTokens(messages, 20), 294);
-    """
-    run_node_module(code)
-
-
-def test_target_headroom_projects_from_a_short_available_sample():
-    code = BASE_SETUP + r"""
-        const messages = Array.from({ length: 4 }, () => ({
-            role: 'user',
-            text: 'x'.repeat(40),
-        }));
-
-        assert.equal(estimateTargetHeadroomTokens(messages, 20), 280);
-    """
-    run_node_module(code)
-
-
 def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
     code = BASE_SETUP + r"""
         const calls = [];
@@ -116,17 +75,18 @@ def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
 
         assert.equal(calls.length, 1);
         assert.equal(calls[0].chatId, 7);
-        // Full context accounting includes message framing and fixed prompt
-        // content, so the first two turns are outside this tiny 32-token window.
+        // Only three messages exist, so the 20-message batch clamps to the two
+        // oldest and leaves the newest turn raw.
         assert.equal(calls[0].up_to_msg_id, 2);
     """
     run_node_module(code)
 
 
-def test_first_boundary_creates_adaptive_headroom_within_safety_bound():
+def test_run_retires_exactly_one_flat_batch():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
+        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -148,43 +108,55 @@ def test_first_boundary_creates_adaptive_headroom_within_safety_bound():
         await maybeTriggerSummary();
 
         assert.equal(calls.length, 1);
-        // The token target wants more room, but prepayment may never consume
-        // more than half of the 23 fitting messages.
-        assert.equal(calls[0].up_to_msg_id, 13);
+        // The configured batch is retired verbatim: the 10 oldest ids, ending
+        // at 10. The old estimator stopped at 13 here, driven by the window
+        // size rather than by the setting.
+        assert.equal(calls[0].up_to_msg_id, 10);
     """
     run_node_module(code)
 
 
-def test_adaptive_target_retires_fewer_large_old_messages_for_small_recent_average():
+def test_batch_size_is_independent_of_message_length():
+    """The defect this replaces: batch size used to be derived from token
+    estimates, so unusually large messages shrank the batch and made updates
+    fire far more often than the setting asked for."""
     code = BASE_SETUP + r"""
-        el.settingsContextTokens.value = '280';
         el.samplerMaxTokens.value = '10';
-        state.messages = Array.from({ length: 25 }, (_, i) => ({
-            id: i + 1,
-            role: i % 2 ? 'character' : 'user',
-            // Five older messages are much larger than the twenty-message
-            // sample that predicts the upcoming conversation.
-            text: i < 5 ? 'x'.repeat(100) : 'x'.repeat(10),
-        }));
-        const calls = [];
-        API.runSummary = async (chatId, options) => {
-            calls.push(options.up_to_msg_id);
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: { lines: [] },
-                summary_up_to_msg_id: options.up_to_msg_id,
-                summary_status: 'idle',
-                summary_status_detail: '',
+        state.summaryTriggerInterval = '10';
+
+        async function targetFor(contextTokens, textFor) {
+            el.settingsContextTokens.value = String(contextTokens);
+            state.messages = Array.from({ length: 25 }, (_, i) => ({
+                id: i + 1,
+                role: i % 2 ? 'character' : 'user',
+                text: textFor(i),
+            }));
+            state.activeChat.summary_up_to_msg_id = null;
+            state.activeChat.summary_status = 'idle';
+            const calls = [];
+            API.runSummary = async (chatId, options) => {
+                calls.push(options.up_to_msg_id);
+                return {
+                    id: chatId,
+                    summary_enabled: true,
+                    summary: { lines: [] },
+                    summary_up_to_msg_id: options.up_to_msg_id,
+                    summary_status: 'idle',
+                    summary_status_detail: '',
+                };
             };
-        };
+            await maybeTriggerSummary();
+            return calls;
+        }
 
-        await maybeTriggerSummary();
-
-        // One message is aged out. Four more large old messages plus three
-        // small ones create the projected headroom, well before the old
-        // half-window message-count cap at id 13.
-        assert.deepEqual(calls, [8]);
+        // Uniform, modest turns.
+        assert.deepEqual(await targetFor(202, i => `m-${i}-abcdefghij`), [10]);
+        // Five outsized old messages — previously these filled the projected
+        // headroom early and cut the batch short at id 8.
+        assert.deepEqual(
+            await targetFor(280, i => (i < 5 ? 'x'.repeat(100) : 'x'.repeat(10))),
+            [10],
+        );
     """
     run_node_module(code)
 
@@ -195,15 +167,16 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
+        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
             text: `m-${i}-abcdefghij`,
         }));
-        // The message the run boundary lands on (id 13 — see the block test
-        // above) never persisted. Retirement counts the oldest PERSISTED ids,
-        // so the block becomes ids 1..12 plus 14.
-        delete state.messages[12].id;
+        // The message the run boundary lands on (id 10 — see the flat-batch
+        // test above) never persisted. Retirement counts the oldest PERSISTED
+        // ids, so the batch becomes ids 1..9 plus 11.
+        delete state.messages[9].id;
         const calls = [];
         API.runSummary = async (chatId, options) => {
             calls.push(options.up_to_msg_id);
@@ -219,7 +192,7 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
 
         await maybeTriggerSummary();
 
-        assert.deepEqual(calls, [14]);
+        assert.deepEqual(calls, [11]);
     """
     run_node_module(code)
 
@@ -230,6 +203,7 @@ def test_run_target_follows_id_order_not_array_position():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
+        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -238,7 +212,7 @@ def test_run_target_follows_id_order_not_array_position():
         // Simulate an ordering bug: a recent message sits at a position inside
         // the block the run boundary covers. Same-parity positions keep the
         // user/character alternation (and thus the token math) unchanged.
-        [state.messages[10], state.messages[22]] = [state.messages[22], state.messages[10]];
+        [state.messages[6], state.messages[22]] = [state.messages[22], state.messages[6]];
         const calls = [];
         API.runSummary = async (chatId, options) => {
             calls.push(options.up_to_msg_id);
@@ -254,23 +228,23 @@ def test_run_target_follows_id_order_not_array_position():
 
         await maybeTriggerSummary();
 
-        // The 13 oldest ids end at 13 — not id 23, which happens to occupy
-        // position 10 in the mis-ordered array.
-        assert.deepEqual(calls, [13]);
+        // The 10 oldest ids end at 10 — not id 23, which happens to occupy
+        // position 6 in the mis-ordered array.
+        assert.deepEqual(calls, [10]);
     """
     run_node_module(code)
 
 
-def test_small_window_is_never_collapsed_by_adaptive_headroom():
-    """When the whole window holds fewer messages than the configured target
-    (big prompt or small context), prepayment must retire at most half of the
-    still-fitting messages — not everything but the newest two. This is the
-    32k-era production wipe."""
+def test_oversized_batch_clamps_and_keeps_the_newest_message_raw():
+    """A batch larger than the unsummarized history must retire what exists and
+    stop one short, so the newest turn is never summarized out from under a
+    swipe or an in-flight send."""
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
-        // Long-ish turns: the 12-message candidate set (smaller than the
-        // 20-message interval) holds ~26 tokens each, so only ~7 fit.
+        state.summaryTriggerInterval = '20';
+        // Long-ish turns, and a watermark that leaves only 12 unsummarized
+        // messages (ids 14..25) against a 20-message batch.
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -292,13 +266,79 @@ def test_small_window_is_never_collapsed_by_adaptive_headroom():
 
         await maybeTriggerSummary();
 
-        assert.equal(calls.length, 1);
-        const remaining = 25 - calls[0];
-        // The old formula kept only the newest 2 (upTo 23). At least half of
-        // the messages that still fit must survive the run.
-        assert.ok(remaining >= 4,
-            `kept only ${remaining} messages (upTo ${calls[0]})`);
-        assert.ok(calls[0] > 13, 'still retires the aged messages');
+        // 11 of the 12 candidates retire; id 25 stays verbatim.
+        assert.deepEqual(calls, [24]);
+    """
+    run_node_module(code)
+
+
+def test_backlog_larger_than_the_batch_drains_one_batch_per_run():
+    """A shrunken context can age out more than one batch at once. Each run
+    still retires exactly one batch so a single summarizer request never has to
+    swallow the whole backlog."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '60';
+        el.samplerMaxTokens.value = '10';
+        state.summaryTriggerInterval = '10';
+        state.messages = Array.from({ length: 40 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        // Far more than 10 messages are outside this tiny window.
+        await maybeTriggerSummary();
+        assert.deepEqual(calls, [10]);
+
+        // The next run picks up the following batch rather than the backlog.
+        await maybeTriggerSummary();
+        assert.deepEqual(calls, [10, 20]);
+    """
+    run_node_module(code)
+
+
+def test_second_run_without_new_messages_is_a_no_op():
+    """Once a batch is folded in, nothing is aged out and unsummarized, so a
+    repeat trigger must not issue another request."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.summaryTriggerInterval = '10';
+        state.messages = Array.from({ length: 25 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await maybeTriggerSummary();
+        assert.deepEqual(calls, [10]);
+
+        await maybeTriggerSummary();
+        assert.deepEqual(calls, [10], 'no second request without new messages');
     """
     run_node_module(code)
 
@@ -407,9 +447,9 @@ def test_message_target_waits_for_context_pressure_then_creates_headroom():
             text: 'm-44-abcdefghij',
         });
         await maybeTriggerSummary();
-        // One message aged; the token target is capped at half the 24 fitting
-        // messages, so the next retirement covers ids 21..33.
-        assert.deepEqual(calls, [33]);
+        // One message aged, so the next whole batch retires: ids 21..40. The
+        // batch does not shrink just because the window is nearly full.
+        assert.deepEqual(calls, [40]);
     """
     run_node_module(code)
 

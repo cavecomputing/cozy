@@ -40,7 +40,7 @@ export const state = {
     summaryApiKeySet:    false,
     summaryApiModel:     '',
     summaryCapPct:       '10',
-    summaryTriggerInterval: '20',
+    summaryTriggerInterval: '10',
     _summaryPollTimer:   null,   // interval id while a run is polling
 };
 

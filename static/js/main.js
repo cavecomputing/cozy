@@ -376,7 +376,7 @@ function bindSettingsHandlers() {
     });
     el.summaryCapInput?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryIntervalInput?.addEventListener('input', () => {
-        state.summaryTriggerInterval = el.summaryIntervalInput.value || '20';
+        state.summaryTriggerInterval = el.summaryIntervalInput.value || '10';
         queueLLMSettingsSave({ summary_trigger_interval: state.summaryTriggerInterval });
     });
     el.summaryIntervalInput?.addEventListener('blur', flushLLMSettingsSave);
