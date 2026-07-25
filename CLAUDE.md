@@ -36,6 +36,11 @@ Single-process Flask app. Entry point [app.py](app.py) registers eight blueprint
 
 Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`, plus `pinned_at`/`archived_at` for pin & archive state). Routes that need card data read it from the PNG via [png_utils.py](png_utils.py) at request time.
 
+Cards in [default_characters/](default_characters/) ship with the repo and are copied into
+`data/characters/` once, by `seed_default_characters()` in [shared.py](shared.py), on the first run of a
+fresh install. From then on they are ordinary cards — deleting one keeps it deleted, so never
+re-seed on a schedule or reset the `default_characters_seeded` setting.
+
 Everything else lives in `data/cozy_chat.db`: `character_collections` and `character_collection_members` (the gallery/collection grouping), `chats`, `messages`, `message_swipes`, `personas`, `settings`, `system_prompts`, `api_presets`, and `lorebooks`. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py). Keep startup idempotent so calling `init_db()` repeatedly is safe — existing-DB column additions go through the `PRAGMA table_info` / `ALTER TABLE ADD COLUMN` migration block near the end of `init_db()`.
 
 ### Prompt template system

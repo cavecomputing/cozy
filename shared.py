@@ -1,10 +1,14 @@
 """Shared state, path constants, and DB helpers used by app.py and all route modules."""
 
+import logging
 import os
+import shutil
 import sqlite3
 from contextlib import contextmanager
 
 from flask import jsonify
+
+log = logging.getLogger('cozy')
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +18,9 @@ CHARACTERS_DIR = os.path.join(DATA_DIR, 'characters')
 PERSONAS_DIR   = os.path.join(DATA_DIR, 'personas')
 THEMES_DIR     = os.path.join(DATA_DIR, 'themes')
 BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
+# Character cards shipped with Cozy. Copied into CHARACTERS_DIR once, on the
+# first run of a fresh install — see seed_default_characters().
+BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 
@@ -275,6 +282,11 @@ def _run_migrations(conn):
 
 
 def init_db():
+    # Whether this call is creating the database for the first time. Only a
+    # brand-new install gets the bundled character cards; upgrading an existing
+    # install must not drop a character into a library the user already curates.
+    fresh_install = not os.path.exists(DATABASE)
+
     with get_db() as conn:
         # WAL and synchronous are file-level settings that persist once set.
         conn.execute('PRAGMA journal_mode=WAL')
@@ -488,6 +500,16 @@ def init_db():
                 (_sk, _sv)
             )
 
+        # Bundled-character bookkeeping. '0' means seed_default_characters()
+        # still has work to do; '1' means the copy already happened (or was
+        # never owed, on an upgraded install). Written once and never reset, so
+        # deleting a bundled character keeps it deleted.
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('default_characters_seeded', ?) "
+            "ON CONFLICT(key) DO NOTHING",
+            ('0' if fresh_install else '1',)
+        )
+
         # Seed a default persona if the table is empty
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:
             conn.execute(
@@ -503,3 +525,41 @@ def init_db():
                 "INSERT INTO system_prompts (name, content, post_history_content) VALUES (?, ?, ?)",
                 ('Default', DEFAULT_PROMPT_TEMPLATE, DEFAULT_POST_HISTORY_TEMPLATE)
             )
+
+
+def seed_default_characters():
+    """Copy the bundled character cards into CHARACTERS_DIR on a fresh install.
+
+    Runs at most once per data directory: the `default_characters_seeded`
+    setting is flipped to '1' afterwards whether or not anything was copied, so
+    a character the user later deletes stays deleted across restarts. The copies
+    are ordinary cards on disk from then on — `_sync_characters` indexes them on
+    the next `/api/characters` request, and nothing marks them as special.
+    """
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key='default_characters_seeded'"
+        ).fetchone()
+        if row is None or row['value'] != '0':
+            return
+
+        if os.path.isdir(BUNDLED_CHARACTERS_DIR):
+            os.makedirs(CHARACTERS_DIR, exist_ok=True)
+            for filename in sorted(os.listdir(BUNDLED_CHARACTERS_DIR)):
+                if not filename.lower().endswith('.png') or filename.startswith('.'):
+                    continue
+                source = os.path.join(BUNDLED_CHARACTERS_DIR, filename)
+                target = os.path.join(CHARACTERS_DIR, filename)
+                if not os.path.isfile(source) or os.path.exists(target):
+                    continue
+                try:
+                    shutil.copyfile(source, target)
+                except OSError:
+                    # A default character is a nicety, not a reason to refuse to
+                    # start. Log it and leave the flag unset so a later run retries.
+                    log.exception('Could not seed bundled character %s', filename)
+                    return
+
+        conn.execute(
+            "UPDATE settings SET value='1' WHERE key='default_characters_seeded'"
+        )

@@ -86,6 +86,7 @@ for blueprint in (
 
 # ── Initialise DB (runs under both gunicorn and `python app.py`) ────────────
 shared.init_db()
+shared.seed_default_characters()
 
 # ── Entry point ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':

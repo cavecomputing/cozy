@@ -221,3 +221,10 @@ On first run, the database is seeded with:
 
 Auto Summaries are disabled on new chats until the user enables them for that
 chat.
+
+A fresh install also copies the character cards in `default_characters/` into
+`data/characters/`. They become ordinary cards on disk at that point — the
+`characters` index picks them up on the next listing request, and deleting one
+deletes it for good. The copy is guarded by the `default_characters_seeded`
+setting, which is set to `1` on the first run of a fresh install and to `1`
+immediately on an upgraded install (existing libraries are never seeded).
