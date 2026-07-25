@@ -47,6 +47,52 @@ def read_character_card(path):
         return None
 
 
+# Both of the above pull an entire card off disk — often more than a megabyte —
+# and the list endpoint used to do it twice per card on every single request.
+# path -> ((mtime_ns, size), value). Keyed by path rather than by stat so a
+# changed file replaces its own entry instead of leaving one behind per edit.
+_crc_memo = {}
+_card_memo = {}
+
+
+def _memoized(memo, path, compute):
+    """Return compute(path), reused while the file's mtime and size are unchanged.
+
+    The stat happens on every call, so a new or modified file is never served a
+    stale value: only a file whose mtime *and* size both still match skips the
+    read. No lock — dict get/set are atomic under the GIL, and two threads
+    racing a miss compute the same value.
+    """
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    stamp = (st.st_mtime_ns, st.st_size)
+    hit = memo.get(path)
+    if hit is not None and hit[0] == stamp:
+        return hit[1]
+    value = compute(path)
+    # Caching a None result is deliberate: a PNG carrying no card chunk should
+    # not be re-read on every request either.
+    memo[path] = (stamp, value)
+    return value
+
+
+def file_crc_cached(path):
+    """CRC32 of *path* as hex, or None if it cannot be stat'd."""
+    return _memoized(_crc_memo, path, file_crc)
+
+
+def read_character_card_cached(path):
+    """Parsed card data for *path*, or None.
+
+    The returned dict is SHARED between callers. Treat it as read-only: any
+    path that mutates a card before writing it back (update_character does)
+    must call read_character_card() instead, or it will poison the cache.
+    """
+    return _memoized(_card_memo, path, read_character_card)
+
+
 def get_character_card(conn, char_id):
     """Return (row, full_card_dict) for *char_id*, or (None, None) if absent/missing."""
     row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()

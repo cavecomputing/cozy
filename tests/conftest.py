@@ -15,6 +15,7 @@ _IMPORT_DATA_DIR = tempfile.TemporaryDirectory(prefix='cozy-test-import-')
 os.environ['COZY_DATA_DIR'] = _IMPORT_DATA_DIR.name
 
 import app as app_module
+import card_store
 import shared
 from png_utils import make_minimal_png
 
@@ -44,6 +45,11 @@ def _test_db(tmp_path, monkeypatch):
     monkeypatch.setattr(shared, 'PERSONAS_DIR', personas_dir)
     monkeypatch.setattr(shared, 'THEMES_DIR', themes_dir)
     monkeypatch.setattr(shared, 'THUMBS_DIR', thumbs_dir)
+    # The CRC and card memos are module-level and outlive a single test. Each
+    # test gets its own tmp_path so the keys never actually collide, but the
+    # tests should not quietly depend on that.
+    card_store._crc_memo.clear()
+    card_store._card_memo.clear()
     shared.init_db()
     yield db_path
 
