@@ -85,7 +85,7 @@ Database migrations run automatically when Cozy starts.
 
 ## Data and security
 
-Cozy stores chats, settings, API keys, and other private data in `data/`.
+Cozy stores chats, settings, API keys, and other private data in `data/` (for either docker or uv).
 Character cards and avatar images are stored beside the database in that
 directory.
 
