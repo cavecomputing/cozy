@@ -1,7 +1,7 @@
 import { state, icons } from './state.js';
 import { API } from './api.js';
 import { Modal } from './modal.js';
-import { applyAvatar, showToast } from './utils.js';
+import { applyAvatar, AVATAR, showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
 import { renderLorebookList } from './lorebooks.js';
@@ -268,7 +268,7 @@ function renderGrid() {
         avatarWrap.className = 'gallery-card-avatar-wrap';
         const avatar = document.createElement('div');
         avatar.className = 'gallery-card-avatar avatar';
-        applyAvatar(avatar, char);
+        applyAvatar(avatar, char, '?', AVATAR.MD);
         avatarWrap.appendChild(avatar);
 
         const star = document.createElement('button');
@@ -354,7 +354,9 @@ function fillEditor(char) {
     }
     e.inspectorEmpty.hidden = true;
     e.editor.hidden = false;
-    applyAvatar(e.heroBg, char);
+    // Hero keeps the true aspect ratio — the user drags background-position
+    // through a tall portrait, which a square crop would flatten away.
+    applyAvatar(e.heroBg, char, '?', AVATAR.LG);
     applyHeroPosition(char);
     e.heading.textContent = char.name || 'Unnamed';
     e.subtitle.textContent = characterSubtitle(char);

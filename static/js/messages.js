@@ -1,7 +1,7 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
-    applyAvatar, resolveTemplateVariables, showToast, showApiNotice,
+    applyAvatar, AVATAR, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode,
 } from './utils.js';
@@ -293,10 +293,10 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     const avatarDiv = document.createElement('div');
     if (role === 'user') {
         avatarDiv.className = 'avatar user-avatar';
-        applyAvatar(avatarDiv, p, 'ME');
+        applyAvatar(avatarDiv, p, 'ME', AVATAR.SM);
     } else {
         avatarDiv.className = 'avatar';
-        applyAvatar(avatarDiv, char);
+        applyAvatar(avatarDiv, char, '?', AVATAR.SM);
     }
 
     const wrapper = document.createElement('div');

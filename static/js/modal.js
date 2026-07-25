@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, showToast, Flyouts, updateComposerState } from './utils.js';
+import { applyAvatar, AVATAR, showToast, Flyouts, updateComposerState } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
@@ -152,7 +152,7 @@ function populate(char) {
     fields.version.value       = char.character_version         || '';
     tagEditor.set(char.tags);
     greetingEditor.set(char.alternate_greetings);
-    applyAvatar(avatarPreview, char);
+    applyAvatar(avatarPreview, char, '?', AVATAR.SM);
 }
 
 function clearForm() {

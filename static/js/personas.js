@@ -1,6 +1,6 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { showToast, savePrefs, applyAvatar } from './utils.js';
+import { showToast, savePrefs, applyAvatar, AVATAR } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
@@ -19,7 +19,7 @@ export function renderPersonaList() {
 
         const avatar = document.createElement('div');
         avatar.className = 'avatar small user-avatar';
-        applyAvatar(avatar, p);
+        applyAvatar(avatar, p, '?', AVATAR.SM);
 
         const info = document.createElement('div');
         info.className = 'persona-info';
@@ -103,7 +103,7 @@ export function updateUserProfile() {
     if (el.userName) el.userName.textContent = p.name;
     if (el.userTagline) el.userTagline.textContent = p.tagline || p.description || '';
     if (el.userAvatar) {
-        applyAvatar(el.userAvatar, p);
+        applyAvatar(el.userAvatar, p, '?', AVATAR.SM);
     }
 }
 
@@ -121,7 +121,7 @@ export function showPersonaForm(editPersona = null) {
     nameInput.value = editPersona?.name || '';
     taglineInput.value = editPersona?.tagline || '';
     descInput.value = editPersona?.description || '';
-    applyAvatar(avatarPreview, editPersona);
+    applyAvatar(avatarPreview, editPersona, '?', AVATAR.SM);
 
     let selectedFile = null;
     let objectUrl = null;

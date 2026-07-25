@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
-import { applyAvatar, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
+import { applyAvatar, AVATAR, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages } from './messages.js';
 
@@ -36,7 +36,7 @@ export function renderCharList() {
 
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'avatar';
-        applyAvatar(avatarDiv, char);
+        applyAvatar(avatarDiv, char, '?', AVATAR.SM);
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'char-name hide-on-collapse';
