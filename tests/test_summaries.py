@@ -153,6 +153,7 @@ def test_parse_compressed_lines_accepts_a_shrunk_batch(reply, count, expected):
 @pytest.mark.parametrize('reply,count', [
     ('', 3),                        # nothing usable
     ('   \n```\n```', 3),           # fences only
+    ('- a\n- b\n- c', 3),           # unchanged line count: no compression
     ('- a\n- b\n- c\n- d', 3),      # grew: not a compression
 ])
 def test_parse_compressed_lines_rejects_unusable_replies(reply, count):
@@ -169,6 +170,15 @@ def test_reinsert_pins_proportionally_places_by_relative_position():
     out = [l['text'] for l in reinsert_pins_proportionally(story, held)]
     assert out[0] == 'EARLY'
     assert out.index('LATE') > out.index('i')
+
+
+def test_reinsert_pins_reuses_an_identical_regenerated_line():
+    story = [{'section': 'story', 'text': 'SAME BEAT', 'pinned': False}]
+    held = [(0.5, {'section': 'story', 'text': 'SAME BEAT', 'pinned': True})]
+
+    out = reinsert_pins_proportionally(story, held)
+
+    assert out == [{'section': 'story', 'text': 'SAME BEAT', 'pinned': True}]
 
 
 # ── Append-mode pure logic ──────────────────────────────────────────────────
@@ -579,11 +589,11 @@ def test_compression_keeps_pins_and_leaves_bonds_alone(client, sample_chat, monk
     assert texts == ['merged', 'KEEP', 'merged', 'A & B: allies']
 
 
-def test_compression_keeps_originals_when_a_batch_reply_is_unusable(
+def test_compression_aborts_the_pass_when_a_batch_reply_is_unusable(
     client, sample_chat, monkeypatch
 ):
-    """One bad reply must degrade the pass, not abort it or lose those beats."""
-    replies = iter(('- a\n- b\n- c\n- d', '- merged'))   # first grew: rejected
+    """A bad later reply discards earlier in-memory splices from the same pass."""
+    replies = iter(('- merged', '- a\n- b\n- c\n- d'))   # second grew: rejected
 
     def complete(messages, cap_tokens=0):
         return next(replies)
@@ -596,9 +606,9 @@ def test_compression_keeps_originals_when_a_batch_reply_is_unusable(
         {'section': 'story', 'text': 'S3', 'pinned': False},
         {'section': 'story', 'text': 'S4', 'pinned': False},
     ]}
-    # Batches apply newest-first, so the rejected reply lands on the later batch.
-    out = [l['text'] for l in summaries._compress_story(sample_chat['id'], obj, 3)['lines']]
-    assert out == ['merged', 'PIN', 'S3', 'S4']
+    with pytest.raises(RuntimeError, match=r'Compression batch 2/2 failed'):
+        summaries._compress_story(sample_chat['id'], obj, 3)
+    assert [l['text'] for l in obj['lines']] == ['S1', 'S2', 'PIN', 'S3', 'S4']
 
 
 def test_append_overflow_is_trimmed_without_second_call(client, sample_chat, monkeypatch):
@@ -1387,6 +1397,88 @@ def test_compress_job_shrinks_story_without_moving_the_watermark(
     assert row['summary_status'] == 'idle'
 
 
+@pytest.mark.parametrize('failed_call', [1, 2])
+def test_compress_job_failure_preserves_summary_and_watermark_atomically(
+    client, sample_chat, monkeypatch, failed_call
+):
+    """Neither a first-batch nor later-batch failure may publish partial work or
+    feed unchanged lines through cap trimming."""
+    cid = sample_chat['id']
+    ids = _add_messages(client, cid, 2)
+    original = {'lines': [
+        {'section': 'story', 'text': ('S1 ' * 20).strip(), 'pinned': False},
+        {'section': 'story', 'text': ('S2 ' * 20).strip(), 'pinned': False},
+        {'section': 'story', 'text': 'PIN', 'pinned': True},
+        {'section': 'story', 'text': ('S3 ' * 20).strip(), 'pinned': False},
+        {'section': 'story', 'text': ('S4 ' * 20).strip(), 'pinned': False},
+    ]}
+    _store_summary(cid, original, watermark=ids[0])
+    # Make the existing summary exceed the new cap. A failed compression must not
+    # fall through to enforce_cap and delete the unchanged unpinned lines.
+    client.put('/api/settings', json={
+        'context_max_tokens': '100',
+        'summary_cap_pct': '1',
+        'summary_compress_batch': '3',
+    })
+    calls = 0
+
+    def complete(messages, cap_tokens=0):
+        nonlocal calls
+        calls += 1
+        if calls == failed_call:
+            raise RuntimeError('provider unavailable')
+        return '- merged'
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    summaries._run_summary_job(cid, None, compress_only=True)
+
+    with shared.get_db() as conn:
+        row = conn.execute(
+            'SELECT summary_json, summary_up_to_msg_id, summary_status, '
+            'summary_status_detail FROM chats WHERE id=?',
+            (cid,),
+        ).fetchone()
+    assert parse_summary_json(row['summary_json']) == original
+    assert row['summary_up_to_msg_id'] == ids[0]
+    assert row['summary_status'] == 'error'
+    assert f'Compression batch {failed_call}/2 failed' in row['summary_status_detail']
+
+
+def test_automatic_compression_failure_keeps_pending_batch_unretired(
+    client, sample_chat, monkeypatch
+):
+    cid = sample_chat['id']
+    ids = _add_messages(client, cid, 2)
+    original = {'lines': [
+        {'section': 'story', 'text': 'x' * 80, 'pinned': False},
+        {'section': 'story', 'text': 'y' * 80, 'pinned': False},
+        {'section': 'story', 'text': 'z' * 80, 'pinned': False},
+    ]}
+    _store_summary(cid, original, watermark=ids[0])
+    client.put('/api/settings', json={
+        'context_max_tokens': '400',
+        'summary_cap_pct': '10',
+    })
+    monkeypatch.setattr(
+        summaries,
+        'call_summarizer',
+        lambda messages, cap_tokens=0: (_ for _ in ()).throw(
+            RuntimeError('provider unavailable')
+        ),
+    )
+
+    summaries._run_summary_job(cid, ids[-1], rebuild=False)
+
+    with shared.get_db() as conn:
+        row = conn.execute(
+            'SELECT summary_json, summary_up_to_msg_id, summary_status FROM chats WHERE id=?',
+            (cid,),
+        ).fetchone()
+    assert parse_summary_json(row['summary_json']) == original
+    assert row['summary_up_to_msg_id'] == ids[0]
+    assert row['summary_status'] == 'error'
+
+
 def test_rebuild_places_a_late_pin_late_in_the_regenerated_story(
     client, sample_chat, monkeypatch
 ):
@@ -1413,6 +1505,32 @@ def test_rebuild_places_a_late_pin_late_in_the_regenerated_story(
     texts = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']]
     assert 'LATE PIN' in texts
     assert texts.index('LATE PIN') > texts.index('R1')
+
+
+def test_rebuild_reuses_an_identical_regenerated_pin(
+    client, sample_chat, monkeypatch
+):
+    cid = sample_chat['id']
+    ids = _add_messages(client, cid, 1)
+    _store_summary(cid, {'lines': [
+        {'section': 'story', 'text': 'SAME BEAT', 'pinned': True},
+    ]})
+    monkeypatch.setattr(
+        summaries,
+        'call_summarizer',
+        lambda messages, cap_tokens=0:
+            'STORY SO FAR\n- SAME BEAT\n\nBONDS\n- A & B: allies',
+    )
+
+    summaries._run_summary_job(cid, ids[-1], rebuild=True)
+
+    with shared.get_db() as conn:
+        raw = conn.execute(
+            'SELECT summary_json FROM chats WHERE id=?', (cid,)
+        ).fetchone()[0]
+    lines = parse_summary_json(raw)['lines']
+    matches = [line for line in lines if line['text'] == 'SAME BEAT']
+    assert matches == [{'section': 'story', 'text': 'SAME BEAT', 'pinned': True}]
 
 
 def test_rebuild_drops_a_pin_unpinned_while_it_was_running(

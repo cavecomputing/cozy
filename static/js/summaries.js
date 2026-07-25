@@ -616,6 +616,11 @@ async function compressSummary() {
     }
     const chatId = chat.id;
     try {
+        // Settings inputs save through a debounce, while the worker reads settings from
+        // the server. Keep a manual compression behind the same strict persistence
+        // barrier as automatic runs and rebuilds.
+        await flushLLMSettingsSave({ strict: true });
+        if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
         const st = await API.runSummary(chatId, { compress: true });
         if (!validSummaryState(st)) {
             throw new Error('Summarizer returned an invalid status response.');

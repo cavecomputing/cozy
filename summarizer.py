@@ -329,9 +329,9 @@ def parse_compressed_lines(text, input_count):
     ``parse_summarizer_output`` cannot be reused here: it demands the two summary
     headings, which a "merge these three beats" call has no reason to emit.
 
-    A reply is only usable if it actually compressed — at least one line, and no more
-    lines than it was given. Raises ``ValueError`` otherwise so the caller can keep the
-    original beats for this batch and carry on rather than failing the whole pass.
+    A reply is only usable if it actually compressed — at least one line, and strictly
+    fewer lines than it was given. Raises ``ValueError`` otherwise so the caller can
+    preserve the previous summary checkpoint.
     """
     visible = strip_thinking_content(text)
     out = []
@@ -347,7 +347,7 @@ def parse_compressed_lines(text, input_count):
             out.append(content)
     if not out:
         raise ValueError('Compressor returned no usable lines')
-    if input_count > 0 and len(out) > input_count:
+    if input_count > 0 and len(out) >= input_count:
         raise ValueError(
             f'Compressor returned {len(out)} lines for {input_count} inputs — not a compression'
         )
@@ -483,8 +483,27 @@ def reinsert_pins_proportionally(story_lines, held_pins):
     Deliberately a heuristic — a pin can land a beat or two off its true place.
     """
     out = [dict(line) for line in story_lines]
+
+    def key_of(line):
+        section = 'bonds' if line.get('section') == 'bonds' else 'story'
+        return section, line.get('text', '')
+
+    existing = {}
+    for line in out:
+        existing.setdefault(key_of(line), []).append(line)
+
     # Insert from the end so earlier insertions cannot shift later targets.
     for fraction, line in sorted(held_pins, key=lambda item: item[0], reverse=True):
+        key = key_of(line)
+        if key in existing:
+            # A deterministic rebuild can regenerate the pinned beat verbatim. Reuse
+            # that chronological placement rather than creating a pinned/unpinned
+            # duplicate whose shared text would make later pin reconciliation ambiguous.
+            for match in existing[key]:
+                match['pinned'] = True
+            continue
         at = round(max(0.0, min(1.0, fraction)) * len(out))
-        out.insert(min(at, len(out)), dict(line))
+        inserted = dict(line)
+        out.insert(min(at, len(out)), inserted)
+        existing.setdefault(key, []).append(inserted)
     return out

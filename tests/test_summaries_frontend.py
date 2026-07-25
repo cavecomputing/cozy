@@ -1711,3 +1711,174 @@ def test_compress_click_posts_a_compress_run():
         assert.equal(state.activeChat.summary_up_to_msg_id, 4);
     """
     run_node_module(code)
+
+
+def test_compress_click_waits_for_pending_settings_save():
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import { queueLLMSettingsSave } from './static/js/llm-settings.js';
+        import { initSummaryHandlers } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = { addEventListener() {} };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.summaryCompressBtn = {
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        state.activePresetId = null;
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'new-summary-model';
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary: { lines: [] },
+            summary_status: 'idle',
+        };
+        state.chats = [state.activeChat];
+
+        const order = [];
+        let releaseSave;
+        let markSaveStarted;
+        const saveStarted = new Promise(resolve => { markSaveStarted = resolve; });
+        API.saveSettings = async fields => {
+            order.push(`save:${fields.summary_api_model}`);
+            markSaveStarted();
+            await new Promise(resolve => { releaseSave = resolve; });
+            order.push('saved');
+            return {};
+        };
+        API.runSummary = async chatId => {
+            order.push('run');
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: null,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        queueLLMSettingsSave({ summary_api_model: 'new-summary-model' });
+        initSummaryHandlers();
+        const clicking = listeners.click();
+        await saveStarted;
+        assert.deepEqual(order, ['save:new-summary-model']);
+        releaseSave();
+        await clicking;
+        assert.deepEqual(order, ['save:new-summary-model', 'saved', 'run']);
+    """
+    run_node_module(code)
+
+
+def test_compress_click_does_not_run_when_settings_save_fails():
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import { queueLLMSettingsSave } from './static/js/llm-settings.js';
+        import { initSummaryHandlers } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = { addEventListener() {} };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.summaryCompressBtn = {
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        state.activePresetId = null;
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'new-summary-model';
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary: { lines: [] },
+            summary_status: 'idle',
+        };
+        state.chats = [state.activeChat];
+
+        globalThis.document = {
+            getElementById() { return { appendChild() {} }; },
+            createElement() {
+                return {
+                    setAttribute() {},
+                    appendChild() {},
+                    remove() {},
+                };
+            },
+        };
+        let runCalls = 0;
+        API.saveSettings = async () => { throw new Error('disk unavailable'); };
+        API.runSummary = async () => { runCalls += 1; };
+
+        queueLLMSettingsSave({ summary_api_model: 'new-summary-model' });
+        const nativeSetTimeout = globalThis.setTimeout;
+        globalThis.setTimeout = (fn, ms, ...args) =>
+            nativeSetTimeout(fn, Math.min(ms, 5), ...args);
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.equal(runCalls, 0);
+    """
+    run_node_module(code)
+
+
+def test_compress_click_does_not_target_a_chat_selected_during_settings_save():
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import { queueLLMSettingsSave } from './static/js/llm-settings.js';
+        import { initSummaryHandlers } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = { addEventListener() {} };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.summaryCompressBtn = {
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        state.activePresetId = null;
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'new-summary-model';
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary: { lines: [] },
+            summary_status: 'idle',
+        };
+        state.chats = [state.activeChat];
+
+        let releaseSave;
+        let markSaveStarted;
+        const saveStarted = new Promise(resolve => { markSaveStarted = resolve; });
+        API.saveSettings = async () => {
+            markSaveStarted();
+            await new Promise(resolve => { releaseSave = resolve; });
+            return {};
+        };
+        const runs = [];
+        API.runSummary = async chatId => { runs.push(chatId); };
+
+        queueLLMSettingsSave({ summary_api_model: 'new-summary-model' });
+        initSummaryHandlers();
+        const clicking = listeners.click();
+        await saveStarted;
+        state.activeChat = {
+            id: 8,
+            summary_enabled: true,
+            summary: { lines: [] },
+            summary_status: 'idle',
+        };
+        releaseSave();
+        await clicking;
+
+        assert.deepEqual(runs, []);
+    """
+    run_node_module(code)

@@ -403,8 +403,9 @@ def _compress_story(chat_id, summary_obj, batch_size, require_running=False, job
     relationships into one line.
 
     Each batch is spliced back over the exact slice it came from, so chronological order
-    survives by construction. A batch whose reply is unusable keeps its original lines and
-    the pass continues — one bad response should degrade the result, not abort the run.
+    survives by construction. The pass is atomic from the caller's perspective: any
+    unusable reply aborts before the in-memory result can be persisted, preserving the
+    previous summary checkpoint intact.
     """
     lines = [dict(line) for line in summary_lines(summary_obj)]
     batches = _story_batches(lines, batch_size)
@@ -429,9 +430,10 @@ def _compress_story(chat_id, summary_obj, batch_size, require_running=False, job
             merged = parse_compressed_lines(reply, len(texts))
         except _SummaryPaused:
             raise
-        except Exception as e:  # noqa: BLE001 — a bad batch must not lose the whole pass
-            log.warning('Compression batch failed for chat %s, keeping originals: %s', chat_id, e)
-            continue
+        except Exception as e:  # noqa: BLE001 — normalize provider/parser failures
+            raise RuntimeError(
+                f'Compression batch {position}/{total} failed: {e}'
+            ) from e
         lines[start:start + len(texts)] = [
             {'section': 'story', 'text': text, 'pinned': False} for text in merged
         ]
