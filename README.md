@@ -115,7 +115,7 @@ Redistributions and derivative works must preserve the attribution in
 
 ---
 
-Howdy! This whole app is vibe coded slop. If that bothers you...🤷
+Howdy! This whole app is "vibe coded slop". If that bothers you...🤷   
 The code is going to see constant changes most of the time and I'm never going to call it stable. Though I'm currently trying to avoid breaking changes between version and ensuring there are proper migrations to keep things stableish. If you try to checkout an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take vibe coding but then it completely replaced SillyTavern for my use. Maybe other people will like it? I dunno but AI can be purty neat.
 
 As an aside, I personally put a lot of weight in *ideas* over someones written word or code. As such, I would super appreciate if you linked to this repo if you decide to fork this or use ideas from it. Other than that, go nuts and make cool things ❤️
