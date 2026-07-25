@@ -380,6 +380,11 @@ function bindSettingsHandlers() {
         queueLLMSettingsSave({ summary_trigger_interval: state.summaryTriggerInterval });
     });
     el.summaryIntervalInput?.addEventListener('blur', flushLLMSettingsSave);
+    el.summaryCompressInput?.addEventListener('input', () => {
+        state.summaryCompressBatch = el.summaryCompressInput.value || '3';
+        queueLLMSettingsSave({ summary_compress_batch: state.summaryCompressBatch });
+    });
+    el.summaryCompressInput?.addEventListener('blur', flushLLMSettingsSave);
 
     // LLM API settings — autosave while typing, then flush on blur.
     el.apiEndpoint?.addEventListener('input', () => {

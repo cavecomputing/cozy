@@ -5496,10 +5496,10 @@ input[type="checkbox"]:disabled {
 
 /* Auto Summary card (memory flyout) */
 .memory-card-header .summary-switch {
-    margin-left: auto;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
+    margin-left: 0.35rem;
 }
 .summary-switch input {
     position: absolute;
@@ -5621,23 +5621,21 @@ input[type="checkbox"]:disabled {
 .summary-pin-btn svg { width: 100%; height: 100%; display: block; }
 .summary-pin-btn:hover { opacity: 1; }
 .summary-pin-btn.pinned { color: var(--accent-color); opacity: 1; }
-.summary-actions {
+/* Rebuild / Compress / Reset sit inline with the card header, pushing themselves and
+   the enable toggle to the right together. */
+.summary-header-actions {
     display: flex;
-    gap: 0.4rem;
-    margin-bottom: 0.5rem;
+    align-items: center;
+    gap: 0.15rem;
+    margin-left: auto;
 }
-.summary-actions .lorebook-flyout-manage {
-    flex: 1 1 0;
-    width: auto;
-    min-width: 0;
-    margin-top: 0;
-    justify-content: center;
+.summary-header-actions .icon-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
 }
-.summary-rebuild-btn svg,
-.summary-reset-btn svg { width: 14px; height: 14px; }
-.summary-rebuild-btn:disabled,
-.summary-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.summary-actions .summary-reset-btn { flex: 0 0 auto; }
+.summary-header-actions .icon-btn svg { width: 14px; height: 14px; }
+.summary-header-actions .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .summary-reset-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 
 /* Settings panel — global controls plus a responsive lorebook workspace */

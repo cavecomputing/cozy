@@ -681,6 +681,11 @@
                                     <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="10">
                                 </div>
                                 <p class="settings-hint">When history first falls outside the context window, Cozy folds exactly this many of the oldest messages into the summary and drops them from the raw transcript. User and character messages each count as one. A larger batch means fewer, better-compressed updates, but a bigger drop in verbatim history each time.</p>
+                                <div class="settings-row settings-row--inline">
+                                    <label class="settings-row-label" for="settings-summary-compress">Compression batch (lines)</label>
+                                    <input type="number" id="settings-summary-compress" class="form-input" min="2" max="10" step="1" value="3">
+                                </div>
+                                <p class="settings-hint">When the summary nears its size cap, Cozy merges this many neighbouring story lines per request to shrink it. Smaller batches lose less detail but need more requests. Pinned lines are never sent and never merged.</p>
                             </section>
                         </div>
                     </div>
@@ -1150,6 +1155,17 @@
                         <header class="memory-card-header">
                             <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path></svg></span>
                             <span class="section-label">Auto Summary</span>
+                            <div class="summary-header-actions">
+                                <button id="summary-rebuild-btn" class="icon-btn summary-rebuild-btn" type="button" disabled title="Rebuild from history" aria-label="Rebuild summary from history">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
+                                </button>
+                                <button id="summary-compress-btn" class="icon-btn summary-compress-btn" type="button" disabled title="Compress summary" aria-label="Compress the summary into fewer lines">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"></path><path d="M12 3v5"></path><path d="M9 6l3 3 3-3"></path><path d="M12 21v-5"></path><path d="M9 18l3-3 3 3"></path></svg>
+                                </button>
+                                <button id="summary-reset-btn" class="icon-btn summary-reset-btn" type="button" disabled title="Reset summary" aria-label="Clear the summary and pins for this chat">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </div>
                             <label class="summary-switch" title="Summarize aged-out history for this chat">
                                 <input type="checkbox" id="summary-enable-toggle">
                                 <span class="summary-switch-track" aria-hidden="true"></span>
@@ -1161,16 +1177,6 @@
                                 No summarizer configured — set a model in <button type="button" class="summary-settings-link" id="summary-open-settings">Settings → Auto Summaries</button>.
                             </p>
                             <div id="summary-lines" class="summary-lines" hidden></div>
-                            <div class="summary-actions">
-                                <button id="summary-rebuild-btn" class="lorebook-flyout-manage summary-rebuild-btn" type="button" disabled>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
-                                    Rebuild from history
-                                </button>
-                                <button id="summary-reset-btn" class="lorebook-flyout-manage summary-reset-btn" type="button" disabled title="Clear the summary and pins for this chat">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                    Reset
-                                </button>
-                            </div>
                             <p class="memory-authornote-hint">Injected via <code>&#123;&#123;summary&#125;&#125;</code> in your prompt template. Pin lines to keep them word-for-word.</p>
                         </div>
                     </section>

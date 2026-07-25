@@ -1471,11 +1471,11 @@ def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_ru
             rebuild: call.rebuild,
         })), [
             { upTo: 2, rebuild: true },
-            // The final summary displaced messages 3 and 4. Stabilization folds
-            // in exactly those two instead of rounding through message 22.
-            { upTo: 4, rebuild: false },
+            // The final summary displaced messages 3 through 5. Stabilization folds
+            // in exactly those instead of rounding through a whole 20-message batch.
+            { upTo: 5, rebuild: false },
         ]);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 4);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 5);
 
         await maybeTriggerSummary();
         assert.equal(calls.length, 2);
@@ -1558,5 +1558,156 @@ def test_rebuild_click_during_background_run_still_issues_the_rebuild():
         assert.equal(calls[0].up_to_msg_id, 2);
         assert.ok(statusCalls >= 2);  // joined the in-flight run before rebuilding
         assert.equal(state.activeChat.summary_up_to_msg_id, 2);
+    """
+    run_node_module(code)
+
+
+def test_summary_text_marks_the_story_as_chronological():
+    """The chat model must read STORY as a timeline, not an unordered pile of facts.
+    The frontend renderer carries this so it applies whatever prompt template is saved."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { summaryToText } from './static/js/summaries.js';
+
+        const text = summaryToText({ lines: [
+            { section: 'story', text: 'first beat' },
+            { section: 'story', text: 'second beat' },
+            { section: 'bonds', text: 'A & B: allies' },
+        ]});
+        assert.match(text, /^STORY SO FAR \(in order, oldest first\)$/m);
+        assert.ok(text.indexOf('first beat') < text.indexOf('second beat'));
+        // BONDS is current-state, so it gets no ordering claim.
+        assert.match(text, /^BONDS$/m);
+        assert.equal(summaryToText({ lines: [] }), '');
+    """
+    run_node_module(code)
+
+
+COMPRESS_SETUP = r"""
+    import assert from 'node:assert/strict';
+    import { state, el } from './static/js/state.js';
+    import { renderMemorySummaryCard } from './static/js/summaries.js';
+
+    const compressBtn = { disabled: false };
+    Object.assign(el, {
+        summaryToggle: { checked: false, disabled: false, title: '' },
+        summaryCompressBtn: compressBtn,
+        summaryLines: null,
+        summaryStatus: null,
+    });
+    function evaluate(lines, status = 'idle') {
+        state.activeChat = {
+            id: 1,
+            summary_enabled: true,
+            summary: { lines },
+            summary_status: status,
+            summary_status_detail: '',
+        };
+        renderMemorySummaryCard();
+        return compressBtn.disabled;
+    }
+"""
+
+
+def test_compress_button_needs_two_unpinned_story_lines():
+    code = COMPRESS_SETUP + r"""
+        const story = t => ({ section: 'story', text: t, pinned: false });
+        const pinned = t => ({ section: 'story', text: t, pinned: true });
+        const bond = t => ({ section: 'bonds', text: t, pinned: false });
+
+        assert.equal(evaluate([]), true, 'empty summary');
+        assert.equal(evaluate([story('a')]), true, 'one line has nothing to merge');
+        assert.equal(evaluate([story('a'), story('b')]), false, 'two lines can merge');
+        assert.equal(evaluate([pinned('a'), pinned('b')]), true,
+            'pinned lines are never sent to the model');
+        assert.equal(evaluate([story('a'), bond('x'), bond('y')]), true,
+            'bonds are not compressed');
+        assert.equal(evaluate([story('a'), story('b')], 'running'), true,
+            'disabled while a run is in flight');
+    """
+    run_node_module(code)
+
+
+def test_compress_button_disabled_when_summaries_are_off():
+    code = COMPRESS_SETUP + r"""
+        state.activeChat = {
+            id: 1,
+            summary_enabled: false,
+            summary: { lines: [
+                { section: 'story', text: 'a', pinned: false },
+                { section: 'story', text: 'b', pinned: false },
+            ]},
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        renderMemorySummaryCard();
+        assert.equal(compressBtn.disabled, true);
+    """
+    run_node_module(code)
+
+
+def test_compress_click_posts_a_compress_run():
+    """The Compress button must ask for a compression pass — never a message fold,
+    which would advance the watermark and retire history."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { state, el } from './static/js/state.js';
+        import { API } from './static/js/api.js';
+        import { initSummaryHandlers } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = { addEventListener() {} };
+        el.summaryRebuildBtn = { addEventListener() {} };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.summaryCompressBtn = {
+            disabled: false,
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        el.settingsContextTokens = { value: '202' };
+        el.samplerMaxTokens = { value: '10' };
+        el.sendThinking = { checked: true };
+        state.apiModel = 'main-model';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'summary-model';
+        state.messages = [];
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary: { lines: [
+                { section: 'story', text: 'S1', pinned: false },
+                { section: 'story', text: 'S2', pinned: false },
+            ]},
+            summary_up_to_msg_id: 4,
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [{ section: 'story', text: 'merged', pinned: false }] },
+                summary_up_to_msg_id: 4,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].chatId, 7);
+        assert.equal(calls[0].compress, true);
+        // Neither of the message-folding options is requested. (The stub stands in for
+        // API.runSummary, so its parameter defaults never apply — assert on what the
+        // handler actually passes rather than on what the real method would fill in.)
+        assert.ok(!calls[0].rebuild, 'must not request a rebuild');
+        assert.ok(calls[0].up_to_msg_id == null, 'must not name a message boundary');
+        // The watermark is compression's business to leave alone.
+        assert.equal(state.activeChat.summary_up_to_msg_id, 4);
     """
     run_node_module(code)

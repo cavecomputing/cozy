@@ -32,14 +32,20 @@ function summariesActive(chat = state.activeChat) {
     return !!chat?.summary_enabled;
 }
 
-// ── Rendering the summary object to text (mirror of summarizer.summary_to_text) ──
+// ── Rendering the summary object to text (for injection into the chat prompt) ──
+// Deliberately NOT a byte-for-byte mirror of summarizer.summary_to_text: this render is
+// read by the roleplay model, so the story heading spells out that the beats are a
+// timeline rather than an unordered pile of facts. The Python renderer stays bare
+// because it feeds the summary back to the summarizer and is matched by _norm_heading.
+const STORY_ORDER_NOTE = ' (in order, oldest first)';
+
 export function summaryToText(obj) {
     const lines = (obj && Array.isArray(obj.lines)) ? obj.lines : [];
     const story = lines.filter(l => (l.section || 'story') !== 'bonds');
     const bonds = lines.filter(l => (l.section || 'story') === 'bonds');
     const out = [];
     if (story.length) {
-        out.push(STORY_HEADING);
+        out.push(STORY_HEADING + STORY_ORDER_NOTE);
         story.forEach(l => out.push(`- ${l.text}`));
     }
     if (bonds.length) {
@@ -589,6 +595,40 @@ async function rebuildSummary() {
     }
 }
 
+/** Count the story lines a compression pass could actually merge. */
+function compressibleStoryLines(chat = state.activeChat) {
+    const lines = chat?.summary?.lines;
+    if (!Array.isArray(lines)) return 0;
+    return lines.filter(l => (l.section || 'story') !== 'bonds' && !l.pinned).length;
+}
+
+/**
+ * Compress button: one pass merging adjacent story lines into fewer, so the summary
+ * fits more history without the whole-summary rewrite that used to erode it. Pinned
+ * lines are never sent to the model and stay exactly where they are.
+ */
+async function compressSummary() {
+    const chat = state.activeChat;
+    if (!summariesActive(chat)) return;
+    if (!summarizerConfigured()) {
+        showToast('Configure an Auto Summaries endpoint and model before compressing.');
+        return;
+    }
+    const chatId = chat.id;
+    try {
+        const st = await API.runSummary(chatId, { compress: true });
+        if (!validSummaryState(st)) {
+            throw new Error('Summarizer returned an invalid status response.');
+        }
+        applySummaryState(st, chatId);
+        if (st.summary_status === 'running' && state.activeChat?.id === chatId) {
+            startStatusPolling(chatId);
+        }
+    } catch (e) {
+        showToast('Summary compression failed: ' + e.message);
+    }
+}
+
 /** Wipe the summary + watermark to empty (no LLM call). */
 async function clearSummary(chatId = state.activeChat?.id) {
     if (chatId == null) return;
@@ -746,6 +786,11 @@ export function renderMemorySummaryCard() {
     }
     const busy = chat?.summary_status === 'running';
     if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !enabled || busy;
+    if (el.summaryCompressBtn) {
+        // Merging needs at least two unpinned story lines to work with.
+        el.summaryCompressBtn.disabled = !enabled || busy
+            || compressibleStoryLines(chat) < 2;
+    }
     if (el.summaryResetBtn) {
         el.summaryResetBtn.disabled = !enabled || busy
             || !(chat?.summary?.lines?.length);
@@ -773,5 +818,6 @@ export function initSummaryHandlers() {
         else await disableSummariesForChat();
     });
     el.summaryRebuildBtn?.addEventListener('click', rebuildSummary);
+    el.summaryCompressBtn?.addEventListener('click', compressSummary);
     el.summaryResetBtn?.addEventListener('click', resetSummary);
 }

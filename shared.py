@@ -481,6 +481,7 @@ def init_db():
             ('summary_api_model', ''),
             ('summary_cap_pct', '10'),
             ('summary_trigger_interval', '10'),
+            ('summary_compress_batch', '3'),
         ):
             conn.execute(
                 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING',

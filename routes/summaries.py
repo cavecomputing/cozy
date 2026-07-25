@@ -22,14 +22,16 @@ from shared import get_db, not_found
 from summarizer import (
     append_summary,
     build_append_messages,
-    build_summarizer_messages,
+    build_compress_messages,
     dump_summary_json,
     enforce_cap,
     estimate_tokens,
     merge_pins,
+    parse_compressed_lines,
     parse_summary_json,
     parse_summarizer_output,
     pinned_texts,
+    reinsert_pins_proportionally,
     strip_thinking_content,
     summary_lines,
     summary_to_text,
@@ -137,14 +139,24 @@ def _trigger_interval(settings):
         return 10
 
 
-# While the summary sits below this fraction of the cap it grows additively; once it
-# crosses the line every batch compresses instead. The headroom (~20% of the cap) leaves
-# room for one batch's new bullets so ordinary appends don't immediately trip the cap.
+def _compress_batch(settings):
+    """How many adjacent story lines one compression call merges."""
+    try:
+        return max(2, int(settings.get('summary_compress_batch') or 3))
+    except (TypeError, ValueError):
+        return 3
+
+
+# While the summary sits below this fraction of the cap, folding a batch in is a plain
+# append. Once it crosses the line the run first makes room with a compression pass over
+# the existing story lines, then appends as usual — folding is always additive. The
+# headroom (~20% of the cap) leaves room for one batch's new bullets so ordinary appends
+# don't immediately trip the cap.
 APPEND_CAP_FRACTION = 0.8
 
 
 def _should_append(summary_obj, cap_tokens):
-    """True when the running summary has room to accumulate rather than compress."""
+    """True when the running summary has room to accumulate without compressing first."""
     if cap_tokens <= 0:  # unlimited context → never need to compress
         return True
     return estimate_tokens(summary_to_text(summary_obj)) <= APPEND_CAP_FRACTION * cap_tokens
@@ -237,8 +249,48 @@ def _line_key(line):
     return section, line.get('text', '')
 
 
-def _pinned_only(obj):
-    return {'lines': [dict(line) for line in summary_lines(obj) if line.get('pinned')]}
+def _seed_rebuild(stored_obj):
+    """Seed a rebuild's working summary, holding story pins aside.
+
+    Returns ``(seed_obj, held_pins)`` where ``held_pins`` is
+    ``[(relative_position, line), ...]``.
+
+    BONDS is unordered current-state, so bond pins can seed the rebuild directly. STORY
+    is a timeline that the rebuild regenerates from scratch: seeding it with pins would
+    put every pinned beat ahead of all rebuilt ones, claiming they happened first. Hold
+    them out instead and re-slot them by relative position once the rebuild finishes.
+    """
+    lines = summary_lines(stored_obj)
+    story = [line for line in lines if line.get('section') != 'bonds']
+    seed = [
+        dict(line) for line in lines
+        if line.get('section') == 'bonds' and line.get('pinned')
+    ]
+    held = [
+        ((index / len(story)) if story else 0.0, dict(line))
+        for index, line in enumerate(story)
+        if line.get('pinned')
+    ]
+    return {'lines': seed}, held
+
+
+def _surviving_held_pins(chat_id, held_pins):
+    """Drop held pins the user unpinned while the rebuild was running.
+
+    The held list is captured when the job starts, but pins stay editable throughout —
+    reinstating a line the user has since unpinned would undo that edit.
+    """
+    if not held_pins:
+        return []
+    with get_db() as conn:
+        row = conn.execute('SELECT summary_json FROM chats WHERE id=?', (chat_id,)).fetchone()
+    if not row:
+        return held_pins
+    still_pinned = {
+        line['text'] for line in summary_lines(parse_summary_json(row['summary_json']))
+        if line.get('pinned') and line.get('section') != 'bonds'
+    }
+    return [item for item in held_pins if item[1].get('text') in still_pinned]
 
 
 def _reconcile_pin_edits(candidate, baseline, current):
@@ -312,6 +364,80 @@ def _persist_summary(chat_id, candidate, baseline, watermark, cap_tokens,
         return candidate, candidate, warning
 
 
+def _story_batches(lines, batch_size):
+    """Group story lines into runs of consecutive UNPINNED lines, ``batch_size`` apiece.
+
+    Returns ``[(start_index, [texts...]), ...]`` over the given list. Pinned lines are
+    never batched: they must reach the model unchanged, and leaving them in place is what
+    keeps every other beat anchored around them in chronological order. A pin therefore
+    also *breaks* a run, so a batch only ever merges beats that were genuinely adjacent.
+    Runs of one produce no batch — there is nothing to merge.
+    """
+    batches = []
+    run_start = None
+    run = []
+
+    def flush():
+        for offset in range(0, len(run), batch_size):
+            chunk = run[offset:offset + batch_size]
+            if len(chunk) > 1:
+                batches.append((run_start + offset, chunk))
+
+    for index, line in enumerate(lines):
+        if line.get('section') == 'bonds' or line.get('pinned'):
+            flush()
+            run_start, run = None, []
+            continue
+        if run_start is None:
+            run_start = index
+        run.append(line.get('text', ''))
+    flush()
+    return batches
+
+
+def _compress_story(chat_id, summary_obj, batch_size, require_running=False, job_token=None):
+    """One compression pass over the summary's STORY lines. Returns a new summary object.
+
+    Only STORY is touched. BONDS is current-state and is replaced wholesale on every
+    append, so it is already self-limiting; batching it would merge unrelated
+    relationships into one line.
+
+    Each batch is spliced back over the exact slice it came from, so chronological order
+    survives by construction. A batch whose reply is unusable keeps its original lines and
+    the pass continues — one bad response should degrade the result, not abort the run.
+    """
+    lines = [dict(line) for line in summary_lines(summary_obj)]
+    batches = _story_batches(lines, batch_size)
+    if not batches:
+        return summary_obj
+
+    total = len(batches)
+    # Apply from the end so an earlier splice cannot shift a later batch's indices.
+    for position, (start, texts) in enumerate(reversed(batches), start=1):
+        _set_status(
+            chat_id,
+            detail=f'Compressing… (batch {position}/{total})',
+            require_running=require_running,
+            job_token=job_token,
+        )
+        _assert_summary_active(chat_id, require_running=require_running, job_token=job_token)
+        try:
+            reply = call_summarizer(build_compress_messages(texts))
+            _assert_summary_active(
+                chat_id, require_running=require_running, job_token=job_token
+            )
+            merged = parse_compressed_lines(reply, len(texts))
+        except _SummaryPaused:
+            raise
+        except Exception as e:  # noqa: BLE001 — a bad batch must not lose the whole pass
+            log.warning('Compression batch failed for chat %s, keeping originals: %s', chat_id, e)
+            continue
+        lines[start:start + len(texts)] = [
+            {'section': 'story', 'text': text, 'pinned': False} for text in merged
+        ]
+    return {'lines': lines}
+
+
 def _summary_state(row):
     """The summary-related slice of a chat row, for run/status responses."""
     d = chat_to_dict(row)
@@ -328,10 +454,13 @@ def _summary_state(row):
 # ── The worker ──────────────────────────────────────────────────────────────
 
 def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False,
-                     job_token=None):
+                     job_token=None, compress_only=False):
     """Fold messages ``(watermark, up_to_msg_id]`` into the chat's running summary,
     in batches. Persists after each batch. Never raises out — terminal state is written
-    to ``summary_status`` (``idle`` on success, ``error`` on failure)."""
+    to ``summary_status`` (``idle`` on success, ``error`` on failure).
+
+    With ``compress_only`` the job runs a single compression pass over the existing story
+    lines and touches neither the messages nor the watermark."""
     warning = ''
     try:
         _assert_summary_active(
@@ -339,6 +468,7 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
         )
         settings = get_settings()
         interval = _trigger_interval(settings)
+        compress_batch = _compress_batch(settings)
         cap_tokens = _cap_tokens(settings)
 
         with get_db() as conn:
@@ -353,15 +483,32 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             if require_running and row['summary_status'] != 'running':
                 raise _SummaryPaused
             stored_obj = parse_summary_json(row['summary_json'])
+            stored_watermark = row['summary_up_to_msg_id']
+            held_pins = []
             if rebuild:
                 # Rebuild entirely in memory. Keep the old DB summary/watermark usable
-                # until every batch succeeds, and seed the replacement with all pins.
-                summary_obj = _pinned_only(stored_obj)
+                # until every batch succeeds.
+                summary_obj, held_pins = _seed_rebuild(stored_obj)
                 watermark = 0
             else:
                 summary_obj = stored_obj
-                watermark = row['summary_up_to_msg_id'] or 0
+                watermark = stored_watermark or 0
             pin_baseline = stored_obj
+
+        if compress_only:
+            summary_obj = _compress_story(
+                chat_id, summary_obj, compress_batch,
+                require_running=require_running, job_token=job_token,
+            )
+            summary_obj, pin_baseline, write_warning = _persist_summary(
+                chat_id, summary_obj, pin_baseline, stored_watermark, cap_tokens,
+                require_running=require_running, job_token=job_token,
+            )
+            _set_status(
+                chat_id, status='idle', detail=write_warning or '',
+                require_running=require_running, job_token=job_token,
+            )
+            return
 
         if up_to_msg_id is None:
             _set_status(
@@ -431,12 +578,23 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                         warning = write_warning
                 continue
 
-            # Accumulate detail while there is headroom; only rewrite/compress the whole
-            # summary once it approaches the cap. This keeps the memory additive instead
-            # of boiling the same few lines down on every batch.
-            append_mode = _should_append(summary_obj, cap_tokens)
-            build = build_append_messages if append_mode else build_summarizer_messages
-            messages = build(
+            # Folding is always additive. Once the summary approaches the cap, make room
+            # first with a compression pass over the existing story lines, then append as
+            # usual — rather than asking one call to both absorb new messages and rewrite
+            # everything, which re-derived (and eroded) the whole summary every batch.
+            if not _should_append(summary_obj, cap_tokens):
+                summary_obj = _compress_story(
+                    chat_id, summary_obj, compress_batch,
+                    require_running=require_running, job_token=job_token,
+                )
+                _set_status(
+                    chat_id,
+                    detail=f'Summarizing… (batch {bi + 1}/{total})',
+                    require_running=require_running,
+                    job_token=job_token,
+                )
+
+            messages = build_append_messages(
                 summary_to_text(summary_obj), visible_chunk,
                 pinned_texts(summary_obj), cap_tokens
             )
@@ -450,7 +608,7 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                 chat_id, require_running=require_running, job_token=job_token
             )
             parsed = parse_summarizer_output(reply)
-            candidate = append_summary(summary_obj, parsed) if append_mode else parsed
+            candidate = append_summary(summary_obj, parsed)
             folded = merge_pins(candidate, summary_obj)
             summary_obj, batch_warning = _fit_summary_candidate(folded, cap_tokens)
             if batch_warning:
@@ -470,6 +628,17 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                     warning = write_warning
 
         if rebuild:
+            # Story pins were held out of the batch loop so they could not lead the
+            # regenerated timeline. Re-slot them by relative position now, dropping any
+            # the user unpinned while the rebuild ran.
+            held_pins = _surviving_held_pins(chat_id, held_pins)
+            if held_pins:
+                lines = summary_lines(summary_obj)
+                story = [line for line in lines if line.get('section') != 'bonds']
+                bonds = [line for line in lines if line.get('section') == 'bonds']
+                summary_obj = {
+                    'lines': reinsert_pins_proportionally(story, held_pins) + bonds
+                }
             # Publish a rebuild exactly once so a failed later batch cannot replace a
             # complete prior summary with partial work. The final transaction also
             # folds in a pin edit made during the last model call.
@@ -518,11 +687,11 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
         _release_job_generation(chat_id, job_token)
 
 
-def _spawn_job(chat_id, up_to_msg_id, rebuild, job_token):
+def _spawn_job(chat_id, up_to_msg_id, rebuild, job_token, compress_only=False):
     """Start the worker in a daemon thread (indirection so tests can stub it out)."""
     threading.Thread(
         target=_run_summary_job,
-        args=(chat_id, up_to_msg_id, rebuild, True, job_token),
+        args=(chat_id, up_to_msg_id, rebuild, True, job_token, compress_only),
         daemon=True,
     ).start()
 
@@ -533,17 +702,28 @@ def _spawn_job(chat_id, up_to_msg_id, rebuild, job_token):
 def run_summary(chat_id):
     """Kick off a background summary run and return 202 immediately.
 
-    Body: ``{ "up_to_msg_id": <int>, "rebuild": <bool?> }`` — fold everything after the
-    watermark up to that id. A run already in flight is a no-op (409)."""
+    Body: ``{ "up_to_msg_id": <int>, "rebuild": <bool?>, "compress": <bool?> }`` — fold
+    everything after the watermark up to that id. With ``compress`` the job instead makes
+    one compression pass over the existing summary and ``up_to_msg_id`` is not used, since
+    compression never advances the watermark. A run already in flight is a no-op (409)."""
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({'error': 'A JSON object body is required'}), 400
     up_to_msg_id = data.get('up_to_msg_id')
     rebuild = data.get('rebuild', False)
-    if isinstance(up_to_msg_id, bool) or not isinstance(up_to_msg_id, int) or up_to_msg_id <= 0:
+    compress_only = data.get('compress', False)
+    if not isinstance(compress_only, bool):
+        return jsonify({'error': 'compress must be a boolean'}), 400
+    if not compress_only and (
+        isinstance(up_to_msg_id, bool)
+        or not isinstance(up_to_msg_id, int)
+        or up_to_msg_id <= 0
+    ):
         return jsonify({'error': 'up_to_msg_id must be a positive integer'}), 400
     if not isinstance(rebuild, bool):
         return jsonify({'error': 'rebuild must be a boolean'}), 400
+    if compress_only and rebuild:
+        return jsonify({'error': 'compress and rebuild are mutually exclusive'}), 400
 
     job_token = uuid.uuid4().hex
     with _job_tokens_lock:
@@ -554,12 +734,15 @@ def run_summary(chat_id):
             row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
             if not row:
                 return not_found('Chat')
-            boundary = conn.execute(
-                'SELECT 1 FROM messages WHERE id=? AND chat_id=?',
-                (up_to_msg_id, chat_id),
-            ).fetchone()
-            if not boundary:
-                return jsonify({'error': 'up_to_msg_id must identify a message in this chat'}), 400
+            if not compress_only:
+                boundary = conn.execute(
+                    'SELECT 1 FROM messages WHERE id=? AND chat_id=?',
+                    (up_to_msg_id, chat_id),
+                ).fetchone()
+                if not boundary:
+                    return jsonify(
+                        {'error': 'up_to_msg_id must identify a message in this chat'}
+                    ), 400
             if not row['summary_enabled']:
                 return jsonify({'error': 'Auto Summaries are disabled for this chat'}), 409
             # Atomic claim: only start when not already running.
@@ -577,7 +760,7 @@ def run_summary(chat_id):
         return jsonify({'already_running': True, **_summary_state(fresh)}), 409
 
     try:
-        _spawn_job(chat_id, up_to_msg_id, rebuild, job_token)
+        _spawn_job(chat_id, up_to_msg_id, rebuild, job_token, compress_only)
     except Exception as e:  # thread creation failure must not leave a permanent claim
         log.exception('Could not start summary job for chat %s', chat_id)
         _set_status(

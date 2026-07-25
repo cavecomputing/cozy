@@ -18,6 +18,9 @@ Settings:
 - **Batch size:** How many of the oldest messages Cozy folds into the summary in
   one update. The same value limits the number of old messages processed by one
   summarizer request.
+- **Compression batch:** How many neighbouring story lines are merged per request
+  when the summary is shrunk. Smaller batches lose less detail but need more
+  requests.
 
 Cozy does not summarize while everything still fits. Once the oldest message no
 longer fits, it summarizes exactly one batch and drops those messages from the
@@ -30,6 +33,17 @@ batch size, Cozy retires what it can and always keeps the newest message.
 
 Summarization sends old chat content to the selected LLM server and may add API
 cost or local processing time.
+
+## Growing and shrinking
+
+Folding messages in is always additive — new events are appended to the story.
+When the summary approaches its size cap, Cozy first makes room by merging
+neighbouring story lines into fewer, then appends as usual.
+
+Story lines are kept in chronological order, oldest first, and the summary tells
+the model so. Merging only ever combines beats that were already adjacent, and
+pinned lines are never sent to the summarizer, so they stay exactly where they
+are in the timeline.
 
 ## Enable for a chat
 
@@ -48,18 +62,32 @@ word-for-word during later updates.
 Pinned lines count toward the summary size cap. Too many pins leave less space
 for automatically managed lines.
 
-## Rebuild and reset
+## Rebuild, compress, and reset
 
-- **Rebuild from history** creates the summary again from the stored messages.
+Three buttons sit in the **Auto Summary** header, left of the enable switch.
+
+- **Rebuild from history** creates the summary again from the stored messages,
+  keeping pinned lines.
+- **Compress summary** merges neighbouring story lines to make the summary
+  smaller, without touching the chat. Runs one pass per click, so click again to
+  shrink it further.
 - **Reset** clears the current summary and its pins.
 
 Rebuild after editing, deleting, or changing a message that has already been
 summarized. Old summary content is not corrected automatically.
 
+Because a rebuild regenerates every story line, a pinned line's original place in
+the timeline cannot be recovered exactly; it is restored to roughly the same
+position it held before.
+
+Neither button changes your chat messages.
+
 ## Limits
 
 - Summary quality depends on the selected model.
-- Compression may omit details.
+- Compression may omit details, and repeated passes compound that loss.
+- Compressing a long summary makes one request per batch, so it can be slow
+  against a local model.
 - The summary uses part of the model's context budget.
 - Editing an already summarized message does not automatically rewrite the
   summary.

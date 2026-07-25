@@ -408,6 +408,7 @@ function applySettingsToUI(s) {
     state.summaryApiModel    = s.summary_api_model || '';
     state.summaryCapPct      = s.summary_cap_pct || '10';
     state.summaryTriggerInterval = s.summary_trigger_interval || '10';
+    state.summaryCompressBatch = s.summary_compress_batch || '3';
     if (el.summaryEndpoint) el.summaryEndpoint.value = state.summaryApiEndpoint;
     if (el.summaryKey) {
         el.summaryKey.value = state.summaryApiKeySet ? '••••••••' : '';
@@ -416,6 +417,7 @@ function applySettingsToUI(s) {
     if (el.summaryModel) el.summaryModel.value = state.summaryApiModel;
     if (el.summaryCapInput) el.summaryCapInput.value = state.summaryCapPct;
     if (el.summaryIntervalInput) el.summaryIntervalInput.value = state.summaryTriggerInterval;
+    if (el.summaryCompressInput) el.summaryCompressInput.value = state.summaryCompressBatch;
     state.modelContextLength = state.modelDetails[state.apiModel] ?? null;
 }
 

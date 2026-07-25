@@ -156,11 +156,11 @@ export const API = {
     },
 
     // Auto Summaries
-    async runSummary(chatId, { up_to_msg_id = null, rebuild = false } = {}) {
+    async runSummary(chatId, { up_to_msg_id = null, rebuild = false, compress = false } = {}) {
         const r = await fetch(`/api/chats/${chatId}/summary/run`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ up_to_msg_id, rebuild }),
+            body: JSON.stringify({ up_to_msg_id, rebuild, compress }),
         });
         // 202 = started. Only an explicitly already-running 409 is joinable;
         // other conflicts must remain visible to the caller.
