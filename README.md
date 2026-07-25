@@ -55,15 +55,20 @@ Open <http://localhost:5001>.
 ## First-time setup
 
 1. Open Cozy.
-2. Open **Settings**.
-3. Enter the base URL for your LLM server, such as
-   `http://localhost:8080/v1`.
-4. Enter an API key if your server requires one.
-5. Select a model and test the connection.
-6. Import or create a character.
+2. Open `Settings` in the bottom left.
+3. Navigate to `API & Samplers`.
+4. Click `+` to name and create a preset.
+5. Under `Connection` enter the base `Endpoint` URL for your LLM server, such as
+   `https://openrouter.ai/api/v1`.
+6. Under `Connection` enter an `API Key` if your server requires one.
+7. Under `Connection` select or search for the `Model` identifier and test the connection.
+8. Set the `Context & generation` settings you would like to use.
+9. Under `Samplers` and in the `Core samplers` box click the gear icon to enable the reccomended samplers for the model you are using.
+10. Set the sampler settings as reccomended by the model you are using.
+11. Chat with the default character or create a new character by clicking the `+` icon in the top right of the character sidebar.
 
 The server must provide an OpenAI-style streaming `/chat/completions` endpoint.
-Model listing and advanced sampler support vary by server.
+Model listing and advanced sampler support vary by server so verify the settings beforehand.
 
 ## Updating
 
