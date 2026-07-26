@@ -21,20 +21,24 @@ from routes.settings import get_settings
 from shared import get_db, not_found
 from summarizer import (
     append_summary,
+    bond_key,
     build_append_messages,
+    build_bond_compress_messages,
     build_compress_messages,
     dump_summary_json,
     enforce_cap,
     estimate_tokens,
     merge_pins,
+    parse_compressed_bond,
     parse_compressed_lines,
     parse_summary_json,
     parse_summarizer_output,
     pinned_texts,
     reinsert_pins_proportionally,
+    section_cap,
+    section_to_text,
     strip_thinking_content,
     summary_lines,
-    summary_to_text,
 )
 
 log = logging.getLogger('cozy')
@@ -62,12 +66,12 @@ def call_summarizer(messages, cap_tokens=0):
         headers['Authorization'] = f'Bearer {api_key}'
     payload = {'model': model, 'messages': messages, 'stream': False}
     if cap_tokens and cap_tokens > 0:
-        # One bounded provider call per update, but with headroom over the cap:
-        # a compress-mode reply re-emits the whole summary at ~cap tokens, and
-        # provider truncation chops the newest text (the BONDS tail) while the
-        # local enforce_cap trims oldest-first. The floor keeps room for the
-        # required headings — and for reasoning models, whose thinking spends
-        # this same budget — when the configured cap is tiny.
+        # One bounded provider call per update, but with headroom over the cap. An
+        # append-mode reply carries only new story bullets and the relationships that
+        # changed, so it sits well under the cap; the headroom covers a batch that moved
+        # several relationships at once. The floor keeps room for the required headings —
+        # and for reasoning models, whose thinking spends this same budget — when the
+        # configured cap is tiny.
         payload['max_tokens'] = max(512, int(cap_tokens * 1.25))
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=180)
@@ -147,19 +151,30 @@ def _compress_batch(settings):
         return 3
 
 
-# While the summary sits below this fraction of the cap, folding a batch in is a plain
-# append. Once it crosses the line the run first makes room with a compression pass over
-# the existing story lines, then appends as usual — folding is always additive. The
-# headroom (~20% of the cap) leaves room for one batch's new bullets so ordinary appends
-# don't immediately trip the cap.
+# While a section sits below this fraction of its own budget, folding a batch in is a
+# plain append. Once it crosses the line the run first makes room by compressing that
+# section, then appends as usual — folding is always additive. The headroom (~20% of the
+# budget) leaves room for one batch's new content so ordinary appends don't immediately
+# trip the cap.
 APPEND_CAP_FRACTION = 0.8
 
 
-def _should_append(summary_obj, cap_tokens):
-    """True when the running summary has room to accumulate without compressing first."""
+def _section_has_room(summary_obj, cap_tokens, section):
+    """True when one section can accumulate without compressing first.
+
+    Measured per section against its own budget. A combined measurement meant a large
+    BONDS section triggered story compression, which could never reclaim the space.
+    """
     if cap_tokens <= 0:  # unlimited context → never need to compress
         return True
-    return estimate_tokens(summary_to_text(summary_obj)) <= APPEND_CAP_FRACTION * cap_tokens
+    budget = section_cap(cap_tokens, section)
+    return (estimate_tokens(section_to_text(summary_obj, section))
+            <= APPEND_CAP_FRACTION * budget)
+
+
+def _should_append(summary_obj, cap_tokens):
+    """True when STORY has room to accumulate without a compression pass first."""
+    return _section_has_room(summary_obj, cap_tokens, 'story')
 
 
 def _fit_summary_candidate(candidate, cap_tokens):
@@ -245,8 +260,15 @@ def _copy_summary(obj):
 
 
 def _line_key(line):
-    section = 'bonds' if line.get('section') == 'bonds' else 'story'
-    return section, line.get('text', '')
+    """Identity used to match a summary line across a model rewrite.
+
+    Bonds key on their participants: a dossier grows as the relationship develops, so its
+    text is not stable enough to identify it. Story lines key on exact text — a beat that
+    was reworded really is a different beat.
+    """
+    if line.get('section') == 'bonds':
+        return 'bonds', bond_key(line.get('text', ''))
+    return 'story', line.get('text', '')
 
 
 def _seed_rebuild(stored_obj):
@@ -398,9 +420,9 @@ def _story_batches(lines, batch_size):
 def _compress_story(chat_id, summary_obj, batch_size, require_running=False, job_token=None):
     """One compression pass over the summary's STORY lines. Returns a new summary object.
 
-    Only STORY is touched. BONDS is current-state and is replaced wholesale on every
-    append, so it is already self-limiting; batching it would merge unrelated
-    relationships into one line.
+    Only STORY is touched — see ``_compress_bonds`` for the relationship side, which
+    tightens one dossier at a time rather than batching, because merging adjacent bonds
+    would fuse unrelated people into a single line.
 
     Each batch is spliced back over the exact slice it came from, so chronological order
     survives by construction. The pass is atomic from the caller's perspective: any
@@ -437,6 +459,65 @@ def _compress_story(chat_id, summary_obj, batch_size, require_running=False, job
         lines[start:start + len(texts)] = [
             {'section': 'story', 'text': text, 'pinned': False} for text in merged
         ]
+    return {'lines': lines}
+
+
+def _compress_bonds(chat_id, summary_obj, cap_tokens, require_running=False, job_token=None):
+    """Tighten BONDS dossiers until the section fits its budget again.
+
+    One relationship per call, longest first. Bonds are not batched the way story beats
+    are: adjacent beats share a timeline and merge naturally, while adjacent relationships
+    share nothing, so a batched call would fuse unrelated people. Tightening the longest
+    dossier also reclaims the most space per call.
+
+    Pinned dossiers are left alone — they are the user's explicit "keep this as written".
+    Without this pass, a full bonds budget would make ``enforce_cap`` delete whole
+    relationships, which is the loss the dossier design exists to prevent.
+
+    Like ``_compress_story``, the pass is atomic from the caller's perspective: an
+    unusable reply aborts before anything can be persisted.
+    """
+    lines = [dict(line) for line in summary_lines(summary_obj)]
+    budget = section_cap(cap_tokens, 'bonds')
+    if budget <= 0:
+        return summary_obj
+
+    def over_budget(current):
+        return estimate_tokens(section_to_text({'lines': current}, 'bonds')) > budget
+
+    attempted = set()
+    position = 0
+    while over_budget(lines):
+        candidates = [
+            (len(line.get('text', '')), index) for index, line in enumerate(lines)
+            if line.get('section') == 'bonds' and not line.get('pinned')
+            and index not in attempted
+        ]
+        if not candidates:
+            # Nothing left that may be tightened; enforce_cap makes the final call.
+            break
+        _, index = max(candidates)
+        attempted.add(index)
+        position += 1
+        _set_status(
+            chat_id,
+            detail=f'Tightening relationships… ({position})',
+            require_running=require_running,
+            job_token=job_token,
+        )
+        _assert_summary_active(chat_id, require_running=require_running, job_token=job_token)
+        original = lines[index]['text']
+        try:
+            reply = call_summarizer(build_bond_compress_messages(original))
+            _assert_summary_active(
+                chat_id, require_running=require_running, job_token=job_token
+            )
+            tightened = parse_compressed_bond(reply, original)
+        except _SummaryPaused:
+            raise
+        except Exception as e:  # noqa: BLE001 — normalize provider/parser failures
+            raise RuntimeError(f'Bond compression failed: {e}') from e
+        lines[index] = {'section': 'bonds', 'text': tightened, 'pinned': False}
     return {'lines': lines}
 
 
@@ -580,15 +661,26 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                         warning = write_warning
                 continue
 
-            # Folding is always additive. Once the summary approaches the cap, make room
-            # first with a compression pass over the existing story lines, then append as
-            # usual — rather than asking one call to both absorb new messages and rewrite
-            # everything, which re-derived (and eroded) the whole summary every batch.
+            # Folding is always additive. Once a section approaches its budget, make room
+            # first by compressing that section, then append as usual — rather than asking
+            # one call to both absorb new messages and rewrite everything, which
+            # re-derived (and eroded) the whole summary every batch. Each section is
+            # measured against its own share, so a full BONDS section no longer triggers
+            # story compression that could never reclaim the space.
+            made_room = False
             if not _should_append(summary_obj, cap_tokens):
                 summary_obj = _compress_story(
                     chat_id, summary_obj, compress_batch,
                     require_running=require_running, job_token=job_token,
                 )
+                made_room = True
+            if not _section_has_room(summary_obj, cap_tokens, 'bonds'):
+                summary_obj = _compress_bonds(
+                    chat_id, summary_obj, cap_tokens,
+                    require_running=require_running, job_token=job_token,
+                )
+                made_room = True
+            if made_room:
                 _set_status(
                     chat_id,
                     detail=f'Summarizing… (batch {bi + 1}/{total})',
@@ -597,8 +689,11 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                 )
 
             messages = build_append_messages(
-                summary_to_text(summary_obj), visible_chunk,
-                pinned_texts(summary_obj), cap_tokens
+                section_to_text(summary_obj, 'story'),
+                section_to_text(summary_obj, 'bonds'),
+                visible_chunk,
+                pinned_texts(summary_obj),
+                section_cap(cap_tokens, 'bonds'),
             )
             _assert_summary_active(
                 chat_id, require_running=require_running, job_token=job_token
@@ -833,9 +928,12 @@ def update_summary_pin(chat_id):
         if not row:
             return not_found('Chat')
         summary_obj = parse_summary_json(row['summary_json'])
+        # Match through _line_key so a bond identifies by its participants: the client may
+        # be holding the dossier text from before the worker last expanded it.
+        wanted = _line_key({'section': section, 'text': text})
         matches = [
             line for line in summary_obj['lines']
-            if _line_key(line) == (section, text)
+            if _line_key(line) == wanted
         ]
         if not matches:
             return jsonify({

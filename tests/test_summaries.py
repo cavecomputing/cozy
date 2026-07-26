@@ -12,18 +12,23 @@ from routes.settings import get_settings
 import routes.summaries as summaries
 from summarizer import (
     append_summary,
+    bond_key,
     build_append_messages,
+    build_bond_compress_messages,
     build_compress_messages,
     dump_summary_json,
     enforce_cap,
     estimate_tokens,
     merge_pins,
+    parse_compressed_bond,
     parse_compressed_lines,
     parse_summary,
     parse_summary_json,
     parse_summarizer_output,
     pinned_texts,
     reinsert_pins_proportionally,
+    section_cap,
+    section_to_text,
     strip_thinking_content,
     summary_to_text,
 )
@@ -62,8 +67,10 @@ def test_enforce_cap_keeps_pins_and_bonds():
         {'section': 'story', 'text': 'pinned story ' * 5, 'pinned': True},
         {'section': 'bonds', 'text': 'A & B: allies ' * 5, 'pinned': False},
     ]}
-    # Cap large enough for the pinned line + bond, but not the ~100-token story line.
-    capped, warning = enforce_cap(obj, 60)
+    # Cap 100 splits into a 60-token story budget and a 40-token bonds budget. The story
+    # section (~121 tokens) must shed its ~100-token unpinned line to fit; the pinned line
+    # (~20) and the bond (~29, inside its own budget) both survive.
+    capped, warning = enforce_cap(obj, 100)
     texts = [l['text'] for l in capped['lines']]
     # The long unpinned story line is dropped first; pinned + bonds survive.
     assert not any(t == 'x' * 400 for t in texts)
@@ -123,6 +130,193 @@ def test_merge_pins_restores_a_leading_story_pin_before_later_beats():
     assert [l['text'] for l in merged['lines']] == ['PINNED', 'S1']
 
 
+@pytest.mark.parametrize('a, b', [
+    ('Cerina and Luna: sisters', 'Luna – Cerina: sisters'),   # order + separator differ
+    ('A & B: allies', 'B and A: allies'),
+    ('Kael/Lina: healer', 'Lina , Kael : healer'),
+    ('A & B: allies.', 'A & B: something else entirely'),     # identity is the head only
+])
+def test_bond_key_identifies_the_same_relationship(a, b):
+    assert bond_key(a) == bond_key(b)
+
+
+@pytest.mark.parametrize('a, b', [
+    ('Cerina and Luna: sisters', 'Cerina and Kael: allies'),
+    ('A & B: allies', 'A & C: allies'),
+    ('Preserve this exact shared moment.', 'Exact pinned bond.'),  # colon-less legacy
+])
+def test_bond_key_separates_different_relationships(a, b):
+    assert bond_key(a) != bond_key(b)
+
+
+def test_bond_key_keeps_hyphenated_names_intact():
+    """A dash only separates participants when it is surrounded by whitespace."""
+    assert bond_key('Jean-Luc and Mira: partners') == bond_key('Mira and Jean-Luc: x')
+    assert 'jeanluc' in bond_key('Jean-Luc and Mira: partners')
+
+
+def test_bond_key_falls_back_to_whole_text_without_a_colon():
+    """Legacy bonds predate the 'Names: dossier' shape and must still have an identity."""
+    assert bond_key('Exact pinned bond.') == bond_key('exact  pinned bond')
+
+
+def test_parse_summary_joins_a_wrapped_bond_dossier():
+    """A soft-wrapped dossier is one relationship, not one per physical line."""
+    obj = parse_summary(
+        'STORY SO FAR\n'
+        '- a beat\n'
+        '\n'
+        'BONDS\n'
+        '- Cerina and Luna: Sisters with an unbreakable bond.\n'
+        "Luna's arm was taken by Cerina's transformation.\n"
+        '- A & B: allies'
+    )
+    bonds = [l['text'] for l in obj['lines'] if l['section'] == 'bonds']
+    assert bonds == [
+        "Cerina and Luna: Sisters with an unbreakable bond. Luna's arm was taken by "
+        "Cerina's transformation.",
+        'A & B: allies',
+    ]
+
+
+def test_parse_summary_keeps_story_beats_on_separate_lines():
+    """STORY is a timeline; joining unbulleted lines would merge distinct events."""
+    obj = parse_summary('STORY SO FAR\n- first beat\nsecond beat')
+    assert [l['text'] for l in obj['lines']] == ['first beat', 'second beat']
+
+
+def test_append_summary_leaves_untouched_dossiers_byte_identical():
+    """The whole point of the keyed merge: an omitted relationship cannot erode."""
+    long_dossier = (
+        'Cerina and Luna: Sisters with an unbreakable bond. Since childhood they have '
+        "been at each other's side. Luna's missing arm was taken by Cerina's uncontrolled "
+        'transformation, and neither has spoken of it since.'
+    )
+    prev = {'lines': [
+        {'section': 'bonds', 'text': long_dossier, 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: wary', 'pinned': False},
+    ]}
+    reply = parse_summary('STORY SO FAR\n- a beat\n\nBONDS\n- A & B: now firm allies')
+    out = append_summary(prev, reply)
+    bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
+    assert bonds == [long_dossier, 'A & B: now firm allies']
+
+
+def test_append_summary_updates_a_renamed_separator_in_place():
+    prev = {'lines': [{'section': 'bonds', 'text': 'Cerina – Luna: wary', 'pinned': True}]}
+    reply = parse_summary('STORY SO FAR\n\nBONDS\n- Luna and Cerina: inseparable now')
+    out = append_summary(prev, reply)
+    bonds = [l for l in out['lines'] if l['section'] == 'bonds']
+    assert [l['text'] for l in bonds] == ['Luna and Cerina: inseparable now']
+    assert bonds[0]['pinned'] is True  # updating a dossier does not clear its pin
+
+
+def test_append_summary_appends_a_genuinely_new_relationship():
+    prev = {'lines': [{'section': 'bonds', 'text': 'A & B: allies', 'pinned': False}]}
+    reply = parse_summary('STORY SO FAR\n\nBONDS\n- C and D: rivals')
+    out = append_summary(prev, reply)
+    assert [l['text'] for l in out['lines'] if l['section'] == 'bonds'] == [
+        'A & B: allies', 'C and D: rivals',
+    ]
+
+
+def test_merge_pins_updates_an_expanded_pinned_bond_without_duplicating():
+    """A pinned dossier is expected to grow; exact-text matching would restore a stale twin."""
+    prev = {'lines': [
+        {'section': 'bonds', 'text': 'Cerina and Luna: sisters', 'pinned': True},
+    ]}
+    fresh = parse_summary(
+        'STORY SO FAR\n- beat\n\nBONDS\n'
+        '- Cerina and Luna: sisters, and Luna lost her arm to Cerina.'
+    )
+    merged = merge_pins(fresh, prev)
+    bonds = [l for l in merged['lines'] if l['section'] == 'bonds']
+    assert len(bonds) == 1
+    assert bonds[0]['text'] == 'Cerina and Luna: sisters, and Luna lost her arm to Cerina.'
+    assert bonds[0]['pinned'] is True
+
+
+def test_enforce_cap_sections_do_not_evict_each_other():
+    """A bloated story must not consume the bonds budget, or vice versa."""
+    obj = {'lines': [
+        {'section': 'story', 'text': 'x' * 4000, 'pinned': False},
+        {'section': 'story', 'text': 'a short beat', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: a modest dossier about two people', 'pinned': False},
+    ]}
+    capped, _ = enforce_cap(obj, 200)
+    texts = [l['text'] for l in capped['lines']]
+    assert 'x' * 4000 not in texts
+    assert 'a short beat' in texts
+    assert 'A & B: a modest dossier about two people' in texts
+
+
+def test_enforce_cap_drops_the_newest_bond_first():
+    """Cap pressure sheds a relationship opened last batch, not a founding one."""
+    obj = {'lines': [
+        {'section': 'bonds', 'text': 'A & B: ' + 'founding history ' * 20, 'pinned': False},
+        {'section': 'bonds', 'text': 'C & D: ' + 'newcomer history ' * 20, 'pinned': False},
+    ]}
+    capped, warning = enforce_cap(obj, 200)
+    remaining = [l['text'] for l in capped['lines']]
+    assert len(remaining) == 1
+    assert remaining[0].startswith('A & B:')
+    assert warning
+
+
+def test_section_cap_splits_sixty_forty_and_never_rounds_to_zero():
+    assert section_cap(1000, 'story') == 600
+    assert section_cap(1000, 'bonds') == 400
+    assert section_cap(0, 'story') == 0          # uncapped
+    assert section_cap(1, 'story') == 1          # a positive cap always leaves room
+    assert section_cap(1, 'bonds') == 1
+
+
+def test_section_to_text_renders_one_section_with_its_heading():
+    obj = {'lines': [
+        {'section': 'story', 'text': 'a beat', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: allies', 'pinned': False},
+    ]}
+    assert section_to_text(obj, 'story') == 'STORY SO FAR\n- a beat'
+    assert section_to_text(obj, 'bonds') == 'BONDS\n- A & B: allies'
+    assert section_to_text({'lines': []}, 'bonds') == ''
+
+
+def test_build_bond_compress_messages_carries_one_dossier_only():
+    msgs = build_bond_compress_messages('A & B: a long history of things')
+    body = msgs[1]['content']
+    assert 'A & B: a long history of things' in body
+    # Nothing else travels: no running summary, no other relationships, no chat messages.
+    assert 'CURRENT STORY' not in body and 'CURRENT BONDS' not in body
+    assert 'NEW MESSAGES' not in body
+
+
+def test_parse_compressed_bond_accepts_a_shorter_same_relationship():
+    original = 'A & B: they met in the war and have argued about it ever since'
+    assert parse_compressed_bond('- A & B: war friends who still argue', original) == (
+        'A & B: war friends who still argue'
+    )
+
+
+def test_parse_compressed_bond_joins_a_wrapped_reply():
+    original = 'A & B: ' + 'x' * 200
+    reply = '- A & B: they met in the war\nand argue about it still'
+    assert parse_compressed_bond(reply, original) == (
+        'A & B: they met in the war and argue about it still'
+    )
+
+
+@pytest.mark.parametrize('reply', [
+    '',                                              # nothing usable
+    '```\n```',                                      # fences only
+    '- A & B: ' + 'x' * 400,                         # grew instead of shrinking
+    '- A & B: short\n- C & D: another pairing',      # drifted onto a second relationship
+    '- C & D: short',                                # wrong relationship entirely
+])
+def test_parse_compressed_bond_rejects_unusable_replies(reply):
+    with pytest.raises(ValueError):
+        parse_compressed_bond(reply, 'A & B: ' + 'original history ' * 10)
+
+
 def test_parse_summary_json_tolerates_junk():
     assert parse_summary_json('not json') == {'lines': []}
     assert parse_summary_json('')['lines'] == []
@@ -137,7 +331,8 @@ def test_build_compress_messages_numbers_only_the_batch():
     # The batch is numbered so the model has an explicit order to preserve...
     assert '1. first beat' in body and '2. second beat' in body
     # ...and nothing else travels with it: no running summary, no chat messages.
-    assert 'CURRENT SUMMARY' not in body and 'NEW MESSAGES' not in body
+    assert 'CURRENT STORY' not in body and 'CURRENT BONDS' not in body
+    assert 'NEW MESSAGES' not in body
 
 
 @pytest.mark.parametrize('reply,count,expected', [
@@ -183,7 +378,7 @@ def test_reinsert_pins_reuses_an_identical_regenerated_line():
 
 # ── Append-mode pure logic ──────────────────────────────────────────────────
 
-def test_append_summary_accumulates_dedups_and_replaces_bonds():
+def test_append_summary_accumulates_and_merges_bonds_by_relationship():
     prev = {'lines': [
         {'section': 'story', 'text': 'S1', 'pinned': False},
         {'section': 'bonds', 'text': 'A & B: wary allies', 'pinned': False},
@@ -191,13 +386,13 @@ def test_append_summary_accumulates_dedups_and_replaces_bonds():
     reply = {'lines': [
         {'section': 'story', 'text': 'S1', 'pinned': False},   # duplicate — dropped
         {'section': 'story', 'text': 'S2', 'pinned': False},   # new — appended
-        {'section': 'bonds', 'text': 'A & B: firm allies', 'pinned': False},  # replaces
+        {'section': 'bonds', 'text': 'A & B: firm allies', 'pinned': False},  # same pair
     ]}
     out = append_summary(prev, reply)
     story = [l['text'] for l in out['lines'] if l['section'] == 'story']
     bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
     assert story == ['S1', 'S2']              # accumulates, no duplicate
-    assert bonds == ['A & B: firm allies']    # bonds section replaced, not doubled
+    assert bonds == ['A & B: firm allies']    # same relationship, updated in place
     # Story block precedes bonds block (matches summary_to_text ordering).
     sections = [l['section'] for l in out['lines']]
     assert sections == ['story', 'story', 'bonds']
@@ -211,7 +406,12 @@ def test_append_summary_first_batch_from_empty():
 
 
 def test_append_summary_keeps_previous_bonds_when_reply_has_none():
-    """A reply with an empty BONDS section must not erase relationship state."""
+    """A reply with an empty BONDS section must not erase relationship state.
+
+    Under the keyed merge this holds by construction — a relationship the reply does not
+    mention is never touched — which is exactly what lets the prompt tell the model to
+    omit unchanged relationships instead of re-transcribing them.
+    """
     prev = {'lines': [
         {'section': 'story', 'text': 'S1', 'pinned': False},
         {'section': 'bonds', 'text': 'A & B: wary allies', 'pinned': False},
@@ -230,11 +430,19 @@ def test_append_summary_keeps_previous_bonds_when_reply_has_none():
 def test_build_append_messages_asks_for_new_story_only():
     from summarizer import APPEND_INSTRUCTIONS
     msgs = build_append_messages(
-        'PREV', [{'role': 'user', 'content': 'hi there'}], ['keep me'], 3000)
+        'PREV STORY', 'PREV BONDS', [{'role': 'user', 'content': 'hi there'}],
+        ['keep me'], 1200)
     assert msgs[0]['content'] == APPEND_INSTRUCTIONS
     user = msgs[1]['content']
-    assert 'PREV' in user and 'keep me' in user and 'hi there' in user and '3000' in user
+    # The two sections travel as separate blocks so the model can tell what it may extend
+    # from what it must leave alone.
+    assert 'CURRENT STORY' in user and 'PREV STORY' in user
+    assert 'CURRENT BONDS' in user and 'PREV BONDS' in user
+    assert 'keep me' in user and 'hi there' in user
     assert 'NEW story bullets' in user and 'BONDS' in user
+    # The quoted budget is the BONDS budget alone — quoting the whole summary's cap while
+    # forbidding story edits is what made bonds the only text the model could shrink.
+    assert '1200' in user
     assert 'Rewrite the running summary' not in user  # not the compress builder
 
 
@@ -244,10 +452,21 @@ def test_build_append_messages_asks_for_new_story_only():
     (2.0, 0, True),       # unlimited context → always append
 ])
 def test_should_append_threshold(used_pct, cap, expected):
-    # Build a story whose token estimate is ~used_pct of cap (chars/4 heuristic).
-    target_tokens = int((cap or 1000) * used_pct)
+    """The trigger measures STORY against the STORY budget, not the whole summary."""
+    # Build a story whose token estimate is ~used_pct of the story budget (chars/4).
+    target_tokens = int((section_cap(cap, 'story') or 1000) * used_pct)
     obj = {'lines': [{'section': 'story', 'text': 'x' * (target_tokens * 4), 'pinned': False}]}
     assert summaries._should_append(obj, cap) is expected
+
+
+def test_should_append_ignores_a_large_bonds_section():
+    """Story compression cannot reclaim bonds space, so bonds must not trigger it."""
+    obj = {'lines': [
+        {'section': 'story', 'text': 'x' * 40, 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: ' + 'y' * 4000, 'pinned': False},
+    ]}
+    assert summaries._should_append(obj, 1000) is True
+    assert summaries._section_has_room(obj, 1000, 'bonds') is False
 
 
 def test_parse_summarizer_output_rejects_empty_and_malformed_content():
@@ -587,6 +806,117 @@ def test_compression_keeps_pins_and_leaves_bonds_alone(client, sample_chat, monk
     assert all('KEEP' not in body for body in calls)
     # Pin stays in position, bonds untouched, order preserved.
     assert texts == ['merged', 'KEEP', 'merged', 'A & B: allies']
+
+
+def test_bond_compression_tightens_the_longest_dossier_first(
+    client, sample_chat, monkeypatch
+):
+    """Longest first reclaims the most space per call, and only bonds are touched."""
+    calls = []
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages[1]['content'])
+        return '- C and D: tightened'
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    obj = {'lines': [
+        {'section': 'story', 'text': 'a beat that must not be touched', 'pinned': False},
+        {'section': 'bonds', 'text': 'A & B: short', 'pinned': False},
+        {'section': 'bonds', 'text': 'C and D: ' + 'long history ' * 40, 'pinned': False},
+    ]}
+    out = summaries._compress_bonds(sample_chat['id'], obj, 200)
+    texts = [l['text'] for l in out['lines']]
+
+    assert len(calls) == 1
+    assert 'long history' in calls[0]      # the long dossier, not the short one
+    assert texts == [
+        'a beat that must not be touched',
+        'A & B: short',
+        'C and D: tightened',
+    ]
+
+
+def test_bond_compression_leaves_pinned_dossiers_alone(client, sample_chat, monkeypatch):
+    """A pinned bond is the user's explicit 'keep this as written'."""
+    calls = []
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages[1]['content'])
+        return '- A & B: tightened'
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    obj = {'lines': [
+        {'section': 'bonds', 'text': 'PIN me: ' + 'pinned history ' * 40, 'pinned': True},
+        {'section': 'bonds', 'text': 'A & B: ' + 'other history ' * 20, 'pinned': False},
+    ]}
+    out = summaries._compress_bonds(sample_chat['id'], obj, 200)
+
+    assert all('pinned history' not in body for body in calls)
+    assert out['lines'][0]['text'].startswith('PIN me: pinned history')
+    assert out['lines'][0]['pinned'] is True
+
+
+def test_bond_compression_stops_when_nothing_is_left_to_tighten(
+    client, sample_chat, monkeypatch
+):
+    """Every dossier already attempted (or pinned) ends the pass; enforce_cap decides."""
+    calls = []
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages[1]['content'])
+        # Shrinks by one character each time — never enough to fit the budget.
+        original = messages[1]['content'].split('- ', 1)[1].split('\n', 1)[0]
+        return '- ' + original[:-1]
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    obj = {'lines': [
+        {'section': 'bonds', 'text': 'A & B: ' + 'x' * 4000, 'pinned': False},
+    ]}
+    out = summaries._compress_bonds(sample_chat['id'], obj, 10)
+
+    assert len(calls) == 1          # one attempt per dossier, then it gives up
+    assert out['lines'][0]['text'].startswith('A & B:')
+
+
+def test_bond_compression_aborts_on_an_unusable_reply(client, sample_chat, monkeypatch):
+    """An unusable reply must not leave a half-tightened summary behind."""
+    def complete(messages, cap_tokens=0):
+        return '- C and D: a completely different relationship'
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    obj = {'lines': [
+        {'section': 'bonds', 'text': 'A & B: ' + 'long history ' * 40, 'pinned': False},
+    ]}
+    with pytest.raises(RuntimeError, match='Bond compression failed'):
+        summaries._compress_bonds(sample_chat['id'], obj, 200)
+
+
+def test_worker_compresses_bonds_before_appending(client, sample_chat, monkeypatch):
+    from summarizer import (
+        APPEND_INSTRUCTIONS, BOND_COMPRESS_INSTRUCTIONS, COMPRESS_INSTRUCTIONS,
+    )
+    calls = []
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages[0]['content'])
+        if messages[0]['content'] == BOND_COMPRESS_INSTRUCTIONS:
+            return '- A & B: tightened'
+        return 'STORY SO FAR\n- brand new\n\nBONDS'
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    client.put('/api/settings', json={'context_max_tokens': 100, 'summary_cap_pct': 10})
+    ids = _add_messages(client, sample_chat['id'], 2)
+    # Bonds well over 0.8 * the bonds budget; story comfortably inside its own.
+    _store_summary(sample_chat['id'], {'lines': [
+        {'section': 'bonds', 'text': 'A & B: ' + 'history ' * 40, 'pinned': False},
+    ]}, watermark=ids[0])
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+
+    assert BOND_COMPRESS_INSTRUCTIONS in calls
+    assert APPEND_INSTRUCTIONS in calls
+    assert calls.index(BOND_COMPRESS_INSTRUCTIONS) < calls.index(APPEND_INSTRUCTIONS)
+    # Story compression never ran — only bonds were over budget.
+    assert COMPRESS_INSTRUCTIONS not in calls
 
 
 def test_compression_aborts_the_pass_when_a_batch_reply_is_unusable(
@@ -1165,11 +1495,49 @@ def test_pin_endpoint_updates_only_the_requested_line(client, sample_chat):
     assert lines[1]['pinned'] is True
 
 
+def test_pin_endpoint_matches_a_bond_whose_dossier_has_grown(client, sample_chat):
+    """The client may hold the dossier from before the worker last expanded it.
+
+    Bonds are matched by their participants, so pinning one no longer 409s just because
+    the model added a sentence between render and click.
+    """
+    cid = sample_chat['id']
+    _store_summary(cid, {'lines': [
+        {'section': 'bonds',
+         'text': 'Cerina and Luna: sisters, and Luna lost her arm to Cerina.',
+         'pinned': False},
+    ]})
+
+    response = client.put(f'/api/chats/{cid}/summary/pins', json={
+        'section': 'bonds',
+        'text': 'Cerina and Luna: sisters.',   # the stale, shorter text
+        'pinned': True,
+    })
+
+    assert response.status_code == 200
+    lines = response.get_json()['summary']['lines']
+    assert lines[0]['pinned'] is True
+    # The pin flips; the dossier itself is not reverted to the client's stale copy.
+    assert lines[0]['text'] == 'Cerina and Luna: sisters, and Luna lost her arm to Cerina.'
+
+
 def test_pin_endpoint_rejects_stale_or_invalid_identity(client, sample_chat):
     cid = sample_chat['id']
     response = client.put(f'/api/chats/{cid}/summary/pins', json={
         'section': 'story',
         'text': 'No longer present',
+        'pinned': True,
+    })
+    assert response.status_code == 409
+
+    # A bond for a relationship that does not exist is still a 409 — key matching is
+    # tolerant of rewording, not of naming someone else.
+    _store_summary(cid, {'lines': [
+        {'section': 'bonds', 'text': 'A & B: allies', 'pinned': False},
+    ]})
+    response = client.put(f'/api/chats/{cid}/summary/pins', json={
+        'section': 'bonds',
+        'text': 'C & D: strangers',
         'pinned': True,
     })
     assert response.status_code == 409

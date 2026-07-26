@@ -20,6 +20,13 @@ import re
 STORY_HEADING = 'STORY SO FAR'
 BONDS_HEADING = 'BONDS'
 
+# The summary's size cap is split between its two sections. STORY and BONDS grow for
+# different reasons and compress differently, and a single combined cap let whichever
+# section the model was allowed to rewrite absorb all the pressure — which is how BONDS
+# eroded into one-line stubs. Reserving a floor for each keeps them independent.
+STORY_CAP_FRACTION = 0.6
+BONDS_CAP_FRACTION = 0.4
+
 THINKING_TAG_PAIRS = (
     ('<think>', '</think>'),
     ('<thinking>', '</thinking>'),
@@ -30,25 +37,45 @@ THINKING_TAG_PAIRS = (
 APPEND_INSTRUCTIONS = (
     "You maintain a running memory summary of an ongoing roleplay so the AI keeps "
     "remembering events that have scrolled out of its context window. You will be given "
-    "the CURRENT SUMMARY, any PINNED LINES, and a batch of NEW MESSAGES. The summary has "
-    "plenty of room, so ADD to it — do not compress what is already there.\n\n"
-    "OUTPUT FORMAT — exactly two headings, each followed by short `- ` bullet lines:\n"
+    "the CURRENT STORY, the CURRENT BONDS, any PINNED LINES, and a batch of NEW MESSAGES.\n\n"
+    "OUTPUT FORMAT — exactly two headings:\n"
     "STORY SO FAR\n"
-    "- <one plot beat per line>\n\n"
+    "- <one new plot beat per line>\n\n"
     "BONDS\n"
-    "- <one relationship per line: where it stands now + the key shared moment behind it>\n\n"
-    "RULES:\n"
+    "- <Name and Name>: <several sentences of accumulated relationship history>\n\n"
+    "STORY RULES:\n"
     "1. STORY SO FAR is ADDITIVE. Output ONLY new bullets for events that actually happen "
     "in the NEW MESSAGES. Do NOT repeat, reword, reorder, or compress the existing story "
     "lines — the system keeps them exactly as they are. If nothing new happened in the "
     "story, output the STORY SO FAR heading with no bullets under it.\n"
-    "2. BONDS is CURRENT STATE, one line per relationship. Output the FULL updated BONDS "
-    "section: fold any new development into the existing line for that relationship rather "
-    "than adding a duplicate, and carry forward relationships the new messages did not touch.\n"
-    "3. PRESERVE THE WHY, NOT JUST THE WHAT — keep motivation, emotional stakes, and "
-    "circumstances in the new bullets, not hollow one-liners.\n"
-    "4. Keep every PINNED LINE EXACTLY as written, word-for-word.\n"
-    "Output ONLY the two headings and their bullet lines — no preamble, no commentary."
+    "2. PRESERVE THE WHY, NOT JUST THE WHAT — keep motivation, emotional stakes, and "
+    "circumstances in the new bullets, not hollow one-liners.\n\n"
+    "BONDS RULES:\n"
+    "3. Output a line ONLY for a relationship that is NEW or that CHANGED in the NEW "
+    "MESSAGES. Every relationship you do not output is kept exactly as it is — you never "
+    "need to restate one to preserve it. Never write a placeholder such as \"not updated\", "
+    "\"unchanged\", or \"no change\"; if nothing changed, simply leave that relationship "
+    "out.\n"
+    "4. A bond line is an EVOLVING DOSSIER, not a status label. Write several plain "
+    "sentences covering how the two know each other, the specific moments that shaped it, "
+    "what they want from each other now, and anything unresolved between them. Never reduce "
+    "a relationship to a bare event or label like \"First meeting\", \"Killed\", or "
+    "\"Protective bond\".\n"
+    "5. When you output a relationship that already exists, REPRODUCE ITS EXISTING TEXT and "
+    "weave the new development into it. Keep every specific already recorded — names, "
+    "injuries, promises, debts, betrayals. The dossier should get longer and richer as the "
+    "story advances. Losing detail that was already written down is a failure.\n"
+    "6. Begin each bond line with the two names exactly as they appear in CURRENT BONDS, "
+    "followed by a colon, so the entry is recognised as the same relationship: "
+    "\"- Name and Name: …\". Keep the whole dossier on ONE line.\n"
+    "7. NOT EVERY INTERACTION IS A BOND. A relationship earns a line only when it is "
+    "ongoing and will shape how those two behave later. A single meeting, a passing "
+    "exchange, or a one-off kill is a STORY beat — put it under STORY SO FAR and do not "
+    "open a bond for it.\n"
+    "8. When someone dies or leaves for good, fold that outcome into the closing state of "
+    "their dossier rather than keeping a live relationship line for someone who is gone.\n"
+    "9. Keep every PINNED LINE EXACTLY as written, word-for-word.\n"
+    "Output ONLY the two headings and their lines — no preamble, no commentary."
 )
 
 
@@ -75,6 +102,25 @@ COMPRESS_INSTRUCTIONS = (
 )
 
 
+BOND_COMPRESS_INSTRUCTIONS = (
+    "You tighten ONE relationship entry from the running memory of an ongoing roleplay. "
+    "You will be given a single relationship dossier. Rewrite it shorter while keeping "
+    "everything that mattered.\n\n"
+    "OUTPUT FORMAT — one line, nothing else:\n"
+    "- <Name and Name>: <the tightened dossier>\n\n"
+    "RULES:\n"
+    "1. Output exactly ONE line, and keep it shorter than the one you were given.\n"
+    "2. Begin with the SAME names and colon the dossier already starts with. Do not "
+    "rename, reorder, or re-describe the participants.\n"
+    "3. KEEP EVERY SPECIFIC — names, injuries, promises, debts, betrayals, who did what to "
+    "whom. Shed wording, never facts. Merge sentences that circle the same point rather "
+    "than dropping details.\n"
+    "4. This is ONE relationship. Do not fold in, mention, or invent any other "
+    "relationship, and do not add commentary about the summarizing itself.\n"
+    "Output ONLY the single bullet line — no heading, no preamble."
+)
+
+
 def estimate_tokens(text):
     """Heuristic token count mirroring ``estimateTextTokens`` in
     ``static/js/tokenizer.js``: ``max(words*1.3, chars/4)``, min 1 for non-empty text.
@@ -91,6 +137,42 @@ def _norm_heading(line):
     upper = line.upper()
     kept = re.sub(r'[^A-Z ]', ' ', upper)
     return re.sub(r'\s+', ' ', kept).strip()
+
+
+# Participant separators inside a bond's name head. ``&``, ``/`` and ``,`` bind tightly,
+# but a dash only separates when it is surrounded by whitespace — otherwise ``Jean-Luc``
+# would be split into two people.
+_BOND_PARTICIPANT_SPLIT = re.compile(r'\s*[&/,]\s*|\s+(?:and|[-–—])\s+')
+_BULLET_PREFIX = re.compile(r'^[-*••]\s*')
+
+
+def bond_key(text):
+    """Stable identity for a BONDS line: its participants, order-insensitive.
+
+    A bond's text is rewritten as the relationship develops, so the line itself cannot be
+    its own identity — matching on exact text is what made an updated dossier look like a
+    brand-new relationship (duplicating it) and made pinning one 409 as soon as the model
+    reworded it. The participants are the part that stays put, so they are the key.
+
+    Everything before the first colon is the name head. Legacy bonds written without a
+    colon fall back to their whole text, which is stable for as long as they survive
+    untouched. Participants are sorted so ``Cerina and Luna`` and ``Luna – Cerina`` are
+    recognised as the same relationship.
+    """
+    raw = '' if text is None else str(text)
+    head = raw.split(':', 1)[0] if ':' in raw else raw
+    head = re.sub(r'\s+', ' ', head).strip().lower()
+    parts = []
+    for part in _BOND_PARTICIPANT_SPLIT.split(head):
+        cleaned = re.sub(r'[^a-z0-9 ]', '', part or '').strip()
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+        if cleaned:
+            parts.append(cleaned)
+    if not parts:
+        # Punctuation-only or empty head — fall back to the normalized head so the entry
+        # still has *some* identity rather than colliding with every other keyless bond.
+        return head
+    return ' + '.join(sorted(parts))
 
 
 def strip_thinking_content(text):
@@ -123,6 +205,12 @@ def parse_summary(text):
 
     Lines before any heading are treated as ``story``. Bullet markers (``- ``, ``* ``,
     ``• ``) are stripped. Blank lines are ignored.
+
+    Inside BONDS only, an unbulleted line continues the previous entry instead of starting
+    a new one: a bond is a multi-sentence dossier, and a model that soft-wraps one would
+    otherwise have each wrapped fragment stored as its own relationship. STORY keeps
+    one-entry-per-line — its bullets are discrete beats, and joining them would merge
+    events that happened at different times.
     """
     lines = []
     section = 'story'
@@ -137,9 +225,15 @@ def parse_summary(text):
         if heading == BONDS_HEADING:
             section = 'bonds'
             continue
-        content = re.sub(r'^[-*••]\s*', '', line).strip()
-        if content:
-            lines.append({'section': section, 'text': content, 'pinned': False})
+        bulleted = bool(_BULLET_PREFIX.match(line))
+        content = _BULLET_PREFIX.sub('', line).strip()
+        if not content:
+            continue
+        if (section == 'bonds' and not bulleted
+                and lines and lines[-1]['section'] == 'bonds'):
+            lines[-1]['text'] = f"{lines[-1]['text']} {content}"
+            continue
+        lines.append({'section': section, 'text': content, 'pinned': False})
     return {'lines': lines}
 
 
@@ -206,37 +300,66 @@ def pinned_texts(obj):
     return [line['text'] for line in summary_lines(obj) if line.get('pinned')]
 
 
+def section_lines(obj, section):
+    """The lines belonging to one section, in stored order."""
+    if section == 'bonds':
+        return [line for line in summary_lines(obj) if line.get('section') == 'bonds']
+    return [line for line in summary_lines(obj) if line.get('section') != 'bonds']
+
+
+def section_to_text(obj, section):
+    """Render a single section with its heading, or '' when the section is empty.
+
+    Each section is measured and budgeted on its own, so the heading is included here
+    rather than only in the combined render — a section's real cost against its own cap
+    includes the heading that has to travel with it.
+    """
+    lines = section_lines(obj, section)
+    if not lines:
+        return ''
+    heading = BONDS_HEADING if section == 'bonds' else STORY_HEADING
+    return '\n'.join([heading] + [f"- {line['text']}" for line in lines])
+
+
 def summary_to_text(obj):
     """Render a summary object back to bare ``STORY SO FAR`` / ``BONDS`` text.
 
-    This render feeds the previous summary into the next fold-in and is what
-    ``enforce_cap`` measures, so the headings must stay exactly as ``_norm_heading``
-    matches them. The frontend's ``summaryToText`` renders the *chat* prompt and
-    deliberately annotates the story heading with its ordering; keep these two in step
-    on structure, not on that wording.
+    This render feeds the previous summary into the next fold-in and is what the chat
+    prompt measures, so the headings must stay exactly as ``_norm_heading`` matches them.
+    The frontend's ``summaryToText`` renders the *chat* prompt and deliberately annotates
+    the story heading with its ordering; keep these two in step on structure, not on that
+    wording.
     """
-    story = [line for line in summary_lines(obj) if line.get('section') != 'bonds']
-    bonds = [line for line in summary_lines(obj) if line.get('section') == 'bonds']
-    out = []
-    if story:
-        out.append(STORY_HEADING)
-        out.extend(f"- {line['text']}" for line in story)
-    if bonds:
-        if out:
-            out.append('')
-        out.append(BONDS_HEADING)
-        out.extend(f"- {line['text']}" for line in bonds)
-    return '\n'.join(out)
+    blocks = [section_to_text(obj, 'story'), section_to_text(obj, 'bonds')]
+    return '\n\n'.join(block for block in blocks if block)
+
+
+def section_cap(cap_tokens, section):
+    """The token budget for one section, or 0 when the summary is uncapped.
+
+    STORY and BONDS each get a guaranteed floor rather than competing for one pool. Under
+    a single combined cap the section the model was free to rewrite absorbed all the
+    pressure, which is what shrank BONDS into one-line stubs.
+    """
+    if not cap_tokens or cap_tokens <= 0:
+        return 0
+    fraction = BONDS_CAP_FRACTION if section == 'bonds' else STORY_CAP_FRACTION
+    # Never round a positive cap down to zero: a tiny cap must still leave the shortening
+    # fallback below something to aim at rather than demanding an empty section.
+    return max(1, int(cap_tokens * fraction))
 
 
 def enforce_cap(obj, cap_tokens):
-    """Trim the summary so its rendered form fits ``cap_tokens``.
+    """Trim the summary so each section fits its own share of ``cap_tokens``.
 
-    Drops the lowest-priority unpinned lines first — unpinned ``story`` (oldest first),
-    then unpinned ``bonds`` (oldest first). Pinned lines are never dropped. Returns
-    ``(trimmed_obj, warning)``. A non-empty input is never reduced to an empty summary:
-    if the model's rewrite still exceeds the cap, the last remaining unpinned line is
-    shortened as a final safety net.
+    Drops unpinned ``story`` oldest-first — story is a timeline, and the oldest beats are
+    the ones the compression pass has already had the most chances to merge. Drops
+    unpinned ``bonds`` NEWEST-first, the opposite way round: a long-running relationship
+    carries far more history than one opened a batch ago, so cap pressure sheds the
+    newcomer. Pinned lines are never dropped. Returns ``(trimmed_obj, warning)``.
+
+    A non-empty input is never reduced to an empty summary: if the model's rewrite still
+    exceeds the cap, the last remaining unpinned line is shortened as a final safety net.
     """
     obj = {'lines': [dict(line) for line in summary_lines(obj)]}
     warning = ''
@@ -244,31 +367,36 @@ def enforce_cap(obj, cap_tokens):
     if not cap_tokens or cap_tokens <= 0:
         return obj, warning
 
+    def section_fits(section):
+        return (estimate_tokens(section_to_text(obj, section))
+                <= section_cap(cap_tokens, section))
+
     def fits():
-        return estimate_tokens(summary_to_text(obj)) <= cap_tokens
+        return section_fits('story') and section_fits('bonds')
 
     if fits():
         return obj, warning
 
-    for target in ('story', 'bonds'):
-        i = 0
-        while not fits() and i < len(obj['lines']):
-            line = obj['lines'][i]
-            if line.get('section', 'story') == target and not line.get('pinned'):
-                # The LLM call is already the semantic rewrite/tighten pass. This
-                # fallback must not erase its final remaining memory line.
-                if len(obj['lines']) == 1:
-                    break
-                obj['lines'].pop(i)
-                trimmed = True
-                continue
-            i += 1
-        if fits():
-            warning = (
-                'The summary model exceeded the size cap; lowest-priority lines were omitted.'
-                if trimmed else ''
-            )
-            return obj, warning
+    for section, oldest_first in (('story', True), ('bonds', False)):
+        while not section_fits(section):
+            positions = [
+                index for index, line in enumerate(obj['lines'])
+                if ((line.get('section', 'story') == 'bonds') == (section == 'bonds'))
+                and not line.get('pinned')
+            ]
+            # The LLM call is already the semantic rewrite/tighten pass. This fallback
+            # must not erase its final remaining memory line.
+            if not positions or len(obj['lines']) == 1:
+                break
+            obj['lines'].pop(positions[0] if oldest_first else positions[-1])
+            trimmed = True
+
+    if fits():
+        warning = (
+            'The summary model exceeded the size cap; lowest-priority lines were omitted.'
+            if trimmed else ''
+        )
+        return obj, warning
 
     # Preserve the longest fitting prefix of a lone unpinned line. Binary search keeps
     # this deterministic fallback small while retaining more context than dropping the
@@ -354,12 +482,16 @@ def parse_compressed_lines(text, input_count):
     return out
 
 
-def build_append_messages(prev_text, batch_messages, pins, cap_tokens):
+def build_append_messages(story_text, bonds_text, batch_messages, pins, bonds_cap_tokens):
     """Assemble the ``messages`` array for one *additive* fold-in call.
 
-    Used while the summary is well under its size budget: the model returns only new
-    STORY bullets plus the full current BONDS section, and the worker keeps every
-    existing story line verbatim. Mirrors ``build_summarizer_messages``'s block shape.
+    The model returns only new STORY bullets plus the relationships that are new or that
+    changed; the worker keeps every existing story line and every untouched bond verbatim.
+
+    The two sections are shown as separate blocks so the model can tell what it is being
+    asked to extend from what it must not touch, and the token budget quoted here is the
+    BONDS budget alone. Quoting the *whole* summary's budget while forbidding story edits
+    is what made BONDS the only text the model could shrink.
     """
     convo = []
     for msg in batch_messages:
@@ -367,14 +499,18 @@ def build_append_messages(prev_text, batch_messages, pins, cap_tokens):
         convo.append(f"{who}: {msg.get('content', '')}")
     convo_text = '\n\n'.join(convo)
     pins_text = '\n'.join(f'- {p}' for p in pins) if pins else '(none)'
-    budget = f"under {cap_tokens}" if cap_tokens and cap_tokens > 0 else "within the given"
+    budget = (
+        f"under {bonds_cap_tokens}"
+        if bonds_cap_tokens and bonds_cap_tokens > 0 else "within the given"
+    )
     user = (
-        f"CURRENT SUMMARY:\n{prev_text or '(empty — this is the first batch)'}\n\n"
+        f"CURRENT STORY:\n{story_text or '(empty — this is the first batch)'}\n\n"
+        f"CURRENT BONDS:\n{bonds_text or '(none yet)'}\n\n"
         f"PINNED LINES (reproduce these EXACTLY, word-for-word):\n{pins_text}\n\n"
         f"NEW MESSAGES TO FOLD IN:\n{convo_text}\n\n"
-        f"Add only NEW story bullets for what happens in the new messages, and output the "
-        f"full current BONDS section (merging, not duplicating). Do NOT rewrite or compress "
-        f"the existing story lines. Keep the whole summary {budget} tokens."
+        f"Add only NEW story bullets for what happens in the new messages, and output a "
+        f"BONDS line only for each relationship that is new or that changed. Do NOT rewrite "
+        f"or compress the existing story lines. Keep the whole BONDS section {budget} tokens."
     )
     return [
         {'role': 'system', 'content': APPEND_INSTRUCTIONS},
@@ -382,16 +518,80 @@ def build_append_messages(prev_text, batch_messages, pins, cap_tokens):
     ]
 
 
+def build_bond_compress_messages(bond_text):
+    """Assemble the ``messages`` array for one bond-compression call.
+
+    Deliberately narrow: exactly one relationship's dossier travels, with no running
+    summary and no chat messages. Compressing relationships in batches the way story beats
+    are batched would merge unrelated people into a single line.
+    """
+    user = (
+        f"RELATIONSHIP DOSSIER TO TIGHTEN:\n- {bond_text}\n\n"
+        "Rewrite this one dossier shorter, keeping the same opening names and every "
+        "specific it records."
+    )
+    return [
+        {'role': 'system', 'content': BOND_COMPRESS_INSTRUCTIONS},
+        {'role': 'user', 'content': user},
+    ]
+
+
+def parse_compressed_bond(text, original):
+    """Parse and validate a bond-compression reply into a single dossier line.
+
+    ``parse_compressed_lines`` cannot be reused: this call returns one line rather than
+    fewer-than-N, and it must stay the *same relationship* — a reply that drifted onto
+    another pairing would silently overwrite one dossier with another.
+
+    Raises ``ValueError`` unless the reply is a single line, actually shorter than the
+    original, and still keyed to the same relationship, so the caller can preserve the
+    previous summary checkpoint.
+    """
+    visible = strip_thinking_content(text)
+    out = []
+    for raw in (visible or '').splitlines():
+        line = raw.strip()
+        if not line or line.startswith('```'):
+            continue
+        if _norm_heading(line) in (STORY_HEADING, BONDS_HEADING):
+            continue
+        bulleted = bool(_BULLET_PREFIX.match(line))
+        content = re.sub(r'^\d+[.)]\s*', '', _BULLET_PREFIX.sub('', line)).strip()
+        if not content:
+            continue
+        # Soft-wrapped prose continues the dossier rather than starting a second one.
+        if out and not bulleted:
+            out[-1] = f'{out[-1]} {content}'
+        else:
+            out.append(content)
+    if not out:
+        raise ValueError('Bond compressor returned no usable lines')
+    if len(out) > 1:
+        raise ValueError(
+            f'Bond compressor returned {len(out)} relationships for 1 input'
+        )
+    compressed = out[0]
+    if len(compressed) >= len(original):
+        raise ValueError('Bond compressor did not shorten the dossier')
+    if bond_key(compressed) != bond_key(original):
+        raise ValueError('Bond compressor changed which relationship the line describes')
+    return compressed
+
+
 def append_summary(prev_obj, new_obj):
     """Fold an *append-mode* reply into the existing summary.
 
     STORY is additive: existing story lines are kept verbatim (order preserved) and any
     new story line whose exact text is not already present is appended — so a model that
-    re-emits an existing beat, or an identical retried reply, stays idempotent. BONDS is
-    current-state: the reply's BONDS section replaces the old one — unless the reply has
-    no bonds bullets at all, in which case the previous section is carried forward (a
-    model may wrongly generalize the additive story rule to BONDS and omit unchanged
-    relationships). Returns fresh copies and never mutates its inputs.
+    re-emits an existing beat, or an identical retried reply, stays idempotent.
+
+    BONDS is merged per relationship, keyed by ``bond_key``. A dossier the reply mentions
+    is updated in place, keeping its position and pin state; every relationship the reply
+    does not mention is carried through untouched. This is what makes a bond safe to leave
+    out of a reply: replacing the section wholesale meant re-transcribing every
+    relationship on every batch, and each lossy re-copy became the next batch's input.
+
+    Returns fresh copies and never mutates its inputs.
     """
     prev_story = [
         dict(line) for line in summary_lines(prev_obj)
@@ -406,19 +606,30 @@ def append_summary(prev_obj, new_obj):
         if text and text not in seen:
             new_story.append({'section': 'story', 'text': text, 'pinned': bool(line.get('pinned'))})
             seen.add(text)
-    new_bonds = [
-        {'section': 'bonds', 'text': line['text'], 'pinned': bool(line.get('pinned'))}
-        for line in summary_lines(new_obj)
-        if line.get('section') == 'bonds' and line.get('text')
+
+    bonds = [
+        dict(line) for line in summary_lines(prev_obj)
+        if line.get('section') == 'bonds'
     ]
-    if not new_bonds:
-        # An empty BONDS section is accepted by the parser (only the heading is
-        # required), so replacing here would silently erase every unpinned bond.
-        new_bonds = [
-            dict(line) for line in summary_lines(prev_obj)
-            if line.get('section') == 'bonds'
-        ]
-    return {'lines': prev_story + new_story + new_bonds}
+    by_key = {}
+    for line in bonds:
+        by_key.setdefault(bond_key(line.get('text', '')), line)
+    for line in summary_lines(new_obj):
+        if line.get('section') != 'bonds':
+            continue
+        text = line.get('text', '')
+        if not text:
+            continue
+        key = bond_key(text)
+        existing = by_key.get(key)
+        if existing is not None:
+            # Same relationship, further along. Keep its slot and its pin.
+            existing['text'] = text
+            continue
+        fresh = {'section': 'bonds', 'text': text, 'pinned': bool(line.get('pinned'))}
+        bonds.append(fresh)
+        by_key[key] = fresh
+    return {'lines': prev_story + new_story + bonds}
 
 
 def merge_pins(new_obj, prev_obj):
@@ -433,11 +644,18 @@ def merge_pins(new_obj, prev_obj):
     STORY is a timeline, so appending a recovered beat after newer ones would misreport
     when it happened. Each missing pin is inserted just after the nearest earlier line
     from ``prev_obj`` that still survives in ``new_obj`` — an order-preserving merge.
+
+    Bonds are identified by ``bond_key`` rather than by their text, because a dossier is
+    *expected* to be rewritten as the relationship develops. Matching on exact text would
+    read an expanded pinned bond as a missing one and restore the stale copy alongside its
+    own update.
     """
     new_lines = [dict(line) for line in summary_lines(new_obj)]
 
     def key_of(line):
-        return ('bonds' if line.get('section') == 'bonds' else 'story', line.get('text', ''))
+        if line.get('section') == 'bonds':
+            return 'bonds', bond_key(line.get('text', ''))
+        return 'story', line.get('text', '')
 
     existing = {key_of(line) for line in new_lines}
     # Walk the previous summary in order, tracking the most recent line that is still
@@ -454,7 +672,9 @@ def merge_pins(new_obj, prev_obj):
             continue
         if not prev_line.get('pinned'):
             continue
-        restored = {'section': key[0], 'text': key[1], 'pinned': True}
+        # Restore the line's own text, not ``key[1]`` — a bond's key is derived from its
+        # participants and is not the dossier the user pinned.
+        restored = {'section': key[0], 'text': prev_line.get('text', ''), 'pinned': True}
         # No surviving predecessor means nothing that came before this beat is left,
         # so it belongs at the front — appending would date it after everything.
         # BONDS carries no ordering, so it can simply go last.
