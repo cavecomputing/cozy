@@ -57,6 +57,18 @@ Each saved prompt is **paired**: a `content` (system) template and a `post_histo
 
 CSS files in [static/themes/](static/themes/) are built-in; user-added themes live in `$DATA_DIR/themes/` and **take precedence** over built-ins with the same filename — see `serve_theme()` in [app.py](app.py). `/api/themes` returns the merged set.
 
+### Attribution appears in two places
+
+The bundled-content credits (currently Sasha and the BigBear presets) are duplicated: the
+`## Credits` section of [README.md](README.md) and the About page in Settings
+(`data-section="about"` in [templates/index.html](templates/index.html)). **Changing an
+attribution means changing both** — the wording is meant to match. The repository-attribution
+requirement itself lives in [NOTICE](NOTICE) and is restated on the About page.
+
+The version shown on that page comes from `shared.APP_VERSION`, read from `pyproject.toml` at
+import time and passed into the template by `index()` in [app.py](app.py). Bump the version in
+`pyproject.toml` only; nothing else hardcodes it.
+
 ## Testing gotchas
 
 [tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR`. [app.py](app.py) and route modules resolve data paths through `shared`, so new path constants used at runtime should follow the same pattern or be included in the fixture when tests need to isolate them.

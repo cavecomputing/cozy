@@ -2452,6 +2452,95 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     padding: 0.25rem 0.6rem 0.3rem;
 }
 
+/* ── About page ─────────────────────────────────────────────────────────── */
+.about-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.about-logo {
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    /* The mark is a dark rounded square, so it disappears into dark themes
+       without an edge of its own. */
+    border: 1px solid var(--border-color);
+}
+
+.about-identity-text {
+    min-width: 0;
+}
+
+.about-identity-text h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.about-tagline {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.about-version {
+    margin: 0.4rem 0 0;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.about-credit + .about-credit {
+    margin-top: 0.85rem;
+}
+
+.about-credit h5 {
+    margin: 0 0 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.about-credit p {
+    margin: 0;
+    font-size: 0.74rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.about-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.about-links li {
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.settings-section[data-section="about"] a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.settings-section[data-section="about"] a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .about-identity {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
 .settings-help {
     margin-top: 0.25rem;
     padding: 0 0.6rem;

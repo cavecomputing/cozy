@@ -175,6 +175,10 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path></svg>
                                 <span>Summaries</span>
                             </button>
+                            <button class="settings-nav-item" data-section="about" role="tab" aria-selected="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                <span>About</span>
+                            </button>
                         </nav>
                         <div class="settings-pane" id="settings-pane">
                     <div class="settings-section" data-section="general">
@@ -682,6 +686,52 @@
                                     <input type="number" id="settings-summary-compress" class="form-input" min="2" max="10" step="1" value="3">
                                 </div>
                                 <p class="settings-hint">When the summary nears its size cap, Cozy merges this many neighbouring story lines per request to shrink it. Smaller batches lose less detail but need more requests. Pinned lines are never sent and never merged.</p>
+                            </section>
+                        </div>
+                    </div>
+                    <!-- The credits below mirror the Credits section of README.md.
+                         Change one, change the other. -->
+                    <div class="settings-section" data-section="about" hidden>
+                        <header class="settings-page-header">
+                            <h3>About</h3>
+                            <p>What this is, who it borrows from, and where to find the source.</p>
+                        </header>
+                        <div class="settings-section-body settings-section-stack">
+                            <section class="settings-card about-identity">
+                                <img class="about-logo" src="{{ url_for('static', filename='favicon.png') }}" alt="" width="72" height="72">
+                                <div class="about-identity-text">
+                                    <h4>Cozy</h4>
+                                    <p class="about-tagline">A self-hosted, single-user app for chatting with LLM character cards. With a little Discord inspiration ✨</p>
+                                    <p class="about-version">Version {{ app_version }} · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a></p>
+                                </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Credits</h4>
+                                    <p>Bundled content that came from someone else.</p>
+                                </header>
+                                <div class="about-credit">
+                                    <h5>Sasha</h5>
+                                    <p>The character card included with a fresh install was created by <strong>Chunchunmaru</strong> and is used here with their permission. The original is <a href="https://chub.ai/characters/Chunchunmaru/sasha-your-new-innocent-warden-756ba28f7556" target="_blank" rel="noopener noreferrer">Sasha - Your new innocent warden</a>. She is an ordinary character card in Cozy like any other: edit her, archive her, or delete her and she stays gone.</p>
+                                </div>
+                                <div class="about-credit">
+                                    <h5>BigBear presets</h5>
+                                    <p>The bundled BigBear prompt presets are derived from the <strong>Writer's Block v5</strong> SillyTavern preset by <strong>Deiomo</strong> on Reddit. The prose in them is theirs; the configuration is not. SillyTavern lets a preset toggle individual prompt fragments on and off, which Cozy has no equivalent for, so each BigBear preset flattens one selection of those fragments into Cozy's single system/post-history template pair. The narrative-mode and pacing fragments were also rewritten to produce continuous prose rather than turn-taking — behavior the original preset does not ship. Any complaint about how BigBear behaves belongs here, not with Deiomo. Like Sasha, these are ordinary rows once seeded: edit, rename, or delete them and they stay gone.</p>
+                                </div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Source &amp; documentation</h4>
+                                    <p>Cozy is open source. Redistributions and derivative works must preserve the attribution in <code>NOTICE</code>, including a reference to the original repository.</p>
+                                </header>
+                                <ul class="about-links">
+                                    <li><a href="https://github.com/cavecomputing/cozy" target="_blank" rel="noopener noreferrer">Original repository — github.com/cavecomputing/cozy</a></li>
+                                    <li><a href="https://github.com/cavecomputing/cozy/blob/main/docs/getting-started.md" target="_blank" rel="noopener noreferrer">Getting started</a></li>
+                                    <li><a href="https://github.com/cavecomputing/cozy/blob/main/docs/troubleshooting.md" target="_blank" rel="noopener noreferrer">Troubleshooting</a></li>
+                                    <li><a href="https://github.com/cavecomputing/cozy/blob/main/docs/data-and-backups.md" target="_blank" rel="noopener noreferrer">Data &amp; backups</a></li>
+                                    <li><a href="https://github.com/cavecomputing/cozy/issues" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
+                                </ul>
+                                <p class="settings-hint">If you fork Cozy or build on its ideas, a link back to the original repository is appreciated.</p>
                             </section>
                         </div>
                     </div>
