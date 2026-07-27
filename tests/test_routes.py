@@ -96,7 +96,7 @@ class TestSystemPrompts:
         assert r.status_code == 200
         prompts = r.get_json()
         assert len(prompts) >= 1
-        assert prompts[0]['name'] == 'Default'
+        assert prompts[0]['name'] == 'NanoBear'
         # Seed is the default Prompt Builder template — should contain the
         # builder variables and conditional blocks.
         assert '{{description}}' in prompts[0]['content']

@@ -205,7 +205,7 @@ class TestSchemaMigrationLedger:
             conn.execute('DROP TABLE schema_migrations')
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (shared._DEFAULT_PROMPT_TEMPLATE_V1, 'Default'),
+                (shared._DEFAULT_PROMPT_TEMPLATE_V1, 'NanoBear'),
             )
 
         shared.init_db()
@@ -215,7 +215,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
         assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
         assert '{{#summary}}' in prompt['content']
@@ -230,7 +230,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (custom_prompt, 'Default'),
+                (custom_prompt, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
@@ -242,7 +242,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
             migration = conn.execute(
                 'SELECT name FROM schema_migrations WHERE version=?',
@@ -259,7 +259,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (shared._DEFAULT_PROMPT_TEMPLATE_V2, 'Default'),
+                (shared._DEFAULT_PROMPT_TEMPLATE_V2, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
@@ -271,7 +271,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
         assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V3
         assert 'simulated world' in prompt['content']
@@ -285,7 +285,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (custom_prompt, 'Default'),
+                (custom_prompt, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
@@ -297,7 +297,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
         assert prompt['content'] == custom_prompt
 
@@ -309,7 +309,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (shared._DEFAULT_PROMPT_TEMPLATE_V3, 'Default'),
+                (shared._DEFAULT_PROMPT_TEMPLATE_V3, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
@@ -321,7 +321,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
         assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V4
         assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
@@ -335,7 +335,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (custom_prompt, 'Default'),
+                (custom_prompt, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
@@ -347,7 +347,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
         assert prompt['content'] == custom_prompt
 
@@ -359,7 +359,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET post_history_content=? WHERE name=?',
-                (shared._DEFAULT_POST_HISTORY_TEMPLATE_V1, 'Default'),
+                (shared._DEFAULT_POST_HISTORY_TEMPLATE_V1, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
@@ -371,7 +371,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT post_history_content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
         assert prompt['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
         assert '{{post_history_instructions}}' not in prompt['post_history_content']
@@ -385,7 +385,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET post_history_content=? WHERE name=?',
-                (custom_phi, 'Default'),
+                (custom_phi, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
@@ -397,7 +397,7 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT post_history_content FROM system_prompts WHERE name=?',
-                ('Default',),
+                ('NanoBear',),
             ).fetchone()
         assert prompt['post_history_content'] == custom_phi
 

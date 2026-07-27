@@ -1,5 +1,6 @@
 """Shared state, path constants, and DB helpers used by app.py and all route modules."""
 
+import json
 import logging
 import os
 import shutil
@@ -25,6 +26,11 @@ BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
 # Character cards shipped with Cozy. Copied into CHARACTERS_DIR once, on the
 # first run of a fresh install — see seed_default_characters().
 BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
+# Prompt presets shipped with Cozy as {name, content, post_history_content}
+# JSON — the same payload the export endpoint produces. Inserted into
+# system_prompts once, on the next start after upgrading; see
+# seed_default_prompts(). Regenerate with scripts/build_bigbear_presets.py.
+BUNDLED_PROMPTS_DIR = os.path.join(BASE_DIR, 'default_prompts')
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Cap on decoded image dimensions (~8000x8000). Character cards and persona
 # avatars are user-supplied, and a small crafted file can otherwise expand to
@@ -253,6 +259,18 @@ def _enforce_house_style_post_history(conn):
     )
 
 
+def _rename_default_prompt_to_nanobear(conn):
+    """Rename the stock 'Default' prompt to 'NanoBear'.
+
+    Only the name changes — the templates are untouched, so a user who edited
+    the stock prompt keeps their edits under the new label. Skipped entirely if
+    a NanoBear already exists, which keeps a re-run from producing two.
+    """
+    if conn.execute("SELECT 1 FROM system_prompts WHERE name='NanoBear'").fetchone():
+        return
+    conn.execute("UPDATE system_prompts SET name='NanoBear' WHERE name='Default'")
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -260,6 +278,7 @@ MIGRATIONS = (
     (4, 'add_narrative_preamble_to_default_prompt', _add_narrative_preamble_to_default_prompt),
     (5, 'upgrade_default_prompt_to_v4', _upgrade_default_prompt_to_v4),
     (6, 'enforce_house_style_post_history', _enforce_house_style_post_history),
+    (7, 'rename_default_prompt_to_nanobear', _rename_default_prompt_to_nanobear),
 )
 
 
@@ -526,13 +545,22 @@ def init_db():
                 ('Default User', 'The brave adventurer', '')
             )
 
+        # Bundled-prompt bookkeeping, mirroring default_characters_seeded above
+        # with one difference: existing installs are owed the presets too, so
+        # this starts at '0' regardless of fresh_install. Written once and never
+        # reset, so deleting a bundled preset keeps it deleted.
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('default_prompts_seeded', '0') "
+            "ON CONFLICT(key) DO NOTHING"
+        )
+
         # Seed a default system prompt if the table is empty. Use the bare
         # default template — {{system_prompt}} stays as a live variable so the
         # per-character system_prompt field can fill it.
         if conn.execute('SELECT COUNT(*) FROM system_prompts').fetchone()[0] == 0:
             conn.execute(
                 "INSERT INTO system_prompts (name, content, post_history_content) VALUES (?, ?, ?)",
-                ('Default', DEFAULT_PROMPT_TEMPLATE, DEFAULT_POST_HISTORY_TEMPLATE)
+                ('NanoBear', DEFAULT_PROMPT_TEMPLATE, DEFAULT_POST_HISTORY_TEMPLATE)
             )
 
 
@@ -571,4 +599,57 @@ def seed_default_characters():
 
         conn.execute(
             "UPDATE settings SET value='1' WHERE key='default_characters_seeded'"
+        )
+
+
+def seed_default_prompts():
+    """Insert the bundled prompt presets into system_prompts, once per data dir.
+
+    Unlike the bundled characters these also land on existing installs, since
+    the presets are a feature rather than starter content. The
+    `default_prompts_seeded` setting flips to '1' afterwards whether or not
+    anything was inserted, so a preset the user later deletes stays deleted.
+    From then on they are ordinary rows — editable, renameable, deletable.
+
+    A preset whose name is already taken is skipped rather than duplicated,
+    which keeps this from fighting a copy the user imported by hand.
+    """
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key='default_prompts_seeded'"
+        ).fetchone()
+        if row is None or row['value'] != '0':
+            return
+
+        if os.path.isdir(BUNDLED_PROMPTS_DIR):
+            existing = {
+                r['name'] for r in
+                conn.execute('SELECT name FROM system_prompts').fetchall()
+            }
+            for filename in sorted(os.listdir(BUNDLED_PROMPTS_DIR)):
+                if not filename.lower().endswith('.json') or filename.startswith('.'):
+                    continue
+                source = os.path.join(BUNDLED_PROMPTS_DIR, filename)
+                try:
+                    with open(source, encoding='utf-8') as handle:
+                        preset = json.load(handle)
+                    name = preset['name']
+                    content = preset['content']
+                    post_history = preset.get('post_history_content', '')
+                except (OSError, ValueError, KeyError, TypeError):
+                    # A bundled preset is a nicety, not a reason to refuse to
+                    # start. Log it and leave the flag unset so a later run retries.
+                    log.exception('Could not seed bundled prompt %s', filename)
+                    return
+                if name in existing:
+                    continue
+                conn.execute(
+                    'INSERT INTO system_prompts (name, content, post_history_content) '
+                    'VALUES (?, ?, ?)',
+                    (name, content, post_history),
+                )
+                existing.add(name)
+
+        conn.execute(
+            "UPDATE settings SET value='1' WHERE key='default_prompts_seeded'"
         )
