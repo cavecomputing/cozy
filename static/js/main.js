@@ -577,13 +577,6 @@ function bindSettingsHandlers() {
         renderMemorySummaryCard();
     });
     el.apiModel?.addEventListener('blur', flushLLMSettingsSave);
-
-    // Thinking settings — save on change
-    el.sendThinking?.addEventListener('change', () => {
-        queueLLMSettingsSave({ send_thinking: el.sendThinking.checked ? '1' : '0' });
-        updateContextMeter();
-        updateContextBoundary();
-    });
 }
 
 function bindCharacterHandlers() {

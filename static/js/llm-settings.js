@@ -42,8 +42,6 @@ export async function loadLLMSettings() {
         applySettingsToUI(s);
         // Load sampler settings from the same response
         loadSamplerSettings(s);
-        // Load thinking settings
-        if (el.sendThinking) el.sendThinking.checked = s.send_thinking === '1';
         // Load presets
         await loadPresets();
         return s;
@@ -429,7 +427,6 @@ export async function activatePreset(id) {
         clearModelListCache();
         applySettingsToUI(s);
         loadSamplerSettings(s);
-        if (el.sendThinking) el.sendThinking.checked = s.send_thinking === '1';
         updateContextSizeWarning();
         state.activePresetId = id;
         if (el.apiPreset) el.apiPreset.value = String(id);
@@ -440,7 +437,7 @@ export async function activatePreset(id) {
     }
 }
 
-/** Snapshot the page's sampler/thinking/extra state so it can be bundled into
+/** Snapshot the page's sampler/extra state so it can be bundled into
  *  a preset alongside the connection fields. */
 function collectPresetSettings() {
     const out = {
@@ -453,7 +450,6 @@ function collectPresetSettings() {
         if (el[elName]) out[key] = el[elName].value;
     }
     out.active_samplers = [...state.activeSamplers].join(',');
-    out.send_thinking = el.sendThinking?.checked ? '1' : '0';
     out.extra_request_params = el.extraParams?.value || '';
     return out;
 }

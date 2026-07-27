@@ -29,7 +29,6 @@ SETTINGS_KEYS = {
     'sampler_mirostat', 'sampler_mirostat_tau', 'sampler_mirostat_eta',
     'sampler_xtc_probability', 'sampler_xtc_threshold',
     'sampler_seed',
-    'send_thinking',
     'active_samplers',
     'show_context_token_meter',
     'show_gallery_button',
@@ -257,10 +256,10 @@ PRESET_FIELDS = ('api_endpoint', 'api_key', 'api_model', 'context_max_tokens')
 
 # Extra page state a preset snapshots beyond the discrete connection columns:
 # every sampler value (incl. sampler_max_tokens), the active-sampler selection,
-# send_thinking, and extra_request_params. Derived from SETTINGS_KEYS so it
-# can't drift as samplers are added/removed.
+# and extra_request_params. Derived from SETTINGS_KEYS so it can't drift as
+# samplers are added/removed.
 PRESET_SETTINGS_KEYS = {k for k in SETTINGS_KEYS if k.startswith('sampler_')} | {
-    'active_samplers', 'send_thinking', 'extra_request_params',
+    'active_samplers', 'extra_request_params',
 }
 
 

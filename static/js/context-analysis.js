@@ -1,4 +1,4 @@
-import { state, el } from './state.js';
+import { state } from './state.js';
 import { resolveTemplateVariables } from './utils.js';
 import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
@@ -328,7 +328,6 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
     const character = state.activeCharacter || {};
     const persona = state.activePersona || {};
     const prompt = state.systemPrompts.find(item => item.id === state.activeSystemPromptId);
-    const stripThinking = !el.sendThinking?.checked;
 
     const activeBook = resolveActiveLorebook(state.activeChat, character, state.lorebooks);
     const override = parseInt(state.lorebookScanDepthOverride, 10) || 0;
@@ -369,8 +368,9 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
     for (let i = 0; i < selectedMessages.length; i += 1) {
         const message = selectedMessages[i];
         const source = message._contextSource || 'message_history';
-        let content = message.text || '';
-        if (stripThinking) content = parseThinkingContent(content).response;
+        // Reasoning blocks never go back into the prompt — they burn context
+        // without adding anything the model needs to continue the scene.
+        const content = parseThinkingContent(message.text || '').response;
         if (!content) continue;
 
         if (wrapsUserMessage && i === lastUserIndex) {
@@ -482,7 +482,7 @@ export function analyzeContext({
         const available = Math.max(1, maxTokens - responseTokens - fixedTokens);
         const approximate = selectContextMessages(candidates, {
             maxTokens: available,
-            stripThinking: !el.sendThinking?.checked,
+            stripThinking: true,
         });
         if (!sameSelection(selected, approximate)) {
             selected = approximate;

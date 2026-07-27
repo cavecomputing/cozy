@@ -607,12 +607,12 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                 (chat_id, watermark, up_to_msg_id)
             ).fetchall()
 
-        hide_thinking = settings.get('send_thinking') != '1'
         batch = []
         for msg in msgs:
-            content = msg['content']
-            if hide_thinking:
-                content = strip_thinking_content(content)
+            # Reasoning blocks never reach the summarizer — they are stripped
+            # from the prompt too, so summarizing them would describe text the
+            # model never sees.
+            content = strip_thinking_content(msg['content'])
             batch.append({'role': msg['role'], 'content': content})
         ids = [m['id'] for m in msgs]
         if not batch:

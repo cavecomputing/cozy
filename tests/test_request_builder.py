@@ -28,7 +28,6 @@ BASE_NODE_SETUP = r"""
     state.apiModel = 'test-model';
     state.activeSamplers = new Set();
     state.contextMaxTokens = '0';
-    el.sendThinking = { checked: false };
     el.settingsContextTokens = { value: '0' };
     state.activePersona = { name: 'Morgan', description: 'A curious user.' };
 """
@@ -306,7 +305,6 @@ def test_summary_tokens_reduce_the_raw_message_budget():
         state.contextMaxTokens = '100';
         el.settingsContextTokens = { value: '100' };
         el.samplerMaxTokens = { value: '20' };
-        el.sendThinking = { checked: true };
         state.messages = Array.from({ length: 12 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',

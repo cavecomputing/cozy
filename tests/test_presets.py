@@ -112,7 +112,6 @@ class TestPresetSamplerSnapshot:
             'sampler_temperature': '0.4',
             'sampler_max_tokens': '256',
             'active_samplers': 'temperature,xtc',
-            'send_thinking': '1',
             'extra_request_params': '{"foo": 1}',
         }).get_json()
 
@@ -124,7 +123,6 @@ class TestPresetSamplerSnapshot:
         assert s['sampler_temperature'] == '0.4'
         assert s['sampler_max_tokens'] == '256'
         assert s['active_samplers'] == 'temperature,xtc'
-        assert s['send_thinking'] == '1'
         assert s['extra_request_params'] == '{"foo": 1}'
 
     def test_update_merges_snapshot(self, client):

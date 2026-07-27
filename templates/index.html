@@ -279,10 +279,6 @@
                                            step="1" min="1" max="32768" value="512">
                                 </div>
                                 <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-send-thinking">Send thinking in context</label>
-                                    <input type="checkbox" id="settings-send-thinking">
-                                </div>
-                                <div class="settings-row">
                                     <label class="settings-row-label" for="settings-extra-params">Extra request parameters <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Keys and string values need double quotes. Invalid JSON is silently ignored.">?</span></label>
                                     <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
                                 </div>

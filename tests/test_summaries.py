@@ -1008,8 +1008,7 @@ def test_append_mode_survives_reply_with_empty_bonds_section(client, sample_chat
     assert [l['text'] for l in obj['lines'] if l['section'] == 'story'] == ['earlier beat', 'new beat']
 
 
-def test_run_job_strips_hidden_thinking_when_disabled(client, sample_chat, monkeypatch):
-    client.put('/api/settings', json={'send_thinking': '0'})
+def test_run_job_strips_hidden_thinking(client, sample_chat, monkeypatch):
     response = client.post(
         f'/api/chats/{sample_chat["id"]}/messages',
         json={
@@ -1060,27 +1059,6 @@ def test_thinking_only_chunk_advances_without_model_call(
     assert parse_summary_json(row['summary_json']) == original
     assert row['summary_up_to_msg_id'] == message_id
     assert row['summary_status'] == 'idle'
-
-
-def test_thinking_only_chunk_is_summarized_when_thinking_is_enabled(
-        client, sample_chat, monkeypatch):
-    cid = sample_chat['id']
-    client.put('/api/settings', json={'send_thinking': '1'})
-    response = client.post(f'/api/chats/{cid}/messages', json={
-        'role': 'character', 'content': '<think>included reasoning</think>',
-    })
-    message_id = response.get_json()['id']
-    calls = []
-    monkeypatch.setattr(
-        summaries,
-        'call_summarizer',
-        lambda messages, cap_tokens=0: calls.append(messages) or CANNED,
-    )
-
-    summaries._run_summary_job(cid, message_id)
-
-    assert len(calls) == 1
-    assert 'included reasoning' in calls[0][1]['content']
 
 
 def test_thinking_only_rebuild_publishes_pins_without_model_call(

@@ -52,11 +52,11 @@ class TestSettings:
         assert cleared.get_json()['api_key_set'] is False
         assert settings_module.get_settings()['api_key'] == ''
 
-    def test_send_thinking_setting_persists(self, client):
+    def test_send_thinking_setting_is_rejected(self, client):
+        """Thinking is never sent back in context — the toggle is gone, and the
+        key is no longer writable."""
         client.put('/api/settings', json={'send_thinking': '1'})
-        r = client.get('/api/settings')
-        data = r.get_json()
-        assert data['send_thinking'] == '1'
+        assert 'send_thinking' not in client.get('/api/settings').get_json()
 
     def test_context_token_default_and_write(self, client):
         r = client.get('/api/settings')

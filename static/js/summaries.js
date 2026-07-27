@@ -124,7 +124,7 @@ export function untrustedContextAssessment({ candidates, agedOut, analysis }, la
     if (!nextMessage) return false;
     const nextCost = estimateMessageTokens(
         { content: nextMessage.text },
-        { stripThinking: !el.sendThinking?.checked },
+        { stripThinking: true },
     );
     const slack = Math.max(256, Math.floor(analysis.maxTokens * 0.05));
     if (analysis.unusedTokens <= 2 * nextCost + slack) return false;

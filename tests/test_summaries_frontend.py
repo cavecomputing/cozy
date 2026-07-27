@@ -33,7 +33,6 @@ BASE_SETUP = r"""
         apiEndpoint: { value: 'http://main.example/v1' },
         settingsContextTokens: { value: '32' },
         samplerMaxTokens: { value: '10' },
-        sendThinking: { checked: true },
     });
     state.apiModel = 'main-model';
     state.summaryApiEndpoint = '';
@@ -352,7 +351,6 @@ def test_untrusted_assessment_matrix():
         import { el } from './static/js/state.js';
         import { untrustedContextAssessment } from './static/js/summaries.js';
 
-        el.sendThinking = { checked: true };
         console.warn = () => {};
         const msg = tokens => ({ id: 1, role: 'user', text: 'x'.repeat(tokens * 4) });
         const assess = (maxTokens, unusedTokens, nextTokens, aged = 10) => ({
@@ -1132,7 +1130,6 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
             apiEndpoint: { value: 'http://main.example/v1' },
             settingsContextTokens: { value: '32' },
             samplerMaxTokens: { value: '10' },
-            sendThinking: { checked: true },
             sendBtn: {
                 disabled: false,
                 innerHTML: '',
@@ -1258,7 +1255,6 @@ def test_context_boundary_starts_before_first_post_watermark_message_when_all_fi
         ];
         el.settingsContextTokens = { value: '1000' };
         el.samplerMaxTokens = { value: '10' };
-        el.sendThinking = { checked: true };
 
         const containers = new Map(state.messages.map(message => [
             message.id,
@@ -1305,7 +1301,6 @@ def test_context_boundary_follows_last_message_when_summary_covers_everything():
         ];
         el.settingsContextTokens = { value: '1000' };
         el.samplerMaxTokens = { value: '10' };
-        el.sendThinking = { checked: true };
 
         let appended = null;
         let inserted = false;
@@ -1346,7 +1341,6 @@ def test_rebuild_clears_stale_summary_when_full_history_fits_without_it():
         el.summaryResetBtn = { addEventListener() {} };
         el.settingsContextTokens = { value: '32' };
         el.samplerMaxTokens = { value: '10' };
-        el.sendThinking = { checked: true };
         state.messages = [
             { id: 1, role: 'user', text: 'message-0-abcdefghijklmno' },
             { id: 2, role: 'character', text: 'message-1-abcdefghijklmno' },
@@ -1406,7 +1400,6 @@ def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_ru
         el.summaryResetBtn = { addEventListener() {} };
         el.settingsContextTokens = { value: '202' };
         el.samplerMaxTokens = { value: '10' };
-        el.sendThinking = { checked: true };
         state.autoSummariesEnabled = true;
         state.summaryTriggerInterval = '20';
         state.apiModel = 'main-model';
@@ -1500,7 +1493,6 @@ def test_rebuild_click_during_background_run_still_issues_the_rebuild():
         el.summaryResetBtn = { addEventListener() {} };
         el.settingsContextTokens = { value: '202' };
         el.samplerMaxTokens = { value: '10' };
-        el.sendThinking = { checked: true };
         state.autoSummariesEnabled = true;
         state.summaryTriggerInterval = '20';
         state.apiModel = 'main-model';
@@ -1665,7 +1657,6 @@ def test_compress_click_posts_a_compress_run():
         };
         el.settingsContextTokens = { value: '202' };
         el.samplerMaxTokens = { value: '10' };
-        el.sendThinking = { checked: true };
         state.apiModel = 'main-model';
         state.summaryApiEndpoint = 'http://summary.example/v1';
         state.summaryApiModel = 'summary-model';

@@ -137,7 +137,6 @@ SWIPE_SETUP = r"""
     Object.assign(el, {
         apiEndpoint: { value: 'http://main.example/v1' },
         settingsContextTokens: { value: '0' },
-        sendThinking: { checked: false },
         sendBtn: {
             disabled: false, innerHTML: '', title: '',
             setAttribute() {}, classList: { toggle() {} },
