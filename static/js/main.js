@@ -975,12 +975,24 @@ async function init() {
     loadPrefs();
     if (state.sidebarCollapsed) el.sidebar.classList.add('collapsed');
     applyTheme(state.theme);
-    await loadThemeList();
     bindResponsiveShellHandlers();
 
-    const [, settings] = await Promise.all([loadPersonas(), loadLLMSettings()]);
-    await loadSystemPrompts(settings);
-    await loadLorebooks();
+    // The loading screen stays up until all of this settles, so every serial
+    // await here is a full round trip added to perceived boot time — cheap on
+    // localhost, not cheap behind a remote server. These four are independent,
+    // so they go out together; system prompts still follow settings so they can
+    // reuse that response instead of refetching it.
+    await Promise.all([
+        loadThemeList(),
+        loadPersonas(),
+        loadLLMSettings().then(settings => loadSystemPrompts(settings)),
+        loadLorebooks(),
+    ]);
+    // Deliberately not in the group above: loadCharacters() cascades into
+    // selectChat(), which ends by running the context analysis in
+    // context-analysis.js — that reads state.systemPrompts and state.lorebooks,
+    // and feeds updateContextBoundary() and the summary trigger. Neither is
+    // recomputed after this point, so both must see fully loaded state.
     await loadCharacters();
     updateComposerState();
     renderLorebookList();
