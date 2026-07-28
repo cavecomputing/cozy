@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A self-hosted, single-user app for chatting with LLM character cards. With a little Discord inspiration ✨
+  A self-hosted, single-user app for roleplaying with LLM character cards. With a little Discord inspiration ✨
 </p>
 
 Cozy works with SillyTavern-compatible V2 character cards and OpenAI-style LLM
