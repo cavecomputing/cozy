@@ -306,7 +306,6 @@ export const Flyouts = (() => {
 // ═══════════════════════════════════════════════════════════════════════════
 export function savePrefs() {
     localStorage.setItem('cozy/prefs', JSON.stringify({
-        sidebarCollapsed: state.sidebarCollapsed,
         theme:            state.theme,
         activeCharId:     state.activeCharacter?.id ?? null,
         activeChatId:     state.activeChat?.id ?? null,

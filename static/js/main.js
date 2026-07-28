@@ -78,7 +78,6 @@ marked.use({
 function loadPrefs() {
     try {
         const p = JSON.parse(localStorage.getItem('cozy/prefs') || '{}');
-        state.sidebarCollapsed = p.sidebarCollapsed || false;
         state.theme            = p.theme             || 'cozy';
         state._savedActiveId   = p.activeCharId     || null;
         state._savedChatId     = p.activeChatId     || null;
@@ -154,12 +153,6 @@ function closeSettingsSubmodal(modal) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
-function toggleSidebar() {
-    state.sidebarCollapsed = !state.sidebarCollapsed;
-    el.sidebar.classList.toggle('collapsed', state.sidebarCollapsed);
-    savePrefs();
-}
-
 function openMobileSidebar() {
     el.sidebar.classList.add('mobile-open');
     el.mobileBackdrop.classList.add('show');
@@ -254,9 +247,6 @@ function bindFlyoutHandlers() {
 }
 
 function bindSidebarHandlers() {
-    // Sidebar toggle
-    el.sidebarToggle.addEventListener('click', toggleSidebar);
-
     // Mobile sidebar
     el.mobileMenuBtn?.addEventListener('click', openMobileSidebar);
     el.mobileBackdrop?.addEventListener('click', closeMobileSidebar);
@@ -269,8 +259,6 @@ function bindSidebarHandlers() {
 }
 
 function bindSettingsHandlers() {
-    // Settings flyout (collapsed gear icon delegates to same handler)
-    const collapsedSettingsBtn = document.getElementById('collapsed-settings-btn');
     const openSettings = async e => {
         e.stopPropagation();
         const isOpen = !el.settingsFlyout.hidden;
@@ -292,7 +280,6 @@ function bindSettingsHandlers() {
         }
     };
     el.settingsBtn?.addEventListener('click', openSettings);
-    collapsedSettingsBtn?.addEventListener('click', openSettings);
     el.settingsCloseBtn?.addEventListener('click', () => {
         closeSettingsFlyout();
     });
@@ -306,13 +293,13 @@ function bindSettingsHandlers() {
     el.settingsBackBtn?.addEventListener('click', exitSettingsDetail);
 
     // Close settings on outside click (matches chat / lorebook flyout behavior).
-    // Skip the toggle buttons (they handle open/close themselves) and the
+    // Skip the toggle button (it handles open/close itself) and the
     // stacked sub-modals that float above the settings flyout.
     document.addEventListener('click', e => {
         if (el.settingsFlyout.hidden) return;
         const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
         if (el.settingsFlyout.contains(e.target) || path.includes(el.settingsFlyout)) return;
-        if (e.target.closest('#settings-btn, #collapsed-settings-btn')) return;
+        if (e.target.closest('#settings-btn')) return;
         if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal')) return;
         closeSettingsFlyout();
     });
@@ -330,17 +317,6 @@ function bindSettingsHandlers() {
         state.showGalleryButton = el.settingsGalleryBtnToggle.checked;
         if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
         saveLLMSettings({ show_gallery_button: state.showGalleryButton ? '1' : '0' });
-    });
-    el.settingsCollapseBtnToggle?.addEventListener('change', () => {
-        state.showCollapseButton = el.settingsCollapseBtnToggle.checked;
-        // Hiding the toggle while collapsed would strand the user — expand first.
-        if (!state.showCollapseButton && state.sidebarCollapsed) {
-            state.sidebarCollapsed = false;
-            el.sidebar.classList.remove('collapsed');
-            savePrefs();
-        }
-        if (el.sidebarToggle) el.sidebarToggle.hidden = !state.showCollapseButton;
-        saveLLMSettings({ show_collapse_button: state.showCollapseButton ? '1' : '0' });
     });
     // Auto Summaries config — autosave while typing, flush on blur.
     el.summaryEndpoint?.addEventListener('input', () => {
@@ -973,7 +949,6 @@ async function init() {
     });
     initTooltips();
     loadPrefs();
-    if (state.sidebarCollapsed) el.sidebar.classList.add('collapsed');
     applyTheme(state.theme);
     bindResponsiveShellHandlers();
 

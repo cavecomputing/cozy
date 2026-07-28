@@ -108,103 +108,6 @@ body {
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.hide-on-collapse {
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-/* Gear icon visible only when sidebar is collapsed */
-#collapsed-settings-btn {
-    display: none;
-}
-
-/* ── Sidebar collapse — desktop only ──────────────────────────────────
-   On mobile the sidebar is an off-canvas drawer that never collapses,
-   so none of these rules apply there. In particular the visibility
-   transition must stay out of mobile: the drawer itself toggles
-   visibility, and transitioning the inherited change on every label
-   leaves them stuck invisible on iOS Safari until the next repaint. */
-@media (min-width: 769px) {
-    body:has(#sidebar.collapsed) {
-        --sidebar-width: 64px;
-    }
-
-    #sidebar.collapsed {
-        width: 64px;
-    }
-
-    .hide-on-collapse {
-        transition: opacity 0.15s ease, visibility 0.15s ease;
-    }
-
-    #sidebar.collapsed .hide-on-collapse {
-        opacity: 0;
-        visibility: hidden;
-        width: 0;
-        min-width: 0;
-        padding: 0;
-        margin: 0;
-        flex: 0;
-        overflow: hidden;
-    }
-
-    #sidebar.collapsed .char-item,
-    #sidebar.collapsed .char-select-btn,
-    #sidebar.collapsed #user-profile {
-        justify-content: center;
-        padding-left: 0;
-        padding-right: 0;
-        gap: 0;
-    }
-
-    #sidebar.collapsed .sidebar-header {
-        justify-content: center;
-        padding: 0;
-        gap: 0;
-    }
-
-    /* Collapsed: drop the equal-flex zones so the lone toggle button centers
-       (the right zone is hidden via .hide-on-collapse). */
-    #sidebar.collapsed .sidebar-header-side {
-        flex: 0 0 auto;
-    }
-
-    /* collapsed: profile card becomes a compact centred icon button */
-    #sidebar.collapsed #user-profile-container {
-        margin: 0 0.375rem 0.375rem;
-        padding: 0.2rem;
-    }
-
-    #sidebar.collapsed .profile-settings-row {
-        border-top: none;
-        margin-top: 0;
-        padding-top: 0;
-        height: 0;
-    }
-
-    /* Persona flyout positioning is set on #persona-dropup itself —
-       it always flies out to the right of the sidebar, collapsed or not. */
-
-    #sidebar.collapsed #collapsed-settings-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        width: 100%;
-        padding: 8px 0;
-        border-radius: var(--radius-sm);
-        margin-top: 0.35rem;
-        transition: background 0.2s, color 0.2s;
-    }
-    #sidebar.collapsed #collapsed-settings-btn:hover {
-        background-color: var(--hover-bg);
-        color: var(--text-color);
-    }
-}
-
 .icon-btn {
     background: none;
     border: none;
@@ -264,16 +167,6 @@ body {
 .swipe-btn svg {
     width: 14px;
     height: 14px;
-}
-
-#sidebar-toggle {
-    flex-shrink: 0;
-    width: 32px;
-    transition: transform 0.3s ease;
-}
-
-#sidebar.collapsed #sidebar-toggle {
-    transform: rotate(180deg);
 }
 
 /* ── Panel header (shared by sidebar, flyouts, modals) ────────────────── */
@@ -466,15 +359,6 @@ body {
 .char-list-empty .btn {
     width: 100%;
     justify-content: center;
-}
-
-@media (min-width: 769px) {
-    /* When the list is empty AND collapsed, the empty-state copy + full button
-       are hidden via .hide-on-collapse on their children, but the <li> itself
-       would still take padding and leave a gap. Collapse it to nothing. */
-    #sidebar.collapsed .char-list-empty {
-        display: none;
-    }
 }
 
 /* Sidebar Sections (Chats) */
@@ -769,11 +653,6 @@ body {
         z-index: 500;
         overflow: hidden;
         flex-direction: column;
-    }
-
-    #sidebar.collapsed #persona-dropup.dropup-content {
-        margin-left: 18px;
-        margin-bottom: 4px;
     }
 
     #persona-dropup.dropup-content.show {
@@ -3850,7 +3729,7 @@ input[type="checkbox"]:disabled {
 /* The rail header inherits its size from .panel-header (44px tall,
    centered uppercase label) so it visually matches the main sidebar's
    header. To keep the title from jumping when the gallery opens, the
-   collapse button matches #sidebar-toggle's 32px width and the spacer
+   collapse button is 32px wide and the spacer
    matches the sidebar header's right-side buttons — #character-gallery-open
    (26px rendered) + #new-char-btn (32px) — so the title occupies the
    exact same box as the sidebar's. */
@@ -4907,15 +4786,7 @@ input[type="checkbox"]:disabled {
         transition: none;
     }
 
-    /* No collapse overrides needed here — the collapse machinery
-       (.collapsed rules + .hide-on-collapse transitions) is scoped to
-       desktop widths, so a stale desktop "collapsed" pref has no effect
-       on the mobile drawer. */
-
     #mobile-backdrop.show { display: block; }
-
-    /* Hide desktop sidebar-toggle chevron on mobile */
-    #sidebar-toggle { display: none; }
 
     .sidebar-header {
         height: auto;

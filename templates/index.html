@@ -36,11 +36,6 @@
             <!-- Left/right zones share equal flex so the title stays centered in
                  the header no matter which side buttons are shown or hidden. -->
             <div class="sidebar-header-side sidebar-header-side--left">
-                <button id="sidebar-toggle" class="icon-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                </button>
                 <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -48,8 +43,8 @@
                     </svg>
                 </button>
             </div>
-            <h2 class="section-label panel-title hide-on-collapse">Characters</h2>
-            <div class="sidebar-header-side sidebar-header-side--right hide-on-collapse">
+            <h2 class="section-label panel-title">Characters</h2>
+            <div class="sidebar-header-side sidebar-header-side--right">
                 <button id="character-gallery-open" class="icon-btn desktop-only" title="Open character gallery" aria-label="Open character gallery">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
@@ -74,7 +69,7 @@
                 </button>
             </div>
         </div>
-        <div class="panel-divider hide-on-collapse"></div>
+        <div class="panel-divider"></div>
 
         <div class="sidebar-scrollable">
             <!-- Character list — populated by JS from API -->
@@ -121,17 +116,13 @@
             <!-- User Profile Area (clicking opens persona switcher) -->
             <div id="user-profile">
                 <div class="avatar user-avatar">ME</div>
-                <div class="user-info hide-on-collapse">
+                <div class="user-info">
                     <div class="user-name">Default User</div>
                     <div class="user-tagline">The brave adventurer</div>
                 </div>
             </div>
-            <!-- Settings gear — visible only when sidebar is collapsed -->
-            <button id="collapsed-settings-btn" title="Settings" aria-label="Settings">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            </button>
             <!-- Settings button — visually separate row -->
-            <div class="profile-settings-row hide-on-collapse">
+            <div class="profile-settings-row">
                 <button id="settings-btn" class="profile-settings-btn" title="Settings" aria-label="Settings">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                     <span class="section-label">Settings</span>
@@ -209,10 +200,6 @@
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-gallery-btn-toggle">Show character gallery button</label>
                                     <input type="checkbox" id="settings-gallery-btn-toggle">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-collapse-btn-toggle">Show sidebar collapse button</label>
-                                    <input type="checkbox" id="settings-collapse-btn-toggle">
                                 </div>
                             </section>
                         </div>

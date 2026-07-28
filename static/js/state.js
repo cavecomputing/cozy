@@ -2,7 +2,6 @@
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════
 export const state = {
-    sidebarCollapsed: false,
     theme:            'cozy',
     themes:           [],
     characters:       [],
@@ -24,7 +23,6 @@ export const state = {
     contextMaxTokens:    '32768',
     showContextTokenMeter: true,
     showGalleryButton:   true,
-    showCollapseButton:  true,
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -62,7 +60,6 @@ export const el = {};
 export function initElements() {
     Object.assign(el, {
         sidebar:         document.getElementById('sidebar'),
-        sidebarToggle:   document.getElementById('sidebar-toggle'),
         charList:        document.getElementById('char-list'),
         chatFlyout:      document.getElementById('chat-flyout'),
         chatFlyoutBtn:   document.getElementById('chat-flyout-btn'),
@@ -94,7 +91,6 @@ export function initElements() {
         settingsThemeSelect: document.getElementById('settings-theme-select'),
         settingsContextMeterToggle: document.getElementById('settings-context-meter-toggle'),
         settingsGalleryBtnToggle: document.getElementById('settings-gallery-btn-toggle'),
-        settingsCollapseBtnToggle: document.getElementById('settings-collapse-btn-toggle'),
         galleryOpenBtn: document.getElementById('character-gallery-open'),
         mobileMenuBtn:     document.getElementById('mobile-menu-btn'),
         mobileBackdrop:    document.getElementById('mobile-backdrop'),

@@ -39,12 +39,12 @@ export function renderCharList() {
         applyAvatar(avatarDiv, char, '?', AVATAR.SM);
 
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'char-name hide-on-collapse';
+        nameSpan.className = 'char-name';
         nameSpan.textContent = char.missing ? `${char.name} (missing)` : char.name;
         selectBtn.append(avatarDiv, nameSpan);
 
         const actions = document.createElement('div');
-        actions.className = 'char-item-actions hide-on-collapse';
+        actions.className = 'char-item-actions';
         const pinIcon = char.pinned ? icons.STAR_FILLED : icons.STAR;
         const pinTitle = char.pinned ? 'Unpin character' : 'Pin character';
         if (char.missing) {

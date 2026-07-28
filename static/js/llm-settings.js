@@ -385,15 +385,6 @@ function applySettingsToUI(s) {
     state.showGalleryButton = s.show_gallery_button !== '0';
     if (el.settingsGalleryBtnToggle) el.settingsGalleryBtnToggle.checked = state.showGalleryButton;
     if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
-    state.showCollapseButton = s.show_collapse_button !== '0';
-    if (el.settingsCollapseBtnToggle) el.settingsCollapseBtnToggle.checked = state.showCollapseButton;
-    if (el.sidebarToggle) el.sidebarToggle.hidden = !state.showCollapseButton;
-    // The toggle is the only way to expand a collapsed sidebar on desktop —
-    // never leave the user collapsed with no way back.
-    if (!state.showCollapseButton && state.sidebarCollapsed) {
-        state.sidebarCollapsed = false;
-        el.sidebar?.classList.remove('collapsed');
-    }
     state.extraRequestParams = s.extra_request_params || '';
     if (el.extraParams) el.extraParams.value = state.extraRequestParams;
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;
