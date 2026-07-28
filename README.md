@@ -141,6 +141,11 @@ Redistributions and derivative works must preserve the attribution in
   how BigBear behaves belongs here, not with Deiomo. Like Sasha, these are
   ordinary rows once seeded: edit, rename, or delete them and they stay gone.
 
+- **Marinara** — [SpicyMarinara](https://github.com/SpicyMarinara) on GitHub helped me
+  with the original LittleBear preset I wrote for SillyTavern a long time ago. None of
+  that preset ships here — the Bear naming is all that carried over — but it's where I
+  got into making roleplay content in the first place.
+
 ---
 
 Howdy! This whole app is "vibe coded slop". If that bothers you...🤷   
