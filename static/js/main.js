@@ -29,6 +29,12 @@ import {
     exportSystemPrompt, switchPromptBuilderMode,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
+import {
+    loadRegexPresets, selectRegexPreset, createRegexPreset, deleteRegexPreset,
+    addFilter, handleFilterListClick, handleFilterListInput,
+    updateTestPanel, importRegexPreset, handleRegexImportFile, exportRegexPreset,
+    flushRegexSave,
+} from './regex-filters.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
@@ -37,6 +43,7 @@ import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashC
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { initCharacterGallery } from './character-gallery.js';
 import { enhanceSettingsSelects } from './custom-select.js';
+import { dialogueStart, matchDialogue } from './rp-dialogue.js';
 import {
     initSummaryHandlers, renderMemorySummaryCard, setSummaryBudgetChangeHandler,
 } from './summaries.js';
@@ -44,30 +51,27 @@ import {
 // Configure markdown renderer — GFM + line-break-to-<br> like most chat apps
 marked.use({ breaks: true, gfm: true });
 
-// RP dialogue extension — wrap "quoted speech" in a styled span
-const RP_DIALOGUE_QUOTES = ['"', '\u201c'];
-const RP_DIALOGUE_PATTERN = /^(?:"([^"\n]+)"|\u201c([^\u201d\n]+)\u201d)/;
-
+// RP dialogue extension — wrap "quoted speech" in a styled span. Which marks
+// count as quotes lives in rp-dialogue.js, so the German and guillemet
+// conventions get styled too, not just the English pair.
 marked.use({
     extensions: [{
         name: 'rpDialogue',
         level: 'inline',
-        start(src) {
-            const starts = RP_DIALOGUE_QUOTES
-                .map(ch => src.indexOf(ch))
-                .filter(idx => idx !== -1);
-            return starts.length ? Math.min(...starts) : undefined;
-        },
+        start: dialogueStart,
         tokenizer(src) {
-            const match = RP_DIALOGUE_PATTERN.exec(src);
-            if (match) {
-                const token = { type: 'rpDialogue', raw: match[0], text: match[1] || match[2], tokens: [] };
-                this.lexer.inline(token.text, token.tokens);
-                return token;
-            }
+            const found = matchDialogue(src);
+            if (!found) return;
+            const token = { type: 'rpDialogue', ...found, tokens: [] };
+            this.lexer.inline(token.text, token.tokens);
+            return token;
         },
         renderer(token) {
-            return `<span class="rp-dialogue">"${this.parser.parseInline(token.tokens)}"</span>`;
+            // Put back the marks the reply actually used. The job here is to
+            // style the speech, not to anglicise its punctuation — swapping
+            // German marks for English ones is what the Regex tab is for, and
+            // only when the user asks for it.
+            return `<span class="rp-dialogue">${token.open}${this.parser.parseInline(token.tokens)}${token.close}</span>`;
         },
     }],
 });
@@ -135,6 +139,8 @@ function closeSettingsFlyout() {
     el.settingsFlyout.hidden = true;
     setSamplerPopoverOpen(false);
     exitSettingsDetail();
+    // An edit made in the last half-second would otherwise die in the debounce.
+    void flushRegexSave();
 }
 
 let settingsSubmodalReturnFocus = null;
@@ -277,6 +283,7 @@ function bindSettingsHandlers() {
             renderThemePicker();
             const s = await loadLLMSettings();
             await loadSystemPrompts(s);
+            await loadRegexPresets(s);
         }
     };
     el.settingsBtn?.addEventListener('click', openSettings);
@@ -300,7 +307,7 @@ function bindSettingsHandlers() {
         const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
         if (el.settingsFlyout.contains(e.target) || path.includes(el.settingsFlyout)) return;
         if (e.target.closest('#settings-btn')) return;
-        if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal')) return;
+        if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal, #regex-help-modal')) return;
         closeSettingsFlyout();
     });
 
@@ -486,6 +493,48 @@ function bindSettingsHandlers() {
     el.promptHelpModal?.addEventListener('click', e => {
         if (e.target === el.promptHelpModal) closeSettingsSubmodal(el.promptHelpModal);
     });
+    // Regex output filters
+    el.regexPresetSelect?.addEventListener('change', () => {
+        void selectRegexPreset(el.regexPresetSelect.value);
+    });
+    el.regexPresetNew?.addEventListener('click', createRegexPreset);
+    el.regexPresetDelete?.addEventListener('click', deleteRegexPreset);
+    el.regexAddFilter?.addEventListener('click', addFilter);
+    el.regexFilterList?.addEventListener('click', handleFilterListClick);
+    el.regexFilterList?.addEventListener('input', handleFilterListInput);
+    // Flag checkboxes fire `change`, not `input`, in some engines.
+    el.regexFilterList?.addEventListener('change', handleFilterListInput);
+    el.regexTestInput?.addEventListener('input', debounce(updateTestPanel, 200));
+    const closeRegexIoMenu = () => {
+        if (el.regexIoMenu) el.regexIoMenu.hidden = true;
+        el.regexIoDropdown?.classList.remove('open');
+        el.regexIoBtn?.setAttribute('aria-expanded', 'false');
+    };
+    el.regexIoBtn?.addEventListener('click', e => {
+        e.stopPropagation();
+        const willOpen = el.regexIoMenu?.hidden;
+        if (el.regexIoMenu) el.regexIoMenu.hidden = !willOpen;
+        el.regexIoDropdown?.classList.toggle('open', willOpen);
+        el.regexIoBtn?.setAttribute('aria-expanded', String(!!willOpen));
+    });
+    document.addEventListener('click', e => {
+        if (!el.regexIoMenu || el.regexIoMenu.hidden) return;
+        if (!e.target.closest('#regex-io-dropdown')) closeRegexIoMenu();
+    });
+    el.regexImport?.addEventListener('click', () => { closeRegexIoMenu(); importRegexPreset(); });
+    el.regexImportFile?.addEventListener('change', handleRegexImportFile);
+    el.regexExport?.addEventListener('click', () => { closeRegexIoMenu(); void exportRegexPreset(); });
+    el.regexHelpBtn?.addEventListener('click', () => {
+        rememberSettingsSubmodalTrigger();
+        if (el.regexHelpModal) el.regexHelpModal.hidden = false;
+    });
+    el.regexHelpClose?.addEventListener('click', () => {
+        closeSettingsSubmodal(el.regexHelpModal);
+    });
+    el.regexHelpModal?.addEventListener('click', e => {
+        if (e.target === el.regexHelpModal) closeSettingsSubmodal(el.regexHelpModal);
+    });
+
     el.samplerHelpBtn?.addEventListener('click', () => {
         rememberSettingsSubmodalTrigger();
         if (el.samplerHelpModal) el.samplerHelpModal.hidden = false;
@@ -955,12 +1004,17 @@ async function init() {
     // The loading screen stays up until all of this settles, so every serial
     // await here is a full round trip added to perceived boot time — cheap on
     // localhost, not cheap behind a remote server. These four are independent,
-    // so they go out together; system prompts still follow settings so they can
-    // reuse that response instead of refetching it.
+    // so they go out together; system prompts and regex presets still follow
+    // settings so they can reuse that response instead of refetching it.
     await Promise.all([
         loadThemeList(),
         loadPersonas(),
-        loadLLMSettings().then(settings => loadSystemPrompts(settings)),
+        loadLLMSettings().then(settings => Promise.all([
+            loadSystemPrompts(settings),
+            // Filters have to be live from the first reply, not just once the
+            // settings flyout has been opened.
+            loadRegexPresets(settings),
+        ])),
         loadLorebooks(),
     ]);
     // Deliberately not in the group above: loadCharacters() cascades into

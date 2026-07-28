@@ -18,6 +18,7 @@ SETTINGS_KEYS = {
     'api_endpoint', 'api_key', 'api_model',
     'active_api_preset',
     'active_system_prompt',
+    'active_regex_preset',
     'sampler_temperature', 'sampler_top_p', 'sampler_top_k',
     'sampler_min_p', 'sampler_max_tokens', 'sampler_repetition_penalty',
     'sampler_dynatemp_range', 'sampler_dynatemp_exponent',
@@ -403,3 +404,279 @@ def activate_preset(preset_id):
                 upsert_setting(conn, key, _setting_value(value))
         upsert_setting(conn, 'active_api_preset', str(preset_id))
     return read_settings()
+
+
+# ── Regex presets CRUD ────────────────────────────────────────────────────
+#
+# A preset is a named, ordered list of find/replace filters applied to the
+# character's reply in the browser. The server only stores and normalises them —
+# patterns are never compiled here, because the flavour that matters is the one
+# in the user's JS engine.
+
+# Every flag `new RegExp()` accepts. Anything else would throw in the browser.
+ALLOWED_REGEX_FLAGS = 'dgimsuvy'
+
+# SillyTavern's regex_placement enum value for AI output — the only target Cozy
+# has an equivalent for.
+ST_PLACEMENT_AI_OUTPUT = 2
+
+
+def _filter_text(value):
+    """Coerce to str *without* stripping.
+
+    Deliberately not `_setting_value`: leading/trailing whitespace is
+    meaningful in both halves of a filter (` {2,}` → ` ` is a real rule, and
+    stripping would turn the replacement into an empty string).
+    """
+    return '' if value is None else str(value)
+
+
+def _clean_filter(entry):
+    """Normalise one filter to {name, find, replace, flags}, or None if unusable."""
+    if not isinstance(entry, dict):
+        return None
+    flags = _filter_text(entry.get('flags', '')).strip()
+    return {
+        'name': _filter_text(entry.get('name', '')).strip(),
+        'find': _filter_text(entry.get('find', '')),
+        'replace': _filter_text(entry.get('replace', '')),
+        # De-duplicated, and unknown letters dropped so a stored preset can
+        # never hand the browser a flag string that throws.
+        'flags': ''.join(dict.fromkeys(c for c in flags if c in ALLOWED_REGEX_FLAGS)),
+    }
+
+
+def _pack_scripts(value):
+    """Normalise a filter list (or a JSON string of one) into a JSON array string."""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value or '[]')
+        except (ValueError, TypeError):
+            value = []
+    if not isinstance(value, list):
+        value = []
+    cleaned = [f for f in (_clean_filter(e) for e in value) if f]
+    return json.dumps(cleaned, ensure_ascii=False)
+
+
+def _unpack_scripts(row):
+    """Parse a preset row's scripts_json, tolerant of missing/corrupt JSON."""
+    raw = dict(row).get('scripts_json') or '[]'
+    try:
+        parsed = json.loads(raw)
+    except (ValueError, TypeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [f for f in (_clean_filter(e) for e in parsed) if f]
+
+
+def _regex_preset_dict(row):
+    row = dict(row)
+    return {
+        'id': row['id'],
+        'name': row['name'],
+        'filters': _unpack_scripts(row),
+        'created_at': row['created_at'],
+    }
+
+
+def _split_slash_form(raw):
+    """Split SillyTavern's ``/pattern/flags`` form into ``(pattern, flags)``.
+
+    Anything that isn't that shape — including a pattern that merely happens to
+    start with a slash — comes back unchanged with no flags.
+    """
+    s = _filter_text(raw)
+    if not s.startswith('/'):
+        return s, ''
+    end = s.rfind('/')
+    if end <= 0:
+        return s, ''
+    flags = s[end + 1:]
+    if any(c not in ALLOWED_REGEX_FLAGS for c in flags):
+        return s, ''
+    return s[1:end], flags
+
+
+def _filters_from_payload(payload):
+    """Read an uploaded file into ``(filters, base_name, warnings)``.
+
+    Accepts a Cozy preset ``{name, filters}``, a single SillyTavern regex
+    script, or a bare list of either.
+    """
+    warnings = []
+
+    def from_st(script):
+        name = _filter_text(script.get('scriptName', '')).strip()
+        if script.get('disabled') is True:
+            warnings.append(
+                f'"{name or "Untitled"}" was disabled in SillyTavern and was skipped.'
+            )
+            return None
+        find, flags = _split_slash_form(script.get('findRegex', ''))
+        placement = script.get('placement')
+        if isinstance(placement, list) and ST_PLACEMENT_AI_OUTPUT not in placement:
+            warnings.append(
+                f'"{name or "Untitled"}" targeted something other than AI output in '
+                'SillyTavern; in Cozy it will apply to character replies.'
+            )
+        return {
+            'name': name,
+            'find': find,
+            'replace': _filter_text(script.get('replaceString', '')),
+            'flags': flags,
+        }
+
+    def one(entry):
+        if not isinstance(entry, dict):
+            return None
+        return from_st(entry) if 'findRegex' in entry else _clean_filter(entry)
+
+    if isinstance(payload, list):
+        return [f for f in (one(e) for e in payload) if f], '', warnings
+    if not isinstance(payload, dict):
+        return [], '', warnings
+    if 'findRegex' in payload:
+        name = _filter_text(payload.get('scriptName', '')).strip()
+        script = from_st(payload)
+        return ([script] if script else []), name, warnings
+
+    raw_filters = payload.get('filters')
+    if not isinstance(raw_filters, list):
+        raw_filters = []
+    name = _filter_text(payload.get('name', '')).strip()
+    return [f for f in (one(e) for e in raw_filters) if f], name, warnings
+
+
+def _unique_regex_preset_name(conn, base):
+    """Append " (n)" until the name is free."""
+    base = (base or '').strip() or 'Imported Filters'
+    candidate = base
+    n = 2
+    while conn.execute(
+        'SELECT 1 FROM regex_presets WHERE name = ?', (candidate,)
+    ).fetchone():
+        candidate = f'{base} ({n})'
+        n += 1
+    return candidate
+
+
+@settings_bp.route('/api/regex-presets', methods=['GET'])
+def list_regex_presets():
+    with get_db() as conn:
+        rows = conn.execute('SELECT * FROM regex_presets ORDER BY created_at ASC').fetchall()
+        return jsonify([_regex_preset_dict(r) for r in rows])
+
+
+@settings_bp.route('/api/regex-presets', methods=['POST'])
+def create_regex_preset():
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return jsonify({'error': 'name is required'}), 400
+    with get_db() as conn:
+        if conn.execute('SELECT 1 FROM regex_presets WHERE name = ?', (name,)).fetchone():
+            return jsonify({'error': f'A preset named "{name}" already exists'}), 409
+        cur = conn.execute(
+            'INSERT INTO regex_presets (name, scripts_json) VALUES (?, ?)',
+            (name, _pack_scripts(data.get('filters', [])))
+        )
+        row = conn.execute('SELECT * FROM regex_presets WHERE id = ?', (cur.lastrowid,)).fetchone()
+        return jsonify(_regex_preset_dict(row)), 201
+
+
+@settings_bp.route('/api/regex-presets/<int:preset_id>', methods=['PUT'])
+def update_regex_preset(preset_id):
+    data = request.get_json(silent=True) or {}
+    with get_db() as conn:
+        row = conn.execute('SELECT * FROM regex_presets WHERE id = ?', (preset_id,)).fetchone()
+        if not row:
+            return not_found('Regex preset')
+        name = (data.get('name') or '').strip() or row['name']
+        if name != row['name']:
+            clash = conn.execute(
+                'SELECT 1 FROM regex_presets WHERE name = ? AND id != ?', (name, preset_id)
+            ).fetchone()
+            if clash:
+                return jsonify({'error': f'A preset named "{name}" already exists'}), 409
+        # Absent "filters" leaves the list alone; an explicit [] clears it.
+        scripts = _pack_scripts(data['filters']) if 'filters' in data else row['scripts_json']
+        conn.execute(
+            'UPDATE regex_presets SET name = ?, scripts_json = ? WHERE id = ?',
+            (name, scripts, preset_id)
+        )
+        updated = conn.execute('SELECT * FROM regex_presets WHERE id = ?', (preset_id,)).fetchone()
+        return jsonify(_regex_preset_dict(updated))
+
+
+@settings_bp.route('/api/regex-presets/<int:preset_id>', methods=['DELETE'])
+def delete_regex_preset(preset_id):
+    with get_db() as conn:
+        row = conn.execute('SELECT * FROM regex_presets WHERE id = ?', (preset_id,)).fetchone()
+        if not row:
+            return not_found('Regex preset')
+        active = conn.execute(
+            'SELECT value FROM settings WHERE key = ?', ('active_regex_preset',)
+        ).fetchone()
+        conn.execute('DELETE FROM regex_presets WHERE id = ?', (preset_id,))
+        # Deleting the active preset must leave filtering off, not dangling.
+        if active and active['value'] == str(preset_id):
+            upsert_setting(conn, 'active_regex_preset', '')
+        return jsonify({'success': True})
+
+
+@settings_bp.route('/api/regex-presets/import', methods=['POST'])
+def import_regex_preset():
+    """Create a preset from an uploaded JSON file.
+
+    Accepts Cozy's own ``{name, filters}`` export, a SillyTavern regex script
+    (``{scriptName, findRegex, replaceString, …}``), or a list of either.
+    """
+    if not request.files or 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    try:
+        payload = json.loads(request.files['file'].read().decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        return jsonify({'error': f'Invalid JSON: {e}'}), 400
+    if not isinstance(payload, (dict, list)):
+        return jsonify({'error': 'Expected a JSON object or array'}), 400
+
+    filters, base_name, warnings = _filters_from_payload(payload)
+    if not filters:
+        if warnings:
+            return jsonify({
+                'error': 'No enabled regex filters found; disabled scripts were skipped.',
+                'warnings': warnings,
+            }), 400
+        return jsonify({'error': 'No regex filters found in that file'}), 400
+
+    with get_db() as conn:
+        name = _unique_regex_preset_name(conn, base_name)
+        cur = conn.execute(
+            'INSERT INTO regex_presets (name, scripts_json) VALUES (?, ?)',
+            (name, _pack_scripts(filters))
+        )
+        row = conn.execute('SELECT * FROM regex_presets WHERE id = ?', (cur.lastrowid,)).fetchone()
+        body = _regex_preset_dict(row)
+        body['warnings'] = warnings
+        return jsonify(body), 201
+
+
+@settings_bp.route('/api/regex-presets/<int:preset_id>/export', methods=['GET'])
+def export_regex_preset(preset_id):
+    """Download a preset as a {name, filters} JSON file."""
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT name, scripts_json FROM regex_presets WHERE id = ?', (preset_id,)
+        ).fetchone()
+        if not row:
+            return not_found('Regex preset')
+
+    body = {'name': row['name'], 'filters': _unpack_scripts(row)}
+    filename = f"{safe_download_name(row['name'], 'regex')}.json"
+    return Response(
+        json.dumps(body, indent=2, ensure_ascii=False),
+        mimetype='application/json; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )

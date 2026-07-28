@@ -102,6 +102,7 @@ for blueprint in (
 shared.init_db()
 shared.seed_default_characters()
 shared.seed_default_prompts()
+shared.seed_default_regex_presets()
 
 # ── Entry point ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':

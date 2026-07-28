@@ -10,6 +10,7 @@ import {
 } from './thinking.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { generateResponse } from './request-builder.js';
+import { applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 
@@ -125,6 +126,8 @@ export async function generateSwipe(msgEl, swipes, idx) {
         updateComposerState();
     }
 
+    // Filter before rendering so the swipe on screen matches the one stored.
+    newContent = applyOutputFilters(newContent);
     const parsed = parseThinkingContent(newContent);
     renderThinkingBlock(msgBody, parsed);
     renderMarkdown(contentEl, parsed.response);

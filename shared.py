@@ -444,6 +444,13 @@ def init_db():
                 created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS regex_presets (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                name          TEXT NOT NULL UNIQUE,
+                scripts_json  TEXT NOT NULL DEFAULT '[]',
+                created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE TABLE IF NOT EXISTS lorebooks (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 name        TEXT    NOT NULL,
@@ -572,6 +579,12 @@ def init_db():
             "ON CONFLICT(key) DO NOTHING"
         )
 
+        # Same bookkeeping again for the bundled regex preset.
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('default_regex_seeded', '0') "
+            "ON CONFLICT(key) DO NOTHING"
+        )
+
         # Seed a default system prompt if the table is empty. Use the bare
         # default template — {{system_prompt}} stays as a live variable so the
         # per-character system_prompt field can fill it.
@@ -670,4 +683,149 @@ def seed_default_prompts():
 
         conn.execute(
             "UPDATE settings SET value='1' WHERE key='default_prompts_seeded'"
+        )
+
+
+# Bundled regex presets, seeded by seed_default_regex_presets(). Small enough to
+# live inline rather than in a bundled-file directory like default_prompts/.
+#
+# All of these are *optional conversions*, not fixes for anything broken. Cozy
+# styles German, guillemet and Japanese speech as dialogue natively (see
+# static/js/rp-dialogue.js), so none of this is needed to make a reply render
+# correctly — these exist for people who simply want ASCII punctuation in the
+# text that gets stored. They ship inactive, and double as worked examples of
+# what the Regex tab can do.
+#
+# The quote characters are the entire point and are near-indistinguishable in a
+# source listing, so, for reference:
+#   U+201E „  German opening mark (sits on the baseline)
+#   U+201C “  English opening mark — and German's *closing* mark
+#   U+201D ”  English closing mark; models often emit it to close „ as well
+#   U+00AB «  U+00BB »  guillemets
+#   U+2018 ‘  U+2019 ’  curly singles, also used as apostrophes
+#   U+00A0    no-break space   U+202F narrow no-break space (both invisible)
+DEFAULT_REGEX_PRESETS = [
+    {
+        'name': 'German punctuation',
+        'filters': [
+            {
+                # The pair-rebuilding rule: capture what's between the marks and
+                # put it back inside straight ones.
+                'name': 'Straighten German quotation marks',
+                'find': '„([^“”"\n]*)[“”"]',
+                'replace': '"$1"',
+                'flags': 'g',
+            },
+            {
+                'name': 'Straighten inward guillemets',
+                'find': '»([^«\n]*)«',
+                'replace': '"$1"',
+                'flags': 'g',
+            },
+            {
+                # Mop-up for any curly mark the pair rules didn't sit around.
+                # Must run last, or it would eat the closers above.
+                'name': 'Straighten stray curly quotes',
+                'find': '[“”]',
+                'replace': '"',
+                'flags': 'g',
+            },
+        ],
+    },
+    {
+        'name': 'French punctuation',
+        'filters': [
+            {
+                # French pads the inside of its guillemets with a no-break
+                # space, so the trims are part of the rule rather than optional.
+                'name': 'Straighten guillemets',
+                'find': '«[   ]*([^»\n]*?)[   ]*»',
+                'replace': '"$1"',
+                'flags': 'g',
+            },
+            {
+                # French also spaces off ; : ! ?, which reads as a typo in
+                # English-looking text and often renders as a visible gap.
+                'name': 'Remove space before ; : ! ?',
+                'find': '[   ]+([;:!?])',
+                'replace': '$1',
+                'flags': 'g',
+            },
+        ],
+    },
+    {
+        'name': 'Straighten all quote marks',
+        'filters': [
+            {
+                'name': 'German pairs',
+                'find': '„([^“”"\n]*)[“”"]',
+                'replace': '"$1"',
+                'flags': 'g',
+            },
+            {
+                'name': 'Inward guillemets',
+                'find': '»([^«\n]*)«',
+                'replace': '"$1"',
+                'flags': 'g',
+            },
+            {
+                'name': 'Outward guillemets',
+                'find': '«[   ]*([^»\n]*?)[   ]*»',
+                'replace': '"$1"',
+                'flags': 'g',
+            },
+            {
+                'name': 'Leftover curly doubles',
+                'find': '[“”]',
+                'replace': '"',
+                'flags': 'g',
+            },
+            {
+                # Also catches curly apostrophes — that’s the point, but it is
+                # why this preset is separate from the language-specific ones.
+                'name': 'Curly singles and apostrophes',
+                'find': '[‘’]',
+                'replace': "'",
+                'flags': 'g',
+            },
+        ],
+    },
+]
+
+
+def seed_default_regex_presets():
+    """Insert the bundled regex preset into regex_presets, once per data dir.
+
+    Follows seed_default_prompts(): existing installs are owed it too, the
+    `default_regex_seeded` setting flips to '1' afterwards whether or not
+    anything was inserted, and a name that is already taken is skipped rather
+    than duplicated. From then on it is an ordinary row.
+
+    Deliberately does *not* set `active_regex_preset`. The preset ships as a
+    worked example to read, not as behaviour that silently rewrites replies —
+    filtering stays off until it is picked from the dropdown, and the app then
+    keeps using whatever was selected last.
+    """
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key='default_regex_seeded'"
+        ).fetchone()
+        if row is None or row['value'] != '0':
+            return
+
+        existing = {
+            r['name'] for r in
+            conn.execute('SELECT name FROM regex_presets').fetchall()
+        }
+        for preset in DEFAULT_REGEX_PRESETS:
+            if preset['name'] in existing:
+                continue
+            conn.execute(
+                'INSERT INTO regex_presets (name, scripts_json) VALUES (?, ?)',
+                (preset['name'], json.dumps(preset['filters'], ensure_ascii=False)),
+            )
+            existing.add(preset['name'])
+
+        conn.execute(
+            "UPDATE settings SET value='1' WHERE key='default_regex_seeded'"
         )

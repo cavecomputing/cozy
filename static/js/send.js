@@ -8,6 +8,7 @@ import {
 import { maybeAutoNameChat } from './chats.js';
 import { clearDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
+import { applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend, maybeTriggerSummary } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 
@@ -115,6 +116,9 @@ export async function handleSend() {
         if (!failed && !signal.aborted) showToast('The model returned no text');
         return;
     }
+    // Regex filters rewrite the reply before it is persisted, so the corrected
+    // text is what gets saved, shown, and read back into context next turn.
+    reply = applyOutputFilters(reply);
     await appendMessage('character', reply, true);
     // Fold any history displaced by the new reply in the background. The
     // next send's preflight waits for this job if it is still running.

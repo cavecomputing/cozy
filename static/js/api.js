@@ -351,6 +351,34 @@ export const API = {
         });
     },
 
+    // Regex presets
+    async getRegexPresets() {
+        return jsonRequest('/api/regex-presets', { fallback: 'Failed to load regex presets' });
+    },
+    async createRegexPreset(data) {
+        return jsonRequest('/api/regex-presets', {
+            method: 'POST',
+            body: data,
+            fallback: 'Create regex preset failed',
+        });
+    },
+    async updateRegexPreset(id, data) {
+        return jsonRequest(`/api/regex-presets/${id}`, {
+            method: 'PUT',
+            body: data,
+            fallback: 'Update regex preset failed',
+        });
+    },
+    async deleteRegexPreset(id) {
+        return jsonRequest(`/api/regex-presets/${id}`, {
+            method: 'DELETE',
+            fallback: 'Delete regex preset failed',
+        });
+    },
+    async importRegexPreset(file) {
+        return formRequest('/api/regex-presets/import', { file }, 'Import failed');
+    },
+
     // LLM utility endpoints
     async getModels(profile = 'main') {
         const query = profile === 'main' ? '' : `?profile=${encodeURIComponent(profile)}`;

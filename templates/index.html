@@ -166,6 +166,10 @@
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path></svg>
                                 <span>Summaries</span>
                             </button>
+                            <button class="settings-nav-item" data-section="regex" role="tab" aria-selected="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                                <span>Regex</span>
+                            </button>
                             <button class="settings-nav-item" data-section="about" role="tab" aria-selected="false">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 <span>About</span>
@@ -673,6 +677,73 @@
                                     <input type="number" id="settings-summary-compress" class="form-input" min="2" max="10" step="1" value="3">
                                 </div>
                                 <p class="settings-hint">When the summary nears its size cap, Cozy merges this many neighbouring story lines per request to shrink it. Smaller batches lose less detail but need more requests. Pinned lines are never sent and never merged.</p>
+                            </section>
+                        </div>
+                    </div>
+                    <div class="settings-section" data-section="regex" hidden>
+                        <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
+                            <div class="settings-page-title">
+                                <h3>Regex</h3>
+                                <p>Find-and-replace rules that clean up the character's replies as they arrive.</p>
+                            </div>
+                            <div class="prompt-header-actions">
+                                <button id="settings-regex-help" class="icon-btn" title="Regex syntax help &amp; examples" aria-label="Regex syntax help">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                </button>
+                            </div>
+                        </header>
+                        <div class="settings-section-body settings-section-stack">
+                            <div class="prompt-section-controls settings-card">
+                                <div class="prompt-select-row">
+                                    <select id="settings-regex-preset-select" class="form-input settings-select" aria-label="Filter preset"></select>
+                                    <button id="settings-regex-new" class="icon-btn" title="New preset" aria-label="New preset">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    </button>
+                                    <button id="settings-regex-delete" class="icon-btn" title="Delete preset" aria-label="Delete preset">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    </button>
+                                    <div class="export-dropdown" id="regex-io-dropdown">
+                                        <button id="settings-regex-io-btn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="Import or export a preset" aria-label="Import or export a preset">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 21 7 17 3"></polyline><line x1="21" y1="7" x2="9" y2="7"></line><polyline points="7 21 3 17 7 13"></polyline><line x1="15" y1="17" x2="3" y2="17"></line></svg>
+                                        </button>
+                                        <ul class="export-menu" id="regex-io-menu" hidden role="menu">
+                                            <li><button id="settings-regex-import" role="menuitem">Import from JSON…</button></li>
+                                            <li><button id="settings-regex-export" role="menuitem">Export as JSON</button></li>
+                                        </ul>
+                                    </div>
+                                    <input type="file" id="settings-regex-import-file" accept="application/json,.json" hidden>
+                                </div>
+                            </div>
+                            <p class="regex-notice">
+                                <strong>Filters only touch the character's replies.</strong>
+                                Each one runs once, after the model finishes and before the message is saved —
+                                so the result is what you see, what gets stored, and what the model reads back
+                                next turn. Your own messages, greetings, and messages already in the chat are
+                                never changed. Select <em>None</em> above to switch filtering off.
+                            </p>
+                            <section class="settings-card">
+                                <header class="settings-card-header settings-card-header--with-action">
+                                    <div>
+                                        <h4>Filters <span id="settings-regex-count" class="regex-filter-count"></span></h4>
+                                        <p>Run top to bottom — each filter sees the previous one's output.</p>
+                                    </div>
+                                    <button id="settings-regex-add" class="btn btn-secondary btn-sm">Add filter</button>
+                                </header>
+                                <div id="settings-regex-filters" class="regex-filters"></div>
+                            </section>
+                            <section class="settings-card">
+                                <header class="settings-card-header">
+                                    <h4>Test</h4>
+                                    <p>Paste a sample reply to see what every filter above would do to it.</p>
+                                </header>
+                                <label class="regex-test-field">
+                                    <span>Sample</span>
+                                    <textarea id="settings-regex-test-input" class="form-textarea mono-input" rows="3" spellcheck="false"></textarea>
+                                </label>
+                                <label class="regex-test-field">
+                                    <span>Result</span>
+                                    <pre id="settings-regex-test-output" class="regex-test-output"></pre>
+                                </label>
                             </section>
                         </div>
                     </div>
@@ -1362,6 +1433,79 @@
                     </div>
                     <pre class="prompt-help-example" id="prompt-help-default-post-history">Loading…</pre>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="regex-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="regex-help-title" hidden>
+        <div class="modal">
+            <div class="modal-header panel-header">
+                <h2 id="regex-help-title" class="section-label panel-title panel-title--left">Regex syntax</h2>
+                <div class="modal-header-actions">
+                    <button id="regex-help-close" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="modal-body sampler-help-body">
+                <p class="prompt-help-callout"><strong>A filter finds a pattern and swaps it for something else.</strong> If Find is <code>apple</code> and Replace is <code>orange</code>, every "apple" in the reply becomes "orange". Everything below is just ways of describing the thing to find more loosely than a literal word.</p>
+
+                <div class="sampler-help-section">
+                    <h3>Building blocks</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt><code>.</code></dt><dd>Any single character (except a line break, unless the <code>s</code> flag is on).</dd></div>
+                        <div class="sampler-help-row"><dt><code>\d</code> <code>\w</code> <code>\s</code></dt><dd>Any digit / any letter, digit or underscore / any whitespace. Capitalised (<code>\D</code>, <code>\W</code>, <code>\S</code>) means the opposite.</dd></div>
+                        <div class="sampler-help-row"><dt><code>[abc]</code></dt><dd>Any one of these characters. <code>[a-z]</code> is a range; <code>[^abc]</code> means "any character except these".</dd></div>
+                        <div class="sampler-help-row"><dt><code>*</code> <code>+</code> <code>?</code></dt><dd>Repeat what came before: zero or more / one or more / zero or one. <code>{2,5}</code> means between two and five times.</dd></div>
+                        <div class="sampler-help-row"><dt><code>*?</code> <code>+?</code></dt><dd>The lazy versions — match as little as possible. Use these when a greedy <code>.*</code> swallows far more than you meant.</dd></div>
+                        <div class="sampler-help-row"><dt><code>(…)</code></dt><dd>A capture group: marks a piece you want to keep and reuse in the replacement.</dd></div>
+                        <div class="sampler-help-row"><dt><code>|</code></dt><dd>Either side. <code>cat|dog</code> matches whichever appears.</dd></div>
+                        <div class="sampler-help-row"><dt><code>^</code> <code>$</code></dt><dd>Start / end of the text — or of each line, with the <code>m</code> flag on.</dd></div>
+                        <div class="sampler-help-row"><dt><code>\b</code></dt><dd>A word boundary, so <code>\bcat\b</code> matches "cat" but not "concatenate".</dd></div>
+                        <div class="sampler-help-row"><dt><code>\.</code> <code>\*</code> <code>\(</code></dt><dd>A backslash makes a special character literal. Use it to match a real full stop, asterisk or bracket.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Flags</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt><code>g</code></dt><dd>Replace <em>every</em> match instead of only the first. On by default for new filters — without it, a reply with four sets of quotes only gets the first one fixed.</dd></div>
+                        <div class="sampler-help-row"><dt><code>i</code></dt><dd>Ignore case, so <code>cat</code> also matches "Cat" and "CAT".</dd></div>
+                        <div class="sampler-help-row"><dt><code>m</code></dt><dd>Make <code>^</code> and <code>$</code> mean the start and end of each <em>line</em> rather than the whole reply.</dd></div>
+                        <div class="sampler-help-row"><dt><code>s</code></dt><dd>Let <code>.</code> match line breaks too, so a pattern can span paragraphs.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>The replacement</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt><code>$1</code> <code>$2</code></dt><dd>The text captured by the first, second… <code>(…)</code> group in Find. This is how you keep part of what you matched.</dd></div>
+                        <div class="sampler-help-row"><dt><code>$&amp;</code></dt><dd>The whole match. <code>&#123;&#123;match&#125;&#125;</code> also works, for scripts copied from SillyTavern.</dd></div>
+                        <div class="sampler-help-row"><dt><code>$$</code></dt><dd>A literal dollar sign. A lone <code>$</code> followed by a digit would be read as a capture group.</dd></div>
+                        <div class="sampler-help-row"><dt><code>\n</code> <code>\t</code></dt><dd>A line break or tab. The Replace box is a single line, so this is the only way to insert one. Write <code>\\n</code> for a literal backslash-n.</dd></div>
+                        <div class="sampler-help-row"><dt>(empty)</dt><dd>Leave Replace blank to delete whatever Find matched.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Worked examples</h3>
+                    <p>Straighten German quotation marks — the low-then-high pair becomes an ordinary pair, keeping whatever was between them:</p>
+                    <pre class="prompt-help-example">Find     „([^"]*)"
+Replace  "$1"
+Flags    g</pre>
+                    <p>Delete out-of-character asides in brackets. <code>s</code> lets the match run across line breaks, and <code>.*?</code> stops at the <em>first</em> closing bracket rather than the last one in the reply:</p>
+                    <pre class="prompt-help-example">Find     \(OOC:.*?\)
+Replace  (leave blank)
+Flags    g s</pre>
+                    <p>Collapse three or more line breaks down to a single blank line:</p>
+                    <pre class="prompt-help-example">Find     \n{3,}
+Replace  \n\n
+Flags    g</pre>
+                    <p class="prompt-help-note">Pasting a SillyTavern-style <code>/pattern/gi</code> into Find splits it apart for you — the pattern lands in the box and the matching flag boxes tick themselves.</p>
+                </div>
+
+                <p class="prompt-help-note"><strong>Filters rewrite the saved message.</strong> There is no undo, so use the Test box to check a pattern before it runs on a real reply. A pattern that would empty a reply entirely is ignored, and one that doesn't compile is skipped and flagged rather than blocking the send.</p>
             </div>
         </div>
     </div>
