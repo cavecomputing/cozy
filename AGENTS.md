@@ -170,7 +170,7 @@ import time and passed into the template by `index()` in [app.py](app.py). Bump 
 ### User-facing docs in docs/
 
 [docs/](docs/) is the user manual (getting started, running, data & backups, samplers, themes,
-auto-summaries, troubleshooting, and [docs/db.md](docs/db.md)). It is prose maintained by hand, not
+auto-summaries, regex filters, troubleshooting, and [docs/db.md](docs/db.md)). It is prose maintained by hand, not
 generated, so it goes stale silently. [docs/db.md](docs/db.md) enumerates every table, column, index,
 migration and seeded default — a schema change, a new migration or a new default setting is not
 finished until it is reflected there. When a change adds a user-visible feature, check whether the

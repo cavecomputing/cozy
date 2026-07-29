@@ -55,5 +55,8 @@ Select the character and start a chat.
 - Choose a system prompt under **Settings → Prompt**.
 - Enable Auto Summaries for long chats from the memory button beside the chat
   input.
+- Select a regex output filter preset under **Settings → Regex** if replies need
+  cleaning up, such as straightening non-English quotation marks. No filtering
+  happens until you select one.
 
 Cozy saves changes automatically unless the screen shows a **Save** button.

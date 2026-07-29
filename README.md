@@ -7,7 +7,7 @@
 </p>
 
 Cozy works with SillyTavern-compatible V2 character cards and OpenAI-style LLM
-servers. It includes personas, lorebooks, prompt presets, Auto Summaries, themes, and chat import/export. It also might inspire feelings of being cozy and safe as supported by 1 out of 10 non existant doctors.
+servers. It includes personas, lorebooks, prompt presets, Auto Summaries, regex output filters, themes, and chat import/export. It also might inspire feelings of being cozy and safe as supported by 1 out of 10 non existant doctors.
 
 <p align="center">
   <img src="assets/1.png" alt="Chat view on desktop" width="49%">
@@ -56,7 +56,7 @@ Open <http://localhost:5001>.
 
 1. Open Cozy.
 2. Open `Settings` in the bottom left.
-3. Navigate to `API & Samplers`.
+3. Navigate to `API`.
 4. Click `+` to name and create a preset.
 5. Under `Connection` enter the base `Endpoint` URL for your LLM server, such as
    `https://openrouter.ai/api/v1`.
@@ -111,6 +111,7 @@ I run this thing privately behind tailscale and a reverse proxy and inside a con
 - [Troubleshooting](docs/troubleshooting.md)
 - [Auto Summaries](docs/auto-summaries.md)
 - [Sampler settings](docs/samplers.md)
+- [Regex output filters](docs/regex.md)
 - [User themes](docs/themes.md)
 - [Database structure](docs/db.md)
 

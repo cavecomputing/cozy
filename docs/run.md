@@ -95,6 +95,25 @@ Open <http://localhost:5001>.
 This runs Flask's development server with automatic reload. Use the Docker setup
 for a persistent installation.
 
+### Use a different address or port
+
+Cozy binds to `127.0.0.1:5001` by default. `--host` and `--port` change that:
+
+```bash
+uv run python app.py --port 8080
+```
+
+```bash
+uv run python app.py --host 0.0.0.0 --port 8080
+```
+
+`--host 0.0.0.0` accepts connections from other machines on the network. Cozy
+has no login screen, so only do this on a network you trust, or behind a reverse
+proxy that handles authentication. See [Security](../SECURITY.md).
+
+These arguments apply to the Python setup only. Under Docker, change the port
+mapping instead — see [Use a different port](#use-a-different-port) above.
+
 ### Use a different data directory
 
 Linux or macOS:
@@ -140,5 +159,11 @@ uv sync --dev
 uv run pytest
 ```
 
-Node.js must be available on `PATH` for the frontend request-builder tests.
-Without Node.js, those tests are skipped.
+Node.js must be available on `PATH` for the tests that exercise Cozy's frontend
+JavaScript — currently eight files, covering the request builder, the regex
+engine and bundled regex presets, dialogue matching, avatars, summaries,
+thinking blocks, stop-mid-reply handling, and the context meter.
+
+Without Node.js those tests are **skipped rather than failed**, so a run that
+reports success on a machine without Node.js has covered none of that
+JavaScript. Check the summary line for skips before trusting a pass.

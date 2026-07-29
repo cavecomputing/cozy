@@ -17,8 +17,10 @@ The default address is <http://localhost:5001>.
 
 ## Port 5001 is already in use
 
-Stop the program using port 5001 or change Cozy's host port. See
-[Use a different port](run.md#use-a-different-port).
+Stop the program using port 5001 or change Cozy's port. Under Docker, change the
+port mapping — see [Use a different port](run.md#use-a-different-port). Under
+Python, pass `--port` — see
+[Use a different address or port](run.md#use-a-different-address-or-port).
 
 ## Docker cannot write to `data/`
 
@@ -66,6 +68,15 @@ See [Sampler settings](samplers.md#backend-compatibility).
 Check **Max Response Tokens** first. If the reply is not reaching that limit,
 inspect both the Cozy logs and the LLM server logs. A proxy between Cozy and the
 LLM server may be buffering or closing the streaming response.
+
+## Replies arrive with text changed or missing
+
+A regex output filter rewrites each reply before it is saved, so a stray pattern
+can delete more than intended. Open **Settings → Regex** and check which preset
+is selected; select **None** to switch filtering off. Filters change the stored
+message and cannot be undone.
+
+See [Regex output filters](regex.md).
 
 ## An update fails
 

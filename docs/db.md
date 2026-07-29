@@ -152,6 +152,22 @@ Saved OpenAI-compatible endpoint presets. API keys are stored here, but route re
 | settings_json      | TEXT     | JSON object containing sampler and related preset settings. |
 | created_at         | DATETIME | Creation timestamp.                          |
 
+### regex_presets
+
+Named, ordered lists of find/replace filters run over a finished character reply
+before it is saved. See [Regex output filters](regex.md).
+
+| Column       | Type     | Description                                        |
+|--------------|----------|----------------------------------------------------|
+| id           | INTEGER  | Primary key (auto-increment).                      |
+| name         | TEXT     | Unique preset display name.                        |
+| scripts_json | TEXT     | JSON array of `{name, find, replace, flags}` filters. Defaults to `'[]'`. |
+| created_at   | DATETIME | Creation timestamp.                                |
+
+The selected preset is stored in `settings` under `active_regex_preset`, as the
+preset ID or an empty string for no filtering. Deleting the active preset clears
+that setting rather than selecting another preset.
+
 ### lorebooks
 
 Standalone lorebooks store V2 `character_book` JSON. Embedded character-card lorebooks stay inside PNG card metadata.
@@ -197,7 +213,7 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-The migration ledger currently contains six migrations:
+The migration ledger currently contains seven migrations:
 
 1. Retire the historical duplicate-greeting repair.
 2. Delete the retired `context_max_messages` setting.
@@ -205,26 +221,52 @@ The migration ledger currently contains six migrations:
 4. Add the narrative preamble to untouched copies of the default prompt.
 5. Upgrade untouched default prompts to the V4 paired-template layout.
 6. Upgrade untouched post-history templates to the current house style.
+7. Rename the stock "Default" prompt to "NanoBear".
 
 Prompt migrations change only known stock templates. Customized prompts are
-preserved.
+preserved. The rename in migration 7 is the one exception to matching on
+content: it changes the name of a prompt still called "Default" whether or not
+its templates were edited, so a user's edits carry over under the new label. It
+is skipped when a "NanoBear" prompt already exists.
 
 ## Seeded data
 
 On first run, the database is seeded with:
 
 - **Default persona**: "Default User" (tagline: "The brave adventurer", `is_default = 1`)
-- **Default system prompt**: "Default" with paired main and post-history Prompt Builder templates
+- **Default system prompt**: "NanoBear" with paired main and post-history Prompt Builder templates
 - **Default settings**: context token budget (`32768`), visible context meter, an
   empty extra-request-parameters value, blank summarizer endpoint/key/model
-  overrides, a 10% summary cap, and 20 messages per summarizer batch
+  overrides, a 10% summary cap (`summary_cap_pct`), 10 messages per summarizer
+  batch (`summary_trigger_interval`), and 3 story lines per compression request
+  (`summary_compress_batch`)
 
 Auto Summaries are disabled on new chats until the user enables them for that
 chat.
 
-A fresh install also copies the character cards in `default_characters/` into
-`data/characters/`. They become ordinary cards on disk at that point — the
-`characters` index picks them up on the next listing request, and deleting one
-deletes it for good. The copy is guarded by the `default_characters_seeded`
-setting, which is set to `1` on the first run of a fresh install and to `1`
-immediately on an upgraded install (existing libraries are never seeded).
+## Bundled content
+
+Three kinds of content ship with the repository and are copied into the user's
+data at startup, each by its own seeder and each guarded by its own `settings`
+flag:
+
+| Content | Source | Flag |
+|---------|--------|------|
+| Character cards | `default_characters/` | `default_characters_seeded` |
+| Prompt presets | `default_prompts/` | `default_prompts_seeded` |
+| Regex presets | `DEFAULT_REGEX_PRESETS` in `shared.py` | `default_regex_seeded` |
+
+Each flag flips to `1` whether or not anything was inserted, and is never reset,
+so deleting a bundled item keeps it deleted. A name already taken is skipped
+rather than duplicated.
+
+`default_characters_seeded` starts at `0` only on a fresh install; an upgraded
+install starts at `1`, so an existing library is never seeded. The prompt and
+regex flags start at `0` regardless, because existing installs are owed those
+presets too.
+
+Seeded characters become ordinary cards on disk — the `characters` index picks
+them up on the next listing request, and deleting one deletes it for good.
+
+The bundled regex presets ship **inactive**: seeding deliberately leaves
+`active_regex_preset` alone, so bundled rules never silently rewrite replies.

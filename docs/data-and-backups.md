@@ -10,11 +10,18 @@ data/
   characters/
   personas/
   themes/
+  thumbs/
 ```
 
 The SQLite database contains chats, settings, API keys, presets, personas,
 lorebooks, and character organization. Character card content is stored inside
 the PNG files in `characters/`.
+
+`thumbs/` is a cache of downscaled avatar images that Cozy generates from the
+files in `characters/` and `personas/` as they are requested. It holds nothing
+of its own, so it is safe to delete at any time and safe to leave out of a
+backup — Cozy rebuilds what it needs. Deleting it while Cozy is running is fine
+too.
 
 Docker mounts the same host `data/` directory at `/data` inside the container.
 
