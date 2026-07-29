@@ -4,8 +4,8 @@ import { saveLLMSettings } from './llm-settings.js';
 import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import {
-    FLAG_LABELS, combineFilterFlags, filterError, runFilters, splitFilterFlags,
-    splitSlashForm,
+    FLAG_LABELS, combineFilterFlags, escapeForInput, filterError, runFilters,
+    splitFilterFlags, splitSlashForm,
 } from './regex-engine.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -163,8 +163,8 @@ function buildFilterRow(filter, idx) {
 
     // Populated imperatively so user text is never interpolated into markup.
     row.querySelector('[data-field="name"]').value = filter.name || '';
-    row.querySelector('[data-field="find"]').value = filter.find || '';
-    row.querySelector('[data-field="replace"]').value = filter.replace || '';
+    row.querySelector('[data-field="find"]').value = escapeForInput(filter.find);
+    row.querySelector('[data-field="replace"]').value = escapeForInput(filter.replace);
     const splitFlags = splitFilterFlags(filter.flags);
     row.dataset.extraFlags = splitFlags.hidden;
     for (const [flag] of FLAG_LABELS) {
@@ -381,7 +381,12 @@ export function handleFilterListInput(e) {
     if (!field) return;
     // A pasted `/pattern/gi` is split into the pattern plus its flag boxes, so
     // scripts copied from SillyTavern work without hand-translation.
-    if (field.dataset.field === 'find') {
+    //
+    // Paste only. Running this per keystroke rewrote a pattern the moment it
+    // grew a second slash — typing `/path/to/x` left `pathto/x` behind with the
+    // flag boxes cleared, because every prefix of it briefly looks like the
+    // slash form.
+    if (field.dataset.field === 'find' && e.inputType === 'insertFromPaste') {
         const parsed = splitSlashForm(field.value);
         if (parsed) {
             const row = field.closest('.regex-filter');

@@ -712,13 +712,13 @@ DEFAULT_REGEX_PRESETS = [
                 # The pair-rebuilding rule: capture what's between the marks and
                 # put it back inside straight ones.
                 'name': 'Straighten German quotation marks',
-                'find': '„([^“”"\n]*)[“”"]',
+                'find': '„([^“”"\\n]*)[“”"]',
                 'replace': '"$1"',
                 'flags': 'g',
             },
             {
                 'name': 'Straighten inward guillemets',
-                'find': '»([^«\n]*)«',
+                'find': '»([^«\\n]*)«',
                 'replace': '"$1"',
                 'flags': 'g',
             },
@@ -739,7 +739,7 @@ DEFAULT_REGEX_PRESETS = [
                 # French pads the inside of its guillemets with a no-break
                 # space, so the trims are part of the rule rather than optional.
                 'name': 'Straighten guillemets',
-                'find': '«[   ]*([^»\n]*?)[   ]*»',
+                'find': '«[   ]*([^»\\n]*?)[   ]*»',
                 'replace': '"$1"',
                 'flags': 'g',
             },
@@ -758,19 +758,19 @@ DEFAULT_REGEX_PRESETS = [
         'filters': [
             {
                 'name': 'German pairs',
-                'find': '„([^“”"\n]*)[“”"]',
+                'find': '„([^“”"\\n]*)[“”"]',
                 'replace': '"$1"',
                 'flags': 'g',
             },
             {
                 'name': 'Inward guillemets',
-                'find': '»([^«\n]*)«',
+                'find': '»([^«\\n]*)«',
                 'replace': '"$1"',
                 'flags': 'g',
             },
             {
                 'name': 'Outward guillemets',
-                'find': '«[   ]*([^»\n]*?)[   ]*»',
+                'find': '«[   ]*([^»\\n]*?)[   ]*»',
                 'replace': '"$1"',
                 'flags': 'g',
             },

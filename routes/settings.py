@@ -431,6 +431,23 @@ def _filter_text(value):
     return '' if value is None else str(value)
 
 
+def _escape_controls(value, escape_backslash=False):
+    """Rewrite real control characters as the escapes Cozy's UI round-trips.
+
+    Both filter fields are single-line ``<input>`` elements, which drop CR and
+    LF outright, so a value carrying either would come back from the DOM with it
+    silently deleted. ``\\n`` means the same thing in a Find pattern, and the
+    Replace box expands ``\\n`` at run time, so neither meaning changes.
+
+    ``escape_backslash`` is for replacement text only, where it makes this the
+    exact inverse of that expansion. A Find pattern is regex source, where a
+    backslash is already load-bearing and must be left alone.
+    """
+    if escape_backslash:
+        value = value.replace('\\', '\\\\')
+    return value.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+
+
 def _clean_filter(entry):
     """Normalise one filter to {name, find, replace, flags}, or None if unusable."""
     if not isinstance(entry, dict):
@@ -523,8 +540,13 @@ def _filters_from_payload(payload):
             )
         return {
             'name': name,
-            'find': find,
-            'replace': _filter_text(script.get('replaceString', '')),
+            'find': _escape_controls(find),
+            # SillyTavern writes a real line break here; Cozy's Replace field
+            # spells one `\n`, so a multi-line replacement has to be converted
+            # rather than handed over to be truncated at the first newline.
+            'replace': _escape_controls(
+                _filter_text(script.get('replaceString', '')), escape_backslash=True
+            ),
             'flags': flags,
         }
 

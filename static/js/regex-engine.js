@@ -109,6 +109,26 @@ function expandEscapes(s) {
 }
 
 /**
+ * Render a stored Find/Replace value for a single-line `<input>`.
+ *
+ * `<input type="text">` silently drops CR and LF from its value, so a pattern
+ * holding a real newline — every bundled preset does, to keep a quote from
+ * swallowing the next paragraph — came back from the DOM with that newline
+ * gone, and the next edit wrote the broken version back to the DB. Showing the
+ * escape instead means the round trip is lossless.
+ *
+ * Only the control characters are escaped, never backslashes: in a Find field
+ * `\n` already *is* the newline, and a stored Replace value is escape-form text
+ * that `expandEscapes` reads back, so both survive unchanged either way.
+ */
+export function escapeForInput(value) {
+    return String(value ?? '')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
+}
+
+/**
  * Run every filter over `text` in order — each one sees the previous one's
  * output, which is why the settings preview runs the whole list rather than
  * one row at a time.

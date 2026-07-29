@@ -28,7 +28,7 @@ SETUP = r"""
     import assert from 'node:assert/strict';
     import {
         runFilters, compileFilter, filterError, splitSlashForm,
-        splitFilterFlags, combineFilterFlags,
+        splitFilterFlags, combineFilterFlags, escapeForInput,
     } from './static/js/regex-engine.js';
 """
 
@@ -133,6 +133,36 @@ def test_escape_sequences_in_the_replacement():
         assert.equal(
             runFilters('x', [{ find: 'x', replace: '\\\\n', flags: 'g' }]),
             '\\n');
+    """)
+
+
+def test_escape_for_input_survives_a_single_line_input():
+    """`<input type=text>` deletes CR and LF, so neither may reach one intact."""
+    run_node_module(SETUP + r"""
+        assert.equal(escapeForInput('„([^“”"\n]*)[“”"]'), '„([^“”"\\n]*)[“”"]');
+        assert.equal(escapeForInput('a\r\nb\tc'), 'a\\r\\nb\\tc');
+        // Backslashes are left alone: escaping them would double every `\d`
+        // already in a pattern, and re-escape a Replace box that stores `\n`
+        // as two characters to begin with.
+        assert.equal(escapeForInput('\\d+'), '\\d+');
+        assert.equal(escapeForInput('\\n'), '\\n');
+        assert.equal(escapeForInput(''), '');
+        assert.equal(escapeForInput(null), '');
+    """)
+
+
+def test_escaped_pattern_matches_exactly_what_the_raw_one_did():
+    """The escape is a display form, not a different regex."""
+    run_node_module(SETUP + r"""
+        const raw = '„([^“”"\n]*)[“”"]';
+        const sample = 'Sie flüsterte: „Ich weiß es nicht.\n\nDann sagte er: „Doch.“';
+        assert.equal(
+            runFilters(sample, [{ find: escapeForInput(raw), replace: '"$1"', flags: 'g' }]),
+            runFilters(sample, [{ find: raw, replace: '"$1"', flags: 'g' }]));
+        // And it still refuses to run the quote past the blank line.
+        assert.equal(
+            runFilters(sample, [{ find: escapeForInput(raw), replace: '"$1"', flags: 'g' }]),
+            'Sie flüsterte: „Ich weiß es nicht.\n\nDann sagte er: "Doch."');
     """)
 
 

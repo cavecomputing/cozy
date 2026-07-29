@@ -90,6 +90,21 @@ class TestSeededContent:
         preset = next(p for p in listed if p['name'] == name)
         assert preset['filters'] == _filters_for(name)
 
+    def test_no_bundled_field_holds_a_raw_control_character(self):
+        """Find and Replace are single-line inputs, which delete CR and LF.
+
+        A pattern shipping a real newline came back from the DOM without it the
+        first time any row in the preset was touched, and that truncated version
+        was then saved — quietly turning "don't cross a line break" off.
+        """
+        for preset in shared.DEFAULT_REGEX_PRESETS:
+            for f in preset['filters']:
+                for field in ('find', 'replace'):
+                    assert not set('\r\n\t') & set(f[field]), (
+                        f"{preset['name']} / {f['name']} has a raw control "
+                        f"character in {field}; write it as an escape instead"
+                    )
+
     def test_every_bundled_pattern_compiles(self):
         """A shipped pattern that doesn't compile would be silently skipped."""
         every = [f for p in shared.DEFAULT_REGEX_PRESETS for f in p['filters']]

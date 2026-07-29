@@ -204,6 +204,38 @@ def test_import_sillytavern_script(client):
     assert body['warnings'] == []
 
 
+def test_import_converts_a_multiline_sillytavern_replacement(client):
+    """ST writes a real line break; Cozy's single-line Replace box spells it \\n.
+
+    Left as-is the newline reached an `<input>`, which drops it, so the first
+    edit to the imported preset silently collapsed the replacement onto one line.
+    """
+    r = upload(client, {
+        'scriptName': 'Block quote',
+        'findRegex': '/^(OOC:.*)$/gm',
+        'replaceString': '\n> $1\n',
+        'placement': [2],
+    })
+    assert r.status_code == 201
+    assert r.get_json()['filters'] == [
+        {'name': 'Block quote', 'find': '^(OOC:.*)$', 'replace': '\\n> $1\\n', 'flags': 'gm'},
+    ]
+
+
+def test_import_keeps_a_literal_backslash_in_a_replacement(client):
+    """Escaping the newline must not turn an ST `\\d` into a control character."""
+    r = upload(client, {
+        'scriptName': 'Literal',
+        'findRegex': '/x/g',
+        'replaceString': 'C:\\new',
+        'placement': [2],
+    })
+    assert r.status_code == 201
+    # Doubled, so the Replace box's own expansion gives back `C:\new` unchanged
+    # rather than reading `\n` as a line break.
+    assert r.get_json()['filters'][0]['replace'] == 'C:\\\\new'
+
+
 def test_import_sillytavern_script_targeting_user_input_warns(client):
     r = upload(client, {
         'scriptName': 'User only',
