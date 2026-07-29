@@ -107,8 +107,22 @@ export function updateUserProfile() {
     }
 }
 
+// Teardown for the currently-open inline form, or null when none is open. Only
+// one form may be live at a time: each showPersonaForm() call attaches a Save
+// listener closed over its own `editPersona`, so a second open without a
+// teardown would leave two listeners on #pf-save and a single Save click would
+// write the same name/tagline/description to *both* personas.
+let activePersonaFormCleanup = null;
+
+/** Tear down the inline persona form if it is open. Safe to call anytime. */
+export function closePersonaForm() {
+    activePersonaFormCleanup?.();
+}
+
 export function showPersonaForm(editPersona = null) {
     if (!el.personaForm) return;
+    // Discard any form still open for another persona before rebinding.
+    closePersonaForm();
     el.personaForm.hidden = false;
     const nameInput = el.personaForm.querySelector('#pf-name');
     const taglineInput = el.personaForm.querySelector('#pf-tagline');
@@ -125,6 +139,9 @@ export function showPersonaForm(editPersona = null) {
 
     let selectedFile = null;
     let objectUrl = null;
+    // Clear the previous pick: re-choosing the same file wouldn't fire `change`
+    // (the value is unchanged), so the avatar would silently not upload.
+    fileInput.value = '';
     const onFileChange = () => {
         if (fileInput.files[0]) {
             if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -137,13 +154,24 @@ export function showPersonaForm(editPersona = null) {
     };
     fileInput.addEventListener('change', onFileChange);
 
+    let cleanedUp = false;
     const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        // A late cleanup (Save finishing after the form was reopened for someone
+        // else) must not hide or unbind the form that replaced this one — only
+        // drop its own listeners. replaceWith() on the already-detached buttons
+        // is a no-op.
+        if (activePersonaFormCleanup === cleanup) {
+            activePersonaFormCleanup = null;
+            el.personaForm.hidden = true;
+        }
         if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
-        el.personaForm.hidden = true;
         fileInput.removeEventListener('change', onFileChange);
         saveBtnEl.replaceWith(saveBtnEl.cloneNode(true));
         cancelBtnEl.replaceWith(cancelBtnEl.cloneNode(true));
     };
+    activePersonaFormCleanup = cleanup;
 
     // Stop propagation: cleanup() detaches this button via replaceWith, so by
     // the time the click bubbles to the document outside-click handler, e.target

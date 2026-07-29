@@ -12,7 +12,7 @@ import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './messages.js';
 import { Modal } from './modal.js';
-import { loadPersonas, showPersonaForm } from './personas.js';
+import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
 import {
     loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
@@ -246,10 +246,16 @@ function bindFlyoutHandlers() {
         el.memoryFlyoutBtn?.setAttribute('aria-expanded', 'false');
         flushAuthorNote();
     });
-    Flyouts.register('persona', () => {
-        el.personaDropup.classList.remove('show');
-        el.personaDropup.setAttribute('aria-hidden', 'true');
-    });
+    Flyouts.register('persona', closePersonaDropup);
+}
+
+// Hiding the dropup leaves #persona-inline-form with hidden=false, so without
+// this the form (and its Save listener, bound to one specific persona) survives
+// out of sight and comes back on the next open.
+function closePersonaDropup() {
+    el.personaDropup.classList.remove('show');
+    el.personaDropup.setAttribute('aria-hidden', 'true');
+    closePersonaForm();
 }
 
 function bindSidebarHandlers() {
@@ -953,13 +959,15 @@ function bindPersonaHandlers() {
         e.stopPropagation();
         const isOpen = el.personaDropup.classList.contains('show');
         Flyouts.closeAllExcept('persona');
-        el.personaDropup.classList.toggle('show', !isOpen);
-        el.personaDropup.setAttribute('aria-hidden', String(isOpen));
+        if (isOpen) closePersonaDropup();
+        else {
+            el.personaDropup.classList.add('show');
+            el.personaDropup.setAttribute('aria-hidden', 'false');
+        }
     });
     document.addEventListener('click', e => {
         if (!el.personaDropup.contains(e.target) && e.target !== el.userProfile) {
-            el.personaDropup.classList.remove('show');
-            el.personaDropup.setAttribute('aria-hidden', 'true');
+            closePersonaDropup();
         }
     });
 
