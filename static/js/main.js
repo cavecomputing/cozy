@@ -44,6 +44,7 @@ import { updateContextMeter, updateContextBoundary, initContextMeter } from './c
 import { initCharacterGallery } from './character-gallery.js';
 import { enhanceSettingsSelects } from './custom-select.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
+import { confirmDialog } from './confirm.js';
 import {
     initSummaryHandlers, renderMemorySummaryCard, setSummaryBudgetChangeHandler,
 } from './summaries.js';
@@ -891,6 +892,17 @@ function bindMessageHandlers() {
         } else if (e.target.closest('.delete-msg-btn')) {
             if (!isEditing) {
                 const swipes = msgEl.dataset.swipes ? JSON.parse(msgEl.dataset.swipes) : [];
+                // The trash icon sits in the hover bar next to swipe/edit, so a
+                // stray tap used to nuke a message outright — always confirm.
+                const ok = await confirmDialog({
+                    title: 'Delete this message?',
+                    message: swipes.length > 1
+                        ? `All ${swipes.length} swipes of it will be deleted. This cannot be undone.`
+                        : 'This cannot be undone.',
+                });
+                // A re-render (chat switch, reload) during the dialog would
+                // leave msgEl orphaned and state.messages pointing elsewhere.
+                if (!ok || !document.contains(msgEl)) return;
                 const stateMsg = findStateMsg(swipes, msgEl);
                 if (stateMsg) {
                     const stateIdx = state.messages.indexOf(stateMsg);
