@@ -241,7 +241,6 @@ function appendMessageActionButtons(bar) {
     bar.append(
         iconButton('msg-action-btn copy-msg-btn', 'Copy', 'Copy message', icons.COPY),
         iconButton('msg-action-btn edit-msg-btn', 'Edit', 'Edit message', icons.EDIT),
-        iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.TRASH),
     );
 }
 
@@ -273,6 +272,7 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
     if (role === 'character') {
         bar.append(iconButton('msg-action-btn fork-msg-btn', 'Fork', 'Fork chat from here', icons.FORK));
     }
+    bar.append(iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.TRASH));
     return bar;
 }
 
