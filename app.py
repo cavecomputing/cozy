@@ -1,6 +1,7 @@
 import os
 import glob
 import logging
+import argparse
 
 from flask import Flask, render_template, jsonify, send_from_directory
 from werkzeug.exceptions import HTTPException
@@ -106,6 +107,13 @@ shared.seed_default_regex_presets()
 
 # ── Entry point ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="A cozy roleplay frontend.")
+    parser.add_argument("--host", help="Change host binding", default="127.0.0.1", type=str)
+    parser.add_argument("--port", help="Change port binding", default=5001, type=int)
+    args = parser.parse_args()
+    BIND_HOST = args.host
+    BIND_PORT = args.port
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s [%(name)s] %(message)s',
@@ -120,4 +128,4 @@ if __name__ == '__main__':
         *glob.glob('static/**/*', recursive=True),
         *glob.glob('templates/**/*', recursive=True),
     ]
-    app.run(port=5001, debug=True, extra_files=extra, threaded=True)
+    app.run(port=BIND_PORT, debug=True, extra_files=extra, threaded=True, host=BIND_HOST)
