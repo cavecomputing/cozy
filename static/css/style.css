@@ -1296,6 +1296,23 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     background-color: var(--border-color);
 }
 
+/* Landing cue after a jump from the meter's Message history segment. */
+.context-boundary--flash {
+    animation: context-boundary-flash 1.4s ease-out;
+}
+.context-boundary--flash::before,
+.context-boundary--flash::after {
+    animation: context-boundary-rule-flash 1.4s ease-out;
+}
+@keyframes context-boundary-flash {
+    0%, 55%  { opacity: 1; color: var(--accent-color); }
+    100%     { opacity: 0.55; }
+}
+@keyframes context-boundary-rule-flash {
+    0%, 55%  { background-color: var(--accent-color); }
+    100%     { background-color: var(--border-color); }
+}
+
 .msg-action-btn {
     display: flex;
     align-items: center;
@@ -1626,6 +1643,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 .context-meter-segment:last-child { border-right: 0; }
+/* Message history doubles as a jump-to-context-window button. */
+.context-meter-segment--jump { cursor: pointer; }
 .context-meter-segment:hover,
 .context-meter-segment:focus-visible {
     z-index: 4;

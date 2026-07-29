@@ -22,6 +22,16 @@ export function getCurrentContextAnalysis({ includeDraft = false } = {}) {
     });
 }
 
+/**
+ * Whether a context-window separator is drawn in the transcript, and so
+ * whether the Message history segment is worth clicking. Mirrors the guard in
+ * updateContextBoundary() rather than probing the DOM, since the meter and the
+ * boundary re-render in either order.
+ */
+function canJumpToBoundary(analysis) {
+    return analysis.maxTokens > 0 && (state.messages?.length || 0) > 0;
+}
+
 export function tooltipForSegment(segment, analysis) {
     const formatted = segment.tokens.toLocaleString();
     const pct = analysis.maxTokens > 0
@@ -34,6 +44,9 @@ export function tooltipForSegment(segment, analysis) {
         detail += total > inWindow
             ? `<br>Reaches back ${inWindow} message${inWindow === 1 ? '' : 's'} (of ${total}); older turns live in the summary or are out of the window.`
             : `<br>Reaches back through all ${total} message${total === 1 ? '' : 's'}.`;
+        if (canJumpToBoundary(analysis)) {
+            detail += '<br>Click to jump to where the window starts.';
+        }
     }
     if (segment.id === 'unused') detail += '<br>Available for future conversation context.';
     if (segment.id === 'response_reserve') detail += '<br>Held back so the model has room to answer.';
@@ -67,9 +80,12 @@ function renderSegments(analysis) {
         const zoneLabel = segment.zone === 'system' ? 'System template'
             : (segment.zone === 'user' ? 'User template' : '');
         const placement = hasDuplicate && zoneLabel ? `, ${zoneLabel}` : '';
+        const jumps = segment.id === 'message_history' && canJumpToBoundary(analysis);
+        button.classList.toggle('context-meter-segment--jump', jumps);
         button.setAttribute(
             'aria-label',
-            `${segment.label}${placement}: approximately ${segment.tokens.toLocaleString()} tokens`,
+            `${segment.label}${placement}: approximately ${segment.tokens.toLocaleString()} tokens`
+            + (jumps ? '. Activate to scroll to the start of the context window' : ''),
         );
         bar.appendChild(button);
     }
@@ -163,4 +179,45 @@ export function updateContextBoundary() {
 
     const firstContainer = el.chatHistory.querySelector('.message-container');
     if (firstContainer) el.chatHistory.insertBefore(boundary, firstContainer);
+}
+
+// Landing the separator flush with the top edge reads as having scrolled past
+// it; a little headroom keeps it on screen as the landmark it is.
+const BOUNDARY_JUMP_MARGIN = 28;
+const BOUNDARY_FLASH_MS = 1400;
+
+/**
+ * Scroll the transcript to the context-window separator. Returns false when no
+ * separator is drawn (no context limit, or an empty chat), so the caller can
+ * leave the click inert instead of scrolling somewhere arbitrary.
+ */
+export function jumpToContextBoundary() {
+    const scroller = el.chatHistory;
+    const boundary = scroller?.querySelector('.context-boundary');
+    if (!boundary) return false;
+
+    const offset = boundary.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    // Instant, like scrollToBottom(): a `behavior: 'smooth'` scroll is silently
+    // ignored on some embedded browsers, which would leave the jump doing
+    // nothing at all. The flash below is what orients the user instead.
+    scroller.scrollTop = Math.max(0, scroller.scrollTop + offset - BOUNDARY_JUMP_MARGIN);
+    // The scroll listener will work this out for itself, but not before an
+    // in-flight token arrives and yanks the view back down.
+    state.autoScroll = false;
+
+    // The separator is deliberately faint, so flash it — otherwise arriving
+    // mid-transcript gives no confirmation of where the jump landed. Dropping
+    // the class and forcing a reflow lets a repeat click replay the animation.
+    boundary.classList.remove('context-boundary--flash');
+    void boundary.offsetWidth;
+    boundary.classList.add('context-boundary--flash');
+    setTimeout(() => boundary.classList.remove('context-boundary--flash'), BOUNDARY_FLASH_MS);
+    return true;
+}
+
+export function initContextMeter() {
+    // Delegated: renderSegments() replaces every button on each update.
+    el.contextTokenBar?.addEventListener('click', e => {
+        if (e.target.closest('.context-meter-segment--jump')) jumpToContextBoundary();
+    });
 }

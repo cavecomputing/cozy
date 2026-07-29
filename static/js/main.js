@@ -40,7 +40,7 @@ import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
 import { saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
-import { updateContextMeter, updateContextBoundary } from './context-meter.js';
+import { updateContextMeter, updateContextBoundary, initContextMeter } from './context-meter.js';
 import { initCharacterGallery } from './character-gallery.js';
 import { enhanceSettingsSelects } from './custom-select.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
@@ -1005,6 +1005,7 @@ async function init() {
         updateContextBoundary();
     });
     initTooltips();
+    initContextMeter();
     loadPrefs();
     applyTheme(state.theme);
     bindResponsiveShellHandlers();
