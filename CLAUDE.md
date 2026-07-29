@@ -4,13 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Git workflow
 
-Commit directly to `main` once work is complete and verified — this project does not use feature branches or PRs. After finishing a task, stage the relevant files and commit with a descriptive message (don't wait to be asked). Only commit files that belong to the task; leave unrelated pre-existing changes and stray untracked files alone.
+The repository is **public and has users**, so anything that lands on `main` is something a stranger
+may run. Every change gets a human review before it becomes history.
 
-**Never push.** The user always pushes themselves. Commit locally and stop there — do not run `git push`.
+**Never commit unless asked.** Finish the work, leave it in the working tree, and report what
+changed and how it was verified. The user reviews the diff themselves and then either asks for a
+commit or makes it manually — that decision is theirs, not a step to anticipate. Don't stage files,
+don't commit "so the work isn't lost", and don't treat a task being finished as permission.
+
+When a commit *is* requested: commit directly to `main`, since this project uses no feature branches
+or PRs. Only include files belonging to the task — leave unrelated pre-existing changes and stray
+untracked files alone.
+
+**Never push.** The user always pushes themselves. Commit locally and stop there — do not run
+`git push`.
 
 [AGENTS.md](AGENTS.md) is a byte-identical copy of this file, kept in sync so non-Claude agents read
-the same guidance. **Every edit to CLAUDE.md must be duplicated verbatim into AGENTS.md in the same
-commit** — `diff CLAUDE.md AGENTS.md` should stay silent.
+the same guidance. **Every edit to CLAUDE.md must be duplicated verbatim into AGENTS.md right
+away**, in the same turn — never leave the working tree with the two out of step. `diff CLAUDE.md
+AGENTS.md` should stay silent.
 
 ## Run / test
 
@@ -32,6 +44,21 @@ docker compose -f docker/docker-compose.yml up --build
 
 Production (Docker) runs gunicorn with the `gthread` worker class — required because `/api/llm/chat` streams SSE and the default sync worker buffers responses.
 
+### How much verification a change needs
+
+Match the effort to the change; a public repo makes a broken `main` everyone's problem, but it does
+not make every edit worth a full boot-and-click cycle.
+
+Run the tests that cover what was touched, and the full suite before anything the user is likely to
+commit. `uv run pytest` is fast, so when in doubt run all of it. If a change is in a module with
+node-backed tests, confirm they actually ran rather than skipped (see Testing gotchas).
+
+**Booting the dev server is not required after every change.** Start it when the change can only be
+confirmed in a browser — layout, theming, flyout and mobile behaviour, streaming, anything where the
+tests can't tell you whether it looks or feels right — or when asked. For backend logic, pure
+frontend helpers with test coverage, docs and comments, skip it and say so; a server that proves
+nothing is just noise. Never claim a change was verified in the app when it wasn't.
+
 ## Architecture
 
 Single-process Flask app. Entry point [app.py](app.py) registers eight blueprints from [routes/](routes/), all serving `/api/*`. [shared.py](shared.py) owns paths, the SQLite connection (`get_db()` context manager), `init_db()` schema + seed data, and the `DEFAULT_PROMPT_TEMPLATE`. The frontend is a single SPA loaded from [templates/index.html](templates/index.html) with vanilla-JS modules under [static/js/](static/js/) (entry: [main.js](static/js/main.js)).
@@ -49,6 +76,18 @@ Auto Summaries logic, deliberately free of Flask, DB and network so both `routes
 Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`, plus `pinned_at`/`archived_at` for pin & archive state). Routes that need card data read it from the PNG through [card_store.py](card_store.py) at request time.
 
 Everything else lives in `data/cozy_chat.db`: `character_collections` and `character_collection_members` (the gallery/collection grouping), `chats`, `messages`, `message_swipes`, `personas`, `settings`, `system_prompts`, `api_presets`, `regex_presets`, `lorebooks`, and the `schema_migrations` ledger. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py).
+
+### Collections and the gallery are on the way out
+
+The character gallery and collections feature is **slated for removal** — the README reference was
+already dropped in `16ca81f`. It is still fully wired up: the `character_collections` and
+`character_collection_members` tables, the six `/api/character-collections` endpoints in
+[routes/characters.py](routes/characters.py), the `show_gallery_button` setting, and
+[static/js/character-gallery.js](static/js/character-gallery.js).
+
+Don't build on any of it, and don't spend effort extending or polishing it. New work that touches
+this code should avoid deepening the dependency; removal is a separate, deliberate task the user
+will ask for.
 
 ### Bundled content is seeded once, then belongs to the user
 
