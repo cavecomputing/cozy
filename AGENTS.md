@@ -143,10 +143,10 @@ when the user asks for it.
 
 CSS files in [static/themes/](static/themes/) are built-in; user-added themes live in `$DATA_DIR/themes/` and **take precedence** over built-ins with the same filename — see `serve_theme()` in [app.py](app.py). `/api/themes` returns the merged set.
 
-### Attribution appears in two places
+### Acknowledgements appear in two places
 
-The bundled-content credits (currently Sasha and the BigBear presets) are duplicated: the
-`## Credits` section of [README.md](README.md) and the About page in Settings
+The bundled-content acknowledgements (currently Sasha and the BigBear presets) are duplicated: the
+`## Acknowledgements` section of [README.md](README.md) and the About page in Settings
 (`data-section="about"` in [templates/index.html](templates/index.html)). **Changing an
 attribution means changing both** — the wording is meant to match. The repository-attribution
 requirement itself lives in [NOTICE](NOTICE) and is restated on the About page.

@@ -122,7 +122,7 @@ Cozy is available under the [Apache License 2.0](LICENSE).
 Redistributions and derivative works must preserve the attribution in
 [NOTICE](NOTICE), including a reference to the original Cozy repository.
 
-## Credits
+## Acknowledgements
 
 - **Sasha** — the character card included with a fresh install was created by
   **Chunchunmaru** and is used here with their permission. The original is at
