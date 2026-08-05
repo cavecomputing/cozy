@@ -8,8 +8,8 @@ shared.THUMBS_DIR, generating them on first request.
 Cache entries are keyed by image *content* (png_pixel_key), not by the card's
 CRC: rewriting a card's embedded text changes its CRC while leaving the artwork
 identical, and keying on that would discard a card's thumbnails every time its
-description was edited. Content keying also means duplicated cards share one
-entry, and renaming a file on disk needs no regeneration.
+description was edited. Content keying also means cards with identical artwork
+share one entry, and renaming a file on disk needs no regeneration.
 
 The directory is a pure cache — deleting it is always safe.
 """
@@ -33,16 +33,15 @@ log = logging.getLogger('cozy')
 
 # Tiers, chosen against the sizes these images actually render at:
 #   SM  every circular/rounded avatar (sidebar 30px, message 46px, modal 52px)
-#   MD  the square gallery tile (up to ~520px on a 2x display)
-#   LG  the gallery hero banner and the expanded message avatar
-SM, MD, LG = 128, 512, 1024
-ALLOWED_SIZES = (SM, MD, LG)
-# SM and MD render into square containers with `background-size: cover`, which
+#   LG  the expanded message avatar
+SM, LG = 128, 1024
+ALLOWED_SIZES = (SM, LG)
+# SM renders into square containers with `background-size: cover`, which
 # is itself a centre crop — cropping server-side shows the same pixels for far
 # fewer bytes. LG must keep the true aspect ratio: the hero lets the user drag
 # background-position through a tall portrait, and the expand handler derives
 # its box from the image's natural dimensions.
-CROP_SIZES = (SM, MD)
+CROP_SIZES = (SM,)
 
 WEBP_QUALITY = 80
 WEBP_METHOD = 4

@@ -98,7 +98,7 @@ class TestPngPixelKey:
 # ── Serving ────────────────────────────────────────────────────────────────
 
 class TestServing:
-    @pytest.mark.parametrize('size', [128, 512, 1024])
+    @pytest.mark.parametrize('size', [128, 1024])
     def test_serves_webp_at_each_tier(self, client, size):
         char = _make_char(client, _png(600, 900))
         r = client.get(f'/thumbs/characters/{size}/{char["filename"]}')
@@ -163,7 +163,6 @@ class TestSizing:
     def test_square_crop_for_small_tiers(self, client):
         char = _make_char(client, _png(600, 900))
         assert _size_of(client.get(f'/thumbs/characters/128/{char["filename"]}')) == (128, 128)
-        assert _size_of(client.get(f'/thumbs/characters/512/{char["filename"]}')) == (512, 512)
 
     def test_large_tier_preserves_aspect(self, client):
         char = _make_char(client, _png(600, 900))
@@ -181,7 +180,7 @@ class TestSizing:
         char = _make_char(client, _png(40, 20))
         assert _size_of(client.get(f'/thumbs/characters/128/{char["filename"]}')) == (20, 20)
 
-    @pytest.mark.parametrize('size', [128, 512, 1024])
+    @pytest.mark.parametrize('size', [128, 1024])
     def test_one_by_one_source_is_not_upscaled(self, client, size):
         """The whole existing suite builds characters from a 1x1 PNG."""
         char = _make_char(client, make_minimal_png())
@@ -252,11 +251,12 @@ class TestCacheKeying:
         client.get(f'/thumbs/characters/128/{char["filename"]}')
         assert len(_thumb_files()) == 2
 
-    def test_duplicate_shares_one_thumbnail(self, client):
-        char = _make_char(client, _png(600, 900))
-        dup = client.post(f'/api/characters/{char["id"]}/duplicate').get_json()
-        client.get(f'/thumbs/characters/128/{char["filename"]}')
-        client.get(f'/thumbs/characters/128/{dup["filename"]}')
+    def test_identical_artwork_shares_one_thumbnail(self, client):
+        artwork = _png(600, 900)
+        first = _make_char(client, artwork)
+        second = _make_char(client, artwork)
+        client.get(f'/thumbs/characters/128/{first["filename"]}')
+        client.get(f'/thumbs/characters/128/{second["filename"]}')
         assert len(_thumb_files()) == 1
 
     def test_rename_on_disk_reuses_thumbnail(self, client):
@@ -275,9 +275,9 @@ class TestCacheKeying:
 
     def test_each_tier_is_cached_separately(self, client):
         char = _make_char(client, _png(600, 900))
-        for size in (128, 512, 1024):
+        for size in (128, 1024):
             client.get(f'/thumbs/characters/{size}/{char["filename"]}')
-        assert len(_thumb_files()) == 3
+        assert len(_thumb_files()) == 2
 
     def test_second_request_is_a_cache_hit(self, client):
         char = _make_char(client, _png(600, 900))
@@ -291,7 +291,7 @@ class TestCacheKeying:
 # ── Safety and failure modes ───────────────────────────────────────────────
 
 class TestSafety:
-    @pytest.mark.parametrize('size', [1, 96, 999, 16000])
+    @pytest.mark.parametrize('size', [1, 96, 512, 999, 16000])
     def test_disallowed_size_is_404(self, client, size):
         char = _make_char(client, _png(600, 900))
         assert client.get(f'/thumbs/characters/{size}/{char["filename"]}').status_code == 404

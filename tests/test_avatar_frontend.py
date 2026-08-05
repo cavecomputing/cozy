@@ -47,7 +47,6 @@ def test_each_tier_maps_to_its_own_path():
     run_node_module(SETUP + r"""
         for (const [size, expected] of [
             [AVATAR.SM, '/thumbs/characters/128/a.png?v=1'],
-            [AVATAR.MD, '/thumbs/characters/512/a.png?v=1'],
             [AVATAR.LG, '/thumbs/characters/1024/a.png?v=1'],
         ]) {
             const el = makeEl();

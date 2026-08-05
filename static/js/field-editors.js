@@ -4,9 +4,8 @@ import { sanitize } from './utils.js';
 // ═══════════════════════════════════════════════════════════════════════════
 // SHARED FIELD EDITORS — tag chips + alternate greetings
 // ═══════════════════════════════════════════════════════════════════════════
-// Used by the character modal and the gallery editor, which render identical
-// markup. `onChange` fires on every mutation (the gallery uses it to mark the
-// editor dirty); pass nothing for plain forms.
+// Used by the character modal. `onChange` fires on every mutation when a
+// caller needs to observe edits; pass nothing for a plain form.
 
 /**
  * Chip-style tag editor. Enter or comma commits the typed tag; Backspace on

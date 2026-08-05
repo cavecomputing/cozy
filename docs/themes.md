@@ -88,7 +88,6 @@ The complete current variable list is in
 - Primary and secondary text
 - Accent, success, and danger colors
 - Borders, shadows, and corner radius
-- Character gallery colors
 - Roleplay Markdown colors
 - User-message colors
 

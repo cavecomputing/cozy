@@ -1,8 +1,11 @@
 """Database initialization and migration-ledger tests."""
 
+import os
+
 import pytest
 
 import shared
+from png_utils import make_minimal_png
 
 
 def _migration_rows():
@@ -35,7 +38,23 @@ class TestSchemaMigrationLedger:
                 row['name']
                 for row in conn.execute('PRAGMA table_info(schema_migrations)')
             }
+            tables = {
+                row['name']
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            character_columns = {
+                row['name'] for row in conn.execute('PRAGMA table_info(characters)')
+            }
+            gallery_setting = conn.execute(
+                "SELECT 1 FROM settings WHERE key='show_gallery_button'"
+            ).fetchone()
         assert columns == {'version', 'name', 'applied_at'}
+        assert 'character_collections' not in tables
+        assert 'character_collection_members' not in tables
+        assert 'archived_at' not in character_columns
+        assert gallery_setting is None
         assert [
             {'version': row['version'], 'name': row['name']}
             for row in _migration_rows()
@@ -431,12 +450,6 @@ class TestSchemaMigrationLedger:
                     missing INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
-                CREATE TABLE character_collections (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
                 CREATE TABLE chats (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     character_id INTEGER NOT NULL,
@@ -474,8 +487,8 @@ class TestSchemaMigrationLedger:
                     for row in conn.execute(f'PRAGMA table_info({table})')
                 }
 
-            assert {'pinned_at', 'archived_at'} <= columns('characters')
-            assert 'icon' in columns('character_collections')
+            assert 'pinned_at' in columns('characters')
+            assert 'archived_at' not in columns('characters')
             assert 'author_note' in columns('chats')
             assert 'settings_json' in columns('api_presets')
             assert 'post_history_content' in columns('system_prompts')
@@ -484,3 +497,134 @@ class TestSchemaMigrationLedger:
                 'name',
                 'applied_at',
             }
+
+    def test_gallery_removal_migrates_existing_data_safely(
+        self, tmp_path, monkeypatch, client
+    ):
+        legacy_db = tmp_path / 'gallery.db'
+        monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
+        filename = 'Archived.png'
+        card_path = os.path.join(shared.CHARACTERS_DIR, filename)
+        card_bytes = make_minimal_png()
+        with open(card_path, 'wb') as card_file:
+            card_file.write(card_bytes)
+
+        with shared.get_db() as conn:
+            conn.executescript('''
+                CREATE TABLE characters (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT NOT NULL UNIQUE,
+                    crc TEXT NOT NULL,
+                    missing INTEGER DEFAULT 0,
+                    pinned_at DATETIME DEFAULT NULL,
+                    archived_at DATETIME DEFAULT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE character_collections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    icon TEXT NOT NULL DEFAULT '',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE character_collection_members (
+                    collection_id INTEGER NOT NULL,
+                    character_id INTEGER NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (collection_id, character_id),
+                    FOREIGN KEY (collection_id) REFERENCES character_collections(id)
+                        ON DELETE CASCADE,
+                    FOREIGN KEY (character_id) REFERENCES characters(id)
+                        ON DELETE CASCADE
+                );
+                CREATE TABLE chats (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    character_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+                );
+                CREATE TABLE messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    chat_id INTEGER NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+                );
+                CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                CREATE TABLE schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            conn.executemany(
+                'INSERT INTO schema_migrations (version, name) VALUES (?, ?)',
+                [(version, name) for version, name, _migrate in shared.MIGRATIONS[:7]],
+            )
+            conn.execute(
+                '''INSERT INTO characters
+                   (id, filename, crc, pinned_at, archived_at)
+                   VALUES (1, ?, 'legacy', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+                (filename,),
+            )
+            conn.execute(
+                "INSERT INTO character_collections (id, name, icon) VALUES (1, 'Old', '★')"
+            )
+            conn.execute(
+                'INSERT INTO character_collection_members (collection_id, character_id) '
+                'VALUES (1, 1)'
+            )
+            conn.execute(
+                "INSERT INTO chats (id, character_id, name) VALUES (1, 1, 'Keep')"
+            )
+            conn.execute(
+                "INSERT INTO messages (id, chat_id, role, content) "
+                "VALUES (1, 1, 'character', 'Keep this too')"
+            )
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('show_gallery_button', '0')"
+            )
+
+        shared.init_db()
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            tables = {
+                row['name']
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            character_columns = {
+                row['name'] for row in conn.execute('PRAGMA table_info(characters)')
+            }
+            character = conn.execute(
+                'SELECT id, filename, pinned_at FROM characters WHERE id=1'
+            ).fetchone()
+            chat = conn.execute('SELECT name FROM chats WHERE id=1').fetchone()
+            message = conn.execute('SELECT content FROM messages WHERE id=1').fetchone()
+            setting = conn.execute(
+                "SELECT value FROM settings WHERE key='show_gallery_button'"
+            ).fetchone()
+            migration = conn.execute(
+                'SELECT name FROM schema_migrations WHERE version=8'
+            ).fetchone()
+
+        assert 'character_collections' not in tables
+        assert 'character_collection_members' not in tables
+        assert 'archived_at' not in character_columns
+        assert character['id'] == 1
+        assert character['filename'] == filename
+        assert character['pinned_at'] is not None
+        assert chat['name'] == 'Keep'
+        assert message['content'] == 'Keep this too'
+        assert setting is None
+        assert migration['name'] == 'remove_character_gallery'
+        with open(card_path, 'rb') as card_file:
+            assert card_file.read() == card_bytes
+
+        listing = client.get('/api/characters').get_json()
+        assert [item['id'] for item in listing] == [1]

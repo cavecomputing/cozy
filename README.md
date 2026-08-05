@@ -127,8 +127,8 @@ Redistributions and derivative works must preserve the attribution in
 - **Sasha** — the character card included with a fresh install was created by
   **Chunchunmaru** and is used here with their permission. The original is at
   [Sasha - Your new innocent warden](https://chub.ai/characters/Chunchunmaru/sasha-your-new-innocent-warden-756ba28f7556).
-  She is an ordinary character card in Cozy like any other: edit her, archive her, or
-  delete her and she stays gone.
+  She is an ordinary character card in Cozy like any other: edit or delete her and
+  she stays gone.
 
 - **BigBear presets** — the bundled BigBear prompt presets are derived from the
   **Writer's Block v5** SillyTavern preset by **Deiomo** on Reddit. The prose in

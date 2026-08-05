@@ -45,22 +45,12 @@
             </div>
             <h2 class="section-label panel-title">Characters</h2>
             <div class="sidebar-header-side sidebar-header-side--right">
-                <button id="character-gallery-open" class="icon-btn desktop-only" title="Open character gallery" aria-label="Open character gallery">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
-                        <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
-                        <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
-                        <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                    </svg>
-                </button>
                 <button id="new-char-btn" class="icon-btn desktop-only" title="New Character" aria-label="New Character">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
-                <!-- Mobile-only "new character" button — the character gallery
-                     (the primary create entry point) is desktop-only. -->
                 <button id="mobile-new-char-btn" class="icon-btn mobile-only" title="New Character" aria-label="New Character">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -200,10 +190,6 @@
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-context-meter-toggle">Show context token meter</label>
                                     <input type="checkbox" id="settings-context-meter-toggle">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-gallery-btn-toggle">Show character gallery button</label>
-                                    <input type="checkbox" id="settings-gallery-btn-toggle">
                                 </div>
                             </section>
                         </div>
@@ -770,7 +756,7 @@
                                 </header>
                                 <div class="about-credit">
                                     <h5>Sasha</h5>
-                                    <p>The character card included with a fresh install was created by <strong>Chunchunmaru</strong> and is used here with their permission. The original is <a href="https://chub.ai/characters/Chunchunmaru/sasha-your-new-innocent-warden-756ba28f7556" target="_blank" rel="noopener noreferrer">Sasha - Your new innocent warden</a>. She is an ordinary character card in Cozy like any other: edit her, archive her, or delete her and she stays gone.</p>
+                                    <p>The character card included with a fresh install was created by <strong>Chunchunmaru</strong> and is used here with their permission. The original is <a href="https://chub.ai/characters/Chunchunmaru/sasha-your-new-innocent-warden-756ba28f7556" target="_blank" rel="noopener noreferrer">Sasha - Your new innocent warden</a>. She is an ordinary character card in Cozy like any other: edit or delete her and she stays gone.</p>
                                 </div>
                                 <div class="about-credit">
                                     <h5>BigBear presets</h5>
@@ -857,11 +843,11 @@
                                 <svg class="export-trigger-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </button>
                             <ul class="export-menu" id="export-menu" hidden role="menu">
-                                <li class="gallery-menu-label" id="export-menu-export-label" role="presentation">Export</li>
+                                <li class="export-menu-label" id="export-menu-export-label" role="presentation">Export</li>
                                 <li data-export-item><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
                                 <li data-export-item><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
-                                <li class="gallery-menu-sep" id="export-menu-sep" role="separator"></li>
-                                <li class="gallery-menu-label" role="presentation">Import</li>
+                                <li class="export-menu-sep" id="export-menu-sep" role="separator"></li>
+                                <li class="export-menu-label" role="presentation">Import</li>
                                 <li><button data-action="import" role="menuitem">From file (.json / .png)</button></li>
                             </ul>
                             <input type="file" id="import-file-input" accept=".json,.png" hidden>
@@ -972,235 +958,6 @@
         </div>
     </aside>
 
-    <section id="character-gallery" class="character-gallery" aria-label="Character gallery" hidden>
-        <aside class="gallery-rail">
-            <div class="gallery-rail-header panel-header">
-                <button id="gallery-collapse-btn" class="icon-btn" title="Close gallery" aria-label="Close gallery">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="11 17 6 12 11 7"></polyline>
-                        <polyline points="18 17 13 12 18 7"></polyline>
-                    </svg>
-                </button>
-                <h2 class="section-label panel-title">Characters</h2>
-                <span class="panel-header-spacer" aria-hidden="true"></span>
-            </div>
-            <div class="panel-divider"></div>
-            <nav class="gallery-nav" aria-label="Character views">
-                <button class="gallery-nav-item active" data-view="all">
-                    <span class="gallery-nav-icon">☷</span>
-                    <span>All Characters</span>
-                    <strong id="gallery-count-all">0</strong>
-                </button>
-                <button class="gallery-nav-item" data-view="favorites">
-                    <span class="gallery-nav-icon">★</span>
-                    <span>Favorites</span>
-                    <strong id="gallery-count-favorites">0</strong>
-                </button>
-                <button class="gallery-nav-item" data-view="archived">
-                    <span class="gallery-nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
-                    <span>Archived</span>
-                    <strong id="gallery-count-archived">0</strong>
-                </button>
-            </nav>
-            <div class="gallery-collections-head">
-                <span class="section-label">Collections</span>
-                <button id="gallery-new-collection-btn" class="icon-btn" title="New collection" aria-label="New collection">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
-            </div>
-            <form id="gallery-new-collection-form" class="gallery-inline-form" hidden>
-                <div class="gallery-name-row">
-                    <button type="button" id="gallery-new-collection-icon" class="gallery-icon-trigger" title="Pick icon" aria-label="Pick icon">◇</button>
-                    <input id="gallery-new-collection-name" class="form-input" type="text" placeholder="Collection name" autocomplete="off">
-                </div>
-                <div class="gallery-inline-actions">
-                    <button type="button" id="gallery-new-collection-cancel" class="btn btn-secondary btn-sm">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Create</button>
-                </div>
-            </form>
-            <div id="gallery-collection-list" class="gallery-collection-list"></div>
-            <div id="gallery-icon-picker" class="gallery-icon-picker" hidden role="dialog" aria-label="Pick collection icon"></div>
-            <ul id="gallery-export-menu" class="gallery-export-menu" hidden role="menu">
-                <li class="gallery-menu-label" role="presentation">Export</li>
-                <li><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
-                <li><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
-                <li class="gallery-menu-sep" role="separator"></li>
-                <li class="gallery-menu-label" role="presentation">Import</li>
-                <li><button data-action="import" role="menuitem">From file (.json / .png)</button></li>
-            </ul>
-            <input id="gallery-import-input" type="file" accept=".json,.png" hidden>
-        </aside>
-
-        <div class="gallery-main">
-            <header class="gallery-toolbar">
-                <div class="gallery-search-wrap">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input id="gallery-search" class="form-input" type="search" placeholder="Search characters..." autocomplete="off">
-                </div>
-                <button id="gallery-add-btn" class="btn btn-primary" title="Add character" aria-label="Add character">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-            </header>
-            <section class="gallery-content">
-                <div class="gallery-grid-pane">
-                    <div id="gallery-grid" class="gallery-grid"></div>
-                    <div id="gallery-empty" class="gallery-empty" hidden>No characters match this view.</div>
-                </div>
-            </section>
-        </div>
-
-        <aside class="gallery-inspector">
-                    <div id="gallery-inspector-empty" class="gallery-inspector-empty">
-                        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
-                        <h3>Select a character</h3>
-                        <p>Choose a card to inspect and edit it here.</p>
-                    </div>
-                    <form id="gallery-editor" hidden>
-                        <header class="gallery-hero">
-                            <div id="gallery-hero-bg" class="gallery-hero-bg" aria-hidden="true"></div>
-                            <div class="gallery-hero-scrim" aria-hidden="true"></div>
-                            <label class="gallery-hero-upload" title="Change image" aria-label="Change image">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                                <input id="gallery-avatar-input" type="file" accept="image/*" hidden>
-                            </label>
-                            <button id="gallery-pin-btn" class="icon-btn gallery-hero-pin" type="button" title="Favorite" aria-label="Favorite"></button>
-                            <div class="gallery-hero-content">
-                                <div class="gallery-hero-text">
-                                    <h3 id="gallery-editor-heading">Character</h3>
-                                    <p id="gallery-editor-subtitle">No description yet.</p>
-                                    <span id="gallery-editor-status" class="gallery-status-pill">Active</span>
-                                </div>
-                                <div class="gallery-hero-actions">
-                                    <button id="gallery-start-chat-btn" type="button" class="btn btn-primary btn-sm">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                                        Start Chat
-                                    </button>
-                                    <button id="gallery-export-card-btn" type="button" class="btn btn-secondary btn-sm" aria-haspopup="true" aria-expanded="false">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 16 7 20 11 16"></polyline><line x1="7" y1="20" x2="7" y2="4"></line><polyline points="21 8 17 4 13 8"></polyline><line x1="17" y1="4" x2="17" y2="20"></line></svg>
-                                        Import/Export
-                                    </button>
-                                </div>
-                            </div>
-                        </header>
-                        <div class="gallery-tabs" role="tablist">
-                            <button type="button" class="gallery-tab active" data-tab="basic">Basic</button>
-                            <button type="button" class="gallery-tab" data-tab="messages">Messages</button>
-                            <button type="button" class="gallery-tab" data-tab="advanced">Advanced</button>
-                            <button type="button" class="gallery-tab" data-tab="metadata">Metadata</button>
-                        </div>
-                        <div class="gallery-editor-body">
-                            <div class="gallery-tab-panel active" data-panel="basic">
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-name">Name <span class="required">*</span></label>
-                                    <input id="gallery-field-name" class="form-input" type="text" autocomplete="off">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-description">Description</label>
-                                    <textarea id="gallery-field-description" class="form-textarea" rows="5"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-personality">Personality</label>
-                                    <textarea id="gallery-field-personality" class="form-textarea" rows="3"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-scenario">Scenario</label>
-                                    <textarea id="gallery-field-scenario" class="form-textarea" rows="3"></textarea>
-                                </div>
-                            </div>
-                            <div class="gallery-tab-panel" data-panel="messages" hidden>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-first">First Message</label>
-                                    <textarea id="gallery-field-first" class="form-textarea" rows="6"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Alternate Greetings</label>
-                                    <div id="gallery-alt-greetings-list" class="alt-greetings-list"></div>
-                                    <button type="button" id="gallery-add-greeting-btn" class="btn btn-secondary btn-sm add-btn">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                        Add Greeting
-                                    </button>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-example">Example Messages</label>
-                                    <textarea id="gallery-field-example" class="form-textarea" rows="6"></textarea>
-                                </div>
-                            </div>
-                            <div class="gallery-tab-panel" data-panel="advanced" hidden>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-system">System Prompt</label>
-                                    <textarea id="gallery-field-system" class="form-textarea" rows="4"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-post-history">Post History Instructions</label>
-                                    <textarea id="gallery-field-post-history" class="form-textarea" rows="3"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="gallery-field-notes">Creator Notes</label>
-                                    <textarea id="gallery-field-notes" class="form-textarea" rows="3"></textarea>
-                                </div>
-                            </div>
-                            <div class="gallery-tab-panel" data-panel="metadata" hidden>
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Collections
-                                        <span class="help-tip" tabindex="0" aria-label="Collections help" data-tip="Collections are a Cozy-only way to organize characters in your library. They aren't part of the character card V2 spec, so they're stored in Cozy's database and won't be included when you export this card.">?</span>
-                                    </label>
-                                    <div class="gallery-chip-row">
-                                        <div id="gallery-editor-collections" class="gallery-chip-list"></div>
-                                        <select id="gallery-collection-add" class="form-input gallery-collection-add">
-                                            <option value="">+ Add</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Tags</label>
-                                    <div class="tags-input-wrap" id="gallery-tags-input-wrap">
-                                        <div id="gallery-tags-chip-list" class="tags-chip-list"></div>
-                                        <input type="text" id="gallery-tags-text-input" class="tags-text-input" placeholder="Type a tag and press Enter…">
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label" for="gallery-field-creator">Creator</label>
-                                        <input id="gallery-field-creator" class="form-input" type="text">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label" for="gallery-field-version">Version</label>
-                                        <input id="gallery-field-version" class="form-input" type="text">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="gallery-editor-footer">
-                            <div class="gallery-footer-actions">
-                                <button id="gallery-archive-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><line x1="10" y1="12" x2="14" y2="12"></line></svg>
-                                    <span class="archive-btn-text">Archive</span>
-                                </button>
-                                <button id="gallery-duplicate-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                    Duplicate
-                                </button>
-                                <button id="gallery-delete-btn" type="button" class="btn btn-secondary btn-sm gallery-footer-btn danger" title="Delete character">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                    Delete
-                                </button>
-                            </div>
-                            <button id="gallery-save-btn" type="submit" class="btn btn-primary">Save</button>
-                        </div>
-                    </form>
-        </aside>
-    </section>
 
     <!-- ================================================================
          MAIN CONTENT

@@ -73,21 +73,9 @@ Auto Summaries logic, deliberately free of Flask, DB and network so both `routes
 
 ### Data lives in two places
 
-Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`, plus `pinned_at`/`archived_at` for pin & archive state). Routes that need card data read it from the PNG through [card_store.py](card_store.py) at request time.
+Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`, plus `pinned_at` for pin state). Routes that need card data read it from the PNG through [card_store.py](card_store.py) at request time.
 
-Everything else lives in `data/cozy_chat.db`: `character_collections` and `character_collection_members` (the gallery/collection grouping), `chats`, `messages`, `message_swipes`, `personas`, `settings`, `system_prompts`, `api_presets`, `regex_presets`, `lorebooks`, and the `schema_migrations` ledger. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py).
-
-### Collections and the gallery are on the way out
-
-The character gallery and collections feature is **slated for removal** — the README reference was
-already dropped in `16ca81f`. It is still fully wired up: the `character_collections` and
-`character_collection_members` tables, the six `/api/character-collections` endpoints in
-[routes/characters.py](routes/characters.py), the `show_gallery_button` setting, and
-[static/js/character-gallery.js](static/js/character-gallery.js).
-
-Don't build on any of it, and don't spend effort extending or polishing it. New work that touches
-this code should avoid deepening the dependency; removal is a separate, deliberate task the user
-will ask for.
+Everything else lives in `data/cozy_chat.db`: `chats`, `messages`, `message_swipes`, `personas`, `settings`, `system_prompts`, `api_presets`, `regex_presets`, `lorebooks`, and the `schema_migrations` ledger. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py).
 
 ### Bundled content is seeded once, then belongs to the user
 

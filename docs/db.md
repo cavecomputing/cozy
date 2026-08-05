@@ -15,32 +15,7 @@ Lightweight index mapping character IDs to PNG files in `data/characters/`. All 
 | crc        | TEXT     | CRC32 hex of the file contents. Survives renames.           |
 | missing    | INTEGER  | `1` if the file was removed from disk, `0` otherwise.       |
 | pinned_at  | DATETIME | Pin timestamp, or `NULL`; newest pinned characters sort first. |
-| archived_at | DATETIME | Archive timestamp, or `NULL` for active characters.        |
 | created_at | DATETIME | When the character was first registered.                    |
-
-### character_collections
-
-Named groups used to organize characters.
-
-| Column     | Type     | Description                                      |
-|------------|----------|--------------------------------------------------|
-| id         | INTEGER  | Primary key (auto-increment).                    |
-| name       | TEXT     | Unique collection name.                         |
-| icon       | TEXT     | Optional display icon; defaults to an empty string. |
-| created_at | DATETIME | Creation timestamp.                             |
-| updated_at | DATETIME | Last modification timestamp.                    |
-
-### character_collection_members
-
-Join table between characters and collections.
-
-| Column        | Type     | Description                                      |
-|---------------|----------|--------------------------------------------------|
-| collection_id | INTEGER  | FK to `character_collections.id` (`ON DELETE CASCADE`). |
-| character_id  | INTEGER  | FK to `characters.id` (`ON DELETE CASCADE`).    |
-| created_at    | DATETIME | Membership creation timestamp.                  |
-
-The composite primary key is (`collection_id`, `character_id`).
 
 ### chats
 
@@ -183,15 +158,14 @@ Standalone lorebooks store V2 `character_book` JSON. Embedded character-card lor
 ## Relationships
 
 ```text
-character_collections  1──*  character_collection_members  *──1  characters
 characters             1──*  chats  1──*  messages  1──*  message_swipes
 
 lorebooks  ···  chats.active_lorebook_id       (application-level reference)
 personas   ···  messages.persona_id             (application-level reference)
 ```
 
-SQLite foreign keys are declared only for collection membership, chat ownership,
-message ownership, and swipe ownership. Each uses `ON DELETE CASCADE`, and
+SQLite foreign keys are declared only for chat ownership, message ownership,
+and swipe ownership. Each uses `ON DELETE CASCADE`, and
 `get_db()` enables enforcement with `PRAGMA foreign_keys=ON` for every connection.
 The persona and active-lorebook IDs are currently unconstrained. Deleting a
 persona leaves historical message IDs intact; deleting a standalone lorebook
@@ -200,7 +174,6 @@ clears matching chat selections in the lorebook route.
 ## Indexes
 
 - `idx_chats_character_created` on (`character_id`, `created_at`, `id`)
-- `idx_char_members_character` on (`character_id`)
 - `idx_messages_chat_id` on (`chat_id`, `id`)
 - `idx_message_swipes_message` on (`message_id`, `id`)
 
@@ -213,7 +186,7 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-The migration ledger currently contains seven migrations:
+The migration ledger currently contains eight migrations:
 
 1. Retire the historical duplicate-greeting repair.
 2. Delete the retired `context_max_messages` setting.
@@ -222,6 +195,7 @@ The migration ledger currently contains seven migrations:
 5. Upgrade untouched default prompts to the V4 paired-template layout.
 6. Upgrade untouched post-history templates to the current house style.
 7. Rename the stock "Default" prompt to "NanoBear".
+8. Remove the character gallery setting, collection tables, and archive column.
 
 Prompt migrations change only known stock templates. Customized prompts are
 preserved. The rename in migration 7 is the one exception to matching on

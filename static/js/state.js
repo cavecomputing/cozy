@@ -22,7 +22,6 @@ export const state = {
     modelContextLength:  null,
     contextMaxTokens:    '32768',
     showContextTokenMeter: true,
-    showGalleryButton:   true,
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -95,8 +94,6 @@ export function initElements() {
         settingsPane:      document.getElementById('settings-pane'),
         settingsThemeSelect: document.getElementById('settings-theme-select'),
         settingsContextMeterToggle: document.getElementById('settings-context-meter-toggle'),
-        settingsGalleryBtnToggle: document.getElementById('settings-gallery-btn-toggle'),
-        galleryOpenBtn: document.getElementById('character-gallery-open'),
         mobileMenuBtn:     document.getElementById('mobile-menu-btn'),
         mobileBackdrop:    document.getElementById('mobile-backdrop'),
         mobileSidebarClose: document.getElementById('mobile-sidebar-close'),

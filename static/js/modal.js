@@ -260,7 +260,6 @@ async function save() {
             await selectCharacter(char.id);
         }
         close();
-        document.dispatchEvent(new CustomEvent('cozy:characters-changed', { detail: { character: char } }));
         showToast(isEditing ? 'Character saved' : 'Character created', 'success');
     } catch (err) {
         showToast('Could not save character: ' + err.message, 'error');
@@ -283,7 +282,6 @@ importInput.addEventListener('change', async () => {
         renderLorebookList();
         await selectCharacter(char.id);
         close();
-        document.dispatchEvent(new CustomEvent('cozy:characters-changed', { detail: { character: char } }));
         showToast('Character imported', 'success');
     } catch (err) {
         showToast('Import failed: ' + err.message, 'error');

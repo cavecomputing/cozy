@@ -41,7 +41,6 @@ import { initTooltips } from './tooltips.js';
 import { saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
 import { updateContextMeter, updateContextBoundary, initContextMeter } from './context-meter.js';
-import { initCharacterGallery } from './character-gallery.js';
 import { enhanceSettingsSelects } from './custom-select.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
 import { confirmDialog } from './confirm.js';
@@ -326,11 +325,6 @@ function bindSettingsHandlers() {
         state.showContextTokenMeter = el.settingsContextMeterToggle.checked;
         saveLLMSettings({ show_context_token_meter: state.showContextTokenMeter ? '1' : '0' });
         updateContextMeter();
-    });
-    el.settingsGalleryBtnToggle?.addEventListener('change', () => {
-        state.showGalleryButton = el.settingsGalleryBtnToggle.checked;
-        if (el.galleryOpenBtn) el.galleryOpenBtn.hidden = !state.showGalleryButton;
-        saveLLMSettings({ show_gallery_button: state.showGalleryButton ? '1' : '0' });
     });
     // Auto Summaries config — autosave while typing, flush on blur.
     el.summaryEndpoint?.addEventListener('input', () => {
@@ -617,10 +611,6 @@ function bindCharacterHandlers() {
         Modal.open(char);
     };
 
-    // Edits open the slide-out modal on all screen sizes; the gallery
-    // inspector is reachable only via its own open button.
-    const editCharacter = char => openCharacterModal(char);
-
     // New character — sidebar header "+", empty-state CTA, and the mobile header "+"
     el.newCharBtn?.addEventListener('click', () => openCharacterModal());
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
@@ -664,7 +654,7 @@ function bindCharacterHandlers() {
             }
         } else if (editBtn) {
             e.stopPropagation();
-            if (char) editCharacter(char);
+            if (char) openCharacterModal(char);
         } else if (deleteBtn) {
             e.stopPropagation();
             deleteCharacter(id, char?.name);
@@ -1062,7 +1052,6 @@ async function init() {
     bindComposerHandlers();
     bindPersonaHandlers();
     bindScrollHandlers();
-    initCharacterGallery();
     enhanceSettingsSelects();
 }
 

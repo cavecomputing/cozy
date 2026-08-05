@@ -245,8 +245,8 @@ export function hideEmptyState() {
 }
 
 // Server-side thumbnail tiers (see thumbs.py). SM covers every circular
-// avatar, MD the square gallery tile, LG the hero banner and expanded avatar.
-export const AVATAR = { SM: 128, MD: 512, LG: 1024 };
+// avatar; LG supplies the expanded message avatar.
+export const AVATAR = { SM: 128, LG: 1024 };
 
 /**
  * Rewrite an avatar URL to request a downscaled copy.

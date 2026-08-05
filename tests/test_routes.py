@@ -72,10 +72,10 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['show_context_token_meter'] == '0'
 
-    def test_gallery_button_visibility_setting_persists(self, client):
+    def test_retired_gallery_setting_is_rejected(self, client):
         client.put('/api/settings', json={'show_gallery_button': '0'})
         r = client.get('/api/settings')
-        assert r.get_json()['show_gallery_button'] == '0'
+        assert 'show_gallery_button' not in r.get_json()
 
     def test_context_token_zero_means_no_cap(self, client):
         # 0 is a valid value meaning "no cap" — round-trip preserves the literal "0"
