@@ -264,6 +264,9 @@ export const API = {
             fallback: 'Failed to save settings',
         });
     },
+    async getStorageStats() {
+        return jsonRequest('/api/storage-stats', { fallback: 'Failed to load storage statistics' });
+    },
 
     // System prompts
     async getSystemPrompts() {

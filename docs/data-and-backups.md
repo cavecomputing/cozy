@@ -23,6 +23,12 @@ of its own, so it is safe to delete at any time and safe to leave out of a
 backup — Cozy rebuilds what it needs. Deleting it while Cozy is running is fine
 too.
 
+Settings → About shows a current storage breakdown for the database, character
+cards, persona avatars, custom themes, and any other files in the data directory.
+Its **Your data** total covers the durable files that belong in a backup. The
+rebuildable thumbnail cache is shown separately and is not included in that
+total.
+
 Docker mounts the same host `data/` directory at `/data` inside the container.
 
 ## Back up

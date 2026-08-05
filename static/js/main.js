@@ -44,6 +44,7 @@ import { updateContextMeter, updateContextBoundary, initContextMeter } from './c
 import { enhanceSettingsSelects } from './custom-select.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
 import { confirmDialog } from './confirm.js';
+import { initStorageStats, loadStorageStats } from './storage-stats.js';
 import {
     initSummaryHandlers, renderMemorySummaryCard, setSummaryBudgetChangeHandler,
 } from './summaries.js';
@@ -113,6 +114,9 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     if (drillIntoOnMobile && isMobileSettings()) {
         el.settingsShell.classList.add('in-detail');
         el.settingsBackBtn.hidden = false;
+    }
+    if (key === 'about' && !el.settingsFlyout.hidden) {
+        void loadStorageStats();
     }
     savePrefs();
 }
@@ -1044,6 +1048,7 @@ async function init() {
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
     bindSettingsHandlers();
+    initStorageStats();
     bindCharacterHandlers();
     bindChatHandlers();
     bindMemoryHandlers();

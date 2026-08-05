@@ -1,9 +1,12 @@
 """Settings and system prompt routes."""
 
 import json
+import os
+import stat
 
 from flask import Blueprint, request, jsonify, Response
 
+import shared
 from shared import (
     get_db,
     not_found,
@@ -13,6 +16,84 @@ from shared import (
 )
 
 settings_bp = Blueprint('settings', __name__)
+
+
+def _file_stats(path):
+    """Return one regular file's size/count, or zeroes if it vanished."""
+    try:
+        info = os.stat(path, follow_symlinks=False)
+    except OSError:
+        return {'bytes': 0, 'files': 0}
+    if not stat.S_ISREG(info.st_mode):
+        return {'bytes': 0, 'files': 0}
+    return {'bytes': info.st_size, 'files': 1}
+
+
+def _directory_stats(path, *, excluded_paths=()):
+    """Recursively count regular files without following links."""
+    excluded = {os.path.normcase(os.path.abspath(p)) for p in excluded_paths}
+    totals = {'bytes': 0, 'files': 0}
+
+    def scan(directory):
+        try:
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    entry_path = os.path.normcase(os.path.abspath(entry.path))
+                    if entry_path in excluded:
+                        continue
+                    try:
+                        if entry.is_dir(follow_symlinks=False):
+                            scan(entry.path)
+                        elif entry.is_file(follow_symlinks=False):
+                            info = entry.stat(follow_symlinks=False)
+                            totals['bytes'] += info.st_size
+                            totals['files'] += 1
+                    except OSError:
+                        # A cache entry or upload may disappear between scandir
+                        # and stat. Storage figures are a point-in-time view, so
+                        # skipping that file is more useful than failing it all.
+                        continue
+        except OSError:
+            return
+
+    scan(path)
+    return totals
+
+
+def collect_storage_stats():
+    """Measure durable Cozy data separately from its thumbnail cache."""
+    database_paths = [
+        shared.DATABASE,
+        f'{shared.DATABASE}-wal',
+        f'{shared.DATABASE}-shm',
+        f'{shared.DATABASE}-journal',
+    ]
+    database = {'bytes': 0, 'files': 0}
+    for path in database_paths:
+        measured = _file_stats(path)
+        database['bytes'] += measured['bytes']
+        database['files'] += measured['files']
+
+    known_directories = (
+        shared.CHARACTERS_DIR,
+        shared.PERSONAS_DIR,
+        shared.THEMES_DIR,
+        shared.THUMBS_DIR,
+    )
+    excluded = (*known_directories, *database_paths)
+    categories = {
+        'database': database,
+        'characters': _directory_stats(shared.CHARACTERS_DIR),
+        'personas': _directory_stats(shared.PERSONAS_DIR),
+        'themes': _directory_stats(shared.THEMES_DIR),
+        'other': _directory_stats(shared.DATA_DIR, excluded_paths=excluded),
+    }
+    cache = _directory_stats(shared.THUMBS_DIR)
+    return {
+        'user_data_bytes': sum(item['bytes'] for item in categories.values()),
+        'categories': categories,
+        'cache': cache,
+    }
 
 SETTINGS_KEYS = {
     'api_endpoint', 'api_key', 'api_model',
@@ -87,6 +168,11 @@ def read_settings():
         s.update(mask_secret(s.get(key, ''), key))
         s.pop(key, None)
     return jsonify(s)
+
+
+@settings_bp.route('/api/storage-stats', methods=['GET'])
+def storage_stats():
+    return jsonify(collect_storage_stats())
 
 
 @settings_bp.route('/api/settings', methods=['PUT'])

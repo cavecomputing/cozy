@@ -29,6 +29,7 @@ def _cleanup_import_data_dir():
 @pytest.fixture(autouse=True)
 def _test_db(tmp_path, monkeypatch):
     """Use fresh temporary database and data directories for every test."""
+    data_dir = str(tmp_path)
     db_path = str(tmp_path / 'test.db')
     chars_dir = str(tmp_path / 'characters')
     personas_dir = str(tmp_path / 'personas')
@@ -40,6 +41,7 @@ def _test_db(tmp_path, monkeypatch):
     thumbs_dir = str(tmp_path / 'thumbs')
     for d in (chars_dir, personas_dir, themes_dir, thumbs_dir):
         os.makedirs(d, exist_ok=True)
+    monkeypatch.setattr(shared, 'DATA_DIR', data_dir)
     monkeypatch.setattr(shared, 'DATABASE', db_path)
     monkeypatch.setattr(shared, 'CHARACTERS_DIR', chars_dir)
     monkeypatch.setattr(shared, 'PERSONAS_DIR', personas_dir)
