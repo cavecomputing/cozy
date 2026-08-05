@@ -232,7 +232,7 @@ export function updateComposerState() {
         const name = state.activeCharacter?.name || 'this character';
         el.userInput.placeholder = llm.abortController
             ? 'Generating response...'
-            : `Message ${name}...`;
+            : `Message ${name}... (type / for commands)`;
     } else if (state.activeCharacter) {
         el.userInput.placeholder = 'Create or select a chat to start messaging';
     } else {

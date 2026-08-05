@@ -9,7 +9,6 @@ const COMMANDS = [
     { name: '/retry',  description: 'Regenerate the last assistant message', run: retryLastAssistant },
     { name: '/new',    description: 'Start a new chat for this character', run: newChat },
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
-    { name: '/help',   description: 'Show slash command help', run: showCommandHelp },
 ];
 
 let menuEl = null;
@@ -144,8 +143,4 @@ async function newChat() {
 function exportCurrentChat() {
     if (!state.activeChat) return showToast('Select a chat first');
     exportChat(state.activeChat.id);
-}
-
-function showCommandHelp() {
-    showToast(COMMANDS.map(cmd => `${cmd.name} — ${cmd.description}`).join('\n'), 'success', 7000);
 }
