@@ -163,9 +163,10 @@ The bundled-content credits (currently Sasha and the BigBear presets) are duplic
 attribution means changing both** — the wording is meant to match. The repository-attribution
 requirement itself lives in [NOTICE](NOTICE) and is restated on the About page.
 
-The version shown on that page comes from `shared.APP_VERSION`, read from `pyproject.toml` at
-import time and passed into the template by `index()` in [app.py](app.py). Bump the version in
-`pyproject.toml` only; nothing else hardcodes it.
+The build shown on that page comes from the current Git commit, resolved by [build_info.py](build_info.py)
+at import time and passed into the template by `index()` in [app.py](app.py). Direct checkouts read
+`.git`; Docker embeds `.cozy-commit` during its source stage. The `0.0.0` value in `pyproject.toml`
+is a permanent packaging placeholder, not an application version, and should not be bumped.
 
 ### User-facing docs in docs/
 

@@ -5,10 +5,11 @@ import logging
 import os
 import shutil
 import sqlite3
-import tomllib
 from contextlib import contextmanager
 
 from flask import jsonify
+
+from build_info import get_build_info
 
 log = logging.getLogger('cozy')
 
@@ -39,21 +40,7 @@ ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_IMAGE_PIXELS = 64_000_000
 
 
-def _read_version():
-    """Read the app version from pyproject.toml — the single source of truth.
-
-    pyproject.toml ships next to the code in both the Python and Docker
-    installs, so this works in either. Only used for display (the About page
-    in Settings); nothing branches on it, hence the quiet fallback.
-    """
-    try:
-        with open(os.path.join(BASE_DIR, 'pyproject.toml'), 'rb') as f:
-            return tomllib.load(f)['project']['version']
-    except Exception:
-        return 'unknown'
-
-
-APP_VERSION = _read_version()
+BUILD_INFO = get_build_info(BASE_DIR)
 
 
 def validate_image_extension(file_storage):

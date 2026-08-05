@@ -2,7 +2,11 @@
 node_modules
 __pycache__
 .pytest_cache
-.git
+.git/*
+!.git/HEAD
+!.git/refs
+!.git/refs/**
+!.git/packed-refs
 .claude
 .codex
 .playwright-mcp

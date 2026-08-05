@@ -52,7 +52,7 @@ def serve_persona_thumb(size, filename):
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
-    return render_template('index.html', app_version=shared.APP_VERSION)
+    return render_template('index.html', build_info=shared.BUILD_INFO)
 
 
 @app.route('/api/themes', methods=['GET'])

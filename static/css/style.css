@@ -2385,7 +2385,7 @@ body.gallery-open #char-modal.modal-overlay > .modal {
     color: var(--text-secondary);
 }
 
-.about-version {
+.about-build {
     margin: 0.4rem 0 0;
     font-size: 0.72rem;
     color: var(--text-secondary);

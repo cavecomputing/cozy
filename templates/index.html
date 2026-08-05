@@ -760,7 +760,7 @@
                                 <div class="about-identity-text">
                                     <h4>Cozy</h4>
                                     <p class="about-tagline">A self-hosted, single-user app for chatting with LLM character cards. With a little Discord inspiration ✨</p>
-                                    <p class="about-version">Version {{ app_version }} · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a></p>
+                                    <p class="about-build">Build {% if build_info.commit %}<a href="https://github.com/cavecomputing/cozy/commit/{{ build_info.commit }}" target="_blank" rel="noopener noreferrer"><code>{{ build_info.display }}</code></a>{% else %}<code>{{ build_info.display }}</code>{% endif %} · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a></p>
                                 </div>
                             </section>
                             <section class="settings-card">
