@@ -1,5 +1,8 @@
 import { state, el, llm } from './state.js';
-import { autoResize, showToast, showApiNotice, hideApiNotice, maybeScrollToBottom, setSendButtonMode, updateComposerState } from './utils.js';
+import {
+    autoResize, showToast, showApiNotice, hideApiNotice, maybeScrollToBottom,
+    setSendButtonMode, updateComposerState, beginGeneration, endGeneration,
+} from './utils.js';
 import { appendMessage, renderMarkdown } from './messages.js';
 import { generateResponse } from './request-builder.js';
 import {
@@ -20,6 +23,26 @@ export async function handleSend() {
     if (!state.activeCharacter || !state.activeChat) return;
     if (executeSlashCommand(text)) return;
 
+    // Claim the slot before the first await. The abort controller is created
+    // after settings preflight, which otherwise leaves rapid Enter presses or
+    // clicks free to start multiple sends in that window.
+    if (!beginGeneration()) return;
+    el.sendBtn.disabled = true;
+
+    try {
+        await sendOnce(text);
+    } finally {
+        // Keep the slot through assistant-message persistence, not just the
+        // stream, so the next prompt cannot race the completed reply into DB.
+        llm.abortController = null;
+        llm.stopRequested = false;
+        setSendButtonMode('send');
+        endGeneration();
+        updateComposerState();
+    }
+}
+
+async function sendOnce(text) {
     // Preflight: without a model the request can't be built — keep the
     // user's text in the composer and point them at settings instead of
     // persisting a message that will never get a reply.
@@ -98,11 +121,6 @@ export async function handleSend() {
             // blank bubble that never reaches the model again.
             if (hasVisibleResponse(streamed)) reply = closeIncompleteThinking(streamed);
         }
-    } finally {
-        llm.abortController = null;
-        llm.stopRequested = false;
-        setSendButtonMode('send');
-        updateComposerState();
     }
 
     loadingContainer.remove();

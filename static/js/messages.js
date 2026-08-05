@@ -3,7 +3,7 @@ import { API } from './api.js';
 import {
     applyAvatar, AVATAR, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
-    updateComposerState, setSendButtonMode,
+    updateComposerState, setSendButtonMode, beginGeneration, endGeneration,
 } from './utils.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
@@ -74,6 +74,20 @@ export async function generateSwipe(msgEl, swipes, idx) {
         showApiNotice();
         return null;
     }
+    if (!beginGeneration()) return null;
+
+    try {
+        return await generateSwipeOnce(msgEl, swipes, idx);
+    } finally {
+        llm.abortController = null;
+        llm.stopRequested = false;
+        setSendButtonMode('send');
+        endGeneration();
+        updateComposerState();
+    }
+}
+
+async function generateSwipeOnce(msgEl, swipes, idx) {
     const stateMsg = findStateMsg(swipes, msgEl);
     const msgId = stateMsg?.id;
     const contentEl = msgEl.querySelector('.message-content');
@@ -119,11 +133,6 @@ export async function generateSwipe(msgEl, swipes, idx) {
             return null;
         }
         newContent = kept;
-    } finally {
-        llm.abortController = null;
-        llm.stopRequested = false;
-        setSendButtonMode('send');
-        updateComposerState();
     }
 
     // Filter before rendering so the swipe on screen matches the one stored.

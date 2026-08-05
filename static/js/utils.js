@@ -153,6 +153,18 @@ export function stopGeneration() {
     llm.abortController.abort();
 }
 
+/** Claim the single generation slot before an async preflight can yield. */
+export function beginGeneration() {
+    if (llm.generationActive) return false;
+    llm.generationActive = true;
+    return true;
+}
+
+/** Release the generation slot on every success, failure and abort path. */
+export function endGeneration() {
+    llm.generationActive = false;
+}
+
 export function setSendButtonMode(mode) {
     const isStop = mode === 'stop';
     el.sendBtn.innerHTML = isStop ? STOP_SVG : SEND_SVG;

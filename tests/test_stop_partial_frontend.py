@@ -210,6 +210,7 @@ def test_stopped_regen_commits_its_partial_as_a_new_swipe():
         // Stop state must not leak into the next generation.
         assert.equal(llm.stopRequested, false);
         assert.equal(llm.abortController, null);
+        assert.equal(llm.generationActive, false);
     """)
 
 
@@ -228,6 +229,7 @@ def test_chat_switch_during_regen_discards_the_partial():
         assert.equal(swipes.length, 1);
         assert.deepEqual(savedSwipes, []);
         assert.equal(state.messages[1].text, 'the original reply');
+        assert.equal(llm.generationActive, false);
     """)
 
 
@@ -259,4 +261,34 @@ def test_regen_error_still_reverts_to_the_previous_swipe():
         assert.equal(swipes.length, 1);
         assert.deepEqual(savedSwipes, []);
         assert.equal(msgEl.dataset.rawText, 'the original reply');
+        assert.equal(llm.generationActive, false);
+    """)
+
+
+def test_rapid_second_regen_does_not_start_another_generation():
+    run_node_module(SWIPE_SETUP + r"""
+        let markStreamStarted;
+        const streamStarted = new Promise(resolve => { markStreamStarted = resolve; });
+        let releaseStream;
+        const streamBlocked = new Promise(resolve => { releaseStream = resolve; });
+        let generationCalls = 0;
+        API.streamChatCompletion = async () => {
+            generationCalls += 1;
+            markStreamStarted();
+            await streamBlocked;
+            return 'the regenerated reply';
+        };
+
+        const first = generateSwipe(msgEl, swipes, 0);
+        await streamStarted;
+        const second = await generateSwipe(msgEl, swipes, 0);
+
+        assert.equal(second, null);
+        assert.equal(generationCalls, 1);
+        assert.equal(llm.generationActive, true);
+
+        releaseStream();
+        assert.equal(await first, 1);
+        assert.equal(generationCalls, 1);
+        assert.equal(llm.generationActive, false);
     """)

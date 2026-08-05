@@ -50,7 +50,14 @@ export const state = {
 // Active LLM request controller — mutable ref shared across modules.
 // `stopRequested` separates an explicit Stop (keep whatever streamed) from an
 // implicit cancel like switching chats (throw the partial away).
-export const llm = { abortController: null, stopRequested: false };
+export const llm = {
+    abortController: null,
+    stopRequested: false,
+    // Claimed synchronously before any send/regen preflight can yield. The
+    // controller alone cannot guard that earlier window because it does not
+    // exist yet for an ordinary send.
+    generationActive: false,
+};
 
 export const SEND_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
 export const STOP_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>`;
