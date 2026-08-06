@@ -5,6 +5,7 @@ import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage } from './messages.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
+import { renderPersonaList, updateUserProfile } from './personas.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { onChatSelected } from './summaries.js';
 
@@ -164,6 +165,19 @@ export async function selectChat(chat) {
     state.activeChat = chat;
     restoreDraft();
     updateComposerState();
+
+    // Speak as whoever this chat was last spoken by. The persona lives on the
+    // chat row precisely so a second machine doesn't answer as whatever persona
+    // it last selected; the local preference is only the fallback for chats
+    // that have never recorded one, and a persona since deleted falls back too.
+    const chatPersona = chat.persona_id
+        ? state.personas.find(p => p.id === chat.persona_id)
+        : null;
+    if (chatPersona && chatPersona.id !== state.activePersona?.id) {
+        state.activePersona = chatPersona;
+        updateUserProfile();
+        renderPersonaList();
+    }
 
     // Highlight active item
     document.querySelectorAll('.chat-item').forEach(i => {

@@ -498,6 +498,50 @@ class TestSchemaMigrationLedger:
                 'applied_at',
             }
 
+    def test_chat_persona_backfills_from_last_user_message(self, tmp_path, monkeypatch):
+        legacy_db = tmp_path / 'persona.db'
+        monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
+        with shared.get_db() as conn:
+            conn.executescript('''
+                CREATE TABLE chats (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    character_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    active_lorebook_id INTEGER DEFAULT NULL,
+                    active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
+                    lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    chat_id INTEGER NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    persona_id INTEGER DEFAULT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT INTO chats (id, character_id, name) VALUES
+                    (1, 1, 'Switched personas'),
+                    (2, 1, 'Greeting only');
+                INSERT INTO messages (chat_id, role, content, persona_id) VALUES
+                    (1, 'character', 'Hello there', NULL),
+                    (1, 'user', 'Hi as Alex', 7),
+                    (1, 'user', 'Hi as Robin', 9),
+                    (1, 'character', 'Welcome back', NULL),
+                    (2, 'character', 'Nobody has spoken yet', NULL);
+            ''')
+
+        shared.init_db()
+
+        with shared.get_db() as conn:
+            personas = dict(
+                conn.execute('SELECT id, persona_id FROM chats').fetchall()
+            )
+        # The most recent user message wins; a character reply after it is not a
+        # persona change. A chat nobody has spoken in keeps NULL and falls back.
+        assert personas == {1: 9, 2: None}
+
     def test_gallery_removal_migrates_existing_data_safely(
         self, tmp_path, monkeypatch, client
     ):

@@ -37,9 +37,18 @@ Each chat belongs to one character. Deleting a character cascades to all its cha
 | summary_up_to_msg_id | INTEGER | Highest message ID safely folded into the running summary, or `NULL`. |
 | summary_status | TEXT | Background summary job state: `idle`, `running`, or `error`. |
 | summary_status_detail | TEXT | Progress, warning, or error detail shown in the memory panel. |
+| persona_id | INTEGER | Persona this chat is spoken by, or `NULL`. No SQLite foreign key is declared. |
 
 `active_lorebook_id` is an application-level reference; SQLite does not declare
 it as a foreign key. Lorebook deletion explicitly clears matching chat values.
+
+`persona_id` is what makes the persona follow the conversation instead of the
+browser. It is written whenever a user message is sent and whenever a persona is
+selected while the chat is open, and read back when the chat is opened — so a
+second machine speaks as the same person rather than as whatever persona it
+last selected. A chat that has never recorded one (or whose persona has since
+been deleted) falls back to the browser's own last-used persona, then to the
+default persona.
 
 ### messages
 
@@ -162,14 +171,16 @@ characters             1──*  chats  1──*  messages  1──*  message_sw
 
 lorebooks  ···  chats.active_lorebook_id       (application-level reference)
 personas   ···  messages.persona_id             (application-level reference)
+personas   ···  chats.persona_id                (application-level reference)
 ```
 
 SQLite foreign keys are declared only for chat ownership, message ownership,
 and swipe ownership. Each uses `ON DELETE CASCADE`, and
 `get_db()` enables enforcement with `PRAGMA foreign_keys=ON` for every connection.
 The persona and active-lorebook IDs are currently unconstrained. Deleting a
-persona leaves historical message IDs intact; deleting a standalone lorebook
-clears matching chat selections in the lorebook route.
+persona leaves historical message IDs intact, and leaves any chat pointing at it
+to fall back to the default persona; deleting a standalone lorebook clears
+matching chat selections in the lorebook route.
 
 ## Indexes
 
@@ -186,7 +197,7 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-The migration ledger currently contains eight migrations:
+The migration ledger currently contains nine migrations:
 
 1. Retire the historical duplicate-greeting repair.
 2. Delete the retired `context_max_messages` setting.
@@ -196,6 +207,7 @@ The migration ledger currently contains eight migrations:
 6. Upgrade untouched post-history templates to the current house style.
 7. Rename the stock "Default" prompt to "NanoBear".
 8. Remove the character gallery setting, collection tables, and archive column.
+9. Backfill `chats.persona_id` from each chat's most recent user message.
 
 Prompt migrations change only known stock templates. Customized prompts are
 preserved. The rename in migration 7 is the one exception to matching on

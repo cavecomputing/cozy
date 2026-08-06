@@ -91,6 +91,14 @@ export function renderPersonaList() {
             savePrefs();
             updateContextMeter();
             updateContextBoundary();
+            // Record the choice on the open chat, not just in this browser, so the
+            // next machine to open it speaks as the same person. Sending a message
+            // stores this too; here it covers switching and then walking away.
+            if (state.activeChat) {
+                state.activeChat.persona_id = p.id;
+                API.updateChat(state.activeChat.id, { persona_id: p.id })
+                    .catch(err => console.error('Could not save chat persona:', err));
+            }
         });
 
         el.personaList.appendChild(opt);

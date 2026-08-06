@@ -191,3 +191,75 @@ class TestPersonaAvatar:
                 (sample_persona['id'],),
             ).fetchone()
         assert row is not None
+
+
+class TestChatPersona:
+    """`chats.persona_id` — the persona follows the conversation, not the browser."""
+
+    def _chat(self, client, character_id, chat_id):
+        rows = client.get(f'/api/characters/{character_id}/chats').get_json()
+        return next(c for c in rows if c['id'] == chat_id)
+
+    def test_new_chat_has_no_persona(self, client, sample_character, sample_chat):
+        assert self._chat(client, sample_character['id'], sample_chat['id'])['persona_id'] is None
+
+    def test_user_message_records_persona_on_chat(
+        self, client, sample_character, sample_chat, sample_persona
+    ):
+        r = client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
+            'role': 'user', 'content': 'Hello', 'persona_id': sample_persona['id'],
+        })
+        assert r.status_code == 201
+        chat = self._chat(client, sample_character['id'], sample_chat['id'])
+        assert chat['persona_id'] == sample_persona['id']
+
+    def test_character_reply_leaves_chat_persona_alone(
+        self, client, sample_character, sample_chat, sample_persona
+    ):
+        client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
+            'role': 'user', 'content': 'Hello', 'persona_id': sample_persona['id'],
+        })
+        client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
+            'role': 'character', 'content': 'Hi there',
+        })
+        chat = self._chat(client, sample_character['id'], sample_chat['id'])
+        assert chat['persona_id'] == sample_persona['id']
+
+    def test_update_chat_sets_and_clears_persona(
+        self, client, sample_character, sample_chat, sample_persona
+    ):
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={
+            'persona_id': sample_persona['id'],
+        })
+        assert r.status_code == 200
+        assert r.get_json()['persona_id'] == sample_persona['id']
+
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={'persona_id': None})
+        assert r.status_code == 200
+        assert r.get_json()['persona_id'] is None
+
+    def test_update_chat_leaves_persona_alone_when_omitted(
+        self, client, sample_chat, sample_persona
+    ):
+        client.put(f'/api/chats/{sample_chat["id"]}', json={'persona_id': sample_persona['id']})
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={'name': 'Renamed'})
+        assert r.get_json()['persona_id'] == sample_persona['id']
+
+    def test_update_chat_rejects_unknown_persona(self, client, sample_chat):
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={'persona_id': 99999})
+        assert r.status_code == 404
+
+    def test_update_chat_rejects_non_integer_persona(self, client, sample_chat):
+        r = client.put(f'/api/chats/{sample_chat["id"]}', json={'persona_id': 'me'})
+        assert r.status_code == 400
+
+    def test_fork_carries_persona_to_the_new_chat(
+        self, client, sample_character, sample_chat, sample_persona
+    ):
+        msg = client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
+            'role': 'user', 'content': 'Hello', 'persona_id': sample_persona['id'],
+        }).get_json()
+        r = client.post(f'/api/chats/{sample_chat["id"]}/fork?message_id={msg["id"]}')
+        assert r.status_code == 201
+        forked = self._chat(client, sample_character['id'], r.get_json()['id'])
+        assert forked['persona_id'] == sample_persona['id']

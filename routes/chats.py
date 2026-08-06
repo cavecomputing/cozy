@@ -360,6 +360,25 @@ def update_chat(chat_id):
             updates.append('author_note=?')
             params.append(str(data['author_note'] or ''))
 
+        # `persona_id`: which persona this conversation is being spoken by, so
+        # another browser opens the chat as the right person. Sending a message
+        # records it too; this covers switching persona without sending.
+        if 'persona_id' in data:
+            new_persona = data['persona_id']
+            if new_persona in (None, '', 0):
+                new_persona = None
+            else:
+                try:
+                    new_persona = int(new_persona)
+                except (TypeError, ValueError):
+                    return jsonify({'error': 'persona_id must be an integer or null'}), 400
+                if not conn.execute(
+                    'SELECT 1 FROM personas WHERE id=?', (new_persona,)
+                ).fetchone():
+                    return not_found('Persona')
+            updates.append('persona_id=?')
+            params.append(new_persona)
+
         # The generic chat patch may toggle enablement, but generated content, pins,
         # watermark, and job status remain server-managed.
         if 'summary_enabled' in data:

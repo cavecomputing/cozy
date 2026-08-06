@@ -57,8 +57,10 @@ def fork_chat(chat_id):
         name = datetime.now().strftime('%b %d %H:%M:%S')
 
         cur = conn.execute(
-            'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded) VALUES (?,?,?,?)',
-            (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'])
+            'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded, persona_id) '
+            'VALUES (?,?,?,?,?)',
+            (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'],
+             chat['persona_id'])
         )
         new_chat_id = cur.lastrowid
 
@@ -143,8 +145,17 @@ def add_message(chat_id):
         conn.execute(
             'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
         )
-        # Bump the chat's updated_at so most-recent ordering works
-        conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
+        # Bump the chat's updated_at so most-recent ordering works. A user message
+        # also records its persona on the chat, so reopening it on another machine
+        # restores the persona the conversation was using rather than whatever that
+        # browser last selected.
+        if role == 'user' and persona_id is not None:
+            conn.execute(
+                'UPDATE chats SET updated_at=CURRENT_TIMESTAMP, persona_id=? WHERE id=?',
+                (persona_id, chat_id),
+            )
+        else:
+            conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
         row = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
             WHERE m.id=?
         ''', (msg_id,)).fetchone()

@@ -292,6 +292,32 @@ def _remove_character_gallery(conn):
         conn.execute('ALTER TABLE characters DROP COLUMN archived_at')
 
 
+def _backfill_chat_persona(conn):
+    """Seed the new ``chats.persona_id`` from each chat's own history.
+
+    Before this column the persona was a browser preference, so opening an old
+    chat on a second machine used whatever persona that machine last touched.
+    The messages already record who was speaking, so the last user message is
+    the chat's own answer — better than leaving every existing chat to fall
+    back to the local preference forever.
+
+    A database old enough to predate ``messages.persona_id`` has nothing to read,
+    and keeps every chat at NULL.
+    """
+    message_cols = {
+        row['name'] for row in conn.execute('PRAGMA table_info(messages)').fetchall()
+    }
+    if 'persona_id' not in message_cols:
+        return
+    conn.execute('''
+        UPDATE chats SET persona_id = (
+            SELECT m.persona_id FROM messages m
+            WHERE m.chat_id = chats.id AND m.role = 'user' AND m.persona_id IS NOT NULL
+            ORDER BY m.id DESC LIMIT 1
+        ) WHERE persona_id IS NULL
+    ''')
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -301,6 +327,7 @@ MIGRATIONS = (
     (6, 'enforce_house_style_post_history', _enforce_house_style_post_history),
     (7, 'rename_default_prompt_to_nanobear', _rename_default_prompt_to_nanobear),
     (8, 'remove_character_gallery', _remove_character_gallery),
+    (9, 'backfill_chat_persona', _backfill_chat_persona),
 )
 
 
@@ -367,6 +394,7 @@ def init_db():
                 summary_up_to_msg_id INTEGER DEFAULT NULL,
                 summary_status TEXT NOT NULL DEFAULT 'idle',
                 summary_status_detail TEXT NOT NULL DEFAULT '',
+                persona_id INTEGER DEFAULT NULL,
                 FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
             );
 
@@ -477,6 +505,8 @@ def init_db():
             conn.execute("ALTER TABLE chats ADD COLUMN summary_status TEXT NOT NULL DEFAULT 'idle'")
         if chat_cols and 'summary_status_detail' not in chat_cols:
             conn.execute("ALTER TABLE chats ADD COLUMN summary_status_detail TEXT NOT NULL DEFAULT ''")
+        if chat_cols and 'persona_id' not in chat_cols:
+            conn.execute('ALTER TABLE chats ADD COLUMN persona_id INTEGER DEFAULT NULL')
 
         # A server restart kills any in-flight summary thread; clear stale state so
         # a chat isn't stuck showing "running" forever. Partial progress is safe:
