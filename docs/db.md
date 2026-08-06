@@ -139,13 +139,16 @@ Saved OpenAI-compatible endpoint presets. API keys are stored here, but route re
 ### regex_presets
 
 Named, ordered lists of find/replace filters run over a finished character reply
-before it is saved. See [Regex output filters](regex.md).
+before it is saved. A filter with `display` set runs at render time instead and
+leaves the stored message alone; the key is absent from presets written before
+the option existed, where it reads as `false`. See
+[Regex output filters](regex.md).
 
 | Column       | Type     | Description                                        |
 |--------------|----------|----------------------------------------------------|
 | id           | INTEGER  | Primary key (auto-increment).                      |
 | name         | TEXT     | Unique preset display name.                        |
-| scripts_json | TEXT     | JSON array of `{name, find, replace, flags}` filters. Defaults to `'[]'`. |
+| scripts_json | TEXT     | JSON array of `{name, find, replace, flags, display}` filters. Defaults to `'[]'`. |
 | created_at   | DATETIME | Creation timestamp.                                |
 
 The selected preset is stored in `settings` under `active_regex_preset`, as the

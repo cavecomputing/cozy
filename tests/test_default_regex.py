@@ -84,11 +84,15 @@ class TestSeeding:
 class TestSeededContent:
     @pytest.mark.parametrize('name', ALL_NAMES)
     def test_survives_the_api_normaliser_unchanged(self, client, name):
-        """What ships must be exactly what the API hands back — no silent rewriting."""
+        """What ships must be exactly what the API hands back — no silent rewriting.
+
+        The normaliser fills in ``display`` for filters that predate the option;
+        every bundled one rewrites the stored reply, so it must default off.
+        """
         shared.seed_default_regex_presets()
         listed = client.get('/api/regex-presets').get_json()
         preset = next(p for p in listed if p['name'] == name)
-        assert preset['filters'] == _filters_for(name)
+        assert preset['filters'] == [{**f, 'display': False} for f in _filters_for(name)]
 
     def test_no_bundled_field_holds_a_raw_control_character(self):
         """Find and Replace are single-line inputs, which delete CR and LF.

@@ -534,7 +534,7 @@ def _escape_controls(value, escape_backslash=False):
 
 
 def _clean_filter(entry):
-    """Normalise one filter to {name, find, replace, flags}, or None if unusable."""
+    """Normalise one filter to {name, find, replace, flags, display}, or None if unusable."""
     if not isinstance(entry, dict):
         return None
     flags = _filter_text(entry.get('flags', '')).strip()
@@ -545,6 +545,9 @@ def _clean_filter(entry):
         # De-duplicated, and unknown letters dropped so a stored preset can
         # never hand the browser a flag string that throws.
         'flags': ''.join(dict.fromkeys(c for c in flags if c in ALLOWED_REGEX_FLAGS)),
+        # Missing means False, so a preset saved before this option existed
+        # keeps rewriting the stored reply exactly as it always did.
+        'display': bool(entry.get('display')),
     }
 
 
@@ -633,6 +636,8 @@ def _filters_from_payload(payload):
                 _filter_text(script.get('replaceString', '')), escape_backslash=True
             ),
             'flags': flags,
+            # ST's "Alter Chat Display" is Cozy's display-only filter.
+            'display': bool(script.get('markdownOnly')),
         }
 
     def one(entry):

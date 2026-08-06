@@ -28,7 +28,8 @@ def test_create_and_list_preset(client):
     ])
     assert created['name'] == 'German punctuation'
     assert created['filters'] == [
-        {'name': 'Quotes', 'find': '„([^"]*)"', 'replace': '"$1"', 'flags': 'g'},
+        {'name': 'Quotes', 'find': '„([^"]*)"', 'replace': '"$1"', 'flags': 'g',
+         'display': False},
     ]
 
     listed = client.get('/api/regex-presets').get_json()
@@ -51,7 +52,7 @@ def test_update_replaces_filter_list(client):
     })
     assert r.status_code == 200
     assert r.get_json()['filters'] == [
-        {'name': 'b', 'find': 'q', 'replace': 'r', 'flags': 'gi'},
+        {'name': 'b', 'find': 'q', 'replace': 'r', 'flags': 'gi', 'display': False},
     ]
 
 
@@ -124,7 +125,7 @@ def test_unknown_keys_are_stripped(client):
     preset = make_preset(client, 'Extra', [
         {'name': 'f', 'find': 'x', 'replace': 'y', 'flags': 'g', 'placement': [1], 'disabled': True},
     ])
-    assert set(preset['filters'][0]) == {'name', 'find', 'replace', 'flags'}
+    assert set(preset['filters'][0]) == {'name', 'find', 'replace', 'flags', 'display'}
 
 
 def test_corrupt_scripts_json_degrades_to_empty(client):
@@ -142,8 +143,14 @@ def test_corrupt_scripts_json_degrades_to_empty(client):
 
 def test_export_round_trips_through_import(client):
     filters = [
-        {'name': 'Quotes', 'find': '„([^"]*)"', 'replace': '"$1"', 'flags': 'g'},
-        {'name': 'Blank lines', 'find': '\\n{3,}', 'replace': '\\n\\n', 'flags': 'g'},
+        {'name': 'Quotes', 'find': '„([^"]*)"', 'replace': '"$1"', 'flags': 'g',
+         'display': False},
+        {'name': 'Blank lines', 'find': '\\n{3,}', 'replace': '\\n\\n', 'flags': 'g',
+         'display': False},
+        # A display-only filter has to survive the trip too, or exporting a
+        # preset and importing it back would quietly start rewriting history.
+        {'name': 'Stat card', 'find': '^- (\\w+): (\\d+)$', 'replace': '<b>$1</b> $2',
+         'flags': 'gm', 'display': True},
     ]
     preset = make_preset(client, 'Round trip', filters)
 
@@ -198,7 +205,8 @@ def test_import_sillytavern_script(client):
     body = r.get_json()
     assert body['name'] == 'Straighten quotes'
     assert body['filters'] == [
-        {'name': 'Straighten quotes', 'find': '„([^"]*)"', 'replace': '"$1"', 'flags': 'g'},
+        {'name': 'Straighten quotes', 'find': '„([^"]*)"', 'replace': '"$1"', 'flags': 'g',
+         'display': False},
     ]
     # placement [2] is AI output, which is what Cozy does anyway.
     assert body['warnings'] == []
@@ -218,7 +226,8 @@ def test_import_converts_a_multiline_sillytavern_replacement(client):
     })
     assert r.status_code == 201
     assert r.get_json()['filters'] == [
-        {'name': 'Block quote', 'find': '^(OOC:.*)$', 'replace': '\\n> $1\\n', 'flags': 'gm'},
+        {'name': 'Block quote', 'find': '^(OOC:.*)$', 'replace': '\\n> $1\\n', 'flags': 'gm',
+         'display': False},
     ]
 
 
@@ -302,7 +311,7 @@ def test_import_sillytavern_pattern_without_slash_form(client):
     """A bare pattern must stay literal rather than losing its first character."""
     r = upload(client, {'scriptName': 'Bare', 'findRegex': 'plain', 'replaceString': 'x'})
     assert r.get_json()['filters'][0] == {
-        'name': 'Bare', 'find': 'plain', 'replace': 'x', 'flags': '',
+        'name': 'Bare', 'find': 'plain', 'replace': 'x', 'flags': '', 'display': False,
     }
 
 
@@ -310,3 +319,58 @@ def test_import_pattern_that_merely_starts_with_a_slash(client):
     """`/me waves` is a literal pattern, not the /…/flags form."""
     r = upload(client, {'scriptName': 'Emote', 'findRegex': '/me waves', 'replaceString': ''})
     assert r.get_json()['filters'][0]['find'] == '/me waves'
+
+
+# ── Display-only filters ──────────────────────────────────────────────────
+
+def test_display_defaults_off_for_filters_that_predate_it(client):
+    """A preset stored before the option existed must keep rewriting the reply."""
+    preset = make_preset(client, 'Old', [
+        {'name': 'a', 'find': 'x', 'replace': 'y', 'flags': 'g'},
+    ])
+    assert preset['filters'][0]['display'] is False
+
+    # Also on the way back out of the DB, not just the create response.
+    fetched = client.get('/api/regex-presets').get_json()[0]
+    assert fetched['filters'][0]['display'] is False
+
+
+def test_display_survives_create_and_update(client):
+    preset = make_preset(client, 'Cards', [
+        {'name': 'card', 'find': 'x', 'replace': '<b>x</b>', 'flags': 'g', 'display': True},
+    ])
+    assert preset['filters'][0]['display'] is True
+
+    r = client.put(f'/api/regex-presets/{preset["id"]}', json={
+        'filters': [
+            {'name': 'card', 'find': 'x', 'replace': '<b>x</b>', 'flags': 'g', 'display': False},
+        ],
+    })
+    assert r.get_json()['filters'][0]['display'] is False
+
+
+def test_display_is_coerced_to_a_bool(client):
+    """Whatever shape it arrives in, the browser gets something JSON-truthy it can trust."""
+    preset = make_preset(client, 'Junk', [
+        {'find': 'a', 'replace': 'b', 'flags': 'g', 'display': 'yes'},
+        {'find': 'c', 'replace': 'd', 'flags': 'g', 'display': 0},
+        {'find': 'e', 'replace': 'f', 'flags': 'g', 'display': None},
+    ])
+    assert [f['display'] for f in preset['filters']] == [True, False, False]
+
+
+def test_import_sillytavern_alter_chat_display_script(client):
+    """ST's markdownOnly is the same idea — display is rewritten, history is not."""
+    r = upload(client, {
+        'scriptName': 'Relationship card',
+        'findRegex': '/^- (\\w+): (\\d+)$/gm',
+        'replaceString': '<b>$1</b> $2',
+        'placement': [2],
+        'markdownOnly': True,
+        'promptOnly': False,
+    })
+    assert r.status_code == 201
+    assert r.get_json()['filters'] == [
+        {'name': 'Relationship card', 'find': '^- (\\w+): (\\d+)$',
+         'replace': '<b>$1</b> $2', 'flags': 'gm', 'display': True},
+    ]

@@ -19,6 +19,36 @@ are never rewritten.
 There is no undo. A filter rewrites the saved message, so use the **Test** box
 to check a pattern before it runs on a real reply.
 
+Ticking **Display only** on a filter changes all of that — see below.
+
+## Display-only filters
+
+Each filter has a **Display only** checkbox. With it on, the filter moves to
+render time: it rewrites the message on screen and nothing else. The stored
+message keeps the model's original words, so that is what the edit box shows,
+what is exported, and what goes back to the model next turn.
+
+Use it for rules that build something to *look at* rather than clean up text —
+turning a line of stats into an HTML card, a number into a progress bar. Cozy
+renders HTML in messages (sanitised: no `<script>`, no event handlers), so a
+filter can produce real markup.
+
+Doing that with an ordinary filter stores the markup, which costs context on
+every later turn and shows the model an example to copy — replies start arriving
+with hand-written HTML in them. A display-only filter avoids both, because the
+history never sees it.
+
+Two details worth knowing:
+
+- Display-only filters run on **every** character message each time it is drawn,
+  including the greeting and old messages from before you wrote the rule.
+  Ordinary filters only ever run on a reply as it arrives.
+- They re-run on each token while a reply streams in. A pattern anchored to a
+  whole line simply won't match until that line finishes arriving.
+
+A filter is in one group or the other, never both: an ordinary filter never runs
+at render time, and a display-only one never touches what is saved.
+
 ## Presets
 
 Open **Settings → Regex**. The dropdown at the top selects the active preset:
@@ -55,8 +85,9 @@ below. Reach for a preset when you want the punctuation itself changed.
 ## Filters
 
 Each filter has an optional **name**, a **Find** pattern, a **Replace** value,
-and **flags**. Filters run top to bottom, and each one sees the previous one's
-output — so a rule that mops up leftovers belongs last.
+**flags**, and the **Display only** switch. Filters run top to bottom, and each
+one sees the previous one's output — so a rule that mops up leftovers belongs
+last.
 
 A filter is live whenever its Find pattern compiles. A half-typed pattern that
 doesn't compile is skipped and flagged rather than blocking the send, and a
@@ -88,9 +119,14 @@ quote from swallowing the following paragraph. Every bundled preset relies on it
 
 ## Test box
 
-Paste a sample reply into **Sample** and the **Result** box shows what every
-filter in the preset would do to it. The preview runs the same matcher the real
-save path does, so what it shows is what gets stored.
+Paste a sample reply into **Sample** and the **Result** box shows what the
+preset's ordinary filters would do to it. The preview runs the same matcher the
+real save path does, so what it shows is what gets stored.
+
+If the preset contains a display-only filter, a second box — **As displayed** —
+appears underneath, showing the Result run through those as well. That is what
+the message bubble would end up looking like. The gap between the two boxes is
+the point: everything below **Result** exists only on screen.
 
 ## Import and export
 
@@ -102,8 +138,9 @@ Import accepts:
 - A SillyTavern regex script, or a list of them.
 
 SillyTavern scripts are converted on the way in. Slash-form patterns like
-`/pattern/gi` are split into the pattern and its flags, and multi-line
-replacements are converted to `\n` escapes. Two cases are reported after an
+`/pattern/gi` are split into the pattern and its flags, multi-line replacements
+are converted to `\n` escapes, and a script marked *Alter Chat Display* in
+SillyTavern arrives as a display-only filter. Two cases are reported after an
 import:
 
 - Scripts disabled in SillyTavern are skipped.

@@ -147,6 +147,8 @@ export function initElements() {
         regexAddFilter:      document.getElementById('settings-regex-add'),
         regexTestInput:      document.getElementById('settings-regex-test-input'),
         regexTestOutput:     document.getElementById('settings-regex-test-output'),
+        regexTestDisplayField:  document.getElementById('settings-regex-test-display-field'),
+        regexTestDisplayOutput: document.getElementById('settings-regex-test-display-output'),
         samplerHelpBtn:    document.getElementById('sampler-help-btn'),
         samplerHelpModal:  document.getElementById('sampler-help-modal'),
         samplerHelpClose:  document.getElementById('sampler-help-close'),

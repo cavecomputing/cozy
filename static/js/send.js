@@ -102,7 +102,7 @@ async function sendOnce(text) {
             streamed = accumulated;
             const parsed = parseThinkingContent(accumulated);
             renderThinkingBlock(msgBody, parsed);
-            renderMarkdown(contentEl, parsed.response);
+            renderMarkdown(contentEl, parsed.response, true);
             maybeScrollToBottom();
         }, signal, nudge);
 

@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // REGEX ENGINE — pure find/replace over a character reply
 //
-// The settings preview and the two save points all run this, so "what you test
-// is what you get" depends on there being exactly one copy of it. Deliberately
-// free of imports, DOM and app state: regex-filters.js owns all of that, which
-// leaves this importable under bare node for the tests.
+// The settings preview, the two save points and the renderer all run this, so
+// "what you test is what you get" depends on there being exactly one copy of
+// it. Deliberately free of imports, DOM and app state: regex-filters.js owns
+// all of that, which leaves this importable under bare node for the tests.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Every flag `new RegExp()` accepts — anything else throws. */
@@ -126,6 +126,17 @@ export function escapeForInput(value) {
         .replace(/\n/g, '\\n')
         .replace(/\r/g, '\\r')
         .replace(/\t/g, '\\t');
+}
+
+/**
+ * Split a preset into the two classes that run in different places: filters
+ * that rewrite the saved reply, and display-only ones that rewrite the bubble.
+ * A filter belongs to exactly one, and a missing `display` key means the
+ * saved-reply class, so a preset written before the option existed is unchanged.
+ */
+export function selectFilters(filters, display) {
+    if (!Array.isArray(filters)) return [];
+    return filters.filter(f => Boolean(f?.display) === display);
 }
 
 /**

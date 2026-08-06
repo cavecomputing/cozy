@@ -132,12 +132,21 @@ Each saved prompt is **paired**: a `content` (system) template and a `post_histo
 
 ### Regex output filters
 
-A preset is a named, ordered list of find/replace filters run over a finished character reply just
-before it is saved. [static/js/regex-engine.js](static/js/regex-engine.js) is the matcher, and is
-deliberately free of imports, DOM and app state: the settings preview and both save points —
-[send.js](static/js/send.js) and [messages.js](static/js/messages.js), through
-`applyOutputFilters()` in [regex-filters.js](static/js/regex-filters.js) — all run that one copy, so
-what the preview shows is what gets stored. Don't add a second implementation.
+A preset is a named, ordered list of find/replace filters run over a finished character reply.
+[static/js/regex-engine.js](static/js/regex-engine.js) is the matcher, and is deliberately free of
+imports, DOM and app state: the settings preview, both save points — [send.js](static/js/send.js)
+and [messages.js](static/js/messages.js) — and the renderer all run that one copy, so what the
+preview shows is what happens. Don't add a second implementation.
+
+A filter's `display` flag decides *where* it runs, and it is one or the other, never both.
+`selectFilters()` splits the preset, and [regex-filters.js](static/js/regex-filters.js) wraps each
+half: `applyOutputFilters()` runs the ordinary filters at the two save points, rewriting the stored
+reply; `applyDisplayFilters()` runs the display-only ones inside `renderMarkdown()`, rewriting the
+bubble and nothing else, so `dataset.rawText`, the DB row and the next prompt keep the original.
+That render-time pass is for character messages only, and it fires on every draw of the same text —
+greetings, old messages, and each token of a stream — so it must stay free of side effects. A
+missing `display` key means the save-point half, which is what keeps presets written before the
+option existed behaving exactly as they did.
 
 There is no per-filter enable toggle by design: a filter is live when its Find pattern compiles, and
 selecting no preset is how filtering is turned off. An uncompilable pattern is a normal state

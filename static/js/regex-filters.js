@@ -5,15 +5,20 @@ import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import {
     FLAG_LABELS, combineFilterFlags, escapeForInput, filterError, runFilters,
-    splitFilterFlags, splitSlashForm,
+    selectFilters, splitFilterFlags, splitSlashForm,
 } from './regex-engine.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REGEX OUTPUT FILTERS
 //
 // A preset is a named, ordered list of find/replace filters run over the
-// character's reply once the stream finishes, just before the message is
-// saved. See regex-engine.js for the actual matching.
+// character's reply. See regex-engine.js for the actual matching.
+//
+// A filter runs in one of two places, never both. By default it rewrites the
+// reply once the stream finishes, just before the message is saved. Ticking
+// "Display only" moves it to render time instead, where it rewrites the bubble
+// and leaves the stored message — and so the edit box and the next prompt —
+// alone.
 //
 // There is no per-filter enable toggle by design: a filter is live when its
 // Find pattern compiles, and selecting no preset is how you turn the lot off.
@@ -33,7 +38,16 @@ function activePreset() {
  * the only two places a reply is committed.
  */
 export function applyOutputFilters(text) {
-    return runFilters(text, state.regexFilters);
+    return runFilters(text, selectFilters(state.regexFilters, false));
+}
+
+/**
+ * Rewrite a character message on its way to the screen. Called from
+ * renderMarkdown, so it runs on every render of the same text and must never
+ * touch what is stored.
+ */
+export function applyDisplayFilters(text) {
+    return runFilters(text, selectFilters(state.regexFilters, true));
 }
 
 // ── Debounced autosave ────────────────────────────────────────────────────
@@ -83,7 +97,10 @@ function readRow(row) {
     const flags = combineFilterFlags(visibleFlags, row.dataset.extraFlags);
     // Only the name is trimmed — whitespace is meaningful in a pattern, and a
     // replacement of a single space is a perfectly ordinary rule.
-    return { name: val('name').trim(), find: val('find'), replace: val('replace'), flags };
+    return {
+        name: val('name').trim(), find: val('find'), replace: val('replace'), flags,
+        display: row.querySelector('[data-field="display"]')?.checked === true,
+    };
 }
 
 function readRows() {
@@ -157,6 +174,10 @@ function buildFilterRow(filter, idx) {
                     <code>${flag}</code> <span>${gloss}</span>
                 </label>
             `).join('')}
+            <label class="regex-filter-flag regex-filter-display" title="Rewrite the message on screen only — the stored text, the edit box and the next prompt keep the original">
+                <input type="checkbox" data-field="display">
+                <span>Display only</span>
+            </label>
         </div>
         <p class="regex-filter-error" hidden></p>
     `;
@@ -170,6 +191,7 @@ function buildFilterRow(filter, idx) {
     for (const [flag] of FLAG_LABELS) {
         row.querySelector(`[data-flag="${flag}"]`).checked = splitFlags.visible.includes(flag);
     }
+    row.querySelector('[data-field="display"]').checked = Boolean(filter.display);
     return row;
 }
 
@@ -214,18 +236,33 @@ function setControlsEnabled() {
 /**
  * Show the sample run through every filter, top to bottom. Filters compose, so
  * previewing the whole list is what actually surfaces surprises.
+ *
+ * Two passes, because the two classes run in different places: the saved text
+ * first, then the display-only filters over that. The second box only appears
+ * when there is a display filter to make it differ from the first.
  */
 export function updateTestPanel() {
     if (!el.regexTestOutput) return;
     const sample = el.regexTestInput?.value ?? '';
+    const displayFilters = selectFilters(state.regexFilters, true);
+    if (el.regexTestDisplayField) el.regexTestDisplayField.hidden = displayFilters.length === 0;
     if (!sample) {
         el.regexTestOutput.textContent = '';
         el.regexTestOutput.classList.remove('is-changed');
+        if (el.regexTestDisplayOutput) {
+            el.regexTestDisplayOutput.textContent = '';
+            el.regexTestDisplayOutput.classList.remove('is-changed');
+        }
         return;
     }
-    const result = runFilters(sample, state.regexFilters);
-    el.regexTestOutput.textContent = result;
-    el.regexTestOutput.classList.toggle('is-changed', result !== sample);
+    const stored = runFilters(sample, selectFilters(state.regexFilters, false));
+    el.regexTestOutput.textContent = stored;
+    el.regexTestOutput.classList.toggle('is-changed', stored !== sample);
+    if (el.regexTestDisplayOutput) {
+        const displayed = runFilters(stored, displayFilters);
+        el.regexTestDisplayOutput.textContent = displayed;
+        el.regexTestDisplayOutput.classList.toggle('is-changed', displayed !== stored);
+    }
 }
 
 // ── Preset load / select / CRUD ───────────────────────────────────────────
@@ -341,7 +378,9 @@ export function addFilter() {
     const idx = el.regexFilterList.querySelectorAll('.regex-filter').length;
     // `g` on by default: without it only the first match is replaced, which for
     // text correction reads as "it only fixed the first one".
-    el.regexFilterList.appendChild(buildFilterRow({ name: '', find: '', replace: '', flags: 'g' }, idx));
+    el.regexFilterList.appendChild(
+        buildFilterRow({ name: '', find: '', replace: '', flags: 'g', display: false }, idx)
+    );
     refreshFilterCount();
     syncFromRows();
     el.regexFilterList.lastElementChild?.querySelector('[data-field="name"]')?.focus();

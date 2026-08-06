@@ -10,7 +10,7 @@ import {
 } from './thinking.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 import { generateResponse } from './request-builder.js';
-import { applyOutputFilters } from './regex-filters.js';
+import { applyDisplayFilters, applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 
@@ -18,11 +18,18 @@ import { flushLLMSettingsSave } from './llm-settings.js';
 // CHAT — MESSAGES
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Render sanitised markdown into an element (resolves ST-style variables first). */
-export function renderMarkdown(targetEl, rawText) {
+/**
+ * Render sanitised markdown into an element (resolves ST-style variables first).
+ *
+ * `applyDisplay` runs the display-only regex filters over the text on its way
+ * to the screen. Callers pass it for character messages only, and pass the raw
+ * stored text: the rewrite is thrown away with the DOM, so nothing here may
+ * feed back into `dataset.rawText`, the DB or the next prompt.
+ */
+export function renderMarkdown(targetEl, rawText, applyDisplay = false) {
     const c = state.activeCharacter || {};
     const p = state.activePersona || {};
-    const resolved = resolveTemplateVariables(rawText, {
+    const resolved = resolveTemplateVariables(applyDisplay ? applyDisplayFilters(rawText) : rawText, {
         user:         p.name || 'User',
         char:         c.name || '',
         personality:  c.personality || '',
@@ -66,7 +73,7 @@ function renderSwipeBody(msgBody, contentEl, text) {
     const parsed = parseThinkingContent(text);
     msgBody.querySelector('.thinking-block')?.remove();
     renderThinkingBlock(msgBody, parsed);
-    renderMarkdown(contentEl, parsed.hasThinking ? parsed.response : text);
+    renderMarkdown(contentEl, parsed.hasThinking ? parsed.response : text, true);
 }
 
 export async function generateSwipe(msgEl, swipes, idx) {
@@ -113,7 +120,7 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
             streamed = accumulated;
             const parsed = parseThinkingContent(accumulated);
             renderThinkingBlock(msgBody, parsed);
-            renderMarkdown(contentEl, parsed.response);
+            renderMarkdown(contentEl, parsed.response, true);
             maybeScrollToBottom();
         }, regenSignal);
     } catch (err) {
@@ -139,7 +146,7 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     newContent = applyOutputFilters(newContent);
     const parsed = parseThinkingContent(newContent);
     renderThinkingBlock(msgBody, parsed);
-    renderMarkdown(contentEl, parsed.response);
+    renderMarkdown(contentEl, parsed.response, true);
 
     swipes.push({ content: newContent });
     idx = swipes.length - 1;
@@ -349,7 +356,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     content.className = 'message-content';
 
     const parsed = parseThinkingContent(text);
-    renderMarkdown(content, parsed.hasThinking ? parsed.response : text);
+    renderMarkdown(content, parsed.hasThinking ? parsed.response : text, role !== 'user');
 
     msgBody.append(msgHeader, headerDivider, content);
 
@@ -534,16 +541,19 @@ export function finishEditing(save) {
         }
     }
 
+    const role = messageEl.classList.contains('user') ? 'user' : 'character';
+
     // Re-render both parts from the same parsed result. This also removes a
     // stale block if an edit/cancel follows an interrupted reasoning stream.
     messageEl.dataset.rawText = rawText;
     const finalParsed = parseThinkingContent(rawText);
     renderThinkingBlock(messageEl.querySelector('.msg-body'), finalParsed, { collapse: true });
-    renderMarkdown(contentDiv, finalParsed.hasThinking ? finalParsed.response : rawText);
+    renderMarkdown(
+        contentDiv, finalParsed.hasThinking ? finalParsed.response : rawText, role !== 'user'
+    );
     delete messageEl.dataset.originalText;
 
     // Restore the correct toolbar (preserve swipe state)
-    const role = messageEl.classList.contains('user') ? 'user' : 'character';
     const swipes = JSON.parse(messageEl.dataset.swipes || '[]');
     const activeIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
     const isGreeting = messageEl.dataset.isGreeting === 'true';

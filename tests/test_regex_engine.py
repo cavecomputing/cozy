@@ -27,7 +27,7 @@ def run_node_module(code):
 SETUP = r"""
     import assert from 'node:assert/strict';
     import {
-        runFilters, compileFilter, filterError, splitSlashForm,
+        runFilters, compileFilter, filterError, selectFilters, splitSlashForm,
         splitFilterFlags, combineFilterFlags, escapeForInput,
     } from './static/js/regex-engine.js';
 """
@@ -263,4 +263,49 @@ def test_slash_form_preserves_unicode_flag_semantics():
         assert.equal(runFilters('café 123', [
             { find: parsed.find, replace: 'word', flags },
         ]), 'word 123');
+    """)
+
+
+# ── selectFilters ──────────────────────────────────────────────────────────
+
+def test_display_splits_a_preset_into_two_disjoint_halves():
+    run_node_module(SETUP + r"""
+        const save = { find: 'a', replace: 'b', flags: 'g' };
+        const shown = { find: 'c', replace: 'd', flags: 'g', display: true };
+        const off = { find: 'e', replace: 'f', flags: 'g', display: false };
+        const filters = [save, shown, off];
+        // A missing key means the saved-reply half, so presets written before
+        // the option existed keep rewriting the stored text.
+        assert.deepEqual(selectFilters(filters, false), [save, off]);
+        assert.deepEqual(selectFilters(filters, true), [shown]);
+        // Order within each half is the order the user put them in.
+        assert.deepEqual(selectFilters([shown, save, off], false), [save, off]);
+    """)
+
+
+def test_select_filters_tolerates_junk():
+    run_node_module(SETUP + r"""
+        assert.deepEqual(selectFilters(null, true), []);
+        assert.deepEqual(selectFilters(undefined, false), []);
+        assert.deepEqual(selectFilters('nope', false), []);
+        // A truthy non-boolean still counts as display-only.
+        assert.deepEqual(selectFilters([{ find: 'a', display: 1 }], true),
+            [{ find: 'a', display: 1 }]);
+    """)
+
+
+def test_the_two_halves_never_run_over_the_same_text_twice():
+    """A display filter must not also fire at the save point, and vice versa."""
+    run_node_module(SETUP + r"""
+        const filters = [
+            { find: '"', replace: "'", flags: 'g' },
+            { find: '^- (\\w+): (\\d+)$', replace: '<b>$1</b> $2', flags: 'gm', display: true },
+        ];
+        const reply = '- Marcella: 18\nShe said "hi".';
+        // What gets stored: the quote fix only — the stat line is untouched.
+        const stored = runFilters(reply, selectFilters(filters, false));
+        assert.equal(stored, "- Marcella: 18\nShe said 'hi'.");
+        // What the bubble shows: the card built on top of the stored text.
+        const shown = runFilters(stored, selectFilters(filters, true));
+        assert.equal(shown, "<b>Marcella</b> 18\nShe said 'hi'.");
     """)

@@ -76,6 +76,11 @@ can delete more than intended. Open **Settings → Regex** and check which prese
 is selected; select **None** to switch filtering off. Filters change the stored
 message and cannot be undone.
 
+If the rule is meant to dress a reply up rather than correct it — building a
+stat card or a progress bar — tick **Display only** on it. The filter then
+rewrites the bubble and leaves the stored message alone, which is also the fix
+for a model that has started writing HTML into its replies by itself.
+
 See [Regex output filters](regex.md).
 
 ## An update fails

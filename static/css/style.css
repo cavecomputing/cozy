@@ -5461,6 +5461,13 @@ input[type="checkbox"]:disabled {
     color: var(--text-color);
 }
 
+/* Sits in the flag row but is not a flag — pushed to the far end so it reads
+   as its own control rather than a fifth checkbox in the group. */
+.regex-filter-display {
+    margin-left: auto;
+    font-weight: 500;
+}
+
 .regex-filter-error {
     margin: 0;
     color: color-mix(in srgb, #e5534b 78%, var(--text-color));
@@ -5475,6 +5482,12 @@ input[type="checkbox"]:disabled {
     flex-direction: column;
     gap: 0.2rem;
     margin-top: 0.5rem;
+}
+
+/* The `display: flex` above outranks the UA's `[hidden] { display: none }`, so
+   the "As displayed" box needs this to actually hide. */
+.regex-test-field[hidden] {
+    display: none;
 }
 
 .regex-test-field > span {

@@ -707,6 +707,13 @@
                                 next turn. Your own messages, greetings, and messages already in the chat are
                                 never changed. Select <em>None</em> above to switch filtering off.
                             </p>
+                            <p class="regex-notice">
+                                <strong>Display only</strong> moves a filter to render time instead. It rewrites
+                                the message on screen and nothing else: the original text is what gets stored,
+                                what the edit box shows, and what the model reads back. Use it for rules that
+                                build something to look at — stat cards, progress bars — so the markup never
+                                enters the history or teaches the model to write it.
+                            </p>
                             <section class="settings-card">
                                 <header class="settings-card-header settings-card-header--with-action">
                                     <div>
@@ -720,7 +727,7 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Test</h4>
-                                    <p>Paste a sample reply to see what every filter above would do to it.</p>
+                                    <p>Paste a sample reply to see what every filter above would do to it. <em>Result</em> is what gets stored; <em>As displayed</em> adds the display-only filters on top.</p>
                                 </header>
                                 <label class="regex-test-field">
                                     <span>Sample</span>
@@ -729,6 +736,10 @@
                                 <label class="regex-test-field">
                                     <span>Result</span>
                                     <pre id="settings-regex-test-output" class="regex-test-output"></pre>
+                                </label>
+                                <label class="regex-test-field" id="settings-regex-test-display-field" hidden>
+                                    <span>As displayed</span>
+                                    <pre id="settings-regex-test-display-output" class="regex-test-output"></pre>
                                 </label>
                             </section>
                         </div>
@@ -1244,6 +1255,7 @@
                         <div class="sampler-help-row"><dt><code>m</code></dt><dd>Make <code>^</code> and <code>$</code> mean the start and end of each <em>line</em> rather than the whole reply.</dd></div>
                         <div class="sampler-help-row"><dt><code>s</code></dt><dd>Let <code>.</code> match line breaks too, so a pattern can span paragraphs.</dd></div>
                     </dl>
+                    <p><strong>Display only</strong> is not a flag. It moves the filter to render time: the message on screen is rewritten, the stored text is not. Turn it on for rules that produce HTML to look at, so the markup stays out of the history and out of the next prompt.</p>
                 </div>
 
                 <div class="sampler-help-section">
