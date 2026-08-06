@@ -201,11 +201,6 @@ body {
     flex: 0 0 auto;
 }
 
-.panel-header--compact {
-    height: 36px;
-    padding: 0 0.4rem;
-}
-
 .panel-header--xs {
     height: 28px;
     padding: 0 0.3rem;

@@ -9,13 +9,13 @@ character update path.
 
 import json
 
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify
 
 from card_store import (
     coerce_keys, get_character_card, normalize_character_book, safe_int,
     set_character_book,
 )
-from shared import get_db, not_found, safe_download_name
+from shared import get_db, json_download, not_found, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
 
@@ -336,12 +336,7 @@ def export_lorebook(book_id):
             return not_found('Lorebook')
         book = _parse_book(row['book'])
 
-    filename = f"{safe_download_name(row['name'], 'lorebook')}.json"
-    return Response(
-        json.dumps(book, indent=2, ensure_ascii=False),
-        mimetype='application/json; charset=utf-8',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
-    )
+    return json_download(book, f"{safe_download_name(row['name'], 'lorebook')}.json")
 
 
 @lorebooks_bp.route('/api/characters/<int:char_id>/export-lorebook', methods=['GET'])
@@ -357,9 +352,4 @@ def export_character_lorebook(char_id):
         return jsonify({'error': 'This character has no embedded lorebook'}), 400
 
     name = book.get('name') or char_data.get('name') or 'lorebook'
-    filename = f"{safe_download_name(name, 'lorebook')}.json"
-    return Response(
-        json.dumps(book, indent=2, ensure_ascii=False),
-        mimetype='application/json; charset=utf-8',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
-    )
+    return json_download(book, f"{safe_download_name(name, 'lorebook')}.json")

@@ -1,23 +1,6 @@
 """Node-backed regression tests for the Auto Summaries browser coordinator."""
 
-import shutil
-import subprocess
-
-import pytest
-
-
-def run_node_module(code):
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node is required for frontend summary tests')
-    result = subprocess.run(
-        [node, '--input-type=module', '-e', code],
-        cwd='.',
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
+from helpers import run_node_module
 
 
 BASE_SETUP = r"""

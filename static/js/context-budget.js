@@ -1,6 +1,5 @@
 import { state, el } from './state.js';
 import { SAMPLER_DEFAULTS } from './sampler.js';
-import { estimateTextTokens } from './tokenizer.js';
 
 /** Return the configured total context window, or 0 when it is unlimited. */
 export function getContextTokenBudget() {
@@ -39,18 +38,4 @@ export function getRawHistoryMessages(messages = state.messages, {
         const id = Number(message?.id);
         return !(Number.isFinite(id) && id > 0 && id <= watermark);
     });
-}
-
-/**
- * Return the budget available to recent raw messages after reserving room for
- * the model response and the running summary. A zero total context means no
- * limit; otherwise retain a one-token minimum for deterministic selection.
- */
-export function getRawMessageTokenBudget(summaryText = '') {
-    const contextTokens = getContextTokenBudget();
-    if (contextTokens <= 0) return 0;
-    return Math.max(
-        1,
-        contextTokens - getResponseTokenReserve() - estimateTextTokens(summaryText),
-    );
 }

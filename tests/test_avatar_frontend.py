@@ -1,24 +1,6 @@
 """applyAvatar() rewrites avatar URLs to request server-side thumbnails."""
 
-import shutil
-import subprocess
-
-import pytest
-
-
-def run_node_module(code):
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node is required for frontend avatar tests')
-    result = subprocess.run(
-        [node, '--input-type=module', '-e', code],
-        cwd='.',
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    return result.stdout
+from helpers import run_node_module
 
 
 # applyAvatar only touches style/dataset/textContent, so a plain object stands

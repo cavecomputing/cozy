@@ -5,7 +5,7 @@ the part that decides what counts as dialogue is plain string work.
 
 Skips rather than fails when node isn't on PATH.
 """
-from test_regex_engine import run_node_module
+from helpers import run_node_module
 
 
 SETUP = r"""

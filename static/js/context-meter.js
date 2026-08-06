@@ -5,10 +5,6 @@ import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.j
 import { analyzeContext } from './context-analysis.js';
 import { retargetTooltip } from './tooltips.js';
 
-export function getContextMaxTokens() {
-    return getContextTokenBudget();
-}
-
 function activeSummaryText() {
     return state.activeChat?.summary_enabled
         ? summaryToText(state.activeChat.summary)
@@ -147,7 +143,7 @@ export function updateContextBoundary() {
     const existing = el.chatHistory?.querySelector('.context-boundary');
     if (existing) existing.remove();
 
-    if (getContextMaxTokens() <= 0 || state.messages.length === 0) return;
+    if (getContextTokenBudget() <= 0 || state.messages.length === 0) return;
 
     const rawMessages = getRawHistoryMessages(state.messages);
     const analysis = getCurrentContextAnalysis();

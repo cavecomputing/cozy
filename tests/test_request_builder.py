@@ -1,22 +1,4 @@
-import shutil
-import subprocess
-
-import pytest
-
-
-def run_node_module(code):
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node is required for frontend request-builder tests')
-    result = subprocess.run(
-        [node, '--input-type=module', '-e', code],
-        cwd='.',
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    return result.stdout
+from helpers import run_node_module
 
 
 BASE_NODE_SETUP = r"""

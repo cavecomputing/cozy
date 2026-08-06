@@ -12,7 +12,7 @@ from card_store import (
     normalize_to_v2, normalize_character_book, read_character_card, read_character_card_cached,
     write_character_card,
 )
-from shared import get_db, not_found
+from shared import get_db, json_download, not_found
 from png_utils import make_minimal_png, write_png_chara, extract_png_chara
 
 characters_bp = Blueprint('characters', __name__)
@@ -63,7 +63,7 @@ def _char_to_dict(row, card_data=None):
     return d
 
 
-def _char_json(conn, row):
+def _char_json(row):
     """Return a character row merged with its card data as JSON."""
     if row['missing']:
         return jsonify(_char_to_dict(row))
@@ -241,7 +241,7 @@ def get_character(char_id):
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row:
             return not_found('Character')
-        return _char_json(conn, row)
+        return _char_json(row)
 
 
 @characters_bp.route('/api/characters/<int:char_id>/pin', methods=['POST'])
@@ -257,7 +257,7 @@ def toggle_pin_character(char_id):
                 'UPDATE characters SET pinned_at=CURRENT_TIMESTAMP WHERE id=?', (char_id,)
             )
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
-        return _char_json(conn, row)
+        return _char_json(row)
 
 
 @characters_bp.route('/api/characters/<int:char_id>/export', methods=['GET'])
@@ -289,11 +289,7 @@ def export_character(char_id):
     # Default: JSON
     if not card_data:
         card_data = normalize_to_v2({'name': safe})
-    return Response(
-        json.dumps(card_data, ensure_ascii=False, indent=2),
-        mimetype='application/json',
-        headers={'Content-Disposition': f'attachment; filename="{safe}.json"'}
-    )
+    return json_download(card_data, f'{safe}.json')
 
 
 @characters_bp.route('/api/characters/<int:char_id>', methods=['PUT'])

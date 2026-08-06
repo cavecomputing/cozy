@@ -7,7 +7,7 @@ import shutil
 import sqlite3
 from contextlib import contextmanager
 
-from flask import jsonify
+from flask import jsonify, Response
 
 from build_info import get_build_info
 
@@ -77,6 +77,15 @@ def safe_download_name(name, fallback='download'):
         if (c.isascii() and c.isalnum()) or c in (' ', '-', '_')
     ).strip()
     return safe or fallback
+
+
+def json_download(body, filename):
+    """Serve *body* as a pretty-printed JSON file attachment."""
+    return Response(
+        json.dumps(body, indent=2, ensure_ascii=False),
+        mimetype='application/json; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
 
 
 # ── Default Prompt Builder template ─────────────────────────────────────────

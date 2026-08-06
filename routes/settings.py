@@ -4,11 +4,12 @@ import json
 import os
 import stat
 
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify
 
 import shared
 from shared import (
     get_db,
+    json_download,
     not_found,
     safe_download_name,
     DEFAULT_PROMPT_TEMPLATE,
@@ -160,6 +161,22 @@ def upsert_setting(conn, key, value):
     )
 
 
+def _unique_name(conn, table, base, fallback):
+    """Append " (n)" until the name is free in *table*.
+
+    ``table`` is always a literal from this module, never user input.
+    """
+    base = (base or '').strip() or fallback
+    candidate = base
+    n = 2
+    while conn.execute(
+        f'SELECT 1 FROM {table} WHERE name = ?', (candidate,)
+    ).fetchone():
+        candidate = f'{base} ({n})'
+        n += 1
+    return candidate
+
+
 @settings_bp.route('/api/settings', methods=['GET'])
 def read_settings():
     s = get_settings()
@@ -260,18 +277,6 @@ def delete_system_prompt(prompt_id):
 
 # ── System prompt import / export ─────────────────────────────────────────
 
-def _unique_prompt_name(conn, base):
-    """Append " (n)" until the name is free."""
-    base = (base or '').strip() or 'Imported Prompt'
-    candidate = base
-    n = 2
-    while conn.execute(
-        'SELECT 1 FROM system_prompts WHERE name = ?', (candidate,)
-    ).fetchone():
-        candidate = f'{base} ({n})'
-        n += 1
-    return candidate
-
 
 @settings_bp.route('/api/system-prompts/import', methods=['POST'])
 def import_system_prompt():
@@ -301,7 +306,7 @@ def import_system_prompt():
     base_name = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else 'Imported Prompt'
 
     with get_db() as conn:
-        name = _unique_prompt_name(conn, base_name)
+        name = _unique_name(conn, 'system_prompts', base_name, 'Imported Prompt')
         cur = conn.execute(
             'INSERT INTO system_prompts (name, content, post_history_content) VALUES (?, ?, ?)',
             (name, content, post_history_content)
@@ -327,12 +332,7 @@ def export_system_prompt(prompt_id):
         'content': row['content'],
         'post_history_content': row['post_history_content'],
     }
-    filename = f"{safe_download_name(row['name'], 'prompt')}.json"
-    return Response(
-        json.dumps(body, indent=2, ensure_ascii=False),
-        mimetype='application/json; charset=utf-8',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
-    )
+    return json_download(body, f"{safe_download_name(row['name'], 'prompt')}.json")
 
 
 # ── API Presets CRUD ──────────────────────────────────────────────────────
@@ -661,19 +661,6 @@ def _filters_from_payload(payload):
     return [f for f in (one(e) for e in raw_filters) if f], name, warnings
 
 
-def _unique_regex_preset_name(conn, base):
-    """Append " (n)" until the name is free."""
-    base = (base or '').strip() or 'Imported Filters'
-    candidate = base
-    n = 2
-    while conn.execute(
-        'SELECT 1 FROM regex_presets WHERE name = ?', (candidate,)
-    ).fetchone():
-        candidate = f'{base} ({n})'
-        n += 1
-    return candidate
-
-
 @settings_bp.route('/api/regex-presets', methods=['GET'])
 def list_regex_presets():
     with get_db() as conn:
@@ -764,7 +751,7 @@ def import_regex_preset():
         return jsonify({'error': 'No regex filters found in that file'}), 400
 
     with get_db() as conn:
-        name = _unique_regex_preset_name(conn, base_name)
+        name = _unique_name(conn, 'regex_presets', base_name, 'Imported Filters')
         cur = conn.execute(
             'INSERT INTO regex_presets (name, scripts_json) VALUES (?, ?)',
             (name, _pack_scripts(filters))
@@ -786,9 +773,4 @@ def export_regex_preset(preset_id):
             return not_found('Regex preset')
 
     body = {'name': row['name'], 'filters': _unpack_scripts(row)}
-    filename = f"{safe_download_name(row['name'], 'regex')}.json"
-    return Response(
-        json.dumps(body, indent=2, ensure_ascii=False),
-        mimetype='application/json; charset=utf-8',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
-    )
+    return json_download(body, f"{safe_download_name(row['name'], 'regex')}.json")

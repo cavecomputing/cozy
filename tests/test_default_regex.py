@@ -4,7 +4,8 @@ import json
 import pytest
 
 import shared
-from test_regex_engine import SETUP, run_node_module
+from helpers import run_node_module
+from test_regex_engine import SETUP
 
 
 GERMAN = 'German punctuation'

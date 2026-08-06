@@ -1,21 +1,4 @@
-import shutil
-import subprocess
-import textwrap
-
-import pytest
-
-
-def run_node_module(code):
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node is required for frontend storage-stat tests')
-    result = subprocess.run(
-        [node, '--input-type=module', '-e', textwrap.dedent(code)],
-        cwd='.',
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
+from helpers import run_node_module
 
 
 def test_byte_formatting_and_storage_view_model():

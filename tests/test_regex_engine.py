@@ -3,25 +3,8 @@
 Skips rather than fails when node isn't on PATH, so a green run on a machine
 without Node isn't actually covering this module.
 """
-import shutil
-import subprocess
 
-import pytest
-
-
-def run_node_module(code):
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node is required for frontend regex-engine tests')
-    result = subprocess.run(
-        [node, '--input-type=module', '-e', code],
-        cwd='.',
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    return result.stdout
+from helpers import run_node_module
 
 
 SETUP = r"""

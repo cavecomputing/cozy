@@ -1,21 +1,4 @@
-import shutil
-import subprocess
-
-import pytest
-
-
-def run_node_module(code):
-    node = shutil.which('node')
-    if not node:
-        pytest.skip('node is required for frontend thinking tests')
-    result = subprocess.run(
-        [node, '--input-type=module', '-e', code],
-        cwd='.',
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
+from helpers import run_node_module
 
 
 def test_thinking_parser_reports_tags_independently_of_content():
