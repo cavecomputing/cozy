@@ -113,9 +113,14 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     let newContent;
     // Kept in step with the stream so a Stop can still salvage it.
     let streamed = '';
+    // The memory update and the reply can be pointed at different endpoints, so
+    // an upstream error is only actionable if the toast says which one failed.
+    let source = 'Settings could not be saved';
     try {
         await flushLLMSettingsSave({ strict: true });
+        source = 'Auto Summaries API';
         await ensureSummaryReadyForSend(regenSignal, { excludeLastN: 1 });
+        source = 'Chat API';
         newContent = await generateResponse(1, (accumulated) => {
             streamed = accumulated;
             const parsed = parseThinkingContent(accumulated);
@@ -126,7 +131,7 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     } catch (err) {
         if (err.name !== 'AbortError') {
             console.error('Regen error:', err);
-            showToast(err.message);
+            showToast(`${source}: ${err.message}`);
         }
         // An explicit Stop keeps its partial as a swipe of its own, so the
         // previous one stays reachable by swiping left. Anything else — an

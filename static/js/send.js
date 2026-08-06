@@ -92,12 +92,16 @@ async function sendOnce(text) {
     let streamed = '';
     let reply = null;
     let failed = false;
+    // The memory update and the reply can be pointed at different endpoints, so
+    // an upstream error is only actionable if the toast says which one failed.
+    let source = 'Auto Summaries API';
     try {
         // Persisting this user turn can move an older message outside the raw
         // context window. Fold that newly aged-out history into memory before
         // building the request so no turn falls between the two.
         await ensureSummaryReadyForSend(signal);
 
+        source = 'Chat API';
         reply = await generateResponse(0, (accumulated) => {
             streamed = accumulated;
             const parsed = parseThinkingContent(accumulated);
@@ -110,7 +114,7 @@ async function sendOnce(text) {
         if (err.name !== 'AbortError') {
             failed = true;
             console.error('LLM error:', err);
-            showToast(err.message);
+            showToast(`${source}: ${err.message}`);
         } else if (llm.stopRequested) {
             // Stopped on purpose — keep the text as an ordinary reply. An
             // implicit abort (chat switch) leaves stopRequested false and falls
