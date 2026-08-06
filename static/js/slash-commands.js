@@ -1,14 +1,20 @@
 import { state, el } from './state.js';
-import { autoResize, showToast } from './utils.js';
-import { createNewChat } from './chats.js';
+import { autoResize, showToast, Flyouts } from './utils.js';
+import { createNewChat, startChatRename, importChat } from './chats.js';
 import { exportChat } from './export.js';
 import { clearDraft } from './drafts.js';
-import { regenerateLastAssistantMessage } from './messages.js';
+import { regenerateLastAssistantMessage, handleSwipeAction } from './messages.js';
+import { jumpToContextBoundary } from './context-meter.js';
 
 const COMMANDS = [
     { name: '/retry',  description: 'Regenerate the last assistant message', run: retryLastAssistant },
+    { name: '/prev',   description: 'Show the previous swipe', run: () => swipeLast(true) },
+    { name: '/next',   description: 'Next swipe, or generate a new one', run: () => swipeLast(false) },
     { name: '/new',    description: 'Start a new chat for this character', run: newChat },
+    { name: '/rename', description: 'Rename the current chat', run: renameCurrentChat },
+    { name: '/import', description: 'Import a chat from a file', run: importCurrentChat },
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
+    { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
 ];
 
 let menuEl = null;
@@ -30,6 +36,10 @@ export function initSlashCommands() {
         e.preventDefault();
         runCommand(visibleCommands[parseInt(item.dataset.index, 10)]);
     });
+    // The click that follows this mousedown would otherwise reach the
+    // document-level outside-click handlers and shut a flyout a command just
+    // opened — /rename being the one that needs it.
+    menuEl.addEventListener('click', e => e.stopPropagation());
 }
 
 export function updateSlashCommands() {
@@ -135,6 +145,30 @@ function retryLastAssistant() {
     regenerateLastAssistantMessage();
 }
 
+/**
+ * Step the last character message through its swipes, greetings included —
+ * cycling alternate greetings is the half the message arrows offer that
+ * /retry (which always lands on a fresh generation) cannot reach.
+ */
+function swipeLast(isPrev) {
+    if (!state.activeChat) return showToast('Select a chat first');
+    const last = [...state.messages].reverse().find(m => m.role === 'character');
+    const msgEl = last?.id
+        ? el.chatHistory.querySelector(`.message.character[data-msg-id="${last.id}"]`)
+        : null;
+    if (!msgEl) return showToast('No assistant message to swipe yet');
+
+    const swipes = JSON.parse(msgEl.dataset.swipes || '[]');
+    const idx = parseInt(msgEl.dataset.activeSwipeIndex || '0', 10);
+    // handleSwipeAction() no-ops at either end; from the composer there is no
+    // greyed-out arrow to explain why nothing moved.
+    if (isPrev && idx <= 0) return showToast('Already at the first swipe');
+    if (!isPrev && idx >= swipes.length - 1 && msgEl.dataset.isGreeting === 'true') {
+        return showToast('No more greetings');
+    }
+    handleSwipeAction(msgEl, isPrev);
+}
+
 async function newChat() {
     if (!state.activeCharacter) return showToast('Select a character first');
     await createNewChat(true, false);
@@ -143,4 +177,24 @@ async function newChat() {
 function exportCurrentChat() {
     if (!state.activeChat) return showToast('Select a chat first');
     exportChat(state.activeChat.id);
+}
+
+function renameCurrentChat() {
+    if (!state.activeChat) return showToast('Select a chat first');
+    // The rename input is an inline swap inside the chat list, so the flyout
+    // holding that list has to be open for it to be visible at all.
+    Flyouts.closeAllExcept('chat');
+    el.chatFlyout.hidden = false;
+    el.chatFlyoutBtn?.setAttribute('aria-expanded', 'true');
+    const li = el.flyoutChatList?.querySelector(`.chat-item[data-chat-id="${state.activeChat.id}"]`);
+    if (li) startChatRename(li, state.activeChat);
+}
+
+function importCurrentChat() {
+    if (!state.activeCharacter) return showToast('Select a character first');
+    importChat();
+}
+
+function jumpToContext() {
+    if (!jumpToContextBoundary()) showToast('The whole chat fits in the context window');
 }
