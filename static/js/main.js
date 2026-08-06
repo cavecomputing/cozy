@@ -1083,4 +1083,10 @@ init().then(() => {
         loader.classList.add('fade-out');
         loader.addEventListener('transitionend', () => loader.remove());
     }
+    // Land in the composer on desktop, ready to type into the restored chat.
+    // Skipped on touch shells, where focusing throws up the keyboard over the
+    // conversation before the user has asked for it.
+    if (!el.userInput.disabled && !window.matchMedia('(pointer: coarse)').matches) {
+        el.userInput.focus({ preventScroll: true });
+    }
 });
