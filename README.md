@@ -9,6 +9,11 @@
 Cozy works with SillyTavern-compatible V2 character cards and OpenAI-style LLM
 servers. It includes personas, lorebooks, prompt presets, Auto Summaries, regex output filters, themes, and chat import/export. It also might inspire feelings of being cozy and safe as supported by 1 out of 10 non existant doctors.
 
+**Cozy does not include an LLM.** It is the chat interface only — it does not
+ship a model, download one, or run inference. You bring your own OpenAI-compatible
+server, either hosted (OpenRouter and similar) or local (llama.cpp, Ollama,
+KoboldCpp, LM Studio).
+
 <p align="center">
   <img src="assets/1.png" alt="Chat view on desktop" width="49%">
   <img src="assets/2.png" alt="Character editor" width="49%">
