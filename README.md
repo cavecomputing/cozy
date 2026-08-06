@@ -93,6 +93,30 @@ uv run app.py
 
 Database migrations run automatically when Cozy starts.
 
+## On a phone
+
+The interface is responsive and meant to be used from a phone browser — the
+sidebar collapses behind a menu button and the chat view takes the full screen.
+There is no app to install; you open the same URL.
+
+Cozy listens only on the local computer by default, so nothing else on your
+network can reach it until you say so. For the Python setup, bind to your
+network instead:
+
+```bash
+uv run python app.py --host 0.0.0.0
+```
+
+Under Docker, change the port mapping in `docker/docker-compose.yml` from
+`127.0.0.1:5001:5001` to `5001:5001`.
+
+Then open `http://<computer's LAN address>:5001` on the phone.
+
+Cozy has no login screen, so anything that can reach it can read your chats and
+use your API key. Only do this on a network you trust, or put it behind a VPN or
+an authenticating reverse proxy. See [Security](SECURITY.md) and
+[Running and updating Cozy](docs/run.md).
+
 ## Data and security
 
 Cozy stores chats, settings, API keys, and other private data in `data/` (for either docker or uv).
