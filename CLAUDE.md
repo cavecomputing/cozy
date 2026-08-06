@@ -24,6 +24,27 @@ the same guidance. **Every edit to CLAUDE.md must be duplicated verbatim into AG
 away**, in the same turn — never leave the working tree with the two out of step. `diff CLAUDE.md
 AGENTS.md` should stay silent.
 
+## Least code that does the job
+
+Aim for the smallest diff that completes the task in full. This is a vanilla-JS, no-build,
+single-process app, and it stays approachable only while changes stay small.
+
+- Prefer editing existing code over adding new code, and a few lines at the right call site over a
+  new helper, module or class. Add a file only when something forces it — the node-importable rule
+  is the usual reason (see Testing gotchas).
+- Reuse what is already here: `get_db()`, `card_store`, `regex-engine.js`, the existing CSS
+  variables, an existing `settings` row. A second implementation of something the repo already does
+  is the most expensive kind of code.
+- **No new dependency without asking first.**
+- Leave out what nothing needs yet: config knobs, feature flags, an abstraction with one caller,
+  `try`/`except` around code that doesn't raise, re-validation of data the route already validated.
+- Deleting code is a legitimate way to finish a task. Say so when the fix turns out to be a removal.
+
+This governs the amount of code, not the amount of work. Deliver everything that was asked, run the
+verification the change calls for, and keep the duplication this file deliberately requires —
+CLAUDE.md/AGENTS.md, the JS and Python copies of the regex escaping, the two acknowledgement
+locations.
+
 ## Run / test
 
 ```bash
