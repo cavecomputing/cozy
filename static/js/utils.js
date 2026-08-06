@@ -31,29 +31,31 @@ export function sanitizeFilename(name) {
     return (name || '').replace(/[\\/:*?"<>|]/g, '_');
 }
 
-/** Matches the syslogStamp() default name ("May 18 16:54:17") given to new chats. */
-export const DEFAULT_CHAT_NAME_RE = /^[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2}:\d{2}$/;
-
 /**
- * User-facing chat name. Chats keep their timestamp name internally (the
- * auto-rename logic keys off it), but display as "New chat" until renamed.
+ * Matches the chatStamp() default name given to new chats. The second branch is
+ * the retired syslog-style stamp ("May 18 16:54:17"), still worn by chats made
+ * before the switch.
  */
+export const DEFAULT_CHAT_NAME_RE =
+    /^(?:\d{4}-\d{2}-\d{2}:\d{2}-\d{2}-\d{2}|[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2}:\d{2})$/;
+
+/** User-facing chat name: the stored name, with a fallback for unnamed chats. */
 export function displayChatName(chat) {
     const name = (chat?.name || '').trim();
-    if (!name || name === 'New Chat' || DEFAULT_CHAT_NAME_RE.test(name)) return 'New chat';
+    if (!name || name === 'New Chat') return 'New chat';
     return name;
 }
 
-/** Syslog-style local timestamp: "Mar 22 20:06:42" */
-export function syslogStamp() {
+/** Local timestamp used to name new chats: "2026-03-22:20-06-42" */
+export function chatStamp() {
     const now = new Date();
-    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const mon = MON[now.getMonth()];
-    const day = String(now.getDate()).padStart(2, ' ');
-    const hh  = String(now.getHours()).padStart(2, '0');
-    const mm  = String(now.getMinutes()).padStart(2, '0');
-    const ss  = String(now.getSeconds()).padStart(2, '0');
-    return `${mon} ${day} ${hh}:${mm}:${ss}`;
+    const yyyy = String(now.getFullYear());
+    const MM   = String(now.getMonth() + 1).padStart(2, '0');
+    const dd   = String(now.getDate()).padStart(2, '0');
+    const hh   = String(now.getHours()).padStart(2, '0');
+    const mm   = String(now.getMinutes()).padStart(2, '0');
+    const ss   = String(now.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${MM}-${dd}:${hh}-${mm}-${ss}`;
 }
 
 /**

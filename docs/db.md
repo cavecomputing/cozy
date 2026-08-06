@@ -25,7 +25,7 @@ Each chat belongs to one character. Deleting a character cascades to all its cha
 |--------------|----------|------------------------------------------|
 | id           | INTEGER  | Primary key (auto-increment).            |
 | character_id | INTEGER  | FK to `characters.id` (ON DELETE CASCADE).|
-| name         | TEXT     | Chat display name.                       |
+| name         | TEXT     | Chat display name. New chats are named for their local creation time, `YYYY-MM-DD:HH-MM-SS`, until renamed. |
 | created_at   | DATETIME | Creation timestamp.                      |
 | updated_at   | DATETIME | Last activity timestamp.                 |
 | active_lorebook_id | INTEGER | Optional standalone lorebook selected for this chat. |

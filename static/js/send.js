@@ -8,7 +8,6 @@ import { generateResponse } from './request-builder.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
 } from './thinking.js';
-import { maybeAutoNameChat } from './chats.js';
 import { clearDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
 import { applyOutputFilters } from './regex-filters.js';
@@ -80,7 +79,6 @@ async function sendOnce(text) {
     if (text) {
         await appendMessage('user', text, true);
         clearDraft();
-        maybeAutoNameChat(text);
     }
 
     // Create loading bubble (not persisted)

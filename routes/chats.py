@@ -193,7 +193,9 @@ def create_chat(char_id):
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
             return not_found('Character')
         data = request.get_json(silent=True) or {}
-        name = (data.get('name') or '').strip() or 'New Chat'
+        # Mirrors chatStamp() in static/js/utils.js — a chat created straight
+        # through the API still gets the same local-time name the UI hands out.
+        name = (data.get('name') or '').strip() or datetime.now().strftime('%Y-%m-%d:%H-%M-%S')
         embedded_default = 1 if _character_has_lorebook(conn, char_id) else 0
         cur = conn.execute(
             'INSERT INTO chats (character_id, name, active_lorebook_embedded) '
