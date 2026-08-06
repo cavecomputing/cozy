@@ -40,7 +40,7 @@ import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
 import { saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
-import { updateContextMeter, updateContextBoundary, initContextMeter } from './context-meter.js';
+import { updateContextMeter, updateContextBoundary, initContextMeter, setContextMeterVisible } from './context-meter.js';
 import { enhanceSettingsSelects } from './custom-select.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
 import { confirmDialog } from './confirm.js';
@@ -326,9 +326,7 @@ function bindSettingsHandlers() {
         savePrefs();
     });
     el.settingsContextMeterToggle?.addEventListener('change', () => {
-        state.showContextTokenMeter = el.settingsContextMeterToggle.checked;
-        saveLLMSettings({ show_context_token_meter: state.showContextTokenMeter ? '1' : '0' });
-        updateContextMeter();
+        setContextMeterVisible(el.settingsContextMeterToggle.checked);
     });
     // Auto Summaries config — autosave while typing, flush on blur.
     el.summaryEndpoint?.addEventListener('input', () => {

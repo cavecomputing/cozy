@@ -4,7 +4,7 @@ import { createNewChat, startChatRename, importChat } from './chats.js';
 import { exportChat } from './export.js';
 import { clearDraft } from './drafts.js';
 import { regenerateLastAssistantMessage, handleSwipeAction } from './messages.js';
-import { jumpToContextBoundary } from './context-meter.js';
+import { jumpToContextBoundary, setContextMeterVisible } from './context-meter.js';
 
 const COMMANDS = [
     { name: '/retry',  description: 'Regenerate the last assistant message', run: retryLastAssistant },
@@ -15,6 +15,7 @@ const COMMANDS = [
     { name: '/import', description: 'Import a chat from a file', run: importCurrentChat },
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
     { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
+    { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
 ];
 
 let menuEl = null;
@@ -197,4 +198,10 @@ function importCurrentChat() {
 
 function jumpToContext() {
     if (!jumpToContextBoundary()) showToast('The whole chat fits in the context window');
+}
+
+function toggleMeter() {
+    const visible = !state.showContextTokenMeter;
+    setContextMeterVisible(visible);
+    showToast(visible ? 'Context token meter shown' : 'Context token meter hidden');
 }

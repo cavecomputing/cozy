@@ -4,6 +4,7 @@ import { summaryToText } from './summaries.js';
 import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
 import { retargetTooltip } from './tooltips.js';
+import { saveLLMSettings } from './llm-settings.js';
 
 function activeSummaryText() {
     return state.activeChat?.summary_enabled
@@ -93,6 +94,17 @@ function renderSegments(analysis) {
     retargetTooltip(previous => previous.classList?.contains('context-meter-segment')
         ? bar.querySelector(`[data-segment-key="${previous.dataset.segmentKey}"]`)
         : null);
+}
+
+/**
+ * Show or hide the meter and remember the choice. Shared by the Settings
+ * checkbox and /meter, so either one leaves the other looking right.
+ */
+export function setContextMeterVisible(visible) {
+    state.showContextTokenMeter = visible;
+    if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = visible;
+    saveLLMSettings({ show_context_token_meter: visible ? '1' : '0' });
+    updateContextMeter();
 }
 
 export function updateContextMeter() {
