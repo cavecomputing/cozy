@@ -93,11 +93,9 @@ uv run app.py
 
 Database migrations run automatically when Cozy starts.
 
-## On a phone
+## Mobile Use
 
-The interface is responsive and meant to be used from a phone browser — the
-sidebar collapses behind a menu button and the chat view takes the full screen.
-There is no app to install; you open the same URL.
+The interface is responsive and tested for mobile browsers.
 
 Cozy listens only on the local computer by default, so nothing else on your
 network can reach it until you say so. For the Python setup, bind to your
