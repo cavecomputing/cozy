@@ -299,6 +299,18 @@ export function stopStatusPolling() {
 }
 
 // ── Kicking off runs + send readiness ───────────────────────────────────────
+
+// Chats whose current run the user cancelled. Stopping the worker is not enough on its
+// own: the send preflight and the rebuild tail both loop until the watermark advances,
+// so without this they would answer a cancel by starting the very next batch. A marker
+// is consumed by whichever loop sees it first, and starting a deliberate run clears any
+// stale one so a later send is never pre-cancelled.
+const cancelledRuns = new Set();
+
+function consumeCancellation(chatId) {
+    return cancelledRuns.delete(chatId);
+}
+
 function abortError(message = 'Summary wait cancelled') {
     const err = new Error(message);
     err.name = 'AbortError';
@@ -360,6 +372,8 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
                             chatId = state.activeChat?.id, signal,
                             excludeLastN = 0, exactTarget = false } = {}) {
     if (chatId == null || state.activeChat?.id !== chatId) return null;
+    // A deliberate new run supersedes any earlier cancel.
+    cancelledRuns.delete(chatId);
 
     try {
         // Settings fields update local state immediately but persist through a
@@ -467,6 +481,13 @@ export async function ensureSummaryReadyForSend(signal, { excludeLastN = 0 } = {
         await triggerRun({ awaitCompletion: true, chatId, signal, excludeLastN });
         assertSendStillActive(chatId, signal);
         if (!summariesActive(state.activeChat)) return;
+        // Cancelling the run this send was waiting on abandons the send too. Continuing
+        // would either start the next batch (ignoring the cancel) or generate against a
+        // known gap in memory, and this guard exists precisely to prevent the second.
+        if (consumeCancellation(chatId)) {
+            showToast('Memory update cancelled — send again when you are ready.');
+            throw abortError('Summary cancelled during send');
+        }
 
         const watermark = state.activeChat.summary_up_to_msg_id || 0;
         if (agedOutUnsummarized(excludeLastN).length === 0) return;
@@ -539,10 +560,23 @@ async function disableSummariesForChat() {
     }
 }
 
+/**
+ * True when the button should carry on from the watermark rather than start over.
+ *
+ * A summary that already holds entries while history sits unsummarized is a run that
+ * stopped early — cancelled, failed, or interrupted by a closed browser. Continuing is
+ * what the user means by pressing the button again, and it keeps the batches already
+ * paid for. Starting from scratch is still available: Reset first, then rebuild.
+ */
+function shouldResumeInsteadOfRebuild(chat = state.activeChat) {
+    return (chat?.summary?.lines?.length || 0) > 0 && agedOutUnsummarized().length > 0;
+}
+
 async function rebuildSummary() {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
     const chatId = chat.id;
+    let resuming = false;
     try {
         // A run already in flight would swallow this click through triggerRun's
         // join branch and never issue the actual rebuild. Wait it out first; a
@@ -555,21 +589,28 @@ async function rebuildSummary() {
             }
             if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
         }
-        // A rebuild recomputes the boundary over the full transcript; refuse it
-        // outright on a self-contradictory measurement instead of rewriting the
-        // watermark from bad numbers.
-        if (windowMeasurementUntrusted(0, 'summary rebuild', { includeSummarized: true })) {
-            showToast(UNTRUSTED_WINDOW_TOAST);
-            return;
+        // Resuming skips the from-scratch pass entirely and falls through to the drain
+        // loop below, which is already the "fold in everything past the watermark" path.
+        resuming = shouldResumeInsteadOfRebuild();
+        if (!resuming) {
+            // A rebuild recomputes the boundary over the full transcript; refuse it
+            // outright on a self-contradictory measurement instead of rewriting the
+            // watermark from bad numbers.
+            if (windowMeasurementUntrusted(0, 'summary rebuild', { includeSummarized: true })) {
+                showToast(UNTRUSTED_WINDOW_TOAST);
+                return;
+            }
+            await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
         }
-        await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
 
         // The replacement summary's final size is unknowable before the rebuild
         // finishes. Injecting it can move the context boundary and age out a few
         // more messages. Fold those in now, to a fixed point, so reopening the
-        // chat cannot discover and launch a surprise follow-up batch.
+        // chat cannot discover and launch a surprise follow-up batch. On a resume
+        // this same loop is the whole job.
         let previousWatermark = state.activeChat?.summary_up_to_msg_id || 0;
         let stalledRuns = 0;
+        if (consumeCancellation(chatId)) return;
         while (state.activeChat?.id === chatId && summariesActive(state.activeChat)
             && agedOutUnsummarized().length > 0
             && !windowMeasurementUntrusted(0, 'rebuild stabilization')) {
@@ -579,12 +620,14 @@ async function rebuildSummary() {
                 exactTarget: true,
             });
             if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
+            // Stop chasing the boundary once the user has said stop.
+            if (consumeCancellation(chatId)) return;
 
             const watermark = state.activeChat.summary_up_to_msg_id || 0;
             if (watermark <= previousWatermark) {
                 stalledRuns += 1;
                 if (stalledRuns >= 2) {
-                    throw new Error('Summary rebuild could not stabilize the context boundary.');
+                    throw new Error('Chat memory could not stabilize the context boundary.');
                 }
             } else {
                 stalledRuns = 0;
@@ -592,7 +635,37 @@ async function rebuildSummary() {
             }
         }
     } catch (e) {
-        if (e.name !== 'AbortError') showToast('Summary rebuild failed: ' + e.message);
+        if (e.name !== 'AbortError') {
+            showToast(`${resuming ? 'Continuing the summary' : 'Summary rebuild'} failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * Cancel button: stop the run at its next batch boundary.
+ *
+ * Every batch already folded in stays — the worker checkpoints after each one — so this
+ * keeps the entries written so far and leaves the watermark on the last completed batch.
+ * Only the batch in flight is discarded, and a later run resumes from there.
+ */
+async function cancelSummary() {
+    const chat = state.activeChat;
+    if (!chat || chat.summary_status !== 'running') return;
+    const chatId = chat.id;
+    // Mark before the request so a loop waking mid-flight already sees the cancel.
+    cancelledRuns.add(chatId);
+    try {
+        const st = await API.cancelSummary(chatId);
+        if (!validSummaryState(st)) {
+            throw new Error('Summarizer returned an invalid status response.');
+        }
+        applySummaryState(st, chatId);
+        if (state.activeChat?.id === chatId && st.summary_status !== 'running') {
+            stopStatusPolling();
+        }
+    } catch (e) {
+        cancelledRuns.delete(chatId);
+        showToast('Could not cancel the summary run: ' + e.message);
     }
 }
 
@@ -659,7 +732,13 @@ function renderStatus() {
         const size = cap > 0
             ? `≈ ${toks.toLocaleString()} / ${cap.toLocaleString()} tokens`
             : `≈ ${toks.toLocaleString()} tokens · no cap`;
-        box.textContent = `Up to date · ${count} message${count === 1 ? '' : 's'} summarized · ${size}`;
+        // A cancelled backfill leaves real history unsummarized, so "Up to date" would be
+        // a lie. Report the backlog instead — the next send or turn will drain it.
+        const pending = agedOutUnsummarized().length;
+        const state_ = pending > 0
+            ? `${pending} message${pending === 1 ? '' : 's'} still to summarize`
+            : 'Up to date';
+        box.textContent = `${state_} · ${count} message${count === 1 ? '' : 's'} summarized · ${size}`;
     }
     if (chat.summary_status_detail) {
         // A non-empty detail on idle is a cap warning.
@@ -744,7 +823,23 @@ export function renderMemorySummaryCard() {
     }
     markUnusedVar(el.summaryMarker, 'summary');
     const busy = chat?.summary_status === 'running';
-    if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !enabled || busy;
+    if (el.summaryRebuildBtn) {
+        el.summaryRebuildBtn.disabled = !enabled || busy;
+        // The same button continues an interrupted run or starts over, and which one it
+        // will do is not guessable from the icon — say so.
+        const resuming = enabled && !busy && shouldResumeInsteadOfRebuild(chat);
+        el.summaryRebuildBtn.title = resuming
+            ? 'Continue summarizing from where it stopped'
+            : 'Rebuild from history';
+        el.summaryRebuildBtn.setAttribute?.(
+            'aria-label',
+            resuming
+                ? 'Continue summarizing the remaining history'
+                : 'Rebuild the summary from history',
+        );
+    }
+    // Cancel is the mirror of the other two: live only while a run is in flight.
+    if (el.summaryCancelBtn) el.summaryCancelBtn.disabled = !enabled || !busy;
     if (el.summaryResetBtn) {
         el.summaryResetBtn.disabled = !enabled || busy
             || !(chat?.summary?.lines?.length);
@@ -772,5 +867,6 @@ export function initSummaryHandlers() {
         else await disableSummariesForChat();
     });
     el.summaryRebuildBtn?.addEventListener('click', rebuildSummary);
+    el.summaryCancelBtn?.addEventListener('click', cancelSummary);
     el.summaryResetBtn?.addEventListener('click', resetSummary);
 }

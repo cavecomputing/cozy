@@ -1227,9 +1227,8 @@ def test_reset_endpoint_clears_summary_and_watermark(client, sample_chat, monkey
     monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
     ids = _add_messages(client, sample_chat['id'], 3)
     summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
-    # Pin a line so we can confirm pins are discarded too.
     _store_summary(sample_chat['id'], {
-        'lines': [{'section': 'bonds', 'text': 'keep?', 'pinned': True}],
+        'lines': [{'section': 'bonds', 'text': 'keep?'}],
     }, ids[-1])
 
     r = client.post(f'/api/chats/{sample_chat["id"]}/summary/reset')
@@ -1242,6 +1241,84 @@ def test_reset_endpoint_clears_summary_and_watermark(client, sample_chat, monkey
         row = conn.execute('SELECT summary_json, summary_up_to_msg_id FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()
     assert row['summary_json'] == '' and row['summary_up_to_msg_id'] is None
+
+
+def test_cancel_endpoint_keeps_completed_batches_and_stops_the_rest(
+        client, sample_chat, monkeypatch):
+    """The point of the button: abandon a long backfill without losing its progress."""
+    cid = sample_chat['id']
+    client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
+    client.put('/api/settings', json={'summary_trigger_interval': '1'})
+    ids = _add_messages(client, cid, 6)
+    with shared.get_db() as conn:
+        conn.execute(
+            "UPDATE chats SET summary_status='running', summary_status_detail='Starting…' "
+            'WHERE id=?',
+            (cid,),
+        )
+    calls = 0
+
+    def cancel_during_third_batch(messages, cap_tokens=0):
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            assert client.post(f'/api/chats/{cid}/summary/cancel').status_code == 200
+        return CANNED
+
+    monkeypatch.setattr(summaries, 'call_summarizer', cancel_during_third_batch)
+
+    summaries._run_summary_job(cid, ids[-1], require_running=True)
+
+    with shared.get_db() as conn:
+        row = conn.execute(
+            'SELECT summary_json, summary_up_to_msg_id, summary_status, '
+            'summary_status_detail FROM chats WHERE id=?',
+            (cid,),
+        ).fetchone()
+    # The batch in flight when cancel landed is discarded; the two before it are kept.
+    assert calls == 3
+    assert row['summary_up_to_msg_id'] == ids[1]
+    assert parse_summary_json(row['summary_json'])['lines']
+    # Cancelling is a normal outcome, not a failure.
+    assert row['summary_status'] == 'idle'
+    assert row['summary_status_detail'] == ''
+
+
+def test_cancel_endpoint_blocks_a_later_publish_from_the_stopped_worker(
+        client, sample_chat, monkeypatch):
+    """Dropping the generation token, not just the status, is what makes cancel bite."""
+    cid = sample_chat['id']
+    client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
+    ids = _add_messages(client, cid, 2)
+    token = 'live-token'
+    summaries._job_tokens[cid] = token
+    with shared.get_db() as conn:
+        conn.execute("UPDATE chats SET summary_status='running' WHERE id=?", (cid,))
+
+    assert client.post(f'/api/chats/{cid}/summary/cancel').status_code == 200
+
+    assert cid not in summaries._job_tokens
+    with pytest.raises(summaries._SummaryPaused):
+        summaries._persist_summary(
+            cid, {'lines': [{'section': 'story', 'text': 'late work'}]}, ids[-1], 0,
+            require_running=True, job_token=token,
+        )
+    with shared.get_db() as conn:
+        row = conn.execute('SELECT summary_json FROM chats WHERE id=?', (cid,)).fetchone()
+    assert row['summary_json'] == ''
+
+
+def test_cancel_endpoint_is_idempotent_when_nothing_is_running(client, sample_chat):
+    cid = sample_chat['id']
+    r = client.post(f'/api/chats/{cid}/summary/cancel')
+    assert r.status_code == 200
+    assert r.get_json()['summary_status'] == 'idle'
+    # A second call is equally harmless.
+    assert client.post(f'/api/chats/{cid}/summary/cancel').status_code == 200
+
+
+def test_cancel_endpoint_missing_chat(client):
+    assert client.post('/api/chats/999999/summary/cancel').status_code == 404
 
 
 def test_reset_endpoint_rejects_while_summary_is_running(client, sample_chat, monkeypatch):

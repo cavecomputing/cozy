@@ -4910,6 +4910,8 @@ input[type="checkbox"]:disabled {
 .summary-header-actions .icon-btn svg { width: 14px; height: 14px; }
 .summary-header-actions .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .summary-reset-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
+/* Live only mid-run, so it should read as the one actionable control while busy. */
+.summary-cancel-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 
 /* Settings panel — global controls plus a responsive lorebook workspace */
 .lorebook-section-body {

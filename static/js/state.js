@@ -230,6 +230,7 @@ export function initElements() {
         summaryStatus:       document.getElementById('summary-status'),
         summaryLines:        document.getElementById('summary-lines'),
         summaryRebuildBtn:   document.getElementById('summary-rebuild-btn'),
+        summaryCancelBtn:    document.getElementById('summary-cancel-btn'),
         summaryResetBtn:     document.getElementById('summary-reset-btn'),
         summaryConfigHint:   document.getElementById('summary-config-hint'),
         summaryMarker:       document.getElementById('summary-marker'),

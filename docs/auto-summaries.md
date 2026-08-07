@@ -67,22 +67,54 @@ relationship carries more history than one opened a batch ago.
 Existing old messages are processed in batches. Sending a new message may wait
 for an active summary update so that no old history is skipped.
 
-## Rebuild and reset
+## Stop, rebuild, and reset
 
-Two buttons sit in the **Auto Summary** header, left of the enable switch.
+Three buttons sit in the **Auto Summary** header, left of the enable switch. None
+of them changes your chat messages.
 
-- **Rebuild from history** creates the summary again from the stored messages,
-  one entry per batch.
-- **Reset** clears the current summary.
+### Stop
 
-Rebuild after editing, deleting, or changing a message that has already been
-summarized. Old summary content is not corrected automatically.
+Enabled only while a run is in progress. Use it when a long backfill —
+"Summarizing… (batch 1/20)" — is more than you want to wait for.
 
-Rebuild is also how you convert a summary created by an older version of Cozy,
-which produced several entries per batch, into the current one-entry-per-batch
-form.
+**Every batch already finished is kept.** Cozy saves after each one, so stopping
+at batch 7 of 20 keeps those seven entries and remembers how far it got. Only the
+batch actually in flight is thrown away. Stopping takes effect at the next batch
+boundary, so a request already sent to the summarizer finishes first.
 
-Neither button changes your chat messages.
+Nothing is lost by stopping — the remaining messages are simply still waiting,
+and the status line says how many.
+
+### Rebuild — or continue
+
+The same button does one of two things, and its tooltip tells you which:
+
+- **Continue summarizing** when a summary already has entries and some history is
+  still unsummarized — after stopping a run, or after closing the browser mid-run.
+  It picks up from where it left off instead of redoing finished batches.
+- **Rebuild from history** when there is nothing to continue: it discards the
+  summary and generates it again from the stored messages, one entry per batch.
+
+You rarely need to press it. Sending a message or finishing a turn also continues
+an interrupted run, because the pre-send check folds in any history that has aged
+out but is not yet summarized.
+
+To force a complete regeneration when a summary is only partly built — say you
+edited an old message *and* a run was interrupted — **Reset first, then rebuild**.
+Rebuild on its own would continue rather than start over, leaving the stale entry
+in place.
+
+### Reset
+
+Clears the current summary and forgets how far summarization got. No LLM call.
+
+Reset then rebuild is the from-scratch path. Plain rebuild is safer when you just
+want a regeneration: it keeps the existing summary usable until the new one is
+complete, so a failure part way leaves you with the old one rather than nothing.
+
+Reset then rebuild is also how you convert a summary created by an older version
+of Cozy, which produced several entries per batch, into the current
+one-entry-per-batch form.
 
 ## Limits
 
@@ -92,3 +124,5 @@ Neither button changes your chat messages.
 - The summary uses part of the model's context budget.
 - Editing an already summarized message does not automatically rewrite the
   summary.
+- Stopping a run takes effect between batches, not instantly: a request already
+  sent to the summarizer runs to completion first.

@@ -159,6 +159,18 @@ def _release_job_generation(chat_id, job_token):
             _job_tokens.pop(chat_id, None)
 
 
+def _cancel_job_generation(chat_id):
+    """Retire the live generation for a chat so its worker stops publishing.
+
+    Dropping the token is what makes a cancel bite immediately: the worker's next
+    ``_require_job_generation`` raises before it can reach a model call, and
+    ``_persist_summary`` refuses the checkpoint it may already be holding. The status
+    flip alone would leave a worker mid-batch able to publish once more.
+    """
+    with _job_tokens_lock:
+        _job_tokens.pop(chat_id, None)
+
+
 def _check_job_active(row, require_running):
     if not require_running:
         return
@@ -501,6 +513,37 @@ def run_summary(chat_id):
     with get_db() as conn:
         fresh = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
     return jsonify(_summary_state(fresh)), 202
+
+
+@summaries_bp.route('/api/chats/<int:chat_id>/summary/cancel', methods=['POST'])
+def cancel_summary(chat_id):
+    """Stop an in-progress run, keeping every batch it already folded in.
+
+    The worker checkpoints after each batch, so cancelling a 20-batch backfill part way
+    keeps the entries already written and leaves the watermark on the last completed
+    batch — a later run resumes from there rather than redoing them. Only the batch in
+    flight is discarded.
+
+    Cancelling is a normal outcome, not a failure: the status returns to ``idle`` rather
+    than ``error``. Idempotent — cancelling an idle chat is a no-op that reports state.
+    """
+    with _job_tokens_lock:
+        with get_db() as conn:
+            # Serialize with the run claim and with worker checkpoints so a cancel
+            # cannot land between a worker's gate check and its write.
+            conn.execute('BEGIN IMMEDIATE')
+            row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+            if not row:
+                return not_found('Chat')
+            if row['summary_status'] == 'running':
+                conn.execute(
+                    "UPDATE chats SET summary_status='idle', summary_status_detail='' "
+                    "WHERE id=? AND summary_status='running'",
+                    (chat_id,),
+                )
+            fresh = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+        _cancel_job_generation(chat_id)
+    return jsonify(_summary_state(fresh))
 
 
 @summaries_bp.route('/api/chats/<int:chat_id>/summary/reset', methods=['POST'])
