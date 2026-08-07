@@ -5,6 +5,7 @@ import { renderCharList, selectCharacter, deleteCharacter } from './characters.j
 import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
+import { confirmDialog } from './confirm.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -214,6 +215,29 @@ function close() {
     pendingAvatarFile = null;
 }
 
+/** Fold a saved/imported character back into the app: list, then whatever the
+ *  main view is showing. Only a brand new character gets selected outright. */
+async function applyCharUpdate(char, isNew) {
+    const idx = state.characters.findIndex(c => c.id === char.id);
+    if (idx >= 0) state.characters[idx] = char;
+    else          state.characters.push(char);
+    renderCharList();
+    renderLorebookList();
+
+    if (state.activeCharacter?.id === char.id) {
+        state.activeCharacter = char;
+        el.currentCharName.textContent = char.name;
+        renderMessages();
+        renderLorebookFlyout();
+        renderLorebookNotice();
+        updateComposerState();
+        updateContextMeter();
+        updateContextBoundary();
+    } else if (isNew) {
+        await selectCharacter(char.id);
+    }
+}
+
 async function save() {
     const data = collect();
     const isEditing = !!editingCharId;
@@ -241,24 +265,7 @@ async function save() {
             char = await API.createCharacter(data, pendingAvatarFile);
         }
 
-        const idx = state.characters.findIndex(c => c.id === char.id);
-        if (idx >= 0) state.characters[idx] = char;
-        else          state.characters.push(char);
-        renderCharList();
-        renderLorebookList();
-
-        if (state.activeCharacter?.id === char.id) {
-            state.activeCharacter = char;
-            el.currentCharName.textContent = char.name;
-            renderMessages();
-            renderLorebookFlyout();
-            renderLorebookNotice();
-            updateComposerState();
-            updateContextMeter();
-            updateContextBoundary();
-        } else if (!editingCharId) {
-            await selectCharacter(char.id);
-        }
+        await applyCharUpdate(char, !isEditing);
         close();
         showToast(isEditing ? 'Character saved' : 'Character created', 'success');
     } catch (err) {
@@ -273,16 +280,32 @@ importInput.addEventListener('change', async () => {
     const file = importInput.files[0];
     if (!file) return;
     importInput.value = '';
+
+    // Importing while editing replaces that character rather than adding a new
+    // one \u2014 the way a card gets updated to a newer version.
+    const replacingId = editingCharId;
+    if (replacingId) {
+        const keepsImage = file.name.toLowerCase().endsWith('.json');
+        const ok = await confirmDialog({
+            title: `Replace ${fields.name.value.trim() || 'this character'}?`,
+            message: keepsImage
+                ? 'Every field is overwritten by the imported card, including any edits you made here. The current image and your chats are kept.'
+                : 'Every field and the image are overwritten by the imported card, including any edits you made here. Your chats are kept.',
+            confirmLabel: 'Replace',
+            danger: false,
+        });
+        if (!ok) return;
+    }
+
     saveBtn.disabled = true;
     saveBtn.textContent = 'Importing\u2026';
     try {
-        const char = await API.importCard(file);
-        state.characters.push(char);
-        renderCharList();
-        renderLorebookList();
-        await selectCharacter(char.id);
+        const char = replacingId
+            ? await API.importOverCard(replacingId, file)
+            : await API.importCard(file);
+        await applyCharUpdate(char, !replacingId);
         close();
-        showToast('Character imported', 'success');
+        showToast(replacingId ? 'Character replaced' : 'Character imported', 'success');
     } catch (err) {
         showToast('Import failed: ' + err.message, 'error');
     } finally {

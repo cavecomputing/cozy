@@ -185,37 +185,48 @@ def create_character():
 
 
 # -- Import (must be registered before /<int:char_id> routes) ----------------
-@characters_bp.route('/api/characters/import', methods=['POST'])
-def import_character():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
+def _card_from_upload(file):
+    """Parse an uploaded .png/.json card. Returns (png_bytes, card, error).
 
-    file = request.files['file']
-    fname = (file.filename or '')
+    *png_bytes* is None for a JSON upload, which carries no image of its own —
+    callers decide whether that means a blank PNG or keeping an existing one.
+    *error* is a ready-to-return Flask response tuple, or None on success.
+    """
+    fname = (file.filename or '').lower()
     raw_bytes = file.read()
-    card_data = None
 
-    if fname.lower().endswith('.png'):
+    if fname.endswith('.png'):
         card_data = extract_png_chara(raw_bytes)
         if not card_data:
-            return jsonify({'error': 'No character data found in this PNG'}), 400
-        png_bytes = raw_bytes
-    elif fname.lower().endswith('.json'):
+            return None, None, (jsonify({'error': 'No character data found in this PNG'}), 400)
+        return raw_bytes, card_data, None
+
+    if fname.endswith('.json'):
         try:
             card_data = json.loads(raw_bytes.decode('utf-8'))
         except (UnicodeDecodeError, json.JSONDecodeError):
-            return jsonify({'error': 'Invalid JSON file'}), 400
+            return None, None, (jsonify({'error': 'Invalid JSON file'}), 400)
 
         is_v2 = isinstance(card_data, dict) and card_data.get('spec') == 'chara_card_v2'
         is_v1 = isinstance(card_data, dict) and 'name' in card_data and 'data' not in card_data
         if not is_v2 and not is_v1:
             if not (isinstance(card_data, dict) and isinstance(card_data.get('data'), dict)):
-                return jsonify({'error': 'File does not appear to be a valid Character Card (V1 or V2)'}), 400
+                return None, None, (jsonify({'error': 'File does not appear to be a valid Character Card (V1 or V2)'}), 400)
+        return None, normalize_to_v2(card_data), None
 
-        card = normalize_to_v2(card_data)
-        png_bytes = write_png_chara(make_minimal_png(), card)
-    else:
-        return jsonify({'error': 'Unsupported file – use .json or .png'}), 400
+    return None, None, (jsonify({'error': 'Unsupported file – use .json or .png'}), 400)
+
+
+@characters_bp.route('/api/characters/import', methods=['POST'])
+def import_character():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    png_bytes, card_data, error = _card_from_upload(request.files['file'])
+    if error:
+        return error
+    if png_bytes is None:
+        png_bytes = write_png_chara(make_minimal_png(), card_data)
 
     # Derive filename from character name
     data = card_data.get('data', card_data)
@@ -232,6 +243,43 @@ def import_character():
         )
         row = conn.execute('SELECT * FROM characters WHERE id=?', (cur.lastrowid,)).fetchone()
         return jsonify(_char_to_dict(row, extract_png_chara(png_bytes))), 201
+
+
+@characters_bp.route('/api/characters/<int:char_id>/import', methods=['POST'])
+def import_over_character(char_id):
+    """Replace an existing character's card with an uploaded one, in place.
+
+    This is how a card gets updated to a newer version. The row keeps its id,
+    so chats and pin state survive; the card data is replaced wholesale rather
+    than merged, so a field the new version drops is actually gone. A JSON
+    upload has no image, so the current one is kept and only the embedded card
+    data is rewritten. The filename is left alone even when the name changes —
+    nothing user-facing shows it.
+    """
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    with get_db() as conn:
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        if not row or row['missing']:
+            return not_found('Character')
+
+        png_bytes, card_data, error = _card_from_upload(request.files['file'])
+        if error:
+            return error
+
+        filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])
+        if png_bytes is None:
+            with open(filepath, 'rb') as f:
+                png_bytes = write_png_chara(f.read(), card_data)
+
+        with open(filepath, 'wb') as f:
+            f.write(png_bytes)
+
+        crc = file_crc(filepath)
+        conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        return jsonify(_char_to_dict(row, extract_png_chara(png_bytes)))
 
 
 # -- Single character CRUD ---------------------------------------------------

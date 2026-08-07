@@ -58,6 +58,10 @@ export const API = {
     async importCard(file) {
         return formRequest('/api/characters/import', { file }, 'Import failed');
     },
+    // Import onto an existing character — replaces its card, keeps id and chats
+    async importOverCard(id, file) {
+        return formRequest(`/api/characters/${id}/import`, { file }, 'Import failed');
+    },
     exportCard(id, name, fmt = 'json') {
         // Trigger a browser download — fmt is 'json' or 'png'
         const safeName = sanitizeFilename(name || 'character');

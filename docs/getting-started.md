@@ -104,6 +104,19 @@ Cards are stored as PNG files in `data/characters/`, so anything you import
 stays in the format other apps can read. The same **Import/Export** menu exports
 the character you are editing back out as `.json` or `.png`.
 
+### Update a card to a newer version
+
+When a card you already have gets a new release, import it **on top of** the
+existing character instead of adding a second copy. Open the character for
+editing first, then use the same **Import** menu item — Cozy asks you to
+confirm, then replaces that character's card in place. Your chats with them,
+and their place in the sidebar, are untouched.
+
+Two things to know. The replacement is wholesale, not a merge: every field
+comes from the new card, so your own edits to the old one are gone and there is
+no undo. And a `.json` card has no picture of its own, so importing one keeps
+the current image and changes only the text; import a `.png` to change both.
+
 ### Create one yourself
 
 Click **+** at the top right of the character sidebar and fill in the editor. A

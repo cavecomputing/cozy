@@ -4,6 +4,8 @@ import json
 import os
 from io import BytesIO
 
+from PIL import Image
+
 import card_store
 import shared
 import routes.characters as characters_module
@@ -16,6 +18,13 @@ from png_utils import extract_png_chara, write_png_chara, make_minimal_png
 def _png_with_card(card):
     """Return PNG bytes with the given V2 card embedded."""
     return write_png_chara(make_minimal_png(), card)
+
+
+def _solid_png(size, color):
+    """Return PNG bytes for a solid block — a recognisable image in assertions."""
+    buf = BytesIO()
+    Image.new('RGB', size, color).save(buf, format='PNG')
+    return buf.getvalue()
 
 
 # ── Create endpoint validation ────────────────────────────────────────────
@@ -211,6 +220,95 @@ class TestImport:
 
     def test_import_missing_file_rejected(self, client):
         r = client.post('/api/characters/import', data={}, content_type='multipart/form-data')
+        assert r.status_code == 400
+
+
+# ── Import onto an existing character (version upgrade) ────────────────────
+
+class TestImportOver:
+    def _stored_image(self, char):
+        """Return (size, top-left pixel) of the PNG backing *char*."""
+        path = os.path.join(shared.CHARACTERS_DIR, char['filename'])
+        with open(path, 'rb') as f:
+            img = Image.open(BytesIO(f.read()))
+            return img.size, img.convert('RGB').getpixel((0, 0))
+
+    def test_json_replaces_fields_and_keeps_id_filename_and_image(self, client, sample_character):
+        char_id = sample_character['id']
+        client.post(f'/api/characters/{char_id}/avatar', data={
+            'avatar': (BytesIO(_solid_png((4, 4), (255, 0, 0))), 'red.png', 'image/png'),
+        }, content_type='multipart/form-data')
+
+        v2 = v2_card(name='TestChar v1.2', description='Updated description.')
+        r = client.post(f'/api/characters/{char_id}/import', data={
+            'file': (BytesIO(json.dumps(v2).encode('utf-8')), 'v12.json', 'application/json'),
+        }, content_type='multipart/form-data')
+
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body['id'] == char_id
+        assert body['filename'] == sample_character['filename']
+        assert body['name'] == 'TestChar v1.2'
+        assert body['description'] == 'Updated description.'
+        # A JSON card carries no image, so the current one is left alone
+        assert self._stored_image(body) == ((4, 4), (255, 0, 0))
+
+    def test_fields_absent_from_the_new_card_are_dropped(self, client, sample_character):
+        """Replacement, not a merge — v1.1 text must not linger under v1.2."""
+        r = client.post(f'/api/characters/{sample_character["id"]}/import', data={
+            'file': (BytesIO(json.dumps(v2_card(name='TestChar')).encode('utf-8')),
+                     'v12.json', 'application/json'),
+        }, content_type='multipart/form-data')
+
+        assert r.status_code == 200
+        assert r.get_json()['personality'] == ''
+
+    def test_png_replaces_the_image_too(self, client, sample_character):
+        char_id = sample_character['id']
+        client.post(f'/api/characters/{char_id}/avatar', data={
+            'avatar': (BytesIO(_solid_png((4, 4), (255, 0, 0))), 'red.png', 'image/png'),
+        }, content_type='multipart/form-data')
+
+        png = write_png_chara(_solid_png((2, 2), (0, 0, 255)), v2_card(name='TestChar v1.2'))
+        r = client.post(f'/api/characters/{char_id}/import', data={
+            'file': (BytesIO(png), 'v12.png', 'image/png'),
+        }, content_type='multipart/form-data')
+
+        assert r.status_code == 200
+        assert self._stored_image(r.get_json()) == ((2, 2), (0, 0, 255))
+
+    def test_chats_and_pin_survive(self, client, sample_character, sample_chat):
+        char_id = sample_character['id']
+        client.post(f'/api/characters/{char_id}/pin')
+
+        r = client.post(f'/api/characters/{char_id}/import', data={
+            'file': (BytesIO(json.dumps(v2_card(name='TestChar v1.2')).encode('utf-8')),
+                     'v12.json', 'application/json'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 200
+        assert r.get_json()['pinned_at']
+
+        chats = client.get(f'/api/characters/{char_id}/chats').get_json()
+        assert [c['id'] for c in chats] == [sample_chat['id']]
+
+    def test_unknown_character_404(self, client):
+        r = client.post('/api/characters/99999/import', data={
+            'file': (BytesIO(json.dumps(v2_card(name='X')).encode('utf-8')), 'x.json', 'application/json'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 404
+
+    def test_invalid_file_rejected_and_card_untouched(self, client, sample_character):
+        char_id = sample_character['id']
+        r = client.post(f'/api/characters/{char_id}/import', data={
+            'file': (BytesIO(b'{not json'), 'bad.json', 'application/json'),
+        }, content_type='multipart/form-data')
+
+        assert r.status_code == 400
+        assert client.get(f'/api/characters/{char_id}').get_json()['name'] == 'TestChar'
+
+    def test_missing_file_rejected(self, client, sample_character):
+        r = client.post(f'/api/characters/{sample_character["id"]}/import',
+                        data={}, content_type='multipart/form-data')
         assert r.status_code == 400
 
 
