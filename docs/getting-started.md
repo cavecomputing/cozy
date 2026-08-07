@@ -151,7 +151,10 @@ In any of these fields, `{{char}}` is replaced with the character's name and
 
 A field marked with ⊘ has content that your active prompt template does not
 include, so it will not be sent. That can be deliberate — hover the marker to
-see which variable is missing.
+see which variable is missing. The same marker appears in the memory button's
+flyout beside Author's Note, Active Lorebook or Auto Summary whenever the
+template leaves that variable out — whether or not you are using the feature
+yet.
 
 Select the character in the sidebar to start chatting.
 

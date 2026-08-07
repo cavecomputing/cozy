@@ -193,6 +193,24 @@ function activeLorebookLabel() {
     return 'None';
 }
 
+/** True if the active prompt template references {{name}} or {{#name}}. */
+export function templateHasVar(name) {
+    const sp = state.systemPrompts.find(s => s.id === state.activeSystemPromptId);
+    if (!sp) return true;  // no active template resolvable → don't mark (avoid false alarms)
+    const re = new RegExp('\\{\\{#?' + name + '\\}\\}', 'i');
+    return re.test(sp.content || '') || re.test(sp.post_history_content || '');
+}
+
+/**
+ * Show the neutral ⊘ marker when the active prompt template has no
+ * {{variable}} for something. Card fields pass `inUse` so an empty field stays
+ * unmarked; the memory flyout marks its cards either way, since the point
+ * there is to say the feature has nowhere to go before you fill it in.
+ */
+export function markUnusedVar(marker, varName, inUse = true) {
+    if (marker) marker.hidden = !(inUse && !templateHasVar(varName));
+}
+
 function updateComposerContextControls(hasChat, hasCharacter) {
     if (el.chatFlyoutBtn) {
         const label = hasChat ? activeChatLabel() : 'Chats';

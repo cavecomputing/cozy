@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, AVATAR, showToast, Flyouts, updateComposerState } from './utils.js';
+import { applyAvatar, AVATAR, showToast, Flyouts, updateComposerState, markUnusedVar } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
@@ -68,21 +68,10 @@ const fieldMarkers = {
     post_history:  document.getElementById('cf-post-history-marker'),
 };
 
-/** True if the active prompt template references {{name}} or {{#name}}. */
-function templateHasVar(name) {
-    const sp = state.systemPrompts.find(s => s.id === state.activeSystemPromptId);
-    if (!sp) return true;  // no active template resolvable → don't mark (avoid false alarms)
-    const re = new RegExp('\\{\\{#?' + name + '\\}\\}', 'i');
-    return re.test(sp.content || '') || re.test(sp.post_history_content || '');
-}
-
 /** Show/hide the ⊘ marker for each prompt field based on content + template use. */
 function updateFieldMarkers() {
     for (const [key, varName] of PROMPT_FIELD_VARS) {
-        const marker = fieldMarkers[key];
-        if (!marker) continue;
-        const hasContent = fields[key].value.trim() !== '';
-        marker.hidden = !(hasContent && !templateHasVar(varName));
+        markUnusedVar(fieldMarkers[key], varName, fields[key].value.trim() !== '');
     }
 }
 

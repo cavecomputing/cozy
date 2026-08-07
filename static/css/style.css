@@ -4739,6 +4739,11 @@ input[type="checkbox"]:disabled {
     font-size: 0.72rem;
     letter-spacing: 0.06em;
 }
+/* The header is already a flex row with its own gap — drop the marker's
+   label-hugging margin so it sits at the same spacing as the icon. */
+.memory-card-header .field-unused-marker {
+    margin-left: -0.2rem;
+}
 .memory-card-body {
     padding: 0.65rem 0.85rem 0.8rem;
 }
