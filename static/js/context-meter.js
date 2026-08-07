@@ -158,7 +158,11 @@ export function updateContextBoundary() {
     if (getContextTokenBudget() <= 0 || state.messages.length === 0) return;
 
     const rawMessages = getRawHistoryMessages(state.messages);
-    const analysis = getCurrentContextAnalysis();
+    // Same draft-inclusive view the meter uses. A long draft genuinely pushes
+    // older turns out of the window, and the meter's own tooltip offers to jump
+    // here — counting the draft in one place but not the other left the
+    // separator sitting several messages away from the count it quoted.
+    const analysis = getCurrentContextAnalysis({ includeDraft: true });
     let boundaryMessageId = analysis.firstSelectedMessageId;
 
     // Summarized transcript remains visible even though only the post-watermark

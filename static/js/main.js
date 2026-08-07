@@ -574,10 +574,13 @@ function bindSettingsHandlers() {
         el[elName]?.addEventListener('blur', flushLLMSettingsSave);
     }
 
-    // Extra request params — autosave while typing.
+    // Extra request params — autosave while typing. A max_tokens here overrides
+    // the sampler field, so the reserved-response slice has to follow it.
     el.extraParams?.addEventListener('input', () => {
         state.extraRequestParams = el.extraParams.value;
         queueLLMSettingsSave({ extra_request_params: el.extraParams.value });
+        updateContextMeter();
+        updateContextBoundary();
     });
     el.extraParams?.addEventListener('blur', flushLLMSettingsSave);
 
@@ -944,15 +947,19 @@ function bindComposerHandlers() {
         if (handleSlashKeydown(e)) return;
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     });
-    // The meter runs the full context analysis (template + lorebook
+    // Both views run the full context analysis (template + lorebook
     // resolution); per-keystroke that adds up on long chats and slower
-    // phones, and the draft segment does not need letter-level latency.
-    const updateContextMeterAfterTyping = debounce(updateContextMeter, 150);
+    // phones, and the draft segment does not need letter-level latency. They
+    // move together so the separator never contradicts the meter's tooltip.
+    const updateContextViewsAfterTyping = debounce(() => {
+        updateContextMeter();
+        updateContextBoundary();
+    }, 150);
     el.userInput.addEventListener('input', () => {
         autoResize(el.userInput);
         saveDraftDebounced();
         updateSlashCommands();
-        updateContextMeterAfterTyping();
+        updateContextViewsAfterTyping();
     });
     autoResize(el.userInput);
 }
