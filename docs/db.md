@@ -33,7 +33,7 @@ Each chat belongs to one character. Deleting a character cascades to all its cha
 | lorebook_notice_dismissed | INTEGER | `1` once the embedded-lorebook notice has been dismissed. |
 | author_note | TEXT | Per-chat Author's Note injected by the prompt builder. |
 | summary_enabled | INTEGER | `1` when Auto Summaries are enabled for this chat. |
-| summary_json | TEXT | Running structured summary and per-line pin state. |
+| summary_json | TEXT | Running structured summary: `{"lines": [{"section": "story"\|"bonds", "text": …, "start_msg_id": …, "end_msg_id": …}]}`. One `story` entry per summarized batch, stamped with the message range it covers; the id pair is story-only and absent on summaries written before it existed. |
 | summary_up_to_msg_id | INTEGER | Highest message ID safely folded into the running summary, or `NULL`. |
 | summary_status | TEXT | Background summary job state: `idle`, `running`, or `error`. |
 | summary_status_detail | TEXT | Progress, warning, or error detail shown in the memory panel. |
@@ -200,7 +200,7 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-The migration ledger currently contains nine migrations:
+The migration ledger currently contains ten migrations:
 
 1. Retire the historical duplicate-greeting repair.
 2. Delete the retired `context_max_messages` setting.
@@ -211,6 +211,7 @@ The migration ledger currently contains nine migrations:
 7. Rename the stock "Default" prompt to "NanoBear".
 8. Remove the character gallery setting, collection tables, and archive column.
 9. Backfill `chats.persona_id` from each chat's most recent user message.
+10. Delete the retired `summary_compress_batch` setting.
 
 Prompt migrations change only known stock templates. Customized prompts are
 preserved. The rename in migration 7 is the one exception to matching on
@@ -226,9 +227,8 @@ On first run, the database is seeded with:
 - **Default system prompt**: "NanoBear" with paired main and post-history Prompt Builder templates
 - **Default settings**: context token budget (`32768`), visible context meter, an
   empty extra-request-parameters value, blank summarizer endpoint/key/model
-  overrides, a 10% summary cap (`summary_cap_pct`), 10 messages per summarizer
-  batch (`summary_trigger_interval`), and 3 story lines per compression request
-  (`summary_compress_batch`)
+  overrides, a 10% summary cap (`summary_cap_pct`), and 10 messages per
+  summarizer batch (`summary_trigger_interval`)
 
 Auto Summaries are disabled on new chats until the user enables them for that
 chat.

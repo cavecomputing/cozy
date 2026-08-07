@@ -107,11 +107,11 @@ export const API = {
     },
 
     // Auto Summaries
-    async runSummary(chatId, { up_to_msg_id = null, rebuild = false, compress = false } = {}) {
+    async runSummary(chatId, { up_to_msg_id = null, rebuild = false } = {}) {
         const r = await fetch(`/api/chats/${chatId}/summary/run`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ up_to_msg_id, rebuild, compress }),
+            body: JSON.stringify({ up_to_msg_id, rebuild }),
         });
         // 202 = started. Only an explicitly already-running 409 is joinable;
         // other conflicts must remain visible to the caller.
@@ -130,14 +130,6 @@ export const API = {
     async resetSummary(chatId) {
         return jsonRequest(`/api/chats/${chatId}/summary/reset`, { method: 'POST', fallback: 'Summary reset failed' });
     },
-    async updateSummaryPin(chatId, { text, section, pinned }) {
-        return jsonRequest(`/api/chats/${chatId}/summary/pins`, {
-            method: 'PUT',
-            body: { text, section, pinned },
-            fallback: 'Pin update failed',
-        });
-    },
-
     // Messages
     async getMessages(chatId) {
         return jsonRequest(`/api/chats/${chatId}/messages`, { fallback: 'Failed to load messages' });

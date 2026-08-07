@@ -239,6 +239,18 @@ def _delete_legacy_context_max_messages(conn):
     )
 
 
+def _delete_summary_compress_batch(conn):
+    """Remove the retired summary compression setting.
+
+    A batch of messages now becomes exactly one summary entry, so there is no second
+    pass merging entries and nothing left for the setting to size.
+    """
+    conn.execute(
+        'DELETE FROM settings WHERE key=?',
+        ('summary_compress_batch',),
+    )
+
+
 def _add_summary_to_legacy_default_prompt(conn):
     """Add summary memory to untouched copies of the former stock prompt."""
     conn.execute(
@@ -337,6 +349,7 @@ MIGRATIONS = (
     (7, 'rename_default_prompt_to_nanobear', _rename_default_prompt_to_nanobear),
     (8, 'remove_character_gallery', _remove_character_gallery),
     (9, 'backfill_chat_persona', _backfill_chat_persona),
+    (10, 'delete_summary_compress_batch', _delete_summary_compress_batch),
 )
 
 
@@ -563,7 +576,6 @@ def init_db():
             ('summary_api_model', ''),
             ('summary_cap_pct', '10'),
             ('summary_trigger_interval', '10'),
-            ('summary_compress_batch', '3'),
         ):
             conn.execute(
                 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING',

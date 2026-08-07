@@ -43,7 +43,6 @@ export const state = {
     summaryApiModel:     '',
     summaryCapPct:       '10',
     summaryTriggerInterval: '10',
-    summaryCompressBatch: '3',
     _summaryPollTimer:   null,   // interval id while a run is polling
 };
 
@@ -231,7 +230,6 @@ export function initElements() {
         summaryStatus:       document.getElementById('summary-status'),
         summaryLines:        document.getElementById('summary-lines'),
         summaryRebuildBtn:   document.getElementById('summary-rebuild-btn'),
-        summaryCompressBtn:  document.getElementById('summary-compress-btn'),
         summaryResetBtn:     document.getElementById('summary-reset-btn'),
         summaryConfigHint:   document.getElementById('summary-config-hint'),
         summaryMarker:       document.getElementById('summary-marker'),
@@ -243,7 +241,6 @@ export function initElements() {
         summaryModelPickerMenu: document.getElementById('summary-model-picker-menu'),
         summaryCapInput:     document.getElementById('settings-summary-cap-pct'),
         summaryIntervalInput: document.getElementById('settings-summary-interval'),
-        summaryCompressInput: document.getElementById('settings-summary-compress'),
     });
 }
 

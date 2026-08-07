@@ -1030,32 +1030,6 @@ def test_status_polling_retries_after_transient_failure():
     run_node_module(code)
 
 
-def test_summary_pin_api_uses_dedicated_put_endpoint():
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { API } from './static/js/api.js';
-
-        let request;
-        globalThis.fetch = async (url, options) => {
-            request = { url, options };
-            return { ok: true, json: async () => ({ id: 9 }) };
-        };
-
-        await API.updateSummaryPin(9, {
-            text: 'Mira trusts Morgan.',
-            section: 'bonds',
-            pinned: true,
-        });
-
-        assert.equal(request.url, '/api/chats/9/summary/pins');
-        assert.equal(request.options.method, 'PUT');
-        assert.deepEqual(JSON.parse(request.options.body), {
-            text: 'Mira trusts Morgan.',
-            section: 'bonds',
-            pinned: true,
-        });
-    """
-    run_node_module(code)
 
 
 def test_summary_run_api_only_joins_explicit_already_running_conflict():
@@ -1558,301 +1532,37 @@ def test_summary_text_marks_the_story_as_chronological():
     run_node_module(code)
 
 
-COMPRESS_SETUP = r"""
-    import assert from 'node:assert/strict';
-    import { state, el } from './static/js/state.js';
-    import { renderMemorySummaryCard } from './static/js/summaries.js';
-
-    const compressBtn = { disabled: false };
-    Object.assign(el, {
-        summaryToggle: { checked: false, disabled: false, title: '' },
-        summaryCompressBtn: compressBtn,
-        summaryLines: null,
-        summaryStatus: null,
-    });
-    function evaluate(lines, status = 'idle') {
-        state.activeChat = {
-            id: 1,
-            summary_enabled: true,
-            summary: { lines },
-            summary_status: status,
-            summary_status_detail: '',
-        };
-        renderMemorySummaryCard();
-        return compressBtn.disabled;
-    }
-"""
-
-
-def test_compress_button_needs_two_unpinned_story_lines():
-    code = COMPRESS_SETUP + r"""
-        const story = t => ({ section: 'story', text: t, pinned: false });
-        const pinned = t => ({ section: 'story', text: t, pinned: true });
-        const bond = t => ({ section: 'bonds', text: t, pinned: false });
-
-        assert.equal(evaluate([]), true, 'empty summary');
-        assert.equal(evaluate([story('a')]), true, 'one line has nothing to merge');
-        assert.equal(evaluate([story('a'), story('b')]), false, 'two lines can merge');
-        assert.equal(evaluate([pinned('a'), pinned('b')]), true,
-            'pinned lines are never sent to the model');
-        assert.equal(evaluate([story('a'), bond('x'), bond('y')]), true,
-            'bonds are not compressed');
-        assert.equal(evaluate([story('a'), story('b')], 'running'), true,
-            'disabled while a run is in flight');
-    """
-    run_node_module(code)
-
-
-def test_compress_button_disabled_when_summaries_are_off():
-    code = COMPRESS_SETUP + r"""
-        state.activeChat = {
-            id: 1,
-            summary_enabled: false,
-            summary: { lines: [
-                { section: 'story', text: 'a', pinned: false },
-                { section: 'story', text: 'b', pinned: false },
-            ]},
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        renderMemorySummaryCard();
-        assert.equal(compressBtn.disabled, true);
-    """
-    run_node_module(code)
-
-
-def test_compress_click_posts_a_compress_run():
-    """The Compress button must ask for a compression pass — never a message fold,
-    which would advance the watermark and retire history."""
+def test_range_label_resolves_message_ids_to_positions_in_this_chat():
+    """Stored ids are global; the reader needs positions within their own chat."""
     code = r"""
         import assert from 'node:assert/strict';
-        import { state, el } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import { initSummaryHandlers } from './static/js/summaries.js';
+        import { rangeLabel } from './static/js/summaries.js';
 
-        const listeners = {};
-        el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = { addEventListener() {} };
-        el.summaryResetBtn = { addEventListener() {} };
-        el.summaryCompressBtn = {
-            disabled: false,
-            addEventListener(type, fn) { listeners[type] = fn; },
-        };
-        el.settingsContextTokens = { value: '202' };
-        el.samplerMaxTokens = { value: '10' };
-        state.apiModel = 'main-model';
-        state.summaryApiEndpoint = 'http://summary.example/v1';
-        state.summaryApiModel = 'summary-model';
-        state.messages = [];
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary: { lines: [
-                { section: 'story', text: 'S1', pinned: false },
-                { section: 'story', text: 'S2', pinned: false },
-            ]},
-            summary_up_to_msg_id: 4,
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        state.chats = [state.activeChat];
-
-        const calls = [];
-        API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: { lines: [{ section: 'story', text: 'merged', pinned: false }] },
-                summary_up_to_msg_id: 4,
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.equal(calls.length, 1);
-        assert.equal(calls[0].chatId, 7);
-        assert.equal(calls[0].compress, true);
-        // Neither of the message-folding options is requested. (The stub stands in for
-        // API.runSummary, so its parameter defaults never apply — assert on what the
-        // handler actually passes rather than on what the real method would fill in.)
-        assert.ok(!calls[0].rebuild, 'must not request a rebuild');
-        assert.ok(calls[0].up_to_msg_id == null, 'must not name a message boundary');
-        // The watermark is compression's business to leave alone.
-        assert.equal(state.activeChat.summary_up_to_msg_id, 4);
+        const messages = [{ id: 41 }, { id: 42 }, { id: 43 }, { id: 44 }];
+        assert.equal(
+            rangeLabel({ start_msg_id: 41, end_msg_id: 43 }, messages),
+            'messages 1–3',
+        );
+        // A batch that retired a single message reads naturally.
+        assert.equal(rangeLabel({ start_msg_id: 44, end_msg_id: 44 }, messages), 'message 4');
     """
     run_node_module(code)
 
 
-def test_compress_click_waits_for_pending_settings_save():
+def test_range_label_is_empty_when_it_cannot_be_resolved():
+    """No label beats a misleading one: raw autoincrement ids mean nothing to a reader."""
     code = r"""
         import assert from 'node:assert/strict';
-        import { state, el } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import { queueLLMSettingsSave } from './static/js/llm-settings.js';
-        import { initSummaryHandlers } from './static/js/summaries.js';
+        import { rangeLabel } from './static/js/summaries.js';
 
-        const listeners = {};
-        el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = { addEventListener() {} };
-        el.summaryResetBtn = { addEventListener() {} };
-        el.summaryCompressBtn = {
-            addEventListener(type, fn) { listeners[type] = fn; },
-        };
-        state.activePresetId = null;
-        state.apiModel = 'main-model';
-        state.summaryApiEndpoint = 'http://summary.example/v1';
-        state.summaryApiModel = 'new-summary-model';
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary: { lines: [] },
-            summary_status: 'idle',
-        };
-        state.chats = [state.activeChat];
-
-        const order = [];
-        let releaseSave;
-        let markSaveStarted;
-        const saveStarted = new Promise(resolve => { markSaveStarted = resolve; });
-        API.saveSettings = async fields => {
-            order.push(`save:${fields.summary_api_model}`);
-            markSaveStarted();
-            await new Promise(resolve => { releaseSave = resolve; });
-            order.push('saved');
-            return {};
-        };
-        API.runSummary = async chatId => {
-            order.push('run');
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: { lines: [] },
-                summary_up_to_msg_id: null,
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-
-        queueLLMSettingsSave({ summary_api_model: 'new-summary-model' });
-        initSummaryHandlers();
-        const clicking = listeners.click();
-        await saveStarted;
-        assert.deepEqual(order, ['save:new-summary-model']);
-        releaseSave();
-        await clicking;
-        assert.deepEqual(order, ['save:new-summary-model', 'saved', 'run']);
-    """
-    run_node_module(code)
-
-
-def test_compress_click_does_not_run_when_settings_save_fails():
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { state, el } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import { queueLLMSettingsSave } from './static/js/llm-settings.js';
-        import { initSummaryHandlers } from './static/js/summaries.js';
-
-        const listeners = {};
-        el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = { addEventListener() {} };
-        el.summaryResetBtn = { addEventListener() {} };
-        el.summaryCompressBtn = {
-            addEventListener(type, fn) { listeners[type] = fn; },
-        };
-        state.activePresetId = null;
-        state.apiModel = 'main-model';
-        state.summaryApiEndpoint = 'http://summary.example/v1';
-        state.summaryApiModel = 'new-summary-model';
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary: { lines: [] },
-            summary_status: 'idle',
-        };
-        state.chats = [state.activeChat];
-
-        globalThis.document = {
-            getElementById() { return { appendChild() {} }; },
-            createElement() {
-                return {
-                    setAttribute() {},
-                    appendChild() {},
-                    remove() {},
-                };
-            },
-        };
-        let runCalls = 0;
-        API.saveSettings = async () => { throw new Error('disk unavailable'); };
-        API.runSummary = async () => { runCalls += 1; };
-
-        queueLLMSettingsSave({ summary_api_model: 'new-summary-model' });
-        const nativeSetTimeout = globalThis.setTimeout;
-        globalThis.setTimeout = (fn, ms, ...args) =>
-            nativeSetTimeout(fn, Math.min(ms, 5), ...args);
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.equal(runCalls, 0);
-    """
-    run_node_module(code)
-
-
-def test_compress_click_does_not_target_a_chat_selected_during_settings_save():
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { state, el } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import { queueLLMSettingsSave } from './static/js/llm-settings.js';
-        import { initSummaryHandlers } from './static/js/summaries.js';
-
-        const listeners = {};
-        el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = { addEventListener() {} };
-        el.summaryResetBtn = { addEventListener() {} };
-        el.summaryCompressBtn = {
-            addEventListener(type, fn) { listeners[type] = fn; },
-        };
-        state.activePresetId = null;
-        state.apiModel = 'main-model';
-        state.summaryApiEndpoint = 'http://summary.example/v1';
-        state.summaryApiModel = 'new-summary-model';
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary: { lines: [] },
-            summary_status: 'idle',
-        };
-        state.chats = [state.activeChat];
-
-        let releaseSave;
-        let markSaveStarted;
-        const saveStarted = new Promise(resolve => { markSaveStarted = resolve; });
-        API.saveSettings = async () => {
-            markSaveStarted();
-            await new Promise(resolve => { releaseSave = resolve; });
-            return {};
-        };
-        const runs = [];
-        API.runSummary = async chatId => { runs.push(chatId); };
-
-        queueLLMSettingsSave({ summary_api_model: 'new-summary-model' });
-        initSummaryHandlers();
-        const clicking = listeners.click();
-        await saveStarted;
-        state.activeChat = {
-            id: 8,
-            summary_enabled: true,
-            summary: { lines: [] },
-            summary_status: 'idle',
-        };
-        releaseSave();
-        await clicking;
-
-        assert.deepEqual(runs, []);
+        const messages = [{ id: 41 }, { id: 42 }];
+        // Entries written before ranges existed carry no ids at all.
+        assert.equal(rangeLabel({ text: 'a beat' }, messages), '');
+        // The covered messages have since been deleted.
+        assert.equal(rangeLabel({ start_msg_id: 7, end_msg_id: 9 }, messages), '');
+        // Half a range names nothing.
+        assert.equal(rangeLabel({ start_msg_id: 41 }, messages), '');
+        assert.equal(rangeLabel(null, messages), '');
+        assert.equal(rangeLabel({ start_msg_id: 41, end_msg_id: 42 }, null), '');
     """
     run_node_module(code)

@@ -120,7 +120,7 @@ SETTINGS_KEYS = {
     'extra_request_params',
     # Auto Summaries — configuration (per-chat enablement lives on the chat row)
     'summary_api_endpoint', 'summary_api_key', 'summary_api_model',
-    'summary_cap_pct', 'summary_trigger_interval', 'summary_compress_batch',
+    'summary_cap_pct', 'summary_trigger_interval',
 }
 
 # Settings keys holding secrets: masked on read, and skipped on write when the

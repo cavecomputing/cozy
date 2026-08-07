@@ -1,13 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTO SUMMARIES
 // ═══════════════════════════════════════════════════════════════════════════
-// Per-chat running summary of aged-out history. Enablement + pinning happen in
-// the memory flyout; the actual summarization runs as a background job on the
-// server (see routes/summaries.py). Completed turns start updates in the
-// background; the send preflight waits only when history would otherwise fall
-// into the gap between raw context and the persisted summary.
+// Per-chat running summary of aged-out history. Enablement happens in the memory
+// flyout; the actual summarization runs as a background job on the server (see
+// routes/summaries.py), which turns each batch of messages into exactly one entry.
+// Completed turns start updates in the background; the send preflight waits only
+// when history would otherwise fall into the gap between raw context and the
+// persisted summary.
 
-import { state, el, icons } from './state.js';
+import { state, el } from './state.js';
 import { API } from './api.js';
 import { estimateMessageTokens, estimateTextTokens } from './tokenizer.js';
 import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
@@ -595,45 +596,6 @@ async function rebuildSummary() {
     }
 }
 
-/** Count the story lines a compression pass could actually merge. */
-function compressibleStoryLines(chat = state.activeChat) {
-    const lines = chat?.summary?.lines;
-    if (!Array.isArray(lines)) return 0;
-    return lines.filter(l => (l.section || 'story') !== 'bonds' && !l.pinned).length;
-}
-
-/**
- * Compress button: one pass merging adjacent story lines into fewer, so the summary
- * fits more history without the whole-summary rewrite that used to erode it. Pinned
- * lines are never sent to the model and stay exactly where they are.
- */
-async function compressSummary() {
-    const chat = state.activeChat;
-    if (!summariesActive(chat)) return;
-    if (!summarizerConfigured()) {
-        showToast('Configure an Auto Summaries endpoint and model before compressing.');
-        return;
-    }
-    const chatId = chat.id;
-    try {
-        // Settings inputs save through a debounce, while the worker reads settings from
-        // the server. Keep a manual compression behind the same strict persistence
-        // barrier as automatic runs and rebuilds.
-        await flushLLMSettingsSave({ strict: true });
-        if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
-        const st = await API.runSummary(chatId, { compress: true });
-        if (!validSummaryState(st)) {
-            throw new Error('Summarizer returned an invalid status response.');
-        }
-        applySummaryState(st, chatId);
-        if (st.summary_status === 'running' && state.activeChat?.id === chatId) {
-            startStatusPolling(chatId);
-        }
-    } catch (e) {
-        showToast('Summary compression failed: ' + e.message);
-    }
-}
-
 /** Wipe the summary + watermark to empty (no LLM call). */
 async function clearSummary(chatId = state.activeChat?.id) {
     if (chatId == null) return;
@@ -646,7 +608,7 @@ async function clearSummary(chatId = state.activeChat?.id) {
     }
 }
 
-/** Reset button: confirm (pins are discarded), then clear to a blank slate. */
+/** Reset button: confirm, then clear to a blank slate. */
 async function resetSummary() {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
@@ -654,36 +616,13 @@ async function resetSummary() {
     if (hasContent) {
         const ok = await confirmDialog({
             title: 'Reset summary?',
-            message: 'This clears the generated summary and any pinned lines for this chat. '
+            message: 'This clears the generated summary for this chat. '
                 + 'You can rebuild it from history afterward.',
             confirmLabel: 'Reset',
         });
         if (!ok) return;
     }
     await clearSummary(chat.id);
-}
-
-async function togglePin(index) {
-    const chat = state.activeChat;
-    const lines = chat?.summary?.lines;
-    if (!lines || !lines[index] || !summariesActive(chat)
-        || chat.summary_status === 'running') return;
-    const line = lines[index];
-    const pinned = !line.pinned;
-    line.pinned = pinned;
-    renderMemorySummaryCard();  // optimistic
-    try {
-        const updated = await API.updateSummaryPin(chat.id, {
-            text: line.text,
-            section: line.section || 'story',
-            pinned,
-        });
-        applySummaryState(updated, chat.id);
-    } catch (e) {
-        line.pinned = !pinned;  // revert the object that was changed optimistically
-        if (state.activeChat?.id === chat.id) renderMemorySummaryCard();
-        showToast('Could not update pin: ' + e.message);
-    }
 }
 
 // ── Rendering the memory card ───────────────────────────────────────────────
@@ -723,11 +662,32 @@ function renderStatus() {
         box.textContent = `Up to date · ${count} message${count === 1 ? '' : 's'} summarized · ${size}`;
     }
     if (chat.summary_status_detail) {
-        // A non-empty detail on idle is the pins-over-cap warning.
+        // A non-empty detail on idle is a cap warning.
         box.className = 'summary-status is-warning';
         box.appendChild(document.createElement('br'));
         box.appendChild(document.createTextNode(chat.summary_status_detail));
     }
+}
+
+/**
+ * Label for the messages one story entry covers, or '' when it cannot be resolved.
+ *
+ * A stored range is a pair of message *ids*, which are global and mean nothing to a
+ * reader, so they are shown as positions within this chat. An entry whose messages have
+ * since been deleted — and every entry written before ranges existed — resolves to
+ * nothing and simply gets no label rather than a misleading one.
+ */
+export function rangeLabel(line, messages = state.messages) {
+    const start = line?.start_msg_id;
+    const end = line?.end_msg_id;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return '';
+    const list = Array.isArray(messages) ? messages : [];
+    const first = list.findIndex(m => m?.id === start);
+    const last = list.findIndex(m => m?.id === end);
+    if (first < 0 || last < 0) return '';
+    return first === last
+        ? `message ${first + 1}`
+        : `messages ${first + 1}–${last + 1}`;
 }
 
 function renderLines(enabled) {
@@ -735,14 +695,11 @@ function renderLines(enabled) {
     if (!box) return;
     box.innerHTML = '';
     const lines = (enabled && state.activeChat?.summary?.lines) || [];
-    const busy = state.activeChat?.summary_status === 'running';
     if (!lines.length) { box.hidden = true; return; }
     box.hidden = false;
 
     for (const [section, label] of [['story', 'Story so far'], ['bonds', 'Bonds']]) {
-        const inSection = lines
-            .map((l, i) => ({ l, i }))
-            .filter(x => (x.l.section || 'story') === section);
+        const inSection = lines.filter(l => (l.section || 'story') === section);
         if (!inSection.length) continue;
 
         const heading = document.createElement('div');
@@ -750,27 +707,23 @@ function renderLines(enabled) {
         heading.textContent = label;
         box.appendChild(heading);
 
-        for (const { l, i } of inSection) {
+        for (const l of inSection) {
             const row = document.createElement('div');
-            row.className = 'summary-line' + (l.pinned ? ' pinned' : '');
-
-            const pin = document.createElement('button');
-            pin.type = 'button';
-            pin.className = 'summary-pin-btn' + (l.pinned ? ' pinned' : '');
-            pin.setAttribute('aria-pressed', l.pinned ? 'true' : 'false');
-            pin.disabled = busy;
-            pin.title = busy
-                ? 'Pinning is unavailable while the summary updates'
-                : (l.pinned ? 'Unpin (allow rewording)' : 'Pin (keep word-for-word)');
-            pin.innerHTML = l.pinned ? icons.STAR_FILLED : icons.STAR;
-            pin.addEventListener('click', () => togglePin(i));
+            row.className = 'summary-line';
 
             const text = document.createElement('span');
             text.className = 'summary-line-text';
             text.textContent = l.text;
-
-            row.appendChild(pin);
             row.appendChild(text);
+
+            // Bonds span the whole chat, so only story entries can name a range.
+            const range = section === 'story' ? rangeLabel(l) : '';
+            if (range) {
+                const tag = document.createElement('span');
+                tag.className = 'summary-line-range';
+                tag.textContent = range;
+                row.appendChild(tag);
+            }
             box.appendChild(row);
         }
     }
@@ -792,11 +745,6 @@ export function renderMemorySummaryCard() {
     markUnusedVar(el.summaryMarker, 'summary');
     const busy = chat?.summary_status === 'running';
     if (el.summaryRebuildBtn) el.summaryRebuildBtn.disabled = !enabled || busy;
-    if (el.summaryCompressBtn) {
-        // Merging needs at least two unpinned story lines to work with.
-        el.summaryCompressBtn.disabled = !enabled || busy
-            || compressibleStoryLines(chat) < 2;
-    }
     if (el.summaryResetBtn) {
         el.summaryResetBtn.disabled = !enabled || busy
             || !(chat?.summary?.lines?.length);
@@ -824,6 +772,5 @@ export function initSummaryHandlers() {
         else await disableSummariesForChat();
     });
     el.summaryRebuildBtn?.addEventListener('click', rebuildSummary);
-    el.summaryCompressBtn?.addEventListener('click', compressSummary);
     el.summaryResetBtn?.addEventListener('click', resetSummary);
 }
