@@ -64,8 +64,9 @@ relationship carries more history than one opened a batch ago.
 2. Open the memory panel beside the chat input.
 3. Enable **Auto Summary**.
 
-Existing old messages are processed in batches. Sending a new message may wait
-for an active summary update so that no old history is skipped.
+All existing old messages are processed in sequential batches as soon as Auto
+Summary is enabled. Sending a new message may wait for an active update so that
+no old history is skipped.
 
 ## Stop, rebuild, and reset
 

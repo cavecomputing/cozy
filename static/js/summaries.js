@@ -452,11 +452,15 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
 }
 
 /**
- * Before generation, close any gap between the stored watermark and the raw
- * context boundary. The loop matters because a newly enlarged summary can
- * itself move the boundary and age out one more message.
+ * Close any gap between the stored watermark and the raw context boundary. Before
+ * generation this prevents forgotten history; enablement reuses the same loop to backfill
+ * an existing chat. The loop matters because a newly enlarged summary can itself move the
+ * boundary and age out one more message.
  */
-export async function ensureSummaryReadyForSend(signal, { excludeLastN = 0 } = {}) {
+export async function ensureSummaryReadyForSend(signal, {
+    excludeLastN = 0,
+    backfill = false,
+} = {}) {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
     if (agedOutUnsummarized(excludeLastN).length === 0) return;
@@ -485,6 +489,7 @@ export async function ensureSummaryReadyForSend(signal, { excludeLastN = 0 } = {
         // would either start the next batch (ignoring the cancel) or generate against a
         // known gap in memory, and this guard exists precisely to prevent the second.
         if (consumeCancellation(chatId)) {
+            if (backfill) return;
             showToast('Memory update cancelled — send again when you are ready.');
             throw abortError('Summary cancelled during send');
         }
@@ -494,7 +499,9 @@ export async function ensureSummaryReadyForSend(signal, { excludeLastN = 0 } = {
         if (watermark <= previousWatermark) {
             stalledRuns += 1;
             if (stalledRuns >= 2) {
-                throw new Error('Chat memory did not advance; response generation was paused to avoid forgetting history.');
+                throw new Error(backfill
+                    ? 'Chat memory did not advance; automatic backfill stopped.'
+                    : 'Chat memory did not advance; response generation was paused to avoid forgetting history.');
             }
         } else {
             stalledRuns = 0;
@@ -535,9 +542,15 @@ async function enableSummariesForChat() {
         renderMemorySummaryCard();  // arms the feature; hint tells the user to configure
         return;
     }
-    // Start back-filling the out-of-context backlog; runs fold one interval
-    // block at a time, and the send preflight loop drains whatever remains.
-    return triggerRun({ chatId: chat.id });
+    // Drain the existing backlog now, one checkpointed interval at a time. Keeping each
+    // provider request bounded preserves the configured batch contract while avoiding a
+    // half-filled summary that needs a send or a manual resume to finish.
+    try {
+        return await ensureSummaryReadyForSend(undefined, { backfill: true });
+    } catch (e) {
+        if (e.name !== 'AbortError') showToast('Summary backfill failed: ' + e.message);
+        return null;
+    }
 }
 
 async function disableSummariesForChat() {

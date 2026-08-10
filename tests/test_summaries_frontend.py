@@ -987,6 +987,69 @@ def test_enable_response_does_not_start_run_for_newly_selected_chat():
     run_node_module(code)
 
 
+def test_enabling_summaries_drains_the_whole_existing_backlog_in_batches():
+    code = BASE_SETUP + r"""
+        import { initSummaryHandlers } from './static/js/summaries.js';
+
+        const listeners = {};
+        el.summaryToggle = {
+            checked: true,
+            disabled: false,
+            addEventListener(type, fn) { listeners[type] = fn; },
+        };
+        el.summaryRebuildBtn = { addEventListener() {} };
+        el.summaryCancelBtn = { addEventListener() {} };
+        el.summaryResetBtn = { addEventListener() {} };
+        el.settingsContextTokens.value = '60';
+        state.summaryTriggerInterval = '10';
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'summary-model';
+        state.messages = Array.from({ length: 40 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat = {
+            id: 7,
+            summary_enabled: false,
+            summary: { lines: [] },
+            summary_up_to_msg_id: null,
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+
+        API.updateChat = async chatId => ({
+            id: chatId,
+            summary_enabled: true,
+            summary: { lines: [] },
+            summary_up_to_msg_id: null,
+            summary_status: 'idle',
+            summary_status_detail: '',
+        });
+        const targets = [];
+        API.runSummary = async (chatId, options) => {
+            targets.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        initSummaryHandlers();
+        await listeners.change();
+
+        assert.ok(targets.length > 1, 'enable should drain more than the first batch');
+        assert.deepEqual(targets.slice(0, 3), [10, 20, 30]);
+        assert.equal(state.activeChat.summary_up_to_msg_id, targets.at(-1));
+    """
+    run_node_module(code)
+
+
 def test_status_polling_retries_after_transient_failure():
     code = r"""
         import assert from 'node:assert/strict';
