@@ -239,9 +239,14 @@ export const API = {
     },
     // `updateSwipe` rewrites the matching swipe row too (message edits);
     // swipe *selection* leaves it false so existing swipes aren't overwritten.
-    async updateMessage(msgId, content, updateSwipe = false) {
+    async updateMessage(msgId, content, updateSwipe = false, swipeIndex = null) {
         const body = { content };
-        if (updateSwipe) body.update_swipe = true;
+        if (updateSwipe) {
+            body.update_swipe = true;
+            // Names which swipe was edited. Two swipes can hold identical text,
+            // and the server cannot tell them apart from the content alone.
+            if (Number.isInteger(swipeIndex) && swipeIndex >= 0) body.swipe_index = swipeIndex;
+        }
         return jsonRequest(`/api/messages/${msgId}`, {
             method: 'PUT',
             body,

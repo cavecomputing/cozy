@@ -230,11 +230,33 @@ def update_message(msg_id):
         # away and back doesn't resurrect the pre-edit text. Swipe *selection*
         # omits the flag — there the content must keep pointing at an existing
         # swipe row, not overwrite it.
+        #
+        # `swipe_index` names the swipe the user was actually looking at. Content
+        # alone cannot: a regenerate that returns a reply identical to one already
+        # stored leaves two swipes holding the same text, and rewriting on a content
+        # match then overwrote both, losing the original from either slot. The match
+        # stays as the fallback for a caller that sends no index, and is capped at one
+        # row for the same reason.
         if data.get('update_swipe'):
-            conn.execute(
-                'UPDATE message_swipes SET content=? WHERE message_id=? AND content=?',
-                (content, msg_id, row['content'])
-            )
+            index = data.get('swipe_index')
+            target = None
+            if isinstance(index, int) and not isinstance(index, bool) and index >= 0:
+                target = conn.execute(
+                    'SELECT id FROM message_swipes WHERE message_id=? '
+                    'ORDER BY id ASC LIMIT 1 OFFSET ?',
+                    (msg_id, index),
+                ).fetchone()
+            if target is None:
+                target = conn.execute(
+                    'SELECT id FROM message_swipes WHERE message_id=? AND content=? '
+                    'ORDER BY id ASC LIMIT 1',
+                    (msg_id, row['content']),
+                ).fetchone()
+            if target:
+                conn.execute(
+                    'UPDATE message_swipes SET content=? WHERE id=?',
+                    (content, target['id']),
+                )
         return jsonify({'success': True})
 
 

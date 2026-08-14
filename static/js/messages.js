@@ -538,7 +538,7 @@ export function finishEditing(save) {
                 stateMsg.swipes[editIdx] = { ...stateMsg.swipes[editIdx], content: rawText };
             }
             if (stateMsg.id) {
-                API.updateMessage(stateMsg.id, rawText, true).catch(err => {
+                API.updateMessage(stateMsg.id, rawText, true, editIdx).catch(err => {
                     console.error('Edit save failed:', err);
                     showToast('Edit failed to save: ' + err.message);
                 });

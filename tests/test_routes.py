@@ -352,6 +352,48 @@ class TestMessages:
         swipe_texts = [s['content'] for s in edited['swipes']]
         assert swipe_texts == ['First take', 'Second take (edited)']
 
+    def test_edit_rewrites_only_the_swipe_being_edited(self, client, sample_chat):
+        """Two swipes can hold the same text — a regenerate that repeats itself.
+
+        Matching on content rewrote both, so the original was unrecoverable from
+        either slot. The index names which one the user was actually looking at.
+        """
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'Same take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Other take'})
+        # The model regenerates and returns the first reply verbatim.
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Same take'})
+
+        r = client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Edited', 'update_swipe': True, 'swipe_index': 2,
+        })
+        assert r.status_code == 200
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        edited = next(m for m in listed if m['id'] == msg['id'])
+        assert [s['content'] for s in edited['swipes']] == [
+            'Same take', 'Other take', 'Edited',
+        ]
+
+    def test_edit_falls_back_to_content_match_without_an_index(self, client, sample_chat):
+        """An out-of-range or absent index must still land the edit on a swipe."""
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
+
+        r = client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Edited', 'update_swipe': True, 'swipe_index': 99,
+        })
+        assert r.status_code == 200
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        edited = next(m for m in listed if m['id'] == msg['id'])
+        assert [s['content'] for s in edited['swipes']] == ['First take', 'Edited']
+
     def test_swipe_selection_without_flag_leaves_swipes_alone(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
