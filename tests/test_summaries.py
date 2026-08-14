@@ -2,6 +2,7 @@
 summarizer worker/endpoints, per-chat persistence, settings masking, and the
 startup recovery migration."""
 
+import json
 from contextlib import contextmanager
 
 import pytest
@@ -436,6 +437,15 @@ def test_parse_summarizer_output_rejects_empty_and_malformed_content():
     for content in ('', 'just some prose', 'STORY SO FAR\n\nBONDS'):
         with pytest.raises(ValueError):
             parse_summarizer_output(content)
+
+
+def test_parse_summarizer_output_accepts_an_omitted_bonds_section():
+    """Rule 4 tells the model to write a bond line only when one changed, so a batch
+    that moved no relationship legitimately drops the whole section. Failing that reply
+    stalled the run on the most ordinary batch there is."""
+    obj = parse_summarizer_output('STORY SO FAR\n- they walk east until dusk')
+    assert [l['text'] for l in obj['lines']] == ['they walk east until dusk']
+    assert not [l for l in obj['lines'] if l['section'] == 'bonds']
 
 
 def test_parse_summarizer_output_strips_reasoning_block():
@@ -1174,17 +1184,16 @@ def test_run_job_rebuild_resets(client, sample_chat, monkeypatch):
     assert parse_summary_json(row['summary_json'])['lines']
 
 
-def test_rebuild_keeps_previous_state_until_all_batches_succeed(
+def test_rebuild_keeps_batches_completed_before_a_failure(
         client, sample_chat, monkeypatch):
+    """A rebuild checkpoints per batch, so a failure keeps the work already paid for.
+
+    The watermark lands on the last batch that succeeded, which is what lets the next
+    run resume from there instead of re-summarizing the whole transcript.
+    """
     ids = _add_messages(client, sample_chat['id'], 3)
     monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
     summaries._run_summary_job(sample_chat['id'], ids[-1])
-    with shared.get_db() as conn:
-        before = conn.execute(
-            'SELECT summary_json, summary_up_to_msg_id FROM chats WHERE id=?',
-            (sample_chat['id'],),
-        ).fetchone()
-        old_json, old_watermark = before['summary_json'], before['summary_up_to_msg_id']
 
     client.put('/api/settings', json={'summary_trigger_interval': '1'})
     calls = 0
@@ -1204,8 +1213,10 @@ def test_rebuild_keeps_previous_state_until_all_batches_succeed(
             'SELECT summary_json, summary_up_to_msg_id, summary_status FROM chats WHERE id=?',
             (sample_chat['id'],),
         ).fetchone()
-    assert after['summary_json'] == old_json
-    assert after['summary_up_to_msg_id'] == old_watermark
+    # Batch one committed before batch two failed: its message range is retired, and
+    # the rebuild's from-scratch summary holds that batch rather than nothing.
+    assert after['summary_up_to_msg_id'] == ids[0]
+    assert parse_summary_json(after['summary_json'])['lines']
     assert after['summary_status'] == 'error'
 
 
@@ -1582,6 +1593,52 @@ def test_summary_cap_handles_arbitrarily_large_context_without_float_overflow():
         'context_max_tokens': context_tokens,
         'summary_cap_pct': '90',
     }) == context_tokens * 9 // 10
+
+
+# ── Completion budget ───────────────────────────────────────────────────────
+
+
+def test_completion_budget_uses_the_main_connections_response_reserve():
+    """A summary run and a chat completion never overlap, so the summarizer spends the
+    allowance already reserved for the main connection — headroom a reasoning model
+    needs, since its thinking is billed against this same budget."""
+    assert summaries._completion_budget({'sampler_max_tokens': '4096'}, 3276) == 4096
+
+
+def test_completion_budget_keeps_the_cap_derived_floor():
+    # A small Max Response Tokens must not starve a large configured summary.
+    assert summaries._completion_budget({'sampler_max_tokens': '512'}, 3276) == 4095
+
+
+def test_completion_budget_prefers_extra_params_max_tokens():
+    # buildChatPayload merges extra_request_params *over* the samplers, so that value
+    # is what the main connection actually sends.
+    assert summaries._completion_budget(
+        {'sampler_max_tokens': '512', 'extra_request_params': '{"max_tokens": 8000}'}, 0
+    ) == 8000
+
+
+@pytest.mark.parametrize('raw', ['', 'not json', '[]', '{}', '{"temperature": 0.7}'])
+def test_completion_budget_falls_back_when_extra_params_carry_no_max_tokens(raw):
+    assert summaries._completion_budget(
+        {'sampler_max_tokens': '2048', 'extra_request_params': raw}, 0
+    ) == 2048
+
+
+@pytest.mark.parametrize('bad', ['0', '-1', 'lots'])
+def test_completion_budget_sends_none_for_an_unusable_override(bad):
+    # An unusable override still wins in the real payload, so honour it as "no bound"
+    # rather than quietly substituting a limit the main connection would not send.
+    assert summaries._completion_budget(
+        {'sampler_max_tokens': '2048',
+         'extra_request_params': '{"max_tokens": %s}' % json.dumps(bad)}, 0
+    ) == 0
+
+
+@pytest.mark.parametrize('raw', [None, '', 'lots'])
+def test_completion_budget_defaults_without_a_saved_sampler_row(raw):
+    # Samplers only reach settings once saved; SAMPLER_DEFAULTS is 512.
+    assert summaries._completion_budget({'sampler_max_tokens': raw}, 0) == 512
 
 
 # ── Migration ───────────────────────────────────────────────────────────────

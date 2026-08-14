@@ -34,6 +34,17 @@ newest message.
 Summarization sends old chat content to the selected LLM server and may add API
 cost or local processing time.
 
+**Reasoning models need room to think.** Cozy allows each summarizer call
+whichever is larger of the size cap's own requirement and your **Max Response
+Tokens** — the same allowance the main connection reserves for a reply, which is
+free to reuse because Cozy never sends a chat request while a summary is running.
+On a reasoning model such as Gemini Flash or a local QwQ build, the thinking
+tokens are spent out of that same allowance before a single word of the summary
+is written, so a low Max Response Tokens can cut the reply off mid-summary. If
+runs keep failing with *"cut off by its completion token limit"*, raise **Max
+Response Tokens** in **Settings → Model and context**, or point the summarizer at
+a non-reasoning model — it only has to write a few bullets.
+
 ## Growing and rolling off
 
 Folding messages in is always additive. Each update appends one new entry to the
@@ -118,9 +129,14 @@ in place.
 
 Clears the current summary and forgets how far summarization got. No LLM call.
 
-Reset then rebuild is the from-scratch path. Plain rebuild is safer when you just
-want a regeneration: it keeps the existing summary usable until the new one is
-complete, so a failure part way leaves you with the old one rather than nothing.
+Reset then rebuild is the from-scratch path.
+
+A rebuild saves after every batch, exactly as a normal run does, so a failure at
+batch 18 of 20 keeps those eighteen entries and the next run carries on from
+there instead of starting over. The trade is that a rebuild replaces the old
+summary as it goes: once it has begun, the previous one is gone even if the run
+does not finish. Take a backup of `cozy_chat.db` first if the existing summary is
+something you would want back.
 
 Reset then rebuild is also how you convert a summary created by an older version
 of Cozy, which produced several entries per batch, into the current

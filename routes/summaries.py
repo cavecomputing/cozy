@@ -7,6 +7,7 @@ consistent partial progress across a server restart). Status lives on the chat r
 any worker process can report it — see ``GET …/summary/status``.
 """
 
+import json
 import logging
 import math
 import threading
@@ -57,14 +58,9 @@ def call_summarizer(messages, cap_tokens=0):
     if api_key:
         headers['Authorization'] = f'Bearer {api_key}'
     payload = {'model': model, 'messages': messages, 'stream': False}
-    if cap_tokens and cap_tokens > 0:
-        # One bounded provider call per update, but with headroom over the cap. An
-        # append-mode reply carries only new story bullets and the relationships that
-        # changed, so it sits well under the cap; the headroom covers a batch that moved
-        # several relationships at once. The floor keeps room for the required headings —
-        # and for reasoning models, whose thinking spends this same budget — when the
-        # configured cap is tiny.
-        payload['max_tokens'] = max(512, int(cap_tokens * 1.25))
+    budget = _completion_budget(get_settings(), cap_tokens)
+    if budget:
+        payload['max_tokens'] = budget
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=180)
         r.raise_for_status()
@@ -126,6 +122,49 @@ def _cap_tokens(settings):
     # percentage calculation. Integer ratios keep this operation overflow-safe.
     pct_numerator, pct_denominator = pct.as_integer_ratio()
     return max(1, ctx * pct_numerator // (100 * pct_denominator))
+
+
+def _response_token_reserve(settings):
+    """The main connection's response allowance, mirroring ``getResponseTokenReserve``
+    in static/js/context-budget.js: a ``max_tokens`` in ``extra_request_params`` wins
+    over the Max Response Tokens field, because the frontend merges those params *over*
+    the samplers. Returns 0 when the configured value is unusable or absent.
+    """
+    raw = settings.get('extra_request_params')
+    if raw:
+        try:
+            extra = json.loads(raw)
+        except (ValueError, TypeError):
+            extra = None
+        if isinstance(extra, dict) and 'max_tokens' in extra:
+            try:
+                override = int(extra['max_tokens'])
+            except (TypeError, ValueError, OverflowError):
+                return 0
+            return override if override > 0 else 0
+    try:
+        # 512 is SAMPLER_DEFAULTS.sampler_max_tokens — samplers are only written to
+        # settings once saved, so an untouched install has no row here.
+        return max(0, int(settings.get('sampler_max_tokens') or 512))
+    except (TypeError, ValueError, OverflowError):
+        return 512
+
+
+def _completion_budget(settings, cap_tokens):
+    """The ``max_tokens`` for one summarizer call, or 0 to send none.
+
+    A summary run and a chat completion never overlap — sending waits for the summary
+    to finish — so the response allowance already reserved for the main connection is
+    free for the summarizer to spend, and a reasoning model needs it: thinking tokens
+    are billed against this same budget, and a cut-off reply fails the whole batch.
+
+    The cap-derived floor keeps a large configured summary workable when the main
+    connection's allowance is small. Neither number bounds the *stored* summary —
+    ``validate_append_entries`` rejects oversized entries and ``enforce_cap`` trims what
+    is kept — so this is a safety valve, and a generous one costs nothing.
+    """
+    floor = int(cap_tokens * 1.25) if cap_tokens and cap_tokens > 0 else 0
+    return max(_response_token_reserve(settings), floor)
 
 
 def _trigger_interval(settings):
@@ -289,8 +328,10 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             if require_running and row['summary_status'] != 'running':
                 raise _SummaryPaused
             if rebuild:
-                # Rebuild entirely in memory from a blank slate. Keep the old DB
-                # summary/watermark usable until every batch succeeds.
+                # Start from a blank slate rather than extending the stored summary.
+                # Checkpointing still happens per batch: a rebuild that dies at batch
+                # 18 of 20 keeps those 18 and resumes from the watermark, which matters
+                # far more than preserving a summary the user asked to replace.
                 summary_obj = {'lines': []}
                 watermark = 0
             else:
@@ -344,17 +385,16 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                 if str(message.get('content') or '').strip()
             ]
             if not visible_chunk:
-                if not rebuild:
-                    summary_obj, write_warning = _persist_summary(
-                        chat_id,
-                        summary_obj,
-                        chunk_ids[-1],
-                        cap_tokens,
-                        require_running=require_running,
-                        job_token=job_token,
-                    )
-                    if write_warning:
-                        warning = write_warning
+                summary_obj, write_warning = _persist_summary(
+                    chat_id,
+                    summary_obj,
+                    chunk_ids[-1],
+                    cap_tokens,
+                    require_running=require_running,
+                    job_token=job_token,
+                )
+                if write_warning:
+                    warning = write_warning
                 continue
 
             story_entry_tokens, bond_entry_tokens, bonds_update_tokens = (
@@ -394,25 +434,10 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             if batch_warning:
                 warning = batch_warning
 
-            if not rebuild:
-                summary_obj, write_warning = _persist_summary(
-                    chat_id,
-                    summary_obj,
-                    chunk_ids[-1],
-                    cap_tokens,
-                    require_running=require_running,
-                    job_token=job_token,
-                )
-                if write_warning:
-                    warning = write_warning
-
-        if rebuild:
-            # Publish a rebuild exactly once so a failed later batch cannot replace a
-            # complete prior summary with partial work.
             summary_obj, write_warning = _persist_summary(
                 chat_id,
                 summary_obj,
-                ids[-1],
+                chunk_ids[-1],
                 cap_tokens,
                 require_running=require_running,
                 job_token=job_token,
@@ -429,8 +454,8 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
         )
     except _SummaryPaused:
         # Pausing is an expected control path, not a failed summary. Keep the last
-        # committed checkpoint (or the complete prior state for rebuilds) and clear
-        # progress so the UI can resume cleanly when re-enabled.
+        # committed checkpoint and clear progress so the UI can resume cleanly when
+        # re-enabled.
         _set_status(
             chat_id,
             status='idle',

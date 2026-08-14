@@ -83,6 +83,20 @@ for a model that has started writing HTML into its replies by itself.
 
 See [Regex output filters](regex.md).
 
+## A summary run keeps failing
+
+If the status line shows *"cut off by its completion token limit"*, the
+summarizer's reply ran out of room. The usual cause is a reasoning model: its
+thinking is billed against the same token allowance as the summary itself.
+
+1. Raise **Max Response Tokens** in **Settings → Model and context** — the
+   summarizer borrows that allowance.
+2. Or set a non-reasoning **Auto Summaries** model. The summarizer only writes a
+   few bullets, so a small fast model suits it.
+
+Batches already folded in are kept, and the next run resumes from there. See
+[Auto Summaries](auto-summaries.md#configure).
+
 ## An update fails
 
 1. Stop Cozy.

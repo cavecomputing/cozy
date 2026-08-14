@@ -72,7 +72,8 @@ APPEND_INSTRUCTIONS = (
     "MESSAGES. Every relationship you do not output is kept exactly as it is — you never "
     "need to restate one to preserve it. Never write a placeholder such as \"not updated\", "
     "\"unchanged\", or \"no change\"; if nothing changed, simply leave that relationship "
-    "out.\n"
+    "out. If no relationship changed at all, still output the BONDS heading with no "
+    "bullets under it.\n"
     "5. A bond line is a concise CURRENT-STATE DOSSIER, not a scene log or a bare label. "
     "Keep how the two relate now, the few durable moments that still shape their behavior, "
     "what they want from each other, and anything unresolved.\n"
@@ -213,8 +214,15 @@ def parse_summarizer_output(text):
     """Validate and parse a model response in the required summary format.
 
     A transport-level success is not enough to retire chat history: the response must
-    begin with ``STORY SO FAR``, include ``BONDS``, and contain at least one summary
-    line. Reasoning blocks are discarded before validation so they never become memory.
+    begin with ``STORY SO FAR`` and contain at least one summary line. Reasoning blocks
+    are discarded before validation so they never become memory.
+
+    A missing ``BONDS`` heading is accepted rather than fatal. Rule 4 tells the model to
+    write a bond line only for a relationship that is new or that changed and forbids
+    placeholders, so a batch that moved no relationship invites it to drop the empty
+    section — failing an obedient reply stalled the run on batches where nothing about
+    the cast had changed. Omitting the section already means "no bond updates": every
+    stored bond is carried through untouched by ``append_summary``.
     """
     visible = strip_thinking_content(text)
     meaningful = [
@@ -225,8 +233,6 @@ def parse_summarizer_output(text):
         raise ValueError('Summarizer returned empty content')
     if _norm_heading(meaningful[0]) != STORY_HEADING:
         raise ValueError('Summarizer response is missing the STORY SO FAR heading')
-    if not any(_norm_heading(line) == BONDS_HEADING for line in meaningful[1:]):
-        raise ValueError('Summarizer response is missing the BONDS heading')
 
     parsed = parse_summary('\n'.join(meaningful))
     if not parsed['lines']:
