@@ -103,118 +103,123 @@ nothing is just noise. Never claim a change was verified in the app when it wasn
 
 ## Architecture
 
-Single-process Flask app. Entry point [app.py](app.py) registers eight blueprints from [routes/](routes/), all serving `/api/*`. [shared.py](shared.py) owns paths, the SQLite connection (`get_db()` context manager), `init_db()` schema + seed data, and the `DEFAULT_PROMPT_TEMPLATE`. The frontend is a single SPA loaded from [templates/index.html](templates/index.html) with vanilla-JS modules under [static/js/](static/js/) (entry: [main.js](static/js/main.js)).
+Single-process Flask app, vanilla-JS SPA, no build step. Read the module you are touching — what
+follows is the map, plus the rules the code cannot tell you on its own.
 
-Logic shared between route modules sits in top-level modules rather than inside `routes/`:
-[card_store.py](card_store.py) reads and writes character cards and is the layer routes actually
-call ([png_utils.py](png_utils.py) is the raw tEXt-chunk reader underneath it);
-[thumbs.py](thumbs.py) backs the `/thumbs/...` routes with downscaled WebP avatars, keyed by image
-content rather than card CRC and safe to delete wholesale; [summarizer.py](summarizer.py) holds the
-Auto Summaries logic, deliberately free of Flask, DB and network so both `routes/chats.py` and
-`routes/summaries.py` can import it.
+| Module | Owns |
+|---|---|
+| [app.py](app.py) | Entry point. Registers eight blueprints from [routes/](routes/) (all `/api/*`), runs `init_db()` and the seeders. |
+| [shared.py](shared.py) | Paths, `get_db()`, `init_db()` schema + seed data, the `MIGRATIONS` tuple, `DEFAULT_PROMPT_TEMPLATE`. |
+| [card_store.py](card_store.py) | Character-card reads/writes — the layer routes actually call. [png_utils.py](png_utils.py) is the raw tEXt-chunk reader beneath it. |
+| [thumbs.py](thumbs.py) | `/thumbs/...` WebP avatars, keyed by image content. Pure cache, safe to delete wholesale. |
+| [summarizer.py](summarizer.py) | Auto Summaries logic. **Keep it free of Flask, DB and network** so `routes/chats.py` and `routes/summaries.py` can both import it. |
+| [templates/index.html](templates/index.html) | The entire SPA. JS modules in [static/js/](static/js/), entry [main.js](static/js/main.js). |
 
 ### Data lives in two places
 
-Character cards are stored as **PNG files on disk** (`data/characters/*.png`) with a `chara` tEXt chunk holding base64-encoded V2 JSON — same format SillyTavern reads/writes. The SQLite `characters` table is just a lightweight index (`id`, `filename`, `crc`, `missing`, plus `pinned_at` for pin state). Routes that need card data read it from the PNG through [card_store.py](card_store.py) at request time.
+Character cards are **PNG files on disk** (`data/characters/*.png`) carrying a `chara` tEXt chunk of
+base64 V2 JSON — the format SillyTavern reads. The SQLite `characters` table is only an index, so
+card data is read back out of the PNG through [card_store.py](card_store.py) at request time.
 
-Everything else lives in `data/cozy_chat.db`: `chats`, `messages`, `message_swipes`, `personas`, `settings`, `system_prompts`, `api_presets`, `regex_presets`, `lorebooks`, and the `schema_migrations` ledger. The current schema and startup seed data are defined in `init_db()` in [shared.py](shared.py).
+Everything else is in `data/cozy_chat.db`; [docs/db.md](docs/db.md) is the schema reference.
 
 ### Bundled content is seeded once, then belongs to the user
 
-Three kinds of content ship with the repo and are copied into the user's data on startup, each by
-its own seeder called from [app.py](app.py) and each guarded by its own flag in `settings`:
+Three seeders run from [app.py](app.py), each guarded by its own `*_seeded` flag in `settings`:
+characters from [default_characters/](default_characters/), prompts from
+[default_prompts/](default_prompts/), and regex presets from `DEFAULT_REGEX_PRESETS` inline in
+[shared.py](shared.py) rather than a directory.
 
-- **Character cards** — [default_characters/](default_characters/) → `seed_default_characters()`, flag `default_characters_seeded`. Fresh installs only; upgrading must not drop a card into a library the user already curates.
-- **Prompt presets** — [default_prompts/](default_prompts/) → `seed_default_prompts()`, flag `default_prompts_seeded`.
-- **Regex presets** — `DEFAULT_REGEX_PRESETS` inline in [shared.py](shared.py) → `seed_default_regex_presets()`, flag `default_regex_seeded`. Ships *inactive*: `active_regex_preset` is deliberately left alone so bundled rules never silently rewrite replies.
+- The flag flips to `'1'` whether or not anything was inserted, and is **never reset**. A name
+  already taken is skipped rather than duplicated. **Never re-seed on a schedule.**
+- Characters seed on fresh installs only — an upgrade must not drop a card into a library the user
+  curates. Prompts and regex presets are owed to existing installs too, so their flags start at
+  `'0'` regardless of `fresh_install`.
+- Regex presets ship **inactive**: `active_regex_preset` is deliberately left alone so bundled rules
+  never silently rewrite replies.
 
-Unlike characters, the prompt and regex presets are owed to existing installs too, so their flags
-start at `'0'` regardless of `fresh_install`. The invariant is the same for all three: the flag
-flips to `'1'` whether or not anything was inserted, is never reset, and a name already taken is
-skipped rather than duplicated. From then on the content is ordinary user data — deleting a bundled
-item keeps it deleted, so **never re-seed on a schedule or reset a `*_seeded` flag**.
+Afterwards it is ordinary user data — deleting a bundled item keeps it deleted.
 
 ### Two upgrade mechanisms, not interchangeable
 
-Keep startup idempotent so calling `init_db()` repeatedly is safe.
+`init_db()` must stay idempotent.
 
-- **Adding a column** to existing databases goes in the `PRAGMA table_info` / `ALTER TABLE ADD COLUMN` block near the end of `init_db()`, guarded by a column-presence check.
-- **Changing existing rows** (rewriting a stock template, renaming, deleting a retired setting) goes in the `MIGRATIONS` tuple in [shared.py](shared.py), run by `_run_migrations()` inside the serialized transaction and recorded in `schema_migrations` so each runs exactly once. Append with the next version number and a new name: `_run_migrations()` raises if versions aren't unique and increasing, or if a recorded version's name no longer matches, so a shipped entry must never be renumbered, renamed or reordered. Migrations that touch stock prompts check for user edits first and skip customized rows.
+- **Adding a column** → the `PRAGMA table_info` / `ALTER TABLE ADD COLUMN` block near the end of
+  `init_db()`, guarded by a column-presence check.
+- **Changing existing rows** (rewriting a stock template, renaming, deleting a retired setting) →
+  the `MIGRATIONS` tuple in [shared.py](shared.py). Append with the next version and a new name; a
+  shipped entry must **never be renumbered, renamed or reordered**, because `_run_migrations()`
+  raises on versions that aren't unique and increasing or on a recorded name that no longer matches.
+  Migrations touching stock prompts check for user edits first and skip customized rows.
 
-### Prompt template system
+### Prompt templates
 
-System prompts are not plain text — they are Mustache-ish templates with `{{variable}}` and `{{#var}}…{{/var}}` conditional sections (see `DEFAULT_PROMPT_TEMPLATE` in [shared.py](shared.py)). Fresh databases seed the default template directly, with `{{system_prompt}}` left as a live variable for per-character instructions.
-
-Each saved prompt is **paired**: a `content` (system) template and a `post_history_content` template injected after the chat history (`DEFAULT_POST_HISTORY_TEMPLATE` in [shared.py](shared.py)). Both are stored on the `system_prompts` row and travel together through the import/export endpoints in [routes/settings.py](routes/settings.py).
+Mustache-ish: `{{variable}}` plus `{{#var}}…{{/var}}` conditional sections — see
+`DEFAULT_PROMPT_TEMPLATE`, which leaves `{{system_prompt}}` live so per-character instructions still
+flow through. Each saved prompt is **paired**, a `content` template and a `post_history_content`
+(`DEFAULT_POST_HISTORY_TEMPLATE`) injected after the chat history; both live on the `system_prompts`
+row and travel together through the import/export endpoints in
+[routes/settings.py](routes/settings.py).
 
 ### LLM proxy and streaming
 
-[routes/llm.py](routes/llm.py) proxies to any OpenAI-compatible endpoint configured in settings. `/api/llm/chat` always streams SSE (`text/event-stream`). Don't introduce middleware that buffers responses (this is also why `app.py` uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE — see the comment in the `__main__` block of [app.py](app.py)).
+[routes/llm.py](routes/llm.py) proxies any OpenAI-compatible endpoint, and `/api/llm/chat` always
+streams SSE — so **never introduce middleware that buffers responses**. That is also why `app.py`
+uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE.
 
 ### Regex output filters
 
-A preset is a named, ordered list of find/replace filters run over a finished character reply.
-[static/js/regex-engine.js](static/js/regex-engine.js) is the matcher, and is deliberately free of
-imports, DOM and app state: the settings preview, both save points — [send.js](static/js/send.js)
-and [messages.js](static/js/messages.js) — and the renderer all run that one copy, so what the
-preview shows is what happens. Don't add a second implementation.
+[regex-engine.js](static/js/regex-engine.js) is the one matcher, deliberately free of imports, DOM
+and app state so the settings preview, both save points ([send.js](static/js/send.js),
+[messages.js](static/js/messages.js)) and the renderer all run that same copy — which is what makes
+the preview honest. **Don't add a second implementation.**
 
-A filter's `display` flag decides *where* it runs, and it is one or the other, never both.
-`selectFilters()` splits the preset, and [regex-filters.js](static/js/regex-filters.js) wraps each
-half: `applyOutputFilters()` runs the ordinary filters at the two save points, rewriting the stored
-reply; `applyDisplayFilters()` runs the display-only ones inside `renderMarkdown()`, rewriting the
-bubble and nothing else, so `dataset.rawText`, the DB row and the next prompt keep the original.
-That render-time pass is for character messages only, and it fires on every draw of the same text —
-greetings, old messages, and each token of a stream — so it must stay free of side effects. A
-missing `display` key means the save-point half, which is what keeps presets written before the
-option existed behaving exactly as they did.
+- A filter's `display` flag decides *where* it runs, one or the other, never both. `selectFilters()`
+  splits the preset and [regex-filters.js](static/js/regex-filters.js) wraps each half:
+  `applyOutputFilters()` rewrites
+  the stored reply at the save points; `applyDisplayFilters()` rewrites only the bubble inside
+  `renderMarkdown()`, leaving `dataset.rawText`, the DB row and the next prompt untouched. A missing
+  `display` key means the save-point half, which keeps presets written before the option existed
+  behaving exactly as they did.
+- The display pass is character-messages-only and fires on **every** draw of the same text —
+  greetings, old messages, each token of a stream — so it must stay free of side effects.
+- No per-filter enable toggle by design: a filter is live when its Find pattern compiles, and
+  selecting no preset is the off switch. A half-typed pattern is normal, so `runFilters()` skips
+  that row instead of throwing mid-send, and it drops any filter that would blank the reply.
+- Find and Replace are single-line `<input>`s that silently strip CR/LF, hence `escapeForInput()`
+  out and `expandEscapes()` in — the only reason patterns holding a real newline (every bundled
+  preset has one) survive an edit round trip.
+- [routes/settings.py](routes/settings.py) keeps its own copies of the slash-form splitter and
+  control-character escaping for the `/api/regex-presets` import/export, which accept both Cozy's
+  `{name, filters}` shape and SillyTavern regex scripts. **Escaping or slash-form changes have to
+  land on the JS and Python sides together.**
 
-There is no per-filter enable toggle by design: a filter is live when its Find pattern compiles, and
-selecting no preset is how filtering is turned off. An uncompilable pattern is a normal state
-(half-typed), so `runFilters()` skips the row instead of throwing mid-send, and it also drops any
-single filter that would blank the reply outright.
-
-Both Find and Replace are single-line `<input>`s, which silently strip CR/LF — hence
-`escapeForInput()` on the way out and `expandEscapes()` on the way in. Patterns holding a real
-newline (every bundled preset does, to stop a quote swallowing the next paragraph) only survive an
-edit round trip because of that pair.
-
-[routes/settings.py](routes/settings.py) carries its own copies of the slash-form splitter and
-control-character escaping for the `/api/regex-presets` import/export endpoints, which accept both
-Cozy's `{name, filters}` shape and SillyTavern regex scripts. **Escaping or slash-form changes have
-to land on the JS and Python sides together.**
-
-Separately, [static/js/rp-dialogue.js](static/js/rp-dialogue.js) owns which quote marks count as
-speech for the `rpDialogue` marked extension in [main.js](static/js/main.js) — German `„…“`,
-guillemets and Japanese corner brackets included — and the renderer puts back the marks the reply
-actually used rather than anglicising them. Converting punctuation is the Regex tab's job, and only
-when the user asks for it.
+Separately, [rp-dialogue.js](static/js/rp-dialogue.js) owns which quote marks count as speech for
+the `rpDialogue` extension — German `„…“`, guillemets, Japanese corner brackets — and the renderer
+puts back the marks the reply actually used rather than anglicising them. Converting punctuation is
+the Regex tab's job, and only when the user asks.
 
 ### Themes
 
-CSS files in [static/themes/](static/themes/) are built-in; user-added themes live in `$DATA_DIR/themes/` and **take precedence** over built-ins with the same filename — see `serve_theme()` in [app.py](app.py). `/api/themes` returns the merged set.
+User themes in `$DATA_DIR/themes/` **take precedence** over the built-ins in
+[static/themes/](static/themes/) with the same filename — see `serve_theme()` in [app.py](app.py).
+`/api/themes` returns the merged set.
 
-### Acknowledgements appear in two places
+### Things that must change together
 
-The bundled-content acknowledgements (currently Sasha and the BigBear presets) are duplicated: the
-`## Acknowledgements` section of [README.md](README.md) and the About page in Settings
-(`data-section="about"` in [templates/index.html](templates/index.html)). **Changing an
-attribution means changing both** — the wording is meant to match. The repository-attribution
-requirement itself lives in [NOTICE](NOTICE) and is restated on the About page.
+- **Acknowledgements** (currently Sasha and the BigBear presets) appear in the `## Acknowledgements`
+  section of [README.md](README.md) *and* on the About page (`data-section="about"` in
+  [templates/index.html](templates/index.html)); the wording is meant to match, so changing an
+  attribution means changing both. The requirement itself lives in [NOTICE](NOTICE).
+- **[docs/](docs/)** is a hand-maintained user manual, so it goes stale silently.
+  [docs/db.md](docs/db.md) enumerates every table, column, index, migration and seeded default — a
+  schema change, a new migration or a new default setting is not finished until it is reflected
+  there. A user-visible feature also means checking the README feature list and the matching
+  `docs/` page.
 
-The build shown on that page comes from the current Git commit, resolved by [build_info.py](build_info.py)
-at import time and passed into the template by `index()` in [app.py](app.py). Direct checkouts read
-`.git`; Docker embeds `.cozy-commit` during its source stage. The `0.0.0` value in `pyproject.toml`
-is a permanent packaging placeholder, not an application version, and should not be bumped.
-
-### User-facing docs in docs/
-
-[docs/](docs/) is the user manual (getting started, running, data & backups, samplers, themes,
-auto-summaries, regex filters, troubleshooting, and [docs/db.md](docs/db.md)). It is prose maintained by hand, not
-generated, so it goes stale silently. [docs/db.md](docs/db.md) enumerates every table, column, index,
-migration and seeded default — a schema change, a new migration or a new default setting is not
-finished until it is reflected there. When a change adds a user-visible feature, check whether the
-README feature list and the relevant `docs/` page need it too.
+The About page's build string comes from the current Git commit via [build_info.py](build_info.py)
+(checkouts read `.git`, Docker embeds `.cozy-commit`). The `0.0.0` in `pyproject.toml` is a
+permanent packaging placeholder, not a version — never bump it.
 
 ## Testing gotchas
 
