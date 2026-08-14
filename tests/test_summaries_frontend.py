@@ -1709,6 +1709,121 @@ def test_rebuild_button_resumes_an_interrupted_run_instead_of_starting_over():
     run_node_module(code)
 
 
+def test_resume_press_is_not_swallowed_by_an_earlier_background_cancel():
+    """Cancelling a background update leaves a marker no loop was waiting to consume.
+
+    The resume path reaches consumeCancellation without calling triggerRun first, so
+    without clearing the marker on entry the first Continue press did nothing at all.
+    """
+    code = REBUILD_SETUP + r"""
+        // Cancelling explains itself with a toast, which needs a DOM.
+        globalThis.document = {
+            getElementById() { return { appendChild() {} }; },
+            createElement() {
+                return { setAttribute() {}, appendChild() {}, remove() {} };
+            },
+        };
+        let cancelClick;
+        el.summaryCancelBtn = {
+            disabled: false,
+            addEventListener(type, fn) { cancelClick = fn; },
+        };
+
+        // A post-turn background run is in flight; nothing is awaiting it.
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: 4,
+            summary: { lines: [{ section: 'story', text: 'already summarized beat' }] },
+            summary_status: 'running',
+            summary_status_detail: 'Summarizing… (batch 1/3)',
+        };
+        state.chats = [state.activeChat];
+
+        const idle = chatId => ({
+            id: chatId,
+            summary_enabled: true,
+            summary: state.activeChat.summary,
+            summary_up_to_msg_id: state.activeChat.summary_up_to_msg_id,
+            summary_status: 'idle',
+            summary_status_detail: '',
+        });
+        API.cancelSummary = async chatId => idle(chatId);
+        API.getSummaryStatus = async chatId => idle(chatId);
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            state.activeChat.summary_up_to_msg_id = options.up_to_msg_id;
+            return { ...idle(chatId), summary_up_to_msg_id: options.up_to_msg_id };
+        };
+
+        initSummaryHandlers();
+        await cancelClick();
+        await listeners.click();
+
+        assert.ok(calls.length > 0,
+            'the Continue press must not be swallowed by the stale cancel marker');
+        assert.ok(calls.every(call => call.rebuild === false),
+            'resume must never post rebuild:true');
+    """
+    run_node_module(code)
+
+
+def test_cancelling_during_a_resume_still_stops_the_loop():
+    """Clearing the stale marker on entry must not make a fresh cancel unstoppable."""
+    code = REBUILD_SETUP + r"""
+        globalThis.document = {
+            getElementById() { return { appendChild() {} }; },
+            createElement() {
+                return { setAttribute() {}, appendChild() {}, remove() {} };
+            },
+        };
+        let cancelClick;
+        el.summaryCancelBtn = {
+            disabled: false,
+            addEventListener(type, fn) { cancelClick = fn; },
+        };
+
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: 4,
+            summary: { lines: [{ section: 'story', text: 'already summarized beat' }] },
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+
+        const idle = chatId => ({
+            id: chatId,
+            summary_enabled: true,
+            summary: state.activeChat.summary,
+            summary_up_to_msg_id: state.activeChat.summary_up_to_msg_id,
+            summary_status: 'idle',
+            summary_status_detail: '',
+        });
+        API.cancelSummary = async chatId => idle(chatId);
+        API.getSummaryStatus = async chatId => idle(chatId);
+
+        let runs = 0;
+        API.runSummary = async (chatId, options) => {
+            runs += 1;
+            // The user hits Cancel while this batch is in flight. The watermark
+            // deliberately does not advance, so only the cancel can end the loop.
+            state.activeChat.summary_status = 'running';
+            await cancelClick();
+            return idle(chatId);
+        };
+
+        initSummaryHandlers();
+        await listeners.click();
+
+        // One batch attempted, then the cancel stopped it — not a stall-guard bailout.
+        assert.equal(runs, 1, 'the cancel must stop the resume loop at the next batch');
+    """
+    run_node_module(code)
+
+
 def test_rebuild_button_still_starts_over_when_the_summary_is_empty():
     """With nothing banked there is nothing to resume, so it must rebuild properly."""
     code = REBUILD_SETUP + r"""

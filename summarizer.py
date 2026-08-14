@@ -490,8 +490,8 @@ def enforce_cap(obj, cap_tokens):
             warning = 'The summary model exceeded the size cap; its last entry was shortened.'
         return obj, warning
 
-    if not fits():
-        warning = 'The summary cannot fit the configured size cap without becoming empty.'
+    # Reaching here means the section floors above stopped the trim before it fit.
+    warning = 'The summary cannot fit the configured size cap without becoming empty.'
     return obj, warning
 
 

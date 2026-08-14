@@ -599,6 +599,11 @@ async function rebuildSummary() {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
     const chatId = chat.id;
+    // Pressing the button is a deliberate run, so it supersedes an earlier cancel the
+    // same way triggerRun does. Cancelling a background update leaves a marker no loop
+    // was waiting to consume, and the resume path below reaches consumeCancellation
+    // without calling triggerRun first — without this the first press is swallowed.
+    cancelledRuns.delete(chatId);
     let resuming = false;
     try {
         // A run already in flight would swallow this click through triggerRun's

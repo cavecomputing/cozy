@@ -1084,7 +1084,7 @@ def test_disable_reenable_new_run_cannot_revive_old_worker(
     message_id = _add_messages(client, cid, 1)[0]
     spawned_tokens = []
 
-    def capture_spawn(chat_id, up_to_msg_id, rebuild, job_token, compress_only=False):
+    def capture_spawn(chat_id, up_to_msg_id, rebuild, job_token):
         assert chat_id == cid and up_to_msg_id == message_id
         spawned_tokens.append(job_token)
 

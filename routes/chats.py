@@ -21,8 +21,8 @@ def chat_to_dict(row):
     d['lorebook_notice_dismissed'] = bool(d.get('lorebook_notice_dismissed') or 0)
     if 'summary_enabled' in d:
         d['summary_enabled'] = bool(d.get('summary_enabled') or 0)
-        # Expose a structured companion to the stored JSON. Clients edit pins through
-        # the dedicated summary endpoint; generic chat updates never accept this field.
+        # Expose a structured companion to the stored JSON. The summary is written by
+        # the background worker alone; generic chat updates never accept this field.
         d['summary'] = parse_summary_json(d.get('summary_json'))
     return d
 
@@ -298,7 +298,7 @@ def update_chat(chat_id):
 
     with get_db() as conn:
         # Do not load the generated summary into this read/modify/write path. Summary
-        # content is worker-owned; pins have their own narrow atomic endpoint.
+        # content is worker-owned and has its own endpoints under /summary.
         row = conn.execute(
             'SELECT id, name, active_lorebook_id, active_lorebook_embedded, '
             'lorebook_notice_dismissed, author_note, summary_enabled '
@@ -309,7 +309,8 @@ def update_chat(chat_id):
             return not_found('Chat')
         if 'summary_json' in data:
             return jsonify({
-                'error': 'summary_json is server-managed; use the summary pin endpoint',
+                'error': 'summary_json is server-managed; use the summary run and '
+                         'reset endpoints',
             }), 400
 
         updates = []
@@ -379,7 +380,7 @@ def update_chat(chat_id):
             updates.append('persona_id=?')
             params.append(new_persona)
 
-        # The generic chat patch may toggle enablement, but generated content, pins,
+        # The generic chat patch may toggle enablement, but generated content,
         # watermark, and job status remain server-managed.
         if 'summary_enabled' in data:
             updates.append('summary_enabled=?')

@@ -174,11 +174,6 @@ def _trigger_interval(settings):
         return 10
 
 
-def _fit_summary_candidate(candidate, cap_tokens):
-    """Enforce the configured cap locally without making a second provider call."""
-    return enforce_cap(candidate, cap_tokens)
-
-
 # ── Job status helpers ──────────────────────────────────────────────────────
 
 class _SummaryPaused(Exception):
@@ -430,13 +425,11 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             candidate = append_summary(
                 summary_obj, parsed, msg_range=(chunk_ids[0], chunk_ids[-1])
             )
-            summary_obj, batch_warning = _fit_summary_candidate(candidate, cap_tokens)
-            if batch_warning:
-                warning = batch_warning
-
+            # _persist_summary enforces the cap on the way to disk and hands back what
+            # it stored, so the running object is trimmed exactly once per batch.
             summary_obj, write_warning = _persist_summary(
                 chat_id,
-                summary_obj,
+                candidate,
                 chunk_ids[-1],
                 cap_tokens,
                 require_running=require_running,
