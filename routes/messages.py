@@ -56,11 +56,18 @@ def fork_chat(chat_id):
 
         name = datetime.now().strftime('%b %d %H:%M:%S')
 
+        # A fork continues the same conversation, so per-chat settings come with it.
+        # The Author's Note especially: it is user-written text the docs point at for
+        # anything that must always be remembered, and losing it here was silent.
+        # Summary state deliberately does not carry over — the copies get new message
+        # ids, so the watermark and each entry's range would need remapping, and an
+        # unremapped watermark is exactly how history gets retired wrongly.
         cur = conn.execute(
-            'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded, persona_id) '
-            'VALUES (?,?,?,?,?)',
+            'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded, '
+            'lorebook_notice_dismissed, author_note, persona_id) '
+            'VALUES (?,?,?,?,?,?,?)',
             (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'],
-             chat['persona_id'])
+             chat['lorebook_notice_dismissed'], chat['author_note'], chat['persona_id'])
         )
         new_chat_id = cur.lastrowid
 

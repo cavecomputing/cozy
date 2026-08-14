@@ -756,6 +756,36 @@ class TestFork:
         assert msgs[1]['content'] == 'Hey!'
         assert len(msgs[1]['swipes']) == 2
 
+    def test_fork_carries_per_chat_settings(self, client, sample_chat):
+        """A fork continues the same conversation, so its settings come with it.
+
+        The Author's Note is the one that bit: user-written text the docs point at
+        for anything that must always be remembered, silently dropped by the fork.
+        """
+        chat_id = sample_chat['id']
+        client.put(f'/api/chats/{chat_id}', json={
+            'author_note': 'ALWAYS: the ship is named Kestrel.',
+            'lorebook_notice_dismissed': True,
+        })
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Hello',
+        }).get_json()
+
+        forked = client.post(
+            f'/api/chats/{chat_id}/fork?message_id={msg["id"]}'
+        ).get_json()
+
+        listed = client.get(
+            f'/api/characters/{sample_chat["character_id"]}/chats'
+        ).get_json()
+        new_chat = next(c for c in listed if c['id'] == forked['id'])
+        assert new_chat['author_note'] == 'ALWAYS: the ship is named Kestrel.'
+        assert new_chat['lorebook_notice_dismissed'] is True
+        # Summary state deliberately does not carry: the copies have new message
+        # ids, so an unremapped watermark would retire the wrong history.
+        assert not new_chat['summary_enabled']
+        assert new_chat['summary_up_to_msg_id'] is None
+
     def test_fork_on_last_message(self, client, sample_chat):
         chat_id = sample_chat['id']
         m1 = client.post(f'/api/chats/{chat_id}/messages', json={
