@@ -160,9 +160,10 @@ uv run pytest
 ```
 
 Node.js must be available on `PATH` for the tests that exercise Cozy's frontend
-JavaScript — currently eight files, covering the request builder, the regex
+JavaScript — currently eleven files, covering the request builder, the regex
 engine and bundled regex presets, dialogue matching, avatars, summaries,
-thinking blocks, stop-mid-reply handling, and the context meter.
+thinking blocks, the send flow, stop-mid-reply handling, storage stats, and the
+context meter.
 
 Without Node.js those tests are **skipped rather than failed**, so a run that
 reports success on a machine without Node.js has covered none of that

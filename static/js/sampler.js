@@ -32,7 +32,7 @@ export const SAMPLER_DEFAULTS = {
 
 // `sampler_max_tokens` stays in these field maps (so it loads, saves, and is
 // always sent in the payload) but is deliberately absent from SAMPLER_GROUPS —
-// it's surfaced as "Max Response Tokens" in the Model and context settings card,
+// it's surfaced as "Max Response Tokens" in the Context & Generation settings card,
 // not as a toggleable sampler. With no group, buildChatPayload always includes
 // it (FIELD_TO_GROUP lookup is undefined → never skipped).
 export const SAMPLER_FIELDS = {

@@ -201,6 +201,6 @@ README feature list and the relevant `docs/` page need it too.
 
 When creating a character in tests, use `make_minimal_png()` from [png_utils.py](png_utils.py) — anything smaller is rejected by Pillow.
 
-Eight test files exercise frontend modules by shelling out to `node`: `test_request_builder.py`, `test_regex_engine.py`, `test_rp_dialogue.py`, `test_default_regex.py`, and the four `test_*_frontend.py` files. Every one of them **skips** (not fails) when `node` isn't on PATH, so a green run on a machine without Node is covering none of that JS — check for skips before trusting a pass.
+Eleven test files exercise frontend modules by shelling out to `node`: `test_request_builder.py`, `test_regex_engine.py`, `test_rp_dialogue.py`, `test_default_regex.py`, and the seven `test_*_frontend.py` files. Every one of them **skips** (not fails) when `node` isn't on PATH, so a green run on a machine without Node is covering none of that JS — check for skips before trusting a pass.
 
 That testability is why [regex-engine.js](static/js/regex-engine.js) and [rp-dialogue.js](static/js/rp-dialogue.js) exist as separate modules at all. Frontend logic that needs coverage has to be importable under bare `node`: no `./state.js`, no DOM, and no CDN globals such as `marked`. Put new pure logic in its own module and keep the DOM wiring in the caller.

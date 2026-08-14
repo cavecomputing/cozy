@@ -42,8 +42,8 @@ On a reasoning model such as Gemini Flash or a local QwQ build, the thinking
 tokens are spent out of that same allowance before a single word of the summary
 is written, so a low Max Response Tokens can cut the reply off mid-summary. If
 runs keep failing with *"cut off by its completion token limit"*, raise **Max
-Response Tokens** in **Settings → Model and context**, or point the summarizer at
-a non-reasoning model — it only has to write a few bullets.
+Response Tokens** in **Settings → API → Context & Generation**, or point the
+summarizer at a non-reasoning model — it only has to write a few bullets.
 
 ## Growing and rolling off
 
