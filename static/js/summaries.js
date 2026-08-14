@@ -119,8 +119,40 @@ function agedOutMessages(excludeLastN = 0, options = {}) {
 const UNTRUSTED_WINDOW_TOAST = 'Memory update skipped: the context measurement '
     + 'contradicts itself (details in the browser console). Chat history was not touched.';
 
+// Naming the setting matters: the cause is a value the user typed, not a measurement
+// fault, and the generic toast above would send them looking for the wrong thing.
+const UNSATISFIABLE_BUDGET_TOAST = 'Memory update skipped: Max Response Tokens is at or '
+    + 'above Max Context Tokens, so no chat history can fit. Lower it in Settings → API → '
+    + 'Context & Generation. Chat history was not touched.';
+
+/**
+ * True when the reply reserve alone consumes the whole context window.
+ *
+ * Nothing about the *measurement* is wrong here — the arithmetic is simply
+ * unsatisfiable, because `maxTokens - responseTokens` is zero or negative before a
+ * single message is considered. No amount of trimming can make such a request fit, so
+ * every message reads as aged out and the whole transcript would be retired into the
+ * summary to no benefit. Separate from the self-contradiction test below, which looks
+ * for *leftover* space; this failure mode pins `unusedTokens` to exactly 0 and is
+ * invisible to it.
+ */
+function budgetUnsatisfiable(analysis) {
+    return !!analysis && analysis.maxTokens > 0
+        && analysis.responseTokens >= analysis.maxTokens;
+}
+
 export function untrustedContextAssessment({ candidates, agedOut, analysis }, label) {
     if (!analysis || agedOut.length === 0 || analysis.maxTokens <= 0) return false;
+    if (budgetUnsatisfiable(analysis)) {
+        console.warn(
+            `Cozy: ${label} refused — Max Response Tokens (${analysis.responseTokens}) is at or `
+            + `above Max Context Tokens (${analysis.maxTokens}), so the reply reserve alone fills `
+            + `the window and all ${candidates.length} messages measure as aged out. Retiring `
+            + 'history cannot make a request of this shape fit.',
+            { maxTokens: analysis.maxTokens, responseTokens: analysis.responseTokens },
+        );
+        return true;
+    }
     const nextMessage = agedOut[agedOut.length - 1];
     if (!nextMessage) return false;
     const nextCost = estimateMessageTokens(
@@ -148,8 +180,13 @@ export function untrustedContextAssessment({ candidates, agedOut, analysis }, la
     return true;
 }
 
+/** The toast to show for a measurement that must not be acted on, or '' to proceed. */
 function windowMeasurementUntrusted(excludeLastN, label, options = {}) {
-    return untrustedContextAssessment(windowAssessment(excludeLastN, options), label);
+    const assessment = windowAssessment(excludeLastN, options);
+    if (!untrustedContextAssessment(assessment, label)) return '';
+    return budgetUnsatisfiable(assessment.analysis)
+        ? UNSATISFIABLE_BUDGET_TOAST
+        : UNTRUSTED_WINDOW_TOAST;
 }
 
 function agedOutUnsummarized(excludeLastN = 0) {
@@ -466,8 +503,9 @@ export async function ensureSummaryReadyForSend(signal, {
     if (agedOutUnsummarized(excludeLastN).length === 0) return;
     // A refused (self-contradictory) measurement must not stall the send:
     // proceed without updating memory rather than retiring history wrongly.
-    if (windowMeasurementUntrusted(excludeLastN, 'pre-send memory update')) {
-        showToast(UNTRUSTED_WINDOW_TOAST);
+    const refusal = windowMeasurementUntrusted(excludeLastN, 'pre-send memory update');
+    if (refusal) {
+        showToast(refusal);
         return;
     }
     if (!summarizerConfigured()) {
@@ -527,8 +565,9 @@ export function maybeTriggerSummary() {
     if (chat.summary_status === 'running') return;
     if (!summarizerConfigured()) return;
     if (agedOutUnsummarized().length === 0) return;
-    if (windowMeasurementUntrusted(0, 'automatic memory update')) {
-        showToast(UNTRUSTED_WINDOW_TOAST);
+    const refusal = windowMeasurementUntrusted(0, 'automatic memory update');
+    if (refusal) {
+        showToast(refusal);
         return;
     }
     return triggerRun({ chatId: chat.id });
@@ -624,8 +663,11 @@ async function rebuildSummary() {
             // A rebuild recomputes the boundary over the full transcript; refuse it
             // outright on a self-contradictory measurement instead of rewriting the
             // watermark from bad numbers.
-            if (windowMeasurementUntrusted(0, 'summary rebuild', { includeSummarized: true })) {
-                showToast(UNTRUSTED_WINDOW_TOAST);
+            const refusal = windowMeasurementUntrusted(
+                0, 'summary rebuild', { includeSummarized: true },
+            );
+            if (refusal) {
+                showToast(refusal);
                 return;
             }
             await triggerRun({ rebuild: true, awaitCompletion: true, chatId });

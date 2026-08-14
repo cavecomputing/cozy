@@ -336,12 +336,12 @@ def test_untrusted_assessment_matrix():
 
         console.warn = () => {};
         const msg = tokens => ({ id: 1, role: 'user', text: 'x'.repeat(tokens * 4) });
-        const assess = (maxTokens, unusedTokens, nextTokens, aged = 10) => ({
+        const assess = (maxTokens, unusedTokens, nextTokens, aged = 10, responseTokens = 0) => ({
             candidates: Array.from({ length: aged + 3 }, () => msg(10)),
             agedOut: [...Array.from({ length: aged - 1 }, () => msg(10)), msg(nextTokens)],
             analysis: {
                 maxTokens, unusedTokens,
-                responseTokens: 0, promptTokens: maxTokens - unusedTokens,
+                responseTokens, promptTokens: maxTokens - unusedTokens,
                 selectedMessages: [], firstSelectedMessageId: null, segments: [],
             },
         });
@@ -357,6 +357,65 @@ def test_untrusted_assessment_matrix():
         // Nothing aged out -> nothing to distrust.
         assert.equal(untrustedContextAssessment(
             { candidates: [], agedOut: [], analysis: null }, 't'), false);
+
+        // Unsatisfiable budget: the reply reserve alone fills the window, so
+        // unusedTokens is pinned at 0 and the self-contradiction test above can
+        // never fire. Refusing is the only thing protecting the transcript.
+        assert.equal(untrustedContextAssessment(assess(8000, 0, 34, 10, 8000), 't'), true);
+        assert.equal(untrustedContextAssessment(assess(8000, 0, 34, 10, 16000), 't'), true);
+        // A large but satisfiable reserve is ordinary pressure, not a refusal.
+        assert.equal(untrustedContextAssessment(assess(8000, 6, 34, 10, 7000), 't'), false);
+        // An unlimited window (maxTokens 0) has no reserve to exceed.
+        assert.equal(untrustedContextAssessment(assess(0, 0, 34, 10, 8000), 't'), false);
+    """
+    run_node_module(code)
+
+
+def test_unsatisfiable_reserve_never_retires_history():
+    """Max Response Tokens >= Max Context Tokens must not summarize the chat away.
+
+    The reserve alone fills the window, so every message measures as aged out while
+    unusedTokens sits at exactly 0 — invisible to the self-contradiction guard. Without
+    an explicit refusal the whole transcript drains into the summary, one batch a turn.
+    """
+    code = BASE_SETUP + r"""
+        // showToast needs a DOM.
+        globalThis.document = {
+            getElementById() { return { appendChild() {} }; },
+            createElement() {
+                return { setAttribute() {}, appendChild() {}, remove() {} };
+            },
+        };
+        const warnings = [];
+        console.warn = (...args) => warnings.push(String(args[0]));
+
+        state.summaryApiEndpoint = 'http://summary.example/v1';
+        state.summaryApiModel = 'summary-model';
+        state.messages = Array.from({ length: 40 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i} ` + 'lorem ipsum dolor sit amet '.repeat(4),
+        }));
+        // The reserve equals the whole window.
+        el.settingsContextTokens.value = '8000';
+        el.samplerMaxTokens.value = '8000';
+
+        let runs = 0;
+        API.runSummary = async () => { runs += 1; return null; };
+
+        await maybeTriggerSummary();
+        assert.equal(runs, 0, 'no history may be retired on an unsatisfiable budget');
+        assert.ok(
+            warnings.some(w => w.includes('Max Response Tokens')),
+            'the refusal must name the setting that caused it',
+        );
+
+        // Same chat, same pressure, reserve one token below the window: still tight
+        // enough that history ages out, but now satisfiable, so it must summarize.
+        // This pins the refusal to the boundary rather than to "the window is small".
+        el.samplerMaxTokens.value = '7000';
+        await maybeTriggerSummary();
+        assert.equal(runs, 1, 'a satisfiable budget must still summarize');
     """
     run_node_module(code)
 
