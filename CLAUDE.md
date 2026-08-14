@@ -16,13 +16,18 @@ When a commit *is* requested: commit directly to `main`, since this project uses
 or PRs. Only include files belonging to the task — leave unrelated pre-existing changes and stray
 untracked files alone.
 
+**One commit, one concern.** A commit has to be reviewable on its own and safe to revert on its own,
+so split unrelated work rather than bundling it: a bug fix and a docs correction that happened to
+land in the same session are two commits. Size is not the test — a change that genuinely touches
+twenty files is still one commit if it is one concern. Say in the message what broke and why the fix
+works, not just what you typed.
+
 **Never push.** The user always pushes themselves. Commit locally and stop there — do not run
 `git push`.
 
-[AGENTS.md](AGENTS.md) is a byte-identical copy of this file, kept in sync so non-Claude agents read
-the same guidance. **Every edit to CLAUDE.md must be duplicated verbatim into AGENTS.md right
-away**, in the same turn — never leave the working tree with the two out of step. `diff CLAUDE.md
-AGENTS.md` should stay silent.
+[AGENTS.md](AGENTS.md) is a short pointer telling other agents to read this file, not a copy of it.
+This file is the single source of truth: **edit it directly and leave AGENTS.md alone** unless the
+arrangement itself changes.
 
 ## Least code that does the job
 
@@ -41,9 +46,25 @@ single-process app, and it stays approachable only while changes stay small.
 - Deleting code is a legitimate way to finish a task. Say so when the fix turns out to be a removal.
 
 This governs the amount of code, not the amount of work. Deliver everything that was asked, run the
-verification the change calls for, and keep the duplication this file deliberately requires —
-CLAUDE.md/AGENTS.md, the JS and Python copies of the regex escaping, the two acknowledgement
-locations.
+verification the change calls for, and keep the duplication this file deliberately requires — the JS
+and Python copies of the regex escaping, the two acknowledgement locations.
+
+## Naming
+
+A name is the cheapest documentation in the file. Make it a concise nameplate for what the thing is
+or does — long enough to be unambiguous where it is *used*, short enough to read at a glance.
+
+- Prefer the specific noun to the category: `watermark`, `agedOut`, `chunk_ids` over `value`,
+  `data`, `items`.
+- Name a function for what it returns or does, not how it works — `oldestRetirableId()`,
+  `summariesActive()`, `enforce_cap()`.
+- Don't encode the type or the scope in the name (`summaryObjDict`, `tmpList`), and don't abbreviate
+  past recognition (`sm_cap_tk`).
+- Follow the module you are editing — `snake_case` in Python, `camelCase` in JS — over any
+  preference of your own.
+
+Renaming existing code is its own task. Don't fold a rename into an unrelated change, where it
+buries the real diff under noise.
 
 ## Run / test
 
