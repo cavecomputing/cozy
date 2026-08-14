@@ -1043,9 +1043,11 @@ def test_enabling_summaries_drains_the_whole_existing_backlog_in_batches():
         initSummaryHandlers();
         await listeners.change();
 
-        assert.ok(targets.length > 1, 'enable should drain more than the first batch');
-        assert.deepEqual(targets.slice(0, 3), [10, 20, 30]);
-        assert.equal(state.activeChat.summary_up_to_msg_id, targets.at(-1));
+        // One server job owns the full known backlog. Its worker divides this target into
+        // configured-size provider calls and can therefore report batch 1/N, 2/N, ….
+        assert.equal(targets.length, 1);
+        assert.ok(targets[0] > 10, 'catch-up should target more than the first batch');
+        assert.equal(state.activeChat.summary_up_to_msg_id, targets[0]);
     """
     run_node_module(code)
 

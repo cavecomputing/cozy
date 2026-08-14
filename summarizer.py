@@ -32,6 +32,13 @@ BONDS_HEADING = 'BONDS'
 STORY_CAP_FRACTION = 0.6
 BONDS_CAP_FRACTION = 0.4
 
+# A batch entry is a compact delta, not permission to consume its whole section. These
+# ceilings keep a normal-sized summary useful across many batches; the proportional
+# floors below scale them down further when the configured summary cap is small.
+STORY_ENTRY_MAX_TOKENS = 240
+BOND_ENTRY_MAX_TOKENS = 120
+BONDS_UPDATE_MAX_TOKENS = 360
+
 THINKING_TAG_PAIRS = (
     ('<think>', '</think>'),
     ('<thinking>', '</thinking>'),
@@ -56,23 +63,23 @@ APPEND_INSTRUCTIONS = (
     "2. STORY SO FAR is ADDITIVE. Do NOT repeat, reword, reorder, or compress the "
     "existing story lines — the system keeps them exactly as they are. Your one line "
     "covers only the new messages.\n"
-    "3. PRESERVE THE WHY, NOT JUST THE WHAT — several sentences keeping motivation, "
-    "emotional stakes, and circumstances, not a hollow one-liner.\n\n"
+    "3. Write compact memory, not scene prose. Keep only durable events, decisions, "
+    "discoveries, promises, injuries, possessions, locations, emotional changes, and "
+    "unresolved objectives. Omit dialogue recap, atmosphere, repetition, and decorative "
+    "detail. Obey the story-entry token limit in the request.\n\n"
     "BONDS RULES:\n"
     "4. Output a line ONLY for a relationship that is NEW or that CHANGED in the NEW "
     "MESSAGES. Every relationship you do not output is kept exactly as it is — you never "
     "need to restate one to preserve it. Never write a placeholder such as \"not updated\", "
     "\"unchanged\", or \"no change\"; if nothing changed, simply leave that relationship "
     "out.\n"
-    "5. A bond line is an EVOLVING DOSSIER, not a status label. Write several plain "
-    "sentences covering how the two know each other, the specific moments that shaped it, "
-    "what they want from each other now, and anything unresolved between them. Never reduce "
-    "a relationship to a bare event or label like \"First meeting\", \"Killed\", or "
-    "\"Protective bond\".\n"
-    "6. When you output a relationship that already exists, REPRODUCE ITS EXISTING TEXT and "
-    "weave the new development into it. Keep every specific already recorded — names, "
-    "injuries, promises, debts, betrayals. The dossier should get longer and richer as the "
-    "story advances. Losing detail that was already written down is a failure.\n"
+    "5. A bond line is a concise CURRENT-STATE DOSSIER, not a scene log or a bare label. "
+    "Keep how the two relate now, the few durable moments that still shape their behavior, "
+    "what they want from each other, and anything unresolved.\n"
+    "6. When an existing relationship changes, rewrite its dossier within the bond-entry "
+    "token limit in the request. Preserve durable specifics such as active promises, debts, "
+    "injuries, and betrayals, but remove repetition and details that are resolved or no "
+    "longer affect the relationship. A dossier must not grow without bound.\n"
     "7. Begin each bond line with the two names exactly as they appear in CURRENT BONDS, "
     "followed by a colon, so the entry is recognised as the same relationship: "
     "\"- Name and Name: …\". Keep the whole dossier on ONE line.\n"
@@ -335,6 +342,65 @@ def section_cap(cap_tokens, section):
     return max(1, int(cap_tokens * fraction))
 
 
+def append_token_limits(cap_tokens):
+    """Return ``(story_entry, bond_entry, bonds_update)`` token ceilings.
+
+    The fixed ceilings keep large-context models from writing novella-sized deltas. For a
+    small configured summary, proportional limits preserve room for roughly eight story
+    entries instead of letting the first one occupy most of the rolling window.
+    """
+    story_section = section_cap(cap_tokens, 'story')
+    bonds_section = section_cap(cap_tokens, 'bonds')
+    if not story_section or not bonds_section:
+        return STORY_ENTRY_MAX_TOKENS, BOND_ENTRY_MAX_TOKENS, BONDS_UPDATE_MAX_TOKENS
+
+    story_entry = min(
+        story_section,
+        max(48, min(STORY_ENTRY_MAX_TOKENS, story_section // 8)),
+    )
+    bond_entry = min(
+        bonds_section,
+        max(32, min(BOND_ENTRY_MAX_TOKENS, bonds_section // 8)),
+    )
+    bonds_update = min(
+        bonds_section,
+        max(bond_entry, min(BONDS_UPDATE_MAX_TOKENS, bonds_section // 3)),
+    )
+    return story_entry, bond_entry, bonds_update
+
+
+def validate_append_entries(obj, story_entry_tokens, bond_entry_tokens,
+                            bonds_update_tokens):
+    """Reject a model delta that could monopolize the rolling summary.
+
+    Validation happens before the worker advances its watermark, so a verbose response
+    cannot evict older entries and then claim that its source messages were remembered.
+    """
+    story = section_lines(obj, 'story')
+    bonds = section_lines(obj, 'bonds')
+    for line in story:
+        tokens = estimate_tokens(line.get('text', ''))
+        if tokens > story_entry_tokens:
+            raise ValueError(
+                f'Summarizer story entry used about {tokens} tokens; '
+                f'the per-batch limit is {story_entry_tokens}'
+            )
+    for line in bonds:
+        tokens = estimate_tokens(line.get('text', ''))
+        if tokens > bond_entry_tokens:
+            raise ValueError(
+                f'Summarizer bond entry used about {tokens} tokens; '
+                f'the per-bond limit is {bond_entry_tokens}'
+            )
+    bonds_tokens = estimate_tokens('\n'.join(line.get('text', '') for line in bonds))
+    if bonds_tokens > bonds_update_tokens:
+        raise ValueError(
+            f'Summarizer bond updates used about {bonds_tokens} tokens; '
+            f'the per-batch limit is {bonds_update_tokens}'
+        )
+    return obj
+
+
 def enforce_cap(obj, cap_tokens):
     """Trim the summary so each section fits its own share of ``cap_tokens``.
 
@@ -423,34 +489,31 @@ def enforce_cap(obj, cap_tokens):
     return obj, warning
 
 
-def build_append_messages(story_text, bonds_text, batch_messages, bonds_cap_tokens):
+def build_append_messages(story_text, bonds_text, batch_messages, story_entry_tokens,
+                          bond_entry_tokens, bonds_update_tokens):
     """Assemble the ``messages`` array for one *additive* fold-in call.
 
     The model returns one new STORY entry plus the relationships that are new or that
     changed; the worker keeps every existing story line and every untouched bond verbatim.
 
     The two sections are shown as separate blocks so the model can tell what it is being
-    asked to extend from what it must not touch, and the token budget quoted here is the
-    BONDS budget alone. Quoting the *whole* summary's budget while forbidding story edits
-    is what made BONDS the only text the model could shrink.
+    asked to extend from what it must not touch. The quoted budgets cover only this batch's
+    delta, never the whole stored summary.
     """
     convo = []
     for msg in batch_messages:
         who = 'User' if msg.get('role') == 'user' else 'Character'
         convo.append(f"{who}: {msg.get('content', '')}")
     convo_text = '\n\n'.join(convo)
-    budget = (
-        f"under {bonds_cap_tokens}"
-        if bonds_cap_tokens and bonds_cap_tokens > 0 else "within the given"
-    )
     user = (
         f"CURRENT STORY:\n{story_text or '(empty — this is the first batch)'}\n\n"
         f"CURRENT BONDS:\n{bonds_text or '(none yet)'}\n\n"
         f"NEW MESSAGES TO FOLD IN:\n{convo_text}\n\n"
-        f"Write exactly ONE new story entry covering what happens in the new messages, and "
-        f"output a BONDS line only for each relationship that is new or that changed. Do NOT "
-        f"rewrite or compress the existing story lines. Keep the whole BONDS section "
-        f"{budget} tokens."
+        f"Write exactly ONE new story entry covering what happens in the new messages, "
+        f"using at most {story_entry_tokens} tokens. Output a BONDS line only for each "
+        f"relationship that is new or that changed. Each bond line may use at most "
+        f"{bond_entry_tokens} tokens, and all BONDS updates together may use at most "
+        f"{bonds_update_tokens} tokens. Do NOT rewrite or compress the existing story lines."
     )
     return [
         {'role': 'system', 'content': APPEND_INSTRUCTIONS},

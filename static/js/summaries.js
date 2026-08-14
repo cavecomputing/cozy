@@ -482,7 +482,17 @@ export async function ensureSummaryReadyForSend(signal, {
         if (!summariesActive(state.activeChat)) return;
         if (agedOutUnsummarized(excludeLastN).length === 0) return;
 
-        await triggerRun({ awaitCompletion: true, chatId, signal, excludeLastN });
+        // Submit the whole backlog currently outside the window as one server job. The
+        // worker still calls the provider in configured-size chunks, but status can now
+        // report meaningful cumulative progress (batch 1/12, 2/12, …) instead of a
+        // client-side procession of unrelated batch 1/1 jobs.
+        await triggerRun({
+            awaitCompletion: true,
+            chatId,
+            signal,
+            excludeLastN,
+            exactTarget: true,
+        });
         assertSendStillActive(chatId, signal);
         if (!summariesActive(state.activeChat)) return;
         // Cancelling the run this send was waiting on abandons the send too. Continuing

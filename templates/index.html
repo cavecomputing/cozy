@@ -657,7 +657,7 @@
                                     <label class="settings-row-label" for="settings-summary-interval">Batch size (messages)</label>
                                     <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="10">
                                 </div>
-                                <p class="settings-hint">When history first falls outside the context window, Cozy folds exactly this many of the oldest messages into the summary and drops them from the raw transcript. User and character messages each count as one. Each batch becomes exactly <strong>one</strong> summary entry, so a larger batch means fewer, denser entries — more history remembered per token, but a bigger drop in verbatim history each time.</p>
+                                <p class="settings-hint">When history first falls outside the context window, Cozy folds this many messages at a time. User and character messages each count as one. Each batch becomes exactly <strong>one compact</strong> summary entry. Catching up several batches is shown as one run with overall progress, such as batch 1/12.</p>
                             </section>
                         </div>
                     </div>

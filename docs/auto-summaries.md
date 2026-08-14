@@ -15,13 +15,15 @@ model blank to use the matching main connection value.
 Settings:
 
 - **Size cap:** Maximum summary size as a percentage of the context window.
-- **Batch size:** How many of the oldest messages Cozy folds into the summary in
-  one update. Each batch becomes exactly **one** summary entry.
+- **Batch size:** How many messages Cozy folds into each summary entry. Each
+  batch becomes exactly **one compact** story entry.
 
 Cozy does not summarize while everything still fits. Once the oldest message no
-longer fits, it summarizes exactly one batch and drops those messages from the
-raw transcript. One user or character message counts as one message, whatever
-its length.
+longer fits, a normal background update summarizes one batch and drops those
+messages from the raw transcript. When several batches already need attention,
+Cozy submits them as one catch-up run and shows overall progress such as
+**batch 1/12**, **batch 2/12**, and so on. One user or character message counts
+as one message, whatever its length.
 
 Batch size is the whole contract: 10 messages in, one entry out. A larger batch
 means fewer, denser entries — more history remembered per token of summary, but
@@ -39,6 +41,11 @@ story and leaves every existing entry untouched, so nothing you have already rea
 is silently rewritten. Entries are kept in chronological order, oldest first, and
 the summary tells the model so.
 
+A story entry uses at most about 240 tokens, and smaller summary caps scale that
+limit down to preserve room for several entries. If a summarizer ignores the
+limit, Cozy rejects that batch without advancing its message marker or evicting
+older memory.
+
 Each story entry is labelled with the messages it covers, so you can see exactly
 what any line came from.
 
@@ -54,9 +61,11 @@ established in chapter one — write it in the **Author's Note** above the summa
 card. The Author's Note is sent verbatim on every request and never rolls off.
 
 Relationships are tracked separately under **Bonds**, which are updated in place
-as they develop rather than appended to the timeline. When bonds run out of room,
-the most recently opened one is dropped first, on the reasoning that a long-running
-relationship carries more history than one opened a batch ago.
+as they develop rather than appended to the timeline. Each changed relationship
+is a concise current-state dossier, normally capped at about 120 tokens, rather
+than an indefinitely growing log. When bonds run out of room, the most recently
+opened one is dropped first, on the reasoning that a long-running relationship
+carries more history than one opened a batch ago.
 
 ## Enable for a chat
 
@@ -64,9 +73,9 @@ relationship carries more history than one opened a batch ago.
 2. Open the memory panel beside the chat input.
 3. Enable **Auto Summary**.
 
-All existing old messages are processed in sequential batches as soon as Auto
-Summary is enabled. Sending a new message may wait for an active update so that
-no old history is skipped.
+All existing old messages are processed in one visible, sequentially numbered
+catch-up run as soon as Auto Summary is enabled. Sending a new message may wait
+for an active update so that no old history is skipped.
 
 ## Stop, rebuild, and reset
 

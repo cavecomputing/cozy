@@ -20,6 +20,7 @@ from routes.llm import _error_detail, _summary_llm_settings
 from routes.settings import get_settings
 from shared import get_db, not_found
 from summarizer import (
+    append_token_limits,
     append_summary,
     build_append_messages,
     collapse_story_lines,
@@ -27,9 +28,9 @@ from summarizer import (
     enforce_cap,
     parse_summary_json,
     parse_summarizer_output,
-    section_cap,
     section_to_text,
     strip_thinking_content,
+    validate_append_entries,
 )
 
 log = logging.getLogger('cozy')
@@ -356,22 +357,36 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                         warning = write_warning
                 continue
 
+            story_entry_tokens, bond_entry_tokens, bonds_update_tokens = (
+                append_token_limits(cap_tokens)
+            )
             messages = build_append_messages(
                 section_to_text(summary_obj, 'story'),
                 section_to_text(summary_obj, 'bonds'),
                 visible_chunk,
-                section_cap(cap_tokens, 'bonds'),
+                story_entry_tokens,
+                bond_entry_tokens,
+                bonds_update_tokens,
             )
             _assert_summary_active(
                 chat_id, require_running=require_running, job_token=job_token
             )
-            reply = call_summarizer(messages, cap_tokens)
+            reply = call_summarizer(
+                messages,
+                story_entry_tokens + bonds_update_tokens,
+            )
             # A disable may have committed while the HTTP request was in flight. Do not
             # parse or publish that now-stale result.
             _assert_summary_active(
                 chat_id, require_running=require_running, job_token=job_token
             )
             parsed = collapse_story_lines(parse_summarizer_output(reply))
+            validate_append_entries(
+                parsed,
+                story_entry_tokens,
+                bond_entry_tokens,
+                bonds_update_tokens,
+            )
             candidate = append_summary(
                 summary_obj, parsed, msg_range=(chunk_ids[0], chunk_ids[-1])
             )

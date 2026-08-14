@@ -11,6 +11,7 @@ import routes.chats as chat_routes
 from routes.settings import get_settings
 import routes.summaries as summaries
 from summarizer import (
+    append_token_limits,
     append_summary,
     bond_key,
     build_append_messages,
@@ -25,6 +26,7 @@ from summarizer import (
     section_to_text,
     strip_thinking_content,
     summary_to_text,
+    validate_append_entries,
 )
 
 
@@ -395,7 +397,8 @@ def test_append_summary_keeps_previous_bonds_when_reply_has_none():
 def test_build_append_messages_asks_for_exactly_one_story_entry():
     from summarizer import APPEND_INSTRUCTIONS
     msgs = build_append_messages(
-        'PREV STORY', 'PREV BONDS', [{'role': 'user', 'content': 'hi there'}], 1200)
+        'PREV STORY', 'PREV BONDS', [{'role': 'user', 'content': 'hi there'}],
+        240, 120, 360)
     assert msgs[0]['content'] == APPEND_INSTRUCTIONS
     user = msgs[1]['content']
     # The two sections travel as separate blocks so the model can tell what it may extend
@@ -404,11 +407,25 @@ def test_build_append_messages_asks_for_exactly_one_story_entry():
     assert 'CURRENT BONDS' in user and 'PREV BONDS' in user
     assert 'hi there' in user
     assert 'exactly ONE new story entry' in user and 'BONDS' in user
-    # The quoted budget is the BONDS budget alone — quoting the whole summary's cap while
-    # forbidding story edits is what made bonds the only text the model could shrink.
-    assert '1200' in user
+    assert '240 tokens' in user
+    assert '120 tokens' in user
+    assert '360 tokens' in user
     # The one-entry rule reaches the model through the system prompt too.
     assert 'EXACTLY ONE story line' in APPEND_INSTRUCTIONS
+
+
+def test_append_token_limits_keep_room_for_multiple_entries():
+    # A 12k summary gives STORY 7.2k tokens, but one batch still tops out at 240.
+    assert append_token_limits(12000) == (240, 120, 360)
+    # Small summaries scale down so one entry does not occupy most of its section.
+    assert append_token_limits(800) == (60, 40, 106)
+
+
+def test_validate_append_entries_rejects_a_verbose_delta():
+    with pytest.raises(ValueError, match='per-batch limit is 60'):
+        validate_append_entries({
+            'lines': [{'section': 'story', 'text': 'sprawling detail ' * 30}],
+        }, 60, 40, 100)
 
 
 
@@ -635,7 +652,7 @@ def test_run_job_rejects_invalid_model_content_without_advancing(
     assert row['summary_status'] == 'error'
 
 
-def test_run_job_caps_overlong_summary_without_second_call(client, sample_chat, monkeypatch):
+def test_run_job_rejects_overlong_summary_without_advancing(client, sample_chat, monkeypatch):
     client.put('/api/settings', json={
         'context_max_tokens': '500',
         'summary_cap_pct': '10',
@@ -657,9 +674,15 @@ def test_run_job_caps_overlong_summary_without_second_call(client, sample_chat, 
             'SELECT summary_json, summary_up_to_msg_id FROM chats WHERE id=?',
             (sample_chat['id'],),
         ).fetchone()
-    stored = summary_to_text(parse_summary_json(row['summary_json']))
-    assert estimate_tokens(stored) <= 50
-    assert row['summary_up_to_msg_id'] == ids[-1]
+    assert row['summary_json'] == ''
+    assert row['summary_up_to_msg_id'] is None
+    with shared.get_db() as conn:
+        status = conn.execute(
+            'SELECT summary_status, summary_status_detail FROM chats WHERE id=?',
+            (sample_chat['id'],),
+        ).fetchone()
+    assert status['summary_status'] == 'error'
+    assert 'per-batch limit' in status['summary_status_detail']
 
 
 def test_append_mode_accumulates_story_across_batches(client, sample_chat, monkeypatch):
@@ -715,6 +738,29 @@ def test_each_batch_becomes_one_entry_stamped_with_its_message_range(
     ]
 
 
+def test_multi_batch_job_reports_overall_progress(client, sample_chat, monkeypatch):
+    client.put('/api/settings', json={'summary_trigger_interval': '2'})
+    monkeypatch.setattr(
+        summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+    details = []
+    set_status = summaries._set_status
+
+    def record_status(*args, **kwargs):
+        details.append(kwargs.get('detail'))
+        return set_status(*args, **kwargs)
+
+    monkeypatch.setattr(summaries, '_set_status', record_status)
+    ids = _add_messages(client, sample_chat['id'], 5)
+
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
+
+    assert details[:3] == [
+        'Summarizing… (batch 1/3)',
+        'Summarizing… (batch 2/3)',
+        'Summarizing… (batch 3/3)',
+    ]
+
+
 def test_a_split_reply_still_produces_exactly_one_entry(
         client, sample_chat, monkeypatch):
     """A model that ignores the one-entry rule must not desync entries from batches."""
@@ -744,7 +790,9 @@ def test_full_summary_sheds_its_oldest_entry(client, sample_chat, monkeypatch):
         'summary_cap_pct': '10',
         'summary_trigger_interval': '1',
     })
-    beat = 'a fairly wordy beat carrying real narrative weight ' * 3
+    # Each delta fits its 36-token per-entry budget, while two entries cannot both fit
+    # the 36-token STORY section, exercising ordinary oldest-first rolloff.
+    beat = 'a fairly wordy beat carrying real narrative weight ' * 2
     replies = iter((
         f'STORY SO FAR\n- OLDEST {beat}\n\nBONDS',
         f'STORY SO FAR\n- MIDDLE {beat}\n\nBONDS',
@@ -788,8 +836,8 @@ def test_rebuild_drops_legacy_pinned_flags(client, sample_chat, monkeypatch):
 
 
 
-def test_append_overflow_is_trimmed_without_second_call(client, sample_chat, monkeypatch):
-    """An additive reply that overshoots the cap is trimmed locally."""
+def test_append_overflow_preserves_the_previous_checkpoint(client, sample_chat, monkeypatch):
+    """An oversized delta cannot evict stored history or advance the watermark."""
     from summarizer import APPEND_INSTRUCTIONS
     client.put('/api/settings', json={'context_max_tokens': '500', 'summary_cap_pct': '10'})
     over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}\n\nBONDS\n- A & B: allies"
@@ -801,15 +849,23 @@ def test_append_overflow_is_trimmed_without_second_call(client, sample_chat, mon
 
     monkeypatch.setattr(summaries, 'call_summarizer', complete)
     ids = _add_messages(client, sample_chat['id'], 2)
+    _store_summary(sample_chat['id'], {
+        'lines': [{'section': 'story', 'text': 'previous useful memory'}],
+    }, watermark=ids[0])
     summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
 
     assert len(calls) == 1
     assert calls[0][0]['content'] == APPEND_INSTRUCTIONS
     with shared.get_db() as conn:
-        raw = conn.execute(
-            'SELECT summary_json FROM chats WHERE id=?', (sample_chat['id'],)
-        ).fetchone()[0]
-    assert estimate_tokens(summary_to_text(parse_summary_json(raw))) <= 50
+        row = conn.execute(
+            'SELECT summary_json, summary_up_to_msg_id, summary_status FROM chats WHERE id=?',
+            (sample_chat['id'],),
+        ).fetchone()
+    assert summary_to_text(parse_summary_json(row['summary_json'])) == (
+        'STORY SO FAR\n- previous useful memory'
+    )
+    assert row['summary_up_to_msg_id'] == ids[0]
+    assert row['summary_status'] == 'error'
 
 
 def test_append_mode_merges_bonds_without_duplicating(client, sample_chat, monkeypatch):
