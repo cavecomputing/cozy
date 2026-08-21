@@ -1491,6 +1491,9 @@ def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_ru
             role: i % 2 ? 'character' : 'user',
             text: `m-${i}-abcdefghij`,
         }));
+        // A summary occupies context only through its {{summary}} slot.
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{ id: 1, content: '{{#summary}}[Memory — Story So Far]\n{{summary}}{{/summary}}', post_history_content: '' }];
         state.activeChat = {
             id: 7,
             summary_enabled: true,
@@ -1717,6 +1720,10 @@ REBUILD_SETUP = r"""
         role: i % 2 ? 'character' : 'user',
         text: `m-${i}-abcdefghij`,
     }));
+    // A summary occupies context only through its {{summary}} slot, so these
+    // budget-pressure scenarios need a template that has one.
+    state.activeSystemPromptId = 1;
+    state.systemPrompts = [{ id: 1, content: '{{#summary}}[Memory — Story So Far]\n{{summary}}{{/summary}}', post_history_content: '' }];
 """
 
 

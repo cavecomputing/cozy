@@ -249,13 +249,11 @@ def test_greeting_slot_takes_whatever_leads_the_window_not_only_the_greeting():
     run_node_module(code)
 
 
-def test_rendered_templates_exclude_what_assembly_adds():
+def test_rendered_templates_exclude_the_alternation_shim():
     """The editor's preview shows the templates, not the assembled request.
 
-    A summary with nowhere to go gets a [MEMORY] block appended to the system
-    message, and a history opening on the character's turn gets a [Start] user
-    turn in front of it. Neither has a counterpart in the editor, so neither
-    belongs in a preview of the two templates.
+    The [Start] turn in front of a history that opens on the character is the
+    only text assembly still adds, and it has no counterpart in the editor.
     """
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira', description: 'A careful tester.' };
@@ -265,20 +263,18 @@ def test_rendered_templates_exclude_what_assembly_adds():
             content: 'SYSTEM: {{description}}',
             post_history_content: 'USER TAIL for {{char}}',
         }];
-        state.activeChat = { summary_enabled: true, summary: { chunks: [{ text: 'Once, a test.' }] } };
         state.messages = [
             { id: 1, role: 'character', text: 'A greeting with <div style=>markup</div>.' },
             { id: 2, role: 'user', text: 'hi' },
         ];
 
-        const analysis = analyzeContext({ summaryText: 'Once, a test.' });
-        assert.match(analysis.messages[0].content, /MEMORY/);
+        const analysis = analyzeContext({});
         assert.equal(analysis.messages[1].content, '[Start]');
 
         const rendered = analysis.renderedTemplates;
         assert.equal(rendered.system, 'SYSTEM: A careful tester.');
         assert.equal(rendered.user, 'USER TAIL for Mira');
-        assert.doesNotMatch(rendered.system, /Start|div style|MEMORY/);
+        assert.doesNotMatch(rendered.system, /Start|div style/);
     """
     run_node_module(code)
 
@@ -525,7 +521,9 @@ def test_summary_tokens_reduce_the_raw_message_budget():
     run_node_module(code)
 
 
-def test_custom_template_without_summary_gets_fallback_memory_block():
+def test_template_without_summary_slot_sends_no_memory():
+    """A template with no {{summary}} sends no summary — the request carries
+    only what the templates rendered, never a block assembly wrote itself."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
         state.activeSystemPromptId = 1;
@@ -544,20 +542,16 @@ def test_custom_template_without_summary_gets_fallback_memory_block():
         state.messages = [{ id: 1, role: 'user', text: 'What do we do next?' }];
 
         const payload = buildChatPayload();
-        const system = payload.messages.find(m => m.role === 'system');
+        const serialized = JSON.stringify(payload.messages);
 
-        assert.match(system.content, /CUSTOM ROLEPLAY INSTRUCTIONS/);
-        assert.match(system.content, /\[MEMORY — STORY SO FAR\]/);
-        assert.match(system.content, /The lighthouse lens is cracked\./);
-        assert.equal(
-            (JSON.stringify(payload.messages).match(/The lighthouse lens is cracked\./g) || []).length,
-            1,
-        );
+        assert.match(payload.messages[0].content, /CUSTOM ROLEPLAY INSTRUCTIONS/);
+        assert.doesNotMatch(serialized, /MEMORY/);
+        assert.doesNotMatch(serialized, /The lighthouse lens is cracked\./);
     """
     run_node_module(code)
 
 
-def test_templates_with_summary_slot_do_not_duplicate_fallback_memory():
+def test_summary_lands_once_wherever_its_slot_sits():
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
         state.activeSystemPromptId = 1;
@@ -598,7 +592,9 @@ def test_templates_with_summary_slot_do_not_duplicate_fallback_memory():
     run_node_module(code)
 
 
-def test_summary_slot_removed_by_false_conditional_gets_fallback():
+def test_summary_slot_inside_a_false_conditional_sends_nothing():
+    """A {{summary}} the template resolved away is a slot that wasn't used.
+    Nothing steps in behind it — the summarized turn is simply gone."""
     code = BASE_NODE_SETUP + r"""
         state.activePersona = { name: 'Morgan', description: '' };
         state.activeCharacter = { name: 'Mira' };
@@ -624,8 +620,8 @@ def test_summary_slot_removed_by_false_conditional_gets_fallback():
         const payload = buildChatPayload();
         const serialized = JSON.stringify(payload.messages);
 
-        assert.match(payload.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
-        assert.match(serialized, /The observatory door is sealed\./);
+        assert.doesNotMatch(serialized, /MEMORY/);
+        assert.doesNotMatch(serialized, /The observatory door is sealed\./);
         assert.doesNotMatch(serialized, /SUMMARIZED RAW TURN/);
         assert.match(serialized, /LIVE TURN/);
     """
@@ -934,7 +930,7 @@ def test_context_analysis_keeps_latest_turn_and_reports_unavoidable_overflow():
     run_node_module(code)
 
 
-def test_summary_fallback_is_attributed_and_unlimited_context_has_no_unused_segment():
+def test_summary_is_attributed_and_unlimited_context_has_no_unused_segment():
     code = BASE_NODE_SETUP + r"""
         state.contextMaxTokens = '0';
         el.settingsContextTokens = { value: '0' };
@@ -944,10 +940,10 @@ def test_summary_fallback_is_attributed_and_unlimited_context_has_no_unused_segm
         state.activeSystemPromptId = 1;
         state.systemPrompts = [{
             id: 1,
-            content: 'CUSTOM INSTRUCTIONS',
+            content: 'CUSTOM INSTRUCTIONS\n{{summary}}',
             post_history_content: '',
         }];
-        state.messages = [{ id: 1, role: 'user', text: 'Continue.' }];
+        state.messages = [{ id: 1, role: 'user', text: 'Where to?' }];
 
         const analysis = analyzeContext({ summaryText: 'The bridge is broken.' });
         const byId = new Map(analysis.segments.map(segment => [segment.id, segment.tokens]));
@@ -955,6 +951,6 @@ def test_summary_fallback_is_attributed_and_unlimited_context_has_no_unused_segm
         assert.ok(byId.get('response_reserve') > 0);
         assert.equal(byId.has('unused'), false);
         assert.equal(analysis.overflowTokens, 0);
-        assert.match(analysis.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
+        assert.match(analysis.messages[0].content, /The bridge is broken\./);
     """
     run_node_module(code)

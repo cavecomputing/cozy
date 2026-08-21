@@ -5,6 +5,12 @@ messages no longer fit in the model's context window.
 
 They are disabled on new chats.
 
+The summary reaches the model through the `{{summary}}` variable in your prompt
+template, and only through it. A template without that variable sends no
+summary, however full the summary is — Cozy never appends it on its own. The
+Memory flyout marks this with a ⊘ beside the summary card when your active
+template has no slot for it.
+
 ## Configure
 
 Open **Settings → Auto Summaries**.

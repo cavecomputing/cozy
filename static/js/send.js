@@ -75,7 +75,6 @@ async function sendOnce(text) {
     el.sendBtn.disabled = false;
     updateComposerState();
 
-    const nudge = text ? null : 'Continue.';
     if (text) {
         await appendMessage('user', text, true);
         clearDraft();
@@ -108,7 +107,7 @@ async function sendOnce(text) {
             renderThinkingBlock(msgBody, parsed);
             renderMarkdown(contentEl, parsed.response, true);
             maybeScrollToBottom();
-        }, signal, nudge);
+        }, signal);
 
     } catch (err) {
         if (err.name !== 'AbortError') {

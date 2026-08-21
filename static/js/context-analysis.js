@@ -327,7 +327,7 @@ function makeTemplateContext(character, persona, lorebookText, summaryText, gree
     return context;
 }
 
-function assembleMessages(selectedMessages, { summaryText = '', nudge = null } = {}) {
+function assembleMessages(selectedMessages, { summaryText = '' } = {}) {
     const character = state.activeCharacter || {};
     const persona = state.activePersona || {};
     const prompt = state.systemPrompts.find(item => item.id === state.activeSystemPromptId);
@@ -360,7 +360,7 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
     const system = resolveTrackedTemplate(systemTemplate, context, { zone: 'system' });
     const messages = [];
     // Held for the editor's preview: what the two templates alone produced,
-    // before the memory fallback and alternation shims below.
+    // before the alternation shims below.
     let userTurn = '';
     if (system.content) {
         messages.push({
@@ -428,32 +428,9 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
         }
     }
 
-    // A summary placeholder inside a false conditional does not inject memory.
-    // Keep the existing fallback behavior while retaining source provenance.
-    if (summaryText && !messages.some(message => message.content.includes(summaryText))) {
-        const header = '[MEMORY — STORY SO FAR]\n';
-        const systemMessage = messages.find(message => message.role === 'system');
-        if (systemMessage) {
-            systemMessage.content += `\n\n${header}${summaryText}`;
-            systemMessage.fragments.push(
-                { source: 'system_prompt', zone: 'system', text: `\n\n${header}` },
-                { source: 'auto_summary', zone: 'system', text: summaryText },
-            );
-        } else {
-            messages.unshift({
-                role: 'system',
-                content: `${header}${summaryText}`,
-                fragments: [
-                    { source: 'system_prompt', zone: 'system', text: header },
-                    { source: 'auto_summary', zone: 'system', text: summaryText },
-                ],
-                overheadSource: 'system_prompt',
-                overheadZone: 'system',
-            });
-        }
-    }
-
-    if (nudge) messages.push(trackedMessage('user', nudge, 'current_draft'));
+    // The summary reaches the model through {{summary}} or not at all. A
+    // template without the slot sends no memory, which is what the Memory
+    // flyout's ⊘ marker has always told the user it would do.
 
     const trackedMessages = enforceTrackedAlternation(messages);
     const tokenAccounting = countTrackedTokens(trackedMessages);
@@ -478,7 +455,6 @@ function sameSelection(left, right) {
  */
 export function analyzeContext({
     excludeLastN = 0,
-    nudge = null,
     draftText = '',
     summaryText = '',
     includeSummarized = false,
@@ -494,7 +470,7 @@ export function analyzeContext({
     const maxTokens = getContextTokenBudget();
     const responseTokens = getResponseTokenReserve();
     let selected = candidates;
-    let assembled = assembleMessages(selected, { summaryText, nudge });
+    let assembled = assembleMessages(selected, { summaryText });
 
     if (maxTokens > 0 && candidates.length > 0) {
         const selectableTokens = (assembled.tokenCounts.get('message_history') || 0)
@@ -507,7 +483,7 @@ export function analyzeContext({
         });
         if (!sameSelection(selected, approximate)) {
             selected = approximate;
-            assembled = assembleMessages(selected, { summaryText, nudge });
+            assembled = assembleMessages(selected, { summaryText });
         }
 
         // Exact correction: prompt templates and role alternation can add or
@@ -515,7 +491,7 @@ export function analyzeContext({
         while (selected.length > 1
             && estimateMessagesTokens(assembled.messages) + responseTokens > maxTokens) {
             selected = selected.slice(1);
-            assembled = assembleMessages(selected, { summaryText, nudge });
+            assembled = assembleMessages(selected, { summaryText });
         }
 
         // If the rough first pass was conservative, grow back one oldest turn
@@ -523,7 +499,7 @@ export function analyzeContext({
         let selectedStart = candidates.length - selected.length;
         while (selectedStart > 0) {
             const trialSelection = candidates.slice(selectedStart - 1);
-            const trial = assembleMessages(trialSelection, { summaryText, nudge });
+            const trial = assembleMessages(trialSelection, { summaryText });
             if (estimateMessagesTokens(trial.messages) + responseTokens > maxTokens) break;
             selectedStart -= 1;
             selected = trialSelection;

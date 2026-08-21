@@ -18,12 +18,11 @@ function activeSummaryText() {
 /**
  * Build an OpenAI-compatible chat completion payload from current state.
  * @param {number} [excludeLastN=0] — drop the last N messages (used for regen)
- * @param {string|null} [nudge=null] — hidden user message appended to nudge continuation
  */
-export function buildChatPayload(excludeLastN = 0, nudge = null) {
+export function buildChatPayload(excludeLastN = 0) {
     // Context assembly (character/persona/system prompt and the token-budgeted
     // history slice) is handled by analyzeContext.
-    const analysis = analyzeContext({ excludeLastN, nudge, summaryText: activeSummaryText() });
+    const analysis = analyzeContext({ excludeLastN, summaryText: activeSummaryText() });
 
     // Sampler settings (only include active sampler groups)
     const samplers = {};
@@ -57,13 +56,13 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
 
 /** Preview helper — returns the same payload buildChatPayload would send right now. */
 export function previewChatPayload() {
-    return buildChatPayload(0, null);
+    return buildChatPayload(0);
 }
 
 /**
  * Preview helper — the System and User templates as this same analysis pass
- * rendered them, before assembly adds the memory fallback and the alternation
- * shims. Those belong to the whole-request preview.
+ * rendered them, before the alternation shims. Those belong to the
+ * whole-request preview.
  */
 export function previewRenderedTemplates() {
     return analyzeContext({ summaryText: activeSummaryText() }).renderedTemplates;
@@ -74,8 +73,8 @@ export function previewRenderedTemplates() {
  * @param {number} [excludeLastN=0] — drop last N messages for regen
  * @param {(text: string) => void} onToken — receives the accumulated streamed text
  */
-export async function generateResponse(excludeLastN = 0, onToken, signal = null, nudge = null) {
-    const payload = buildChatPayload(excludeLastN, nudge);
+export async function generateResponse(excludeLastN = 0, onToken, signal = null) {
+    const payload = buildChatPayload(excludeLastN);
     if (!payload.model) throw new Error('No model configured \u2014 check Settings');
     if (payload.messages.length === 0) throw new Error('No messages to send');
     if (typeof onToken !== 'function') throw new TypeError('Streaming token callback is required');
