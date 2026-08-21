@@ -106,23 +106,33 @@ export function resolveTemplateVariables(template, context) {
 
 // An opening tag with optional attributes, whitespace, then its own closing tag.
 const EMPTY_TAG_BLOCK = /<([A-Za-z][\w.:-]*)(?:\s[^<>]*)?>\s*<\/\1\s*>/g;
+// Blank lines pressed against the inside of a wrapper, where a section used to be.
+const TAG_OPEN_PADDING = /(<[A-Za-z][\w.:-]*(?:\s[^<>]*)?>)\s*\n\s*/g;
+const TAG_CLOSE_PADDING = /\s*\n\s*(<\/[A-Za-z][\w.:-]*\s*>)/g;
 
 /**
- * Drop wrapper tags left holding nothing once the template resolved. A
- * `<world_info>` whose variables all came back empty is still a heading the
- * model reads and tries to honour, so it goes out with its contents.
+ * Tidy the wrapper tags a template puts around its sections.
  *
- * Whitespace-only content makes the match innermost by construction; repeating
- * the pass clears a parent that was emptied by losing its last child.
+ * A pair left holding nothing goes entirely — a `<world_info>` whose variables
+ * all came back empty is still a heading the model reads and tries to honour.
+ * A pair that kept something drops the blank lines the resolved-away sections
+ * left against its edges, so the tag sits directly on its content. Gaps between
+ * two sections that both survived are the template's own spacing and stay.
+ *
+ * Whitespace-only content makes the empty match innermost by construction;
+ * repeating the pass clears a parent emptied by losing its last child.
  */
-export function dropEmptyTagBlocks(text) {
-    let stripped = String(text || '');
+export function tidyTagBlocks(text) {
+    let tidied = String(text || '');
     let previous;
     do {
-        previous = stripped;
-        stripped = stripped.replace(EMPTY_TAG_BLOCK, '');
-    } while (stripped !== previous);
-    return stripped;
+        previous = tidied;
+        tidied = tidied
+            .replace(EMPTY_TAG_BLOCK, '')
+            .replace(TAG_OPEN_PADDING, '$1\n')
+            .replace(TAG_CLOSE_PADDING, '\n$1');
+    } while (tidied !== previous);
+    return tidied;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -489,7 +489,7 @@
                                     <dl class="settings-help-vars">
                                         <dt><code>&#123;&#123;#var&#125;&#125;…&#123;&#123;/var&#125;&#125;</code></dt><dd>Conditional block. Kept only when <code>var</code> has content; when it's empty the whole block — labels and all — is removed. The name must match on both ends.</dd>
                                         <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options at random each time the prompt is built.</dd>
-                                        <dt><code>&lt;tag&gt;…&lt;/tag&gt;</code></dt><dd>Tags of your own, for marking a part of the prompt off for the model. If everything inside a pair resolves to nothing, the tags are dropped with it — no empty <code>&lt;memory&gt;&lt;/memory&gt;</code> is sent. Nested tags clear from the inside out, and any tag still holding text stays. Nothing to switch on.</dd>
+                                        <dt><code>&lt;tag&gt;…&lt;/tag&gt;</code></dt><dd>Tags of your own, for marking a part of the prompt off for the model. If everything inside a pair resolves to nothing, the tags are dropped with it — no empty <code>&lt;memory&gt;&lt;/memory&gt;</code> is sent. If only some of it resolves away, the tag closes up the blank lines left behind and sits on the content that remains. Nested tags clear from the inside out, and any tag still holding text stays. Nothing to switch on.</dd>
                                     </dl>
                                     <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon above for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
                                 </div>
@@ -1207,8 +1207,10 @@
 &#123;&#123;#author_note&#125;&#125;[Author's Note]
 &#123;&#123;author_note&#125;&#125;&#123;&#123;/author_note&#125;&#125;
 &lt;/memory&gt;</pre>
+                <p>When only <em>some</em> of what's inside resolves away, the tag closes up after it. Put an Author's Note and a summary inside one <code>&lt;memory&gt;</code>, write the blank line you want between them, and on a turn with no note the summary still starts on the line under the opening tag — no gap where the note would have been.</p>
                 <ul class="prompt-help-tips">
-                    <li>Nothing to switch on — it happens whenever a wrapper comes out empty.</li>
+                    <li>Nothing to switch on — it happens whenever a wrapper comes out empty or half-empty.</li>
+                    <li>Blank lines between two sections that <em>both</em> survived are spacing you asked for, and they stay. So does the spacing between one wrapper and the next.</li>
                     <li>Nested tags clear from the inside out, so a wrapper that loses its last filled section goes as well.</li>
                     <li>A tag holding any text at all stays, even a stray label you left outside a section.</li>
                 </ul>

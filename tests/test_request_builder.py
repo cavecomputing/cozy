@@ -244,19 +244,70 @@ def test_nested_wrappers_drop_from_the_inside_out():
     """Emptying a child empties its parent, so one pass isn't enough."""
     code = r"""
         import assert from 'node:assert/strict';
-        import { dropEmptyTagBlocks } from './static/js/utils.js';
+        import { tidyTagBlocks } from './static/js/utils.js';
 
-        assert.equal(dropEmptyTagBlocks('<memory>\n  <note></note>\n</memory>'), '');
+        assert.equal(tidyTagBlocks('<memory>\n  <note></note>\n</memory>'), '');
         assert.equal(
-            dropEmptyTagBlocks('<memory>\n<note>kept</note>\n<gap></gap>\n</memory>'),
-            '<memory>\n<note>kept</note>\n\n</memory>',
+            tidyTagBlocks('<memory>\n<note>kept</note>\n<gap></gap>\n</memory>'),
+            '<memory>\n<note>kept</note>\n</memory>',
         );
         // Attributes on the opening tag are part of the wrapper, not content.
-        assert.equal(dropEmptyTagBlocks('<block status="enabled"> </block>'), '');
+        assert.equal(tidyTagBlocks('<block status="enabled"> </block>'), '');
         // Nothing else is touched: unpaired tags, self-closing tags, real text.
-        assert.equal(dropEmptyTagBlocks('<unclosed>\ntext'), '<unclosed>\ntext');
-        assert.equal(dropEmptyTagBlocks('<br/>'), '<br/>');
-        assert.equal(dropEmptyTagBlocks('3 < 4 > 2'), '3 < 4 > 2');
+        assert.equal(tidyTagBlocks('<unclosed>\ntext'), '<unclosed>\ntext');
+        assert.equal(tidyTagBlocks('<br/>'), '<br/>');
+        assert.equal(tidyTagBlocks('3 < 4 > 2'), '3 < 4 > 2');
+    """
+    run_node_module(code)
+
+
+def test_wrappers_close_the_gap_a_dropped_section_leaves():
+    """A section that resolved away leaves blank lines against the tag it sat
+    inside. The wrapper closes on its remaining content instead."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { tidyTagBlocks } from './static/js/utils.js';
+
+        // Gap at the top, at the bottom, and at both ends.
+        assert.equal(tidyTagBlocks('<memory>\n\n[Memory]\nx\n</memory>'),
+            '<memory>\n[Memory]\nx\n</memory>');
+        assert.equal(tidyTagBlocks('<memory>\n[Note]\nx\n\n</memory>'),
+            '<memory>\n[Note]\nx\n</memory>');
+        assert.equal(tidyTagBlocks('<memory>\n\n[Memory]\nx\n\n</memory>'),
+            '<memory>\n[Memory]\nx\n</memory>');
+
+        // Spacing the template asked for between two surviving sections stays,
+        // and so does the spacing between neighbouring wrappers.
+        assert.equal(tidyTagBlocks('<a>\n[One]\nx\n\n[Two]\ny\n</a>'),
+            '<a>\n[One]\nx\n\n[Two]\ny\n</a>');
+        assert.equal(tidyTagBlocks('<a>\nx\n</a>\n\n<b>\ny\n</b>'),
+            '<a>\nx\n</a>\n\n<b>\ny\n</b>');
+
+        // Content on the tag's own line is left exactly as written.
+        assert.equal(tidyTagBlocks('<a>text</a>'), '<a>text</a>');
+    """
+    run_node_module(code)
+
+
+def test_dropped_section_leaves_no_gap_in_the_assembled_prompt():
+    """End to end: an empty Author's Note must not push the summary down."""
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: '<memory>\n'
+                + "{{#author_note}}[Author's Note]\n{{author_note}}{{/author_note}}\n\n"
+                + '{{#summary}}[Memory]\n{{summary}}{{/summary}}\n'
+                + '</memory>',
+            post_history_content: '',
+        }];
+        state.activeChat = { author_note: '' };
+        state.messages = [{ id: 1, role: 'user', text: 'hi' }];
+
+        const analysis = analyzeContext({ summaryText: 'They crossed the bridge.' });
+        assert.equal(analysis.messages[0].content,
+            '<memory>\n[Memory]\nThey crossed the bridge.\n</memory>');
     """
     run_node_module(code)
 

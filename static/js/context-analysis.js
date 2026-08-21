@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { dropEmptyTagBlocks, resolveTemplateVariables } from './utils.js';
+import { tidyTagBlocks, resolveTemplateVariables } from './utils.js';
 import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import {
@@ -89,8 +89,9 @@ function resolveTrackedTemplate(template, context, {
     }
 
     // Markers only ever wrap a value with content, so an empty wrapper never
-    // holds one — dropping it here cannot unbalance the walk below.
-    const marked = dropEmptyTagBlocks(resolveTemplateVariables(template, trackedContext));
+    // holds one, and the tidy pass only ever removes whitespace around them —
+    // neither can unbalance the walk below.
+    const marked = tidyTagBlocks(resolveTemplateVariables(template, trackedContext));
     if (!marked) return { content: '', fragments: [] };
 
     const byOpen = new Map(markers.map(marker => [marker.open, marker]));
