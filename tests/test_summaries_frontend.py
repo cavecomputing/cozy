@@ -1545,11 +1545,11 @@ def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_ru
             rebuild: call.rebuild,
         })), [
             { upTo: 2, rebuild: true },
-            // The final summary displaced messages 3 through 5. Stabilization folds
+            // The final summary displaced messages 3 through 6. Stabilization folds
             // in exactly those instead of rounding through a whole 20-message batch.
-            { upTo: 5, rebuild: false },
+            { upTo: 6, rebuild: false },
         ]);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 5);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 6);
 
         await maybeTriggerSummary();
         assert.equal(calls.length, 2);

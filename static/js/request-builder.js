@@ -62,8 +62,8 @@ export function previewChatPayload() {
 
 /**
  * Preview helper — the System and User templates as this same analysis pass
- * rendered them, before assembly folds in the greeting, the memory fallback
- * and the alternation shims. Those belong to the whole-request preview.
+ * rendered them, before assembly adds the memory fallback and the alternation
+ * shims. Those belong to the whole-request preview.
  */
 export function previewRenderedTemplates() {
     return analyzeContext({ summaryText: activeSummaryText() }).renderedTemplates;

@@ -63,7 +63,7 @@ export function chatStamp() {
  * Supports conditional blocks: {{#var}}…{{/var}} drops out when var is empty.
  * @param {string} template — the raw template with {{var}} placeholders
  * @param {object} context  — { user, char, personality, scenario, description,
- *                              persona, mesExamples, lorebook, author_note, summary,
+ *                              persona, mesExamples, lorebook, author_note, greeting, summary,
  *                              system_prompt, post_history_instructions,
  *                              user_message, idle_duration }
  * @returns {string} the resolved string
@@ -88,6 +88,7 @@ export function resolveTemplateVariables(template, context) {
         .replace(/\{\{mesExamples\}\}/gi,    context.mesExamples || '')
         .replace(/\{\{lorebook\}\}/gi,       context.lorebook || '')
         .replace(/\{\{author_note\}\}/gi,    context.author_note || '')
+        .replace(/\{\{greeting\}\}/gi,       context.greeting || '')
         .replace(/\{\{summary\}\}/gi,        context.summary || '')
         .replace(/\{\{system_prompt\}\}/gi,  context.system_prompt || '')
         .replace(/\{\{post_history_instructions\}\}/gi,

@@ -196,9 +196,9 @@ export function previewSystemPrompt() {
 // ── Filled-in preview flyout ───────────────────────────────────────────────
 // The two templates as the request builder's own analysis pass renders them —
 // nothing is resolved a second time here. Scoped to the templates on purpose:
-// what assembly adds on top (the greeting, the memory fallback, alternation
-// shims) has no counterpart in the editor, and belongs to the whole-request
-// preview behind the eye icon. Compiled on open, discarded on close.
+// what assembly adds on top (the memory fallback, alternation shims) has no
+// counterpart in the editor, and belongs to the whole-request preview behind
+// the eye icon. Compiled on open, discarded on close.
 
 // Run over already-escaped text, so a literal tag in the prompt reads as one.
 const RENDERED_TAG = /&lt;\/?[A-Za-z][\w.:-]*(?:\s[^&]*?)?&gt;/g;

@@ -200,7 +200,7 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-The migration ledger currently contains ten migrations:
+The migration ledger currently contains eleven migrations:
 
 1. Retire the historical duplicate-greeting repair.
 2. Delete the retired `context_max_messages` setting.
@@ -212,6 +212,7 @@ The migration ledger currently contains ten migrations:
 8. Remove the character gallery setting, collection tables, and archive column.
 9. Backfill `chats.persona_id` from each chat's most recent user message.
 10. Delete the retired `summary_compress_batch` setting.
+11. Add the `{{greeting}}` block to untouched copies of the V4 default prompt.
 
 Prompt migrations change only known stock templates. Customized prompts are
 preserved. The rename in migration 7 is the one exception to matching on
