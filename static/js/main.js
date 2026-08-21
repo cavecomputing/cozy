@@ -280,23 +280,23 @@ function bindSettingsHandlers() {
     const openSettings = async e => {
         e.stopPropagation();
         const isOpen = !el.settingsFlyout.hidden;
-        if (isOpen) blurSettingsFlyoutFocus();
         Flyouts.closeAllExcept('settings');
-        if (!isOpen && isMobileSettings()) {
+        if (isOpen) {
+            closeSettingsFlyout();
+            return;
+        }
+        if (isMobileSettings()) {
             closeMobileSidebar({ restoreFocus: false, immediate: true });
         }
-        el.settingsFlyout.hidden = isOpen;
-        if (isOpen) setSamplerPopoverOpen(false);
-        if (!isOpen) {
-            // On desktop: restore the saved section. On mobile: show the list view first
-            // (saved section stays "active" in the nav so reopening from the list is one tap away).
-            applySettingsSection(state.settingsSection);
-            exitSettingsDetail();
-            renderThemePicker();
-            const s = await loadLLMSettings();
-            await loadSystemPrompts(s);
-            await loadRegexPresets(s);
-        }
+        el.settingsFlyout.hidden = false;
+        // On desktop: restore the saved section. On mobile: show the list view first
+        // (saved section stays "active" in the nav so reopening from the list is one tap away).
+        applySettingsSection(state.settingsSection);
+        exitSettingsDetail();
+        renderThemePicker();
+        const s = await loadLLMSettings();
+        await loadSystemPrompts(s);
+        await loadRegexPresets(s);
     };
     el.settingsBtn?.addEventListener('click', openSettings);
     el.settingsCloseBtn?.addEventListener('click', () => {
