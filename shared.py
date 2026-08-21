@@ -188,16 +188,7 @@ You are participating in a simulated world. Narrate the thoughts, feelings, acti
 {{#summary}}[Memory — Story So Far]
 {{summary}}{{/summary}}"""
 
-# V5 adds {{greeting}}, which carries the oldest message in the context window
-# when that message is the character's. A request cannot open on the character's
-# turn, so without a slot in the template that message is preceded by a [Start]
-# shim instead of being rendered here.
-_DEFAULT_PROMPT_TEMPLATE_V5 = _DEFAULT_PROMPT_TEMPLATE_V4 + """
-
-{{#greeting}}[{{char}}'s Opening Message]
-{{greeting}}{{/greeting}}"""
-
-DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V5
+DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V4
 
 
 # Post-history templates are also versioned migration sentinels — same rule as
@@ -285,16 +276,6 @@ def _upgrade_default_prompt_to_v4(conn):
     )
 
 
-def _add_greeting_slot_to_default_prompt(conn):
-    """Give untouched copies of the V4 stock prompt the V5 {{greeting}} block,
-    so the oldest character message keeps landing in the prompt itself rather
-    than behind the [Start] shim."""
-    conn.execute(
-        'UPDATE system_prompts SET content=? WHERE content=?',
-        (_DEFAULT_PROMPT_TEMPLATE_V5, _DEFAULT_PROMPT_TEMPLATE_V4),
-    )
-
-
 def _enforce_house_style_post_history(conn):
     """Replace untouched copies of the V1 stock post-history template with the
     enforced house-style V2 (which drops {{post_history_instructions}})."""
@@ -369,7 +350,6 @@ MIGRATIONS = (
     (8, 'remove_character_gallery', _remove_character_gallery),
     (9, 'backfill_chat_persona', _backfill_chat_persona),
     (10, 'delete_summary_compress_batch', _delete_summary_compress_batch),
-    (11, 'add_greeting_slot_to_default_prompt', _add_greeting_slot_to_default_prompt),
 )
 
 

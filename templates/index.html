@@ -481,7 +481,6 @@
                                         <dt><code>&#123;&#123;lorebook&#125;&#125;</code></dt><dd>Matched world-info entries (joined with separators).</dd>
                                         <dt><code>&#123;&#123;author_note&#125;&#125;</code></dt><dd>Per-chat Author's Note (from the Memory flyout).</dd>
                                         <dt><code>&#123;&#123;summary&#125;&#125;</code></dt><dd>Per-chat Auto Summary of aged-out history (from the Memory flyout).</dd>
-                                        <dt><code>&#123;&#123;greeting&#125;&#125;</code></dt><dd>Not just the greeting: the <strong>oldest message still in context</strong>, whenever that message is the character's. Strict OpenAI-compatible endpoints reject a request that opens on the character's turn, so that message is moved out of the history and rendered here instead. Early on it's the greeting; once the greeting ages out it's whichever reply now sits at the top of the window. Empty when the oldest message is yours, since that request already alternates. Leave the variable out and the message stays in the history behind a small <code>[Start]</code> turn instead.</dd>
                                         <dt><code>&#123;&#123;user_message&#125;&#125;</code></dt><dd><strong>User tab only.</strong> Your latest message. Add it to the User template to wrap your message — position <code>&#123;&#123;lorebook&#125;&#125;</code>, <code>&#123;&#123;author_note&#125;&#125;</code>, etc. before or after it. Leave it out and the template is appended after your message instead. Those blocks sit in the System tab by default; move them here rather than copying, or they'll appear twice.</dd>
                                         <dt><code>&#123;&#123;time&#125;&#125;</code> / <code>&#123;&#123;date&#125;&#125;</code></dt><dd>Current local time / date.</dd>
                                     </dl>
@@ -1214,14 +1213,12 @@
                     <li>A tag holding any text at all stays, even a stray label you left outside a section.</li>
                 </ul>
 
-                <h3>The opening message — <code>&#123;&#123;greeting&#125;&#125;</code></h3>
-                <p>A request can't open on the character's turn — strict endpoints reject it. So when the oldest message still in context is one of theirs, Cozy takes it out of the chat history and puts it wherever you place <code>&#123;&#123;greeting&#125;&#125;</code>. Early in a chat that's the greeting; later, once the greeting has aged out of the window, it's whichever reply is now at the top.</p>
-                <pre class="prompt-help-example">&#123;&#123;#greeting&#125;&#125;[&#123;&#123;char&#125;&#125;'s Opening Message]
-&#123;&#123;greeting&#125;&#125;&#123;&#123;/greeting&#125;&#125;</pre>
-                <p class="prompt-help-note">Leave the variable out and nothing is added to your prompt behind your back — the message stays in the history, with a small <code>[Start]</code> turn in front of it to keep the request alternating.</p>
-
                 <h3>Blanks that come from the card</h3>
                 <p>Two variables are filled by the character card itself: <code>&#123;&#123;system_prompt&#125;&#125;</code> and <code>&#123;&#123;post_history_instructions&#125;&#125;</code>. Whatever the card puts there lands wherever you place the blank. Take the blank out and the card's text is ignored.</p>
+
+                <h3>The one thing Cozy adds</h3>
+                <p>Everything in the request comes from these two templates and your chat, with a single exception. A request can't open on the character's turn — strict endpoints reject it — so when the oldest message still in context is one of theirs, Cozy puts a one-line user turn reading <code>[Start]</code> in front of it. Chats whose oldest message is yours never see it.</p>
+                <p class="prompt-help-note">That's the whole list. Nothing else is appended, and nothing is ever added to your system prompt: if your template has no <code>&#123;&#123;summary&#125;&#125;</code>, no summary is sent, and the same goes for every other blank.</p>
 
                 <h3>Check your work</h3>
                 <ul class="prompt-help-tips">

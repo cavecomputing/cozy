@@ -343,62 +343,13 @@ class TestSchemaMigrationLedger:
                 ('NanoBear',),
             ).fetchone()
         assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V4
+        assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
 
     def test_v4_prompt_migration_preserves_customized_prompt(self):
         custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V3 + '\n\nCustom instructions.'
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS
             if name == 'upgrade_default_prompt_to_v4'
-        )
-        with shared.get_db() as conn:
-            conn.execute(
-                'UPDATE system_prompts SET content=? WHERE name=?',
-                (custom_prompt, 'NanoBear'),
-            )
-            conn.execute(
-                'DELETE FROM schema_migrations WHERE version=?',
-                (migration_version,),
-            )
-
-        shared.init_db()
-
-        with shared.get_db() as conn:
-            prompt = conn.execute(
-                'SELECT content FROM system_prompts WHERE name=?',
-                ('NanoBear',),
-            ).fetchone()
-        assert prompt['content'] == custom_prompt
-
-    def test_greeting_slot_is_added_to_untouched_default_prompt(self):
-        migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
-            if name == 'add_greeting_slot_to_default_prompt'
-        )
-        with shared.get_db() as conn:
-            conn.execute(
-                'UPDATE system_prompts SET content=? WHERE name=?',
-                (shared._DEFAULT_PROMPT_TEMPLATE_V4, 'NanoBear'),
-            )
-            conn.execute(
-                'DELETE FROM schema_migrations WHERE version=?',
-                (migration_version,),
-            )
-
-        shared.init_db()
-
-        with shared.get_db() as conn:
-            prompt = conn.execute(
-                'SELECT content FROM system_prompts WHERE name=?',
-                ('NanoBear',),
-            ).fetchone()
-        assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
-        assert '{{greeting}}' in prompt['content']
-
-    def test_greeting_slot_migration_preserves_customized_prompt(self):
-        custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V4 + '\n\nMy own ending.'
-        migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
-            if name == 'add_greeting_slot_to_default_prompt'
         )
         with shared.get_db() as conn:
             conn.execute(

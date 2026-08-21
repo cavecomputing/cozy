@@ -147,37 +147,10 @@ def test_wrapper_tags_left_empty_are_dropped_from_the_prompt():
     run_node_module(code)
 
 
-def test_greeting_slot_hoists_the_oldest_character_message():
-    """{{greeting}} takes the oldest message in the window when it is the
-    character's, so the request no longer opens on their turn."""
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: "SYSTEM.\n\n{{#greeting}}[{{char}}'s Opening Message]\n{{greeting}}{{/greeting}}",
-            post_history_content: '',
-        }];
-        state.messages = [
-            { id: 1, role: 'character', text: 'Hello there, traveller.' },
-            { id: 2, role: 'user', text: 'hi' },
-        ];
-
-        const payload = buildChatPayload();
-        assert.deepEqual(payload.messages, [
-            { role: 'system', content: "SYSTEM.\n\n[Mira's Opening Message]\nHello there, traveller." },
-            { role: 'user', content: 'hi' },
-        ]);
-        // Hoisted or not, those tokens are message history and are counted there.
-        const analysis = analyzeContext({});
-        assert.ok(analysis.segments.some(segment => segment.id === 'message_history'));
-    """
-    run_node_module(code)
-
-
-def test_greeting_stays_a_character_turn_without_the_slot():
-    """No {{greeting}} in the templates means nothing lands in the system
-    prompt that the user did not write; the [Start] shim covers alternation."""
+def test_history_opening_on_the_character_gets_the_start_shim():
+    """A window that opens on the character's turn is illegal for strict
+    endpoints, so a minimal user turn goes in front of it — and nothing lands in
+    the system prompt that the user did not write."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
         state.activeSystemPromptId = 1;
@@ -198,17 +171,12 @@ def test_greeting_stays_a_character_turn_without_the_slot():
     run_node_module(code)
 
 
-def test_greeting_slot_stays_empty_when_the_window_opens_on_the_user():
-    """Nothing is hoisted when the oldest message is the user's — that request
-    already alternates, so the conditional block drops out entirely."""
+def test_history_opening_on_the_user_gets_no_shim():
+    """That request already alternates, so nothing is added to it at all."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
         state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'SYSTEM.{{#greeting}}\n[Opening]\n{{greeting}}{{/greeting}}',
-            post_history_content: '',
-        }];
+        state.systemPrompts = [{ id: 1, content: 'SYSTEM.', post_history_content: '' }];
         state.messages = [
             { id: 1, role: 'user', text: 'I speak first.' },
             { id: 2, role: 'character', text: 'And I answer.' },
@@ -220,31 +188,6 @@ def test_greeting_slot_stays_empty_when_the_window_opens_on_the_user():
             { role: 'user', content: 'I speak first.' },
             { role: 'assistant', content: 'And I answer.' },
         ]);
-    """
-    run_node_module(code)
-
-
-def test_greeting_slot_takes_whatever_leads_the_window_not_only_the_greeting():
-    """Once the real greeting ages out, the slot carries the oldest message
-    still in context — the message that would otherwise open the request."""
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'SYSTEM.\n\n{{#greeting}}[Opening]\n{{greeting}}{{/greeting}}',
-            post_history_content: '',
-        }];
-        // A window that starts mid-chat: the greeting is already gone.
-        state.messages = [
-            { id: 8, role: 'character', text: 'A reply from the middle of the scene.' },
-            { id: 9, role: 'user', text: 'go on' },
-        ];
-
-        const payload = buildChatPayload();
-        assert.equal(payload.messages[0].content,
-            'SYSTEM.\n\n[Opening]\nA reply from the middle of the scene.');
-        assert.equal(payload.messages.length, 2);
     """
     run_node_module(code)
 
@@ -512,9 +455,8 @@ def test_summary_tokens_reduce_the_raw_message_budget():
         const rawWith = withSummary.messages.filter(m => /message-\d+-/.test(m.content));
         // Full-budget accounting includes role framing and the rendered system
         // message, so it safely retains one fewer turn than the old raw-only
-        // estimate in each state. This template has no {{greeting}} slot, so a
-        // leading character message keeps its own role framing rather than
-        // being folded into the system message to save it.
+        // estimate in each state. A leading character message keeps its own
+        // role framing rather than being folded into the system message.
         assert.equal(rawWithout.length, 6);
         assert.equal(rawWith.length, 2);
     """

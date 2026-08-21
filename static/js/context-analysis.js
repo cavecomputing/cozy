@@ -39,14 +39,10 @@ const SOURCE_BY_VARIABLE = {
     mesExamples: 'character_card',
     lorebook: 'lorebook',
     author_note: 'author_note',
-    greeting: 'message_history',
     summary: 'auto_summary',
     system_prompt: 'system_prompt',
     post_history_instructions: 'character_card',
 };
-
-// Either form of the slot that takes the hoisted opening message.
-const GREETING_SLOT = /\{\{#?greeting\}\}/i;
 
 const ZONE_ORDER = new Map([
     ['system', 0],
@@ -193,9 +189,9 @@ function enforceTrackedAlternation(messages) {
     }
 
     // Strict endpoints reject a conversation that opens on the character's
-    // turn. A template with {{greeting}} has already hoisted that message into
-    // the prompt itself; this shim covers the templates that haven't, without
-    // putting text the user never wrote into their system prompt.
+    // turn, so a window that starts on one gets a minimal user turn in front of
+    // it. This is protocol rather than content: it is the only text assembly
+    // adds, and it never touches the system prompt.
     const firstNonSystem = out.findIndex(message => message.role !== 'system');
     if (firstNonSystem !== -1 && out[firstNonSystem].role === 'assistant') {
         out.splice(firstNonSystem, 0, trackedMessage('user', '[Start]', 'system_prompt'));
@@ -300,7 +296,7 @@ function countTrackedTokens(messages) {
     };
 }
 
-function makeTemplateContext(character, persona, lorebookText, summaryText, greetingText) {
+function makeTemplateContext(character, persona, lorebookText, summaryText) {
     const context = {
         user: persona.name || 'User',
         char: character.name || '',
@@ -311,7 +307,6 @@ function makeTemplateContext(character, persona, lorebookText, summaryText, gree
         mesExamples: character.mes_example || '',
         lorebook: lorebookText,
         author_note: state.activeChat?.author_note || '',
-        greeting: greetingText,
         summary: summaryText,
         system_prompt: character.system_prompt || '',
         post_history_instructions: character.post_history_instructions || '',
@@ -342,21 +337,10 @@ function assembleMessages(selectedMessages, { summaryText = '' } = {}) {
     });
     const lorebookText = lorebookContents.join('\n---\n');
 
+    const context = makeTemplateContext(character, persona, lorebookText, summaryText);
+
     const systemTemplate = prompt?.content || '';
     const userTemplate = prompt?.post_history_content || '';
-    // A request cannot open on the character's turn. Templates that ask for
-    // {{greeting}} take that oldest message into the prompt itself; the ones
-    // that don't leave it in the history, behind the [Start] shim added by
-    // enforceTrackedAlternation.
-    const oldest = selectedMessages[0];
-    const usesGreeting = GREETING_SLOT.test(systemTemplate) || GREETING_SLOT.test(userTemplate);
-    const hoistedGreeting = usesGreeting && oldest && oldest.role !== 'user' ? oldest : null;
-    const historyMessages = hoistedGreeting ? selectedMessages.slice(1) : selectedMessages;
-    const context = makeTemplateContext(
-        character, persona, lorebookText, summaryText,
-        hoistedGreeting ? parseThinkingContent(hoistedGreeting.text || '').response : '',
-    );
-
     const system = resolveTrackedTemplate(systemTemplate, context, { zone: 'system' });
     const messages = [];
     // Held for the editor's preview: what the two templates alone produced,
@@ -375,16 +359,16 @@ function assembleMessages(selectedMessages, { summaryText = '' } = {}) {
     const wrapsUserMessage = /\{\{user_message\}\}/i.test(userTemplate);
     let lastUserIndex = -1;
     if (wrapsUserMessage) {
-        for (let i = historyMessages.length - 1; i >= 0; i -= 1) {
-            if (historyMessages[i].role === 'user') {
+        for (let i = selectedMessages.length - 1; i >= 0; i -= 1) {
+            if (selectedMessages[i].role === 'user') {
                 lastUserIndex = i;
                 break;
             }
         }
     }
 
-    for (let i = 0; i < historyMessages.length; i += 1) {
-        const message = historyMessages[i];
+    for (let i = 0; i < selectedMessages.length; i += 1) {
+        const message = selectedMessages[i];
         const source = message._contextSource || 'message_history';
         // Reasoning blocks never go back into the prompt — they burn context
         // without adding anything the model needs to continue the scene.
