@@ -2194,12 +2194,23 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     gap: 0.25rem;
     flex: none;
 }
+.prompt-builder-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
 .prompt-builder-tabs {
     display: flex;
-    border-bottom: 1px solid var(--border-color);
+    flex: 1;
+    min-width: 0;
 }
 .prompt-builder-tabs .tab-btn {
     padding: 0.25rem 0.55rem;
+}
+.prompt-rendered-btn {
+    flex: none;
+    margin-bottom: 0.15rem;
 }
 .prompt-vars-panel {
     grid-column: 1;
@@ -2250,8 +2261,112 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
+    position: relative;
 }
-.prompt-section-right .prompt-builder-tabs {
+
+/* Filled-in preview — slides over the editor it belongs to, rather than
+   stacking another modal on top of the settings flyout. */
+.prompt-rendered-flyout {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    animation: slideInRight 0.18s ease-out;
+}
+.prompt-rendered-flyout[hidden] {
+    display: none;
+}
+/* The editor's textarea overhangs its card slightly on narrow screens, so
+   hiding it keeps a stray line of template from peeking under the preview. */
+.prompt-section-right:has(.prompt-rendered-flyout:not([hidden])) .form-textarea {
+    visibility: hidden;
+}
+.prompt-rendered-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex: none;
+    padding: 0.55rem 0.6rem 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.prompt-rendered-header h4 {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-color);
+}
+.prompt-rendered-sub {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+.prompt-rendered-header .icon-btn {
+    flex: none;
+    align-self: center;
+}
+.prompt-rendered-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.6rem 0.75rem 0.75rem;
+}
+.prompt-rendered-block + .prompt-rendered-block {
+    margin-top: 0.85rem;
+}
+.prompt-rendered-block-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin: 0 0 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+.prompt-rendered-block-title span {
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+.prompt-rendered-text {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    padding: 0.6rem 0.75rem;
+    background: var(--pre-bg);
+    border: 1px solid var(--pre-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-color);
+}
+.prompt-rendered-tag {
+    color: var(--accent-color);
+    opacity: 0.85;
+}
+.prompt-rendered-heading {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.prompt-rendered-empty {
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    padding: 0.6rem 0.75rem;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+}
+.prompt-section-right .prompt-builder-bar {
     flex: none;
 }
 .prompt-section-right .form-textarea {

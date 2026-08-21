@@ -8,20 +8,22 @@ import { analyzeContext } from './context-analysis.js';
 // REQUEST BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Auto Summaries: inject the chat's running summary when enabled. The stored
+// summary is already held within its size cap server-side (enforce_cap), so
+// it's injected as-is.
+function activeSummaryText() {
+    return state.activeChat?.summary_enabled ? summaryToText(state.activeChat?.summary) : '';
+}
+
 /**
  * Build an OpenAI-compatible chat completion payload from current state.
  * @param {number} [excludeLastN=0] — drop the last N messages (used for regen)
  * @param {string|null} [nudge=null] — hidden user message appended to nudge continuation
  */
 export function buildChatPayload(excludeLastN = 0, nudge = null) {
-    // Auto Summaries: inject the chat's running summary when enabled. The stored
-    // summary is already held within its size cap server-side (enforce_cap), so
-    // it's injected as-is. Context assembly (character/persona/system prompt and
-    // the token-budgeted history slice) is handled by analyzeContext below.
-    const summaryText = state.activeChat?.summary_enabled
-        ? summaryToText(state.activeChat?.summary)
-        : '';
-    const analysis = analyzeContext({ excludeLastN, nudge, summaryText });
+    // Context assembly (character/persona/system prompt and the token-budgeted
+    // history slice) is handled by analyzeContext.
+    const analysis = analyzeContext({ excludeLastN, nudge, summaryText: activeSummaryText() });
 
     // Sampler settings (only include active sampler groups)
     const samplers = {};
@@ -56,6 +58,15 @@ export function buildChatPayload(excludeLastN = 0, nudge = null) {
 /** Preview helper — returns the same payload buildChatPayload would send right now. */
 export function previewChatPayload() {
     return buildChatPayload(0, null);
+}
+
+/**
+ * Preview helper — the System and User templates as this same analysis pass
+ * rendered them, before assembly folds in the greeting, the memory fallback
+ * and the alternation shims. Those belong to the whole-request preview.
+ */
+export function previewRenderedTemplates() {
+    return analyzeContext({ summaryText: activeSummaryText() }).renderedTemplates;
 }
 
 /**

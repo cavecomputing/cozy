@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { resolveTemplateVariables } from './utils.js';
+import { dropEmptyTagBlocks, resolveTemplateVariables } from './utils.js';
 import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import {
@@ -88,7 +88,9 @@ function resolveTrackedTemplate(template, context, {
         trackedContext[key] = `${open}${value}${close}`;
     }
 
-    const marked = resolveTemplateVariables(template, trackedContext);
+    // Markers only ever wrap a value with content, so an empty wrapper never
+    // holds one — dropping it here cannot unbalance the walk below.
+    const marked = dropEmptyTagBlocks(resolveTemplateVariables(template, trackedContext));
     if (!marked) return { content: '', fragments: [] };
 
     const byOpen = new Map(markers.map(marker => [marker.open, marker]));
@@ -344,6 +346,9 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
     const userTemplate = prompt?.post_history_content || '';
     const system = resolveTrackedTemplate(systemTemplate, context, { zone: 'system' });
     const messages = [];
+    // Held for the editor's preview: what the two templates alone produced,
+    // before the greeting fold-in, memory fallback and alternation shims below.
+    let userTurn = '';
     if (system.content) {
         messages.push({
             role: 'system',
@@ -379,6 +384,7 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
                 variableSources: { user_message: source },
                 zone: 'user',
             });
+            userTurn = rendered.content;
             messages.push({
                 role: 'user',
                 content: rendered.content,
@@ -397,6 +403,7 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
 
     if (!wrapsUserMessage || lastUserIndex === -1) {
         const rendered = resolveTrackedTemplate(userTemplate, context, { zone: 'user' });
+        userTurn = rendered.content;
         if (rendered.content) {
             messages.push({
                 role: 'user',
@@ -440,6 +447,7 @@ function assembleMessages(selectedMessages, { summaryText = '', nudge = null } =
     return {
         trackedMessages,
         messages: trackedMessages.map(message => ({ role: message.role, content: message.content })),
+        renderedTemplates: { system: system.content, user: userTurn },
         tokenCounts: tokenAccounting.bySource,
         segmentBuckets: tokenAccounting.buckets,
         lorebookContents,
@@ -547,6 +555,7 @@ export function analyzeContext({
 
     return {
         messages: assembled.messages,
+        renderedTemplates: assembled.renderedTemplates,
         selectedMessages: selected,
         selectedMessageIds,
         firstSelectedMessageId: selectedMessageIds[0] ?? null,

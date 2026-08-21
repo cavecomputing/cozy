@@ -104,6 +104,27 @@ export function resolveTemplateVariables(template, context) {
         .trim();
 }
 
+// An opening tag with optional attributes, whitespace, then its own closing tag.
+const EMPTY_TAG_BLOCK = /<([A-Za-z][\w.:-]*)(?:\s[^<>]*)?>\s*<\/\1\s*>/g;
+
+/**
+ * Drop wrapper tags left holding nothing once the template resolved. A
+ * `<world_info>` whose variables all came back empty is still a heading the
+ * model reads and tries to honour, so it goes out with its contents.
+ *
+ * Whitespace-only content makes the match innermost by construction; repeating
+ * the pass clears a parent that was emptied by losing its last child.
+ */
+export function dropEmptyTagBlocks(text) {
+    let stripped = String(text || '');
+    let previous;
+    do {
+        previous = stripped;
+        stripped = stripped.replace(EMPTY_TAG_BLOCK, '');
+    } while (stripped !== previous);
+    return stripped;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TOAST NOTIFICATIONS
 // ═══════════════════════════════════════════════════════════════════════════

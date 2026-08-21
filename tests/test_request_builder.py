@@ -112,6 +112,116 @@ def test_whitespace_only_values_still_drop_their_conditional_blocks():
     run_node_module(code)
 
 
+def test_wrapper_tags_left_empty_are_dropped_from_the_prompt():
+    """XML-style wrappers around optional sections shouldn't ship as bare tags.
+
+    A `<memory></memory>` with nothing between it is still a heading the model
+    reads, so a wrapper whose sections all resolved away goes out with them —
+    while a wrapper that kept even one section stays intact.
+    """
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira', description: 'A careful tester.' };
+        state.activePersona = { name: 'Morgan', description: '' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: '<partner_character>\n{{description}}\n</partner_character>\n\n'
+                + '<user>\n{{#persona}}[Persona]\n{{persona}}{{/persona}}\n</user>\n\n'
+                + '<memory>\n{{#author_note}}[Note]\n{{author_note}}{{/author_note}}\n</memory>',
+            post_history_content: '',
+        }];
+        state.activeChat = { author_note: '' };
+        state.messages = [{ id: 1, role: 'user', text: 'hi' }];
+
+        const empty = buildChatPayload().messages[0].content;
+        assert.match(empty, /<partner_character>\nA careful tester\.\n<\/partner_character>/);
+        assert.doesNotMatch(empty, /<user>/);
+        assert.doesNotMatch(empty, /<memory>/);
+
+        // Filling one of them brings its wrapper back.
+        state.activePersona.description = 'A curious user.';
+        const filled = buildChatPayload().messages[0].content;
+        assert.match(filled, /<user>\n\[Persona\]\nA curious user\.\n<\/user>/);
+        assert.doesNotMatch(filled, /<memory>/);
+    """
+    run_node_module(code)
+
+
+def test_rendered_templates_exclude_what_assembly_adds():
+    """The editor's preview shows the templates, not the assembled request.
+
+    A chat opening on a greeting has that greeting folded into the system
+    message under a [Character Greeting] header, and a summary with nowhere to
+    go gets a [MEMORY] block appended. Neither has a counterpart in the editor,
+    so neither belongs in a preview of the two templates.
+    """
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira', description: 'A careful tester.' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: 'SYSTEM: {{description}}',
+            post_history_content: 'USER TAIL for {{char}}',
+        }];
+        state.activeChat = { summary_enabled: true, summary: { chunks: [{ text: 'Once, a test.' }] } };
+        state.messages = [
+            { id: 1, role: 'character', text: 'A greeting with <div style=>markup</div>.' },
+            { id: 2, role: 'user', text: 'hi' },
+        ];
+
+        const analysis = analyzeContext({ summaryText: 'Once, a test.' });
+        const systemMessage = analysis.messages[0].content;
+        // The assembled request carries all three; the preview carries one.
+        assert.match(systemMessage, /\[Character Greeting\]/);
+        assert.match(systemMessage, /MEMORY/);
+
+        const rendered = analysis.renderedTemplates;
+        assert.equal(rendered.system, 'SYSTEM: A careful tester.');
+        assert.equal(rendered.user, 'USER TAIL for Mira');
+        assert.doesNotMatch(rendered.system, /Character Greeting|div style|MEMORY/);
+    """
+    run_node_module(code)
+
+
+def test_rendered_user_template_carries_the_wrapped_message():
+    """With {{user_message}} in play the preview shows the wrapped turn."""
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: 'SYSTEM',
+            post_history_content: '[Context]\n{{user_message}}\n[End]',
+        }];
+        state.messages = [{ id: 1, role: 'user', text: 'Did it wrap?' }];
+
+        const rendered = analyzeContext({}).renderedTemplates;
+        assert.equal(rendered.user, '[Context]\nDid it wrap?\n[End]');
+    """
+    run_node_module(code)
+
+
+def test_nested_wrappers_drop_from_the_inside_out():
+    """Emptying a child empties its parent, so one pass isn't enough."""
+    code = r"""
+        import assert from 'node:assert/strict';
+        import { dropEmptyTagBlocks } from './static/js/utils.js';
+
+        assert.equal(dropEmptyTagBlocks('<memory>\n  <note></note>\n</memory>'), '');
+        assert.equal(
+            dropEmptyTagBlocks('<memory>\n<note>kept</note>\n<gap></gap>\n</memory>'),
+            '<memory>\n<note>kept</note>\n\n</memory>',
+        );
+        // Attributes on the opening tag are part of the wrapper, not content.
+        assert.equal(dropEmptyTagBlocks('<block status="enabled"> </block>'), '');
+        // Nothing else is touched: unpaired tags, self-closing tags, real text.
+        assert.equal(dropEmptyTagBlocks('<unclosed>\ntext'), '<unclosed>\ntext');
+        assert.equal(dropEmptyTagBlocks('<br/>'), '<br/>');
+        assert.equal(dropEmptyTagBlocks('3 < 4 > 2'), '3 < 4 > 2');
+    """
+    run_node_module(code)
+
+
 def test_default_post_history_template_preserves_character_card_behavior():
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = {

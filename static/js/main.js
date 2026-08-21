@@ -27,6 +27,7 @@ import {
     updateSystemPromptContent, syncActivePromptFromEditors, populateDefaultTemplateHelp,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode,
+    toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
 import {
@@ -141,6 +142,7 @@ function blurSettingsFlyoutFocus() {
 function closeSettingsFlyout() {
     blurSettingsFlyoutFocus();
     el.settingsFlyout.hidden = true;
+    closeRenderedPrompts();
     setSamplerPopoverOpen(false);
     exitSettingsDetail();
     // An edit made in the last half-second would otherwise die in the debounce.
@@ -443,6 +445,16 @@ function bindSettingsHandlers() {
         rememberSettingsSubmodalTrigger();
         previewSystemPrompt();
     });
+    el.promptRenderedBtn?.addEventListener('click', e => {
+        // The outside-click handler below would otherwise close it right away.
+        e.stopPropagation();
+        toggleRenderedPrompts();
+    });
+    el.promptRenderedClose?.addEventListener('click', closeRenderedPrompts);
+    document.addEventListener('click', e => {
+        if (el.promptRenderedFlyout?.hidden !== false) return;
+        if (!e.target.closest('#prompt-rendered-flyout')) closeRenderedPrompts();
+    });
     el.syspromptHelp?.addEventListener('click', () => {
         rememberSettingsSubmodalTrigger();
         populateDefaultTemplateHelp();
@@ -690,6 +702,11 @@ function bindChatHandlers() {
             e.preventDefault();
             e.stopPropagation();
             stopGeneration();
+            return;
+        }
+        if (el.promptRenderedFlyout?.hidden === false) {
+            e.preventDefault();
+            closeRenderedPrompts();
             return;
         }
         Flyouts.closeAllExcept(null);

@@ -489,17 +489,33 @@
                                     <dl class="settings-help-vars">
                                         <dt><code>&#123;&#123;#var&#125;&#125;…&#123;&#123;/var&#125;&#125;</code></dt><dd>Conditional block. Kept only when <code>var</code> has content; when it's empty the whole block — labels and all — is removed. The name must match on both ends.</dd>
                                         <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options at random each time the prompt is built.</dd>
+                                        <dt><code>&lt;tag&gt;…&lt;/tag&gt;</code></dt><dd>Tags of your own, for marking a part of the prompt off for the model. If everything inside a pair resolves to nothing, the tags are dropped with it — no empty <code>&lt;memory&gt;&lt;/memory&gt;</code> is sent. Nested tags clear from the inside out, and any tag still holding text stays. Nothing to switch on.</dd>
                                     </dl>
-                                    <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>eye</strong> icon above to preview the assembled prompt; the <strong>?</strong> icon has worked examples.</p>
+                                    <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon above for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
                                 </div>
                             </div>
                             <div class="prompt-section-right settings-card">
-                                <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
-                                    <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system">System</button>
-                                    <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">User</button>
+                                <div class="prompt-builder-bar">
+                                    <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
+                                        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system">System</button>
+                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">User</button>
+                                    </div>
+                                    <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both templates filled in" aria-label="Preview both templates filled in" aria-expanded="false" aria-controls="prompt-rendered-flyout">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                    </button>
                                 </div>
                                 <textarea id="settings-sysprompt-content" class="form-textarea" placeholder="Enter prompt template…"></textarea>
                                 <textarea id="settings-posthistory-content" class="form-textarea" placeholder="Enter user message template…" hidden></textarea>
+                                <div id="prompt-rendered-flyout" class="prompt-rendered-flyout" role="dialog" aria-labelledby="prompt-rendered-title" hidden>
+                                    <header class="prompt-rendered-header">
+                                        <h4 id="prompt-rendered-title">Filled in</h4>
+                                        <p class="prompt-rendered-sub">Both templates with this chat's data. The <strong>eye</strong> icon has the whole request.</p>
+                                        <button id="prompt-rendered-close" class="icon-btn" type="button" aria-label="Close preview">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
+                                    </header>
+                                    <div id="prompt-rendered-body" class="prompt-rendered-body"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1185,11 +1201,24 @@
                 <p>Picks one of the comma-separated options each time the prompt is built.</p>
                 <pre class="prompt-help-example">The weather is &#123;&#123;random:sunny,rainy,foggy,stormy&#125;&#125;.</pre>
 
+                <h3>Tags you wrap around sections</h3>
+                <p>Some templates mark parts off for the model with tags of your own, like <code>&lt;memory&gt;…&lt;/memory&gt;</code>. If everything inside a pair resolves to nothing, the tags go too — the model never sees an empty <code>&lt;memory&gt;&lt;/memory&gt;</code> sitting there asking to be filled.</p>
+                <pre class="prompt-help-example">&lt;memory&gt;
+&#123;&#123;#author_note&#125;&#125;[Author's Note]
+&#123;&#123;author_note&#125;&#125;&#123;&#123;/author_note&#125;&#125;
+&lt;/memory&gt;</pre>
+                <ul class="prompt-help-tips">
+                    <li>Nothing to switch on — it happens whenever a wrapper comes out empty.</li>
+                    <li>Nested tags clear from the inside out, so a wrapper that loses its last filled section goes as well.</li>
+                    <li>A tag holding any text at all stays, even a stray label you left outside a section.</li>
+                </ul>
+
                 <h3>Blanks that come from the card</h3>
                 <p>Two variables are filled by the character card itself: <code>&#123;&#123;system_prompt&#125;&#125;</code> and <code>&#123;&#123;post_history_instructions&#125;&#125;</code>. Whatever the card puts there lands wherever you place the blank. Take the blank out and the card's text is ignored.</p>
 
                 <h3>Check your work</h3>
                 <ul class="prompt-help-tips">
+                    <li>Tap the <strong>document</strong> icon on the editor to slide out both templates filled in — System on top, User below. It shows the templates only; the greeting, the memory fallback and anything else assembly adds are in the eye preview.</li>
                     <li>Tap the <strong>eye</strong> icon to preview exactly what will be sent for the current character and persona.</li>
                     <li>Made a typo in a tag? The preview is where you'll catch a leftover <code>&#123;&#123;…&#125;&#125;</code> that never got filled in.</li>
                     <li>You can save several templates and switch between them with the dropdown.</li>

@@ -1,9 +1,9 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
-import { showToast } from './utils.js';
+import { sanitize, showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
-import { previewChatPayload } from './request-builder.js';
+import { previewChatPayload, previewRenderedTemplates } from './request-builder.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAIRED PROMPT BUILDER
@@ -191,6 +191,61 @@ export function previewSystemPrompt() {
         el.promptPreviewContent.textContent = JSON.stringify(payload, null, 2);
     }
     if (el.promptPreviewModal) el.promptPreviewModal.hidden = false;
+}
+
+// ── Filled-in preview flyout ───────────────────────────────────────────────
+// The two templates as the request builder's own analysis pass renders them —
+// nothing is resolved a second time here. Scoped to the templates on purpose:
+// what assembly adds on top (the greeting, the memory fallback, alternation
+// shims) has no counterpart in the editor, and belongs to the whole-request
+// preview behind the eye icon. Compiled on open, discarded on close.
+
+// Run over already-escaped text, so a literal tag in the prompt reads as one.
+const RENDERED_TAG = /&lt;\/?[A-Za-z][\w.:-]*(?:\s[^&]*?)?&gt;/g;
+const RENDERED_HEADING = /^\[[^\]\n]+\]$/gm;
+
+function prettifyPrompt(text) {
+    return sanitize(text)
+        .replace(RENDERED_TAG, tag => `<span class="prompt-rendered-tag">${tag}</span>`)
+        .replace(RENDERED_HEADING, head => `<span class="prompt-rendered-heading">${head}</span>`);
+}
+
+function renderedBlock(title, caption, text, emptyNote) {
+    const body = text
+        ? `<pre class="prompt-rendered-text">${prettifyPrompt(text)}</pre>`
+        : `<p class="prompt-rendered-empty">${emptyNote}</p>`;
+    return `<section class="prompt-rendered-block">
+        <h5 class="prompt-rendered-block-title">${title}<span>${caption}</span></h5>
+        ${body}
+    </section>`;
+}
+
+export function openRenderedPrompts() {
+    if (!el.promptRenderedFlyout || !el.promptRenderedBody) return;
+    syncActivePromptFromEditors();
+
+    const { system, user } = previewRenderedTemplates();
+
+    el.promptRenderedBody.innerHTML =
+        renderedBlock('System', 'System tab, filled in', system,
+            'Nothing — the System template resolved to no content.')
+        + renderedBlock('User', 'User tab, filled in', user,
+            'Nothing — the User template resolved to no content.');
+    el.promptRenderedBody.scrollTop = 0;
+    el.promptRenderedFlyout.hidden = false;
+    el.promptRenderedBtn?.setAttribute('aria-expanded', 'true');
+}
+
+export function closeRenderedPrompts() {
+    if (!el.promptRenderedFlyout || el.promptRenderedFlyout.hidden) return;
+    el.promptRenderedFlyout.hidden = true;
+    if (el.promptRenderedBody) el.promptRenderedBody.innerHTML = '';
+    el.promptRenderedBtn?.setAttribute('aria-expanded', 'false');
+}
+
+export function toggleRenderedPrompts() {
+    if (el.promptRenderedFlyout?.hidden) openRenderedPrompts();
+    else closeRenderedPrompts();
 }
 
 export function switchPromptBuilderMode(mode) {
