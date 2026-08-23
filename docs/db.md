@@ -279,10 +279,17 @@ the two are kept identical so a hand-import lands under the same title. That is
 what makes a revised preset a new file: an install holding `NanoBear v2.0` gains
 `NanoBear v2.1` alongside it and the older row is left untouched.
 
-On a fresh install the bundle also picks the starting selection:
-`active_system_prompt` is set to `DEFAULT_BUNDLED_PROMPT` (`shared.py`), since
-otherwise the picker would fall back to whichever preset sorts first
-alphabetically. An install that already has prompts keeps its own selection.
+On a fresh install the bundle also picks the starting selection: seeding sets
+`active_system_prompt` to the **alphabetically greatest** title, which is how a
+newer house version takes over — `NanoBear v2.2.json` outranks `v2.1` with
+nothing else to update. Left alone the picker would fall back to whichever
+preset sorts *first*, which is a BigBear. An install that already has prompts
+keeps its own selection, so this only ever applies once.
+
+Two consequences of the rule are worth knowing before adding a file: a preset
+titled after `NanoBear` alphabetically would claim the default, and `NanoBear
+v10.0` would sort *below* `v2.1`. `test_the_house_prompt_sorts_last` guards the
+first case.
 
 Seeded characters become ordinary cards on disk — the `characters` index picks
 them up on the next listing request, and deleting one deletes it for good.

@@ -144,8 +144,9 @@ again; prompts do not.
   directory is the source of truth and a deleted preset comes back — removing one means deleting
   its file. A title is the **filename**, so shipping a revised preset means adding
   `NanoBear v2.1.json`, never editing an existing file. An existing title is skipped, never
-  overwritten, so user edits survive. `DEFAULT_BUNDLED_PROMPT` names the one a fresh install starts
-  on. See the prompt section of [docs/db.md](docs/db.md).
+  overwritten, so user edits survive. A fresh install activates the **alphabetically greatest**
+  title, so a new house version takes over by sorting after the old one — which is also why a
+  preset must not be titled after `NanoBear`. See the prompt section of [docs/db.md](docs/db.md).
 
 A seeded character or regex preset is ordinary user data afterwards — deleting it keeps it deleted.
 A seeded prompt is a copy of a file that outranks it.

@@ -38,9 +38,6 @@ BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
 # presets exist; see seed_default_prompts(). Regenerate the BigBear set with
 # scripts/build_bigbear_presets.py.
 BUNDLED_PROMPTS_DIR = os.path.join(BASE_DIR, 'default_prompts')
-# The one a fresh install starts out using. Everything else in the bundle is a
-# preset the user opts into. Bump this when a newer house version ships.
-DEFAULT_BUNDLED_PROMPT = 'NanoBear v2.1'
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Cap on decoded image dimensions (~8000x8000). Character cards and persona
 # avatars are user-supplied, and a small crafted file can otherwise expand to
@@ -690,6 +687,11 @@ def seed_default_prompts():
     A title already present is skipped, never overwritten, so edits to a bundled
     preset survive a restart. Renaming one does not — the original title is
     missing again, and the bundled copy comes back beside it.
+
+    On a fresh install the alphabetically greatest title also becomes the active
+    prompt, which is how a new house version takes over without a constant to
+    maintain. Two things follow from that rule: a preset titled after "NanoBear"
+    would claim the default, and "NanoBear v10.0" would sort *below* v2.1.
     """
     if not os.path.isdir(BUNDLED_PROMPTS_DIR):
         return
@@ -728,12 +730,14 @@ def seed_default_prompts():
                 (title, content, post_history),
             )
             existing.add(title)
-            if title == DEFAULT_BUNDLED_PROMPT:
-                default_id = cursor.lastrowid
+            # Titles arrive in ascending order, so the last one to land is the
+            # greatest. That is the fresh-install default: "NanoBear v2.2"
+            # outranks "NanoBear v2.1" on its own, with nothing to bump here.
+            default_id = cursor.lastrowid
 
-        # Without this the picker falls back to whichever prompt sorts first,
-        # which is alphabetical rather than the house default. An existing
-        # install already has a selection, and gaining presets must not move it.
+        # Left to itself the picker falls back to whichever prompt sorts
+        # *first*, which is a BigBear. An existing install already has a
+        # selection, and gaining presets must not move it.
         if fresh_install and default_id is not None:
             conn.execute(
                 "INSERT INTO settings (key, value) VALUES ('active_system_prompt', ?) "

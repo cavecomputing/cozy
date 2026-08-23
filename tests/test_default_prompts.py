@@ -6,6 +6,19 @@ import os
 import shared
 
 
+def _active_prompt_name():
+    with shared.get_db() as conn:
+        active = conn.execute(
+            "SELECT value FROM settings WHERE key='active_system_prompt'"
+        ).fetchone()
+        if active is None:
+            return None
+        row = conn.execute(
+            'SELECT name FROM system_prompts WHERE id=?', (active['value'],)
+        ).fetchone()
+    return row['name'] if row else None
+
+
 def _prompt_names():
     with shared.get_db() as conn:
         return sorted(
@@ -50,8 +63,11 @@ class TestBundledPresets:
         for filename in _bundled_filenames():
             assert _read_preset(filename)['name'] == filename[:-len('.json')]
 
-    def test_the_fresh_install_default_is_bundled(self):
-        assert f'{shared.DEFAULT_BUNDLED_PROMPT}.json' in _bundled_filenames()
+    def test_the_house_prompt_sorts_last(self):
+        # A fresh install activates the alphabetically greatest title, so the
+        # current NanoBear has to stay at the end of the listing. A new preset
+        # titled after it would quietly become every new user's default.
+        assert _bundled_titles()[-1] == 'NanoBear v2.1'
 
     def test_bigbear_post_history_wraps_the_user_message(self):
         # Without {{user_message}} the template appends as a separate user
@@ -91,16 +107,50 @@ class TestSeeding:
         shared.seed_default_prompts()
         assert _prompt_names() == _bundled_titles()
 
-    def test_fresh_install_starts_on_the_house_default(self):
+    def test_fresh_install_starts_on_the_last_title_alphabetically(self):
         shared.seed_default_prompts()
-        with shared.get_db() as conn:
-            active = conn.execute(
-                "SELECT value FROM settings WHERE key='active_system_prompt'"
-            ).fetchone()
-            name = conn.execute(
-                'SELECT name FROM system_prompts WHERE id=?', (active['value'],)
-            ).fetchone()
-        assert name['name'] == shared.DEFAULT_BUNDLED_PROMPT
+        assert _active_prompt_name() == _bundled_titles()[-1]
+
+    def test_a_later_version_takes_over_the_default_on_a_fresh_install(self, tmp_path):
+        # The point of the alphabetical rule: shipping NanoBear v2.2 makes it
+        # the default for new installs with nothing else to update.
+        later = tmp_path / 'default_prompts'
+        later.mkdir()
+        for filename in _bundled_filenames():
+            (later / filename).write_text(
+                json.dumps(_read_preset(filename)), encoding='utf-8'
+            )
+        (later / 'NanoBear v2.2.json').write_text(
+            json.dumps({'name': 'NanoBear v2.2', 'content': 'newer', 'post_history_content': ''}),
+            encoding='utf-8',
+        )
+
+        original_dir = shared.BUNDLED_PROMPTS_DIR
+        shared.BUNDLED_PROMPTS_DIR = str(later)
+        try:
+            shared.seed_default_prompts()
+        finally:
+            shared.BUNDLED_PROMPTS_DIR = original_dir
+
+        assert _active_prompt_name() == 'NanoBear v2.2'
+
+    def test_a_broken_last_title_falls_back_to_the_one_below_it(self, tmp_path):
+        bundle = tmp_path / 'default_prompts'
+        bundle.mkdir()
+        (bundle / 'Alpha v1.json').write_text(
+            json.dumps({'name': 'Alpha v1', 'content': 'a', 'post_history_content': ''}),
+            encoding='utf-8',
+        )
+        (bundle / 'Zulu v1.json').write_text('{not json', encoding='utf-8')
+
+        original_dir = shared.BUNDLED_PROMPTS_DIR
+        shared.BUNDLED_PROMPTS_DIR = str(bundle)
+        try:
+            shared.seed_default_prompts()
+        finally:
+            shared.BUNDLED_PROMPTS_DIR = original_dir
+
+        assert _active_prompt_name() == 'Alpha v1'
 
     def test_seeding_does_not_duplicate_on_restart(self):
         shared.seed_default_prompts()
@@ -150,14 +200,14 @@ class TestSeeding:
         with shared.get_db() as conn:
             conn.execute(
                 "UPDATE system_prompts SET content='my edit' WHERE name=?",
-                (shared.DEFAULT_BUNDLED_PROMPT,),
+                ('NanoBear v2.1',),
             )
 
         shared.seed_default_prompts()
         with shared.get_db() as conn:
             rows = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                (shared.DEFAULT_BUNDLED_PROMPT,),
+                ('NanoBear v2.1',),
             ).fetchall()
         assert [r['content'] for r in rows] == ['my edit']
 

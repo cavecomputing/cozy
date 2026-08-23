@@ -98,10 +98,10 @@ class TestSystemPrompts:
         assert r.status_code == 200
         prompts = r.get_json()
         names = {p['name'] for p in prompts}
-        assert shared.DEFAULT_BUNDLED_PROMPT in names
+        assert 'NanoBear v2.1' in names
         assert 'BigBear - General' in names
 
-        house = next(p for p in prompts if p['name'] == shared.DEFAULT_BUNDLED_PROMPT)
+        house = next(p for p in prompts if p['name'] == 'NanoBear v2.1')
         # The Prompt Builder variables the character editor checks against.
         assert '{{description}}' in house['content']
         assert '{{author_note}}' in house['content']
