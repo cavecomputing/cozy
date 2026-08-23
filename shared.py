@@ -29,10 +29,18 @@ BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
 # first run of a fresh install — see seed_default_characters().
 BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
 # Prompt presets shipped with Cozy as {name, content, post_history_content}
-# JSON — the same payload the export endpoint produces. Inserted into
-# system_prompts once, on the next start after upgrading; see
-# seed_default_prompts(). Regenerate with scripts/build_bigbear_presets.py.
+# JSON — the same payload the export endpoint produces. The *filename* minus
+# .json is the title each one is seeded under, so shipping a revised preset
+# means adding a file rather than editing one: "NanoBear v2.1.json" is a
+# different preset from "NanoBear v2.0.json" and neither disturbs the other.
+# Anything missing from system_prompts is restored from here on every start,
+# so this directory — not the database — is the source of truth for which
+# presets exist; see seed_default_prompts(). Regenerate the BigBear set with
+# scripts/build_bigbear_presets.py.
 BUNDLED_PROMPTS_DIR = os.path.join(BASE_DIR, 'default_prompts')
+# The one a fresh install starts out using. Everything else in the bundle is a
+# preset the user opts into. Bump this when a newer house version ships.
+DEFAULT_BUNDLED_PROMPT = 'NanoBear v2.1'
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Cap on decoded image dimensions (~8000x8000). Character cards and persona
 # avatars are user-supplied, and a small crafted file can otherwise expand to
@@ -251,6 +259,11 @@ def _delete_summary_compress_batch(conn):
     )
 
 
+# Migrations 3-7 upgrade a stock prompt that init_db() used to insert inline.
+# Nothing creates that row any more — the house prompt ships as a file in
+# default_prompts/ and a revision arrives as a new file — so this is the last
+# of them. They stay for databases that predate them, where the stock row is
+# still whatever version was current when it was written.
 def _add_summary_to_legacy_default_prompt(conn):
     """Add summary memory to untouched copies of the former stock prompt."""
     conn.execute(
@@ -339,6 +352,18 @@ def _backfill_chat_persona(conn):
     ''')
 
 
+def _delete_default_prompts_seeded(conn):
+    """Remove the retired one-shot flag for bundled prompt seeding.
+
+    Prompts are now restored from `default_prompts/` on every start, so there
+    is no first run left for a flag to mark. See seed_default_prompts().
+    """
+    conn.execute(
+        'DELETE FROM settings WHERE key=?',
+        ('default_prompts_seeded',),
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -350,6 +375,7 @@ MIGRATIONS = (
     (8, 'remove_character_gallery', _remove_character_gallery),
     (9, 'backfill_chat_persona', _backfill_chat_persona),
     (10, 'delete_summary_compress_batch', _delete_summary_compress_batch),
+    (11, 'delete_default_prompts_seeded', _delete_default_prompts_seeded),
 )
 
 
@@ -599,29 +625,14 @@ def init_db():
                 ('Default User', 'The brave adventurer', '')
             )
 
-        # Bundled-prompt bookkeeping, mirroring default_characters_seeded above
-        # with one difference: existing installs are owed the presets too, so
-        # this starts at '0' regardless of fresh_install. Written once and never
-        # reset, so deleting a bundled preset keeps it deleted.
-        conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('default_prompts_seeded', '0') "
-            "ON CONFLICT(key) DO NOTHING"
-        )
+        # Bundled prompts have no flag of their own — seed_default_prompts()
+        # restores whatever is missing on every start.
 
-        # Same bookkeeping again for the bundled regex preset.
+        # Bookkeeping for the bundled regex preset.
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('default_regex_seeded', '0') "
             "ON CONFLICT(key) DO NOTHING"
         )
-
-        # Seed a default system prompt if the table is empty. Use the bare
-        # default template — {{system_prompt}} stays as a live variable so the
-        # per-character system_prompt field can fill it.
-        if conn.execute('SELECT COUNT(*) FROM system_prompts').fetchone()[0] == 0:
-            conn.execute(
-                "INSERT INTO system_prompts (name, content, post_history_content) VALUES (?, ?, ?)",
-                ('NanoBear', DEFAULT_PROMPT_TEMPLATE, DEFAULT_POST_HISTORY_TEMPLATE)
-            )
 
 
 def seed_default_characters():
@@ -663,56 +674,72 @@ def seed_default_characters():
 
 
 def seed_default_prompts():
-    """Insert the bundled prompt presets into system_prompts, once per data dir.
+    """Restore every bundled prompt preset missing from system_prompts, each start.
 
-    Unlike the bundled characters these also land on existing installs, since
-    the presets are a feature rather than starter content. The
-    `default_prompts_seeded` setting flips to '1' afterwards whether or not
-    anything was inserted, so a preset the user later deletes stays deleted.
-    From then on they are ordinary rows — editable, renameable, deletable.
+    This is the one seeder that keeps no bookkeeping and is **deliberately not
+    once-only**: the directory is the source of truth, so a preset the user
+    deletes is back the next time Cozy starts. Removing one for good means
+    deleting its file — or, under Docker, rebuilding without it. That is the
+    trade for the folder being the whole interface: drop a JSON file in and it
+    appears on the next start, on new and existing installs alike.
 
-    A preset whose name is already taken is skipped rather than duplicated,
-    which keeps this from fighting a copy the user imported by hand.
+    A title is the *filename* minus .json, which is what makes a revised preset
+    a new file rather than an edit: an install holding "NanoBear v2.0" gains
+    "NanoBear v2.1" alongside it and the older row is left exactly as it is.
+
+    A title already present is skipped, never overwritten, so edits to a bundled
+    preset survive a restart. Renaming one does not — the original title is
+    missing again, and the bundled copy comes back beside it.
     """
+    if not os.path.isdir(BUNDLED_PROMPTS_DIR):
+        return
+
     with get_db() as conn:
-        row = conn.execute(
-            "SELECT value FROM settings WHERE key='default_prompts_seeded'"
-        ).fetchone()
-        if row is None or row['value'] != '0':
-            return
+        existing = {
+            r['name'] for r in
+            conn.execute('SELECT name FROM system_prompts').fetchall()
+        }
+        # No prompts of the user's own means a fresh install, where the bundle
+        # also decides which preset starts out active.
+        fresh_install = not existing
+        default_id = None
 
-        if os.path.isdir(BUNDLED_PROMPTS_DIR):
-            existing = {
-                r['name'] for r in
-                conn.execute('SELECT name FROM system_prompts').fetchall()
-            }
-            for filename in sorted(os.listdir(BUNDLED_PROMPTS_DIR)):
-                if not filename.lower().endswith('.json') or filename.startswith('.'):
-                    continue
-                source = os.path.join(BUNDLED_PROMPTS_DIR, filename)
-                try:
-                    with open(source, encoding='utf-8') as handle:
-                        preset = json.load(handle)
-                    name = preset['name']
-                    content = preset['content']
-                    post_history = preset.get('post_history_content', '')
-                except (OSError, ValueError, KeyError, TypeError):
-                    # A bundled preset is a nicety, not a reason to refuse to
-                    # start. Log it and leave the flag unset so a later run retries.
-                    log.exception('Could not seed bundled prompt %s', filename)
-                    return
-                if name in existing:
-                    continue
-                conn.execute(
-                    'INSERT INTO system_prompts (name, content, post_history_content) '
-                    'VALUES (?, ?, ?)',
-                    (name, content, post_history),
-                )
-                existing.add(name)
+        for filename in sorted(os.listdir(BUNDLED_PROMPTS_DIR)):
+            if not filename.lower().endswith('.json') or filename.startswith('.'):
+                continue
+            title = filename[:-len('.json')]
+            if title in existing:
+                continue
+            source = os.path.join(BUNDLED_PROMPTS_DIR, filename)
+            try:
+                with open(source, encoding='utf-8') as handle:
+                    preset = json.load(handle)
+                content = preset['content']
+                post_history = preset.get('post_history_content', '')
+            except (OSError, ValueError, KeyError, TypeError):
+                # A bundled preset is a nicety, not a reason to refuse to start.
+                # Log it and move on; the next start retries the file.
+                log.exception('Could not seed bundled prompt %s', filename)
+                continue
 
-        conn.execute(
-            "UPDATE settings SET value='1' WHERE key='default_prompts_seeded'"
-        )
+            cursor = conn.execute(
+                'INSERT INTO system_prompts (name, content, post_history_content) '
+                'VALUES (?, ?, ?)',
+                (title, content, post_history),
+            )
+            existing.add(title)
+            if title == DEFAULT_BUNDLED_PROMPT:
+                default_id = cursor.lastrowid
+
+        # Without this the picker falls back to whichever prompt sorts first,
+        # which is alphabetical rather than the house default. An existing
+        # install already has a selection, and gaining presets must not move it.
+        if fresh_install and default_id is not None:
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('active_system_prompt', ?) "
+                "ON CONFLICT(key) DO NOTHING",
+                (str(default_id),),
+            )
 
 
 # Bundled regex presets, seeded by seed_default_regex_presets(). Small enough to

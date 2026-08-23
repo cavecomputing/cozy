@@ -91,22 +91,21 @@ class TestSettings:
 
 
 class TestSystemPrompts:
-    def test_list_includes_default_seed(self, client):
+    def test_list_includes_the_bundled_presets(self, client):
+        shared.seed_default_prompts()
+
         r = client.get('/api/system-prompts')
         assert r.status_code == 200
         prompts = r.get_json()
-        assert len(prompts) >= 1
-        assert prompts[0]['name'] == 'NanoBear'
-        # Seed is the default Prompt Builder template — should contain the
-        # builder variables and conditional blocks.
-        assert '{{description}}' in prompts[0]['content']
-        assert '{{#system_prompt}}' in prompts[0]['content']
-        # New installs get the Author's Note variable seeded automatically.
-        assert '{{author_note}}' in prompts[0]['content']
-        # The default post-history enforces the house style and intentionally
-        # omits {{post_history_instructions}}.
-        assert prompts[0]['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
-        assert '{{post_history_instructions}}' not in prompts[0]['post_history_content']
+        names = {p['name'] for p in prompts}
+        assert shared.DEFAULT_BUNDLED_PROMPT in names
+        assert 'BigBear - General' in names
+
+        house = next(p for p in prompts if p['name'] == shared.DEFAULT_BUNDLED_PROMPT)
+        # The Prompt Builder variables the character editor checks against.
+        assert '{{description}}' in house['content']
+        assert '{{author_note}}' in house['content']
+        assert house['post_history_content'].strip()
 
     def test_create_prompt(self, client):
         r = client.post('/api/system-prompts', json={
@@ -122,7 +121,7 @@ class TestSystemPrompts:
         assert 'id' in data
 
     def test_update_prompt(self, client):
-        # Get the default prompt
+        shared.seed_default_prompts()
         prompts = client.get('/api/system-prompts').get_json()
         pid = prompts[0]['id']
         r = client.put(f'/api/system-prompts/{pid}', json={

@@ -26,6 +26,22 @@ def _registered_migrations():
     ]
 
 
+@pytest.fixture
+def stock_prompt():
+    """A "NanoBear" row as older Cozy versions seeded it, straight from init_db.
+
+    The prompt migrations were written against that row. It now arrives from
+    `default_prompts/` under a versioned title instead, so the upgrade paths
+    have to build their own starting point.
+    """
+    with shared.get_db() as conn:
+        conn.execute(
+            'INSERT INTO system_prompts (name, content, post_history_content) '
+            'VALUES (?, ?, ?)',
+            ('NanoBear', shared.DEFAULT_PROMPT_TEMPLATE, shared.DEFAULT_POST_HISTORY_TEMPLATE),
+        )
+
+
 class TestSchemaMigrationLedger:
     def test_fresh_database_creates_ledger(self, tmp_path, monkeypatch):
         fresh_db = tmp_path / 'fresh.db'
@@ -219,7 +235,7 @@ class TestSchemaMigrationLedger:
         ] == _registered_migrations()
         assert 'context_max_messages' not in client.get('/api/settings').get_json()
 
-    def test_unversioned_upgrade_adds_summary_to_legacy_default_prompt(self):
+    def test_unversioned_upgrade_adds_summary_to_legacy_default_prompt(self, stock_prompt):
         with shared.get_db() as conn:
             conn.execute('DROP TABLE schema_migrations')
             conn.execute(
@@ -240,7 +256,7 @@ class TestSchemaMigrationLedger:
         assert '{{#summary}}' in prompt['content']
         assert _migration_rows() == after_upgrade
 
-    def test_summary_prompt_migration_preserves_customized_prompt(self):
+    def test_summary_prompt_migration_preserves_customized_prompt(self, stock_prompt):
         custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V1 + '\n\nCustom instructions.'
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS
@@ -270,7 +286,7 @@ class TestSchemaMigrationLedger:
         assert prompt['content'] == custom_prompt
         assert migration['name'] == 'add_summary_to_legacy_default_prompt'
 
-    def test_unversioned_upgrade_adds_narrative_preamble_to_default_prompt(self):
+    def test_unversioned_upgrade_adds_narrative_preamble_to_default_prompt(self, stock_prompt):
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS
             if name == 'add_narrative_preamble_to_default_prompt'
@@ -295,7 +311,7 @@ class TestSchemaMigrationLedger:
         assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V3
         assert 'simulated world' in prompt['content']
 
-    def test_narrative_preamble_migration_preserves_customized_prompt(self):
+    def test_narrative_preamble_migration_preserves_customized_prompt(self, stock_prompt):
         custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V2 + '\n\nCustom instructions.'
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS
@@ -320,7 +336,7 @@ class TestSchemaMigrationLedger:
             ).fetchone()
         assert prompt['content'] == custom_prompt
 
-    def test_unversioned_upgrade_upgrades_default_prompt_to_v4(self):
+    def test_unversioned_upgrade_upgrades_default_prompt_to_v4(self, stock_prompt):
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS
             if name == 'upgrade_default_prompt_to_v4'
@@ -345,7 +361,7 @@ class TestSchemaMigrationLedger:
         assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V4
         assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
 
-    def test_v4_prompt_migration_preserves_customized_prompt(self):
+    def test_v4_prompt_migration_preserves_customized_prompt(self, stock_prompt):
         custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V3 + '\n\nCustom instructions.'
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS
@@ -370,7 +386,7 @@ class TestSchemaMigrationLedger:
             ).fetchone()
         assert prompt['content'] == custom_prompt
 
-    def test_enforce_house_style_post_history_upgrades_untouched(self):
+    def test_enforce_house_style_post_history_upgrades_untouched(self, stock_prompt):
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS
             if name == 'enforce_house_style_post_history'
@@ -395,7 +411,7 @@ class TestSchemaMigrationLedger:
         assert prompt['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
         assert '{{post_history_instructions}}' not in prompt['post_history_content']
 
-    def test_post_history_migration_preserves_customized(self):
+    def test_post_history_migration_preserves_customized(self, stock_prompt):
         custom_phi = shared._DEFAULT_POST_HISTORY_TEMPLATE_V1 + '\n\nExtra house rule.'
         migration_version = next(
             v for v, name, _ in shared.MIGRATIONS

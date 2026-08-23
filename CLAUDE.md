@@ -123,22 +123,32 @@ card data is read back out of the PNG through [card_store.py](card_store.py) at 
 
 Everything else is in `data/cozy_chat.db`; [docs/db.md](docs/db.md) is the schema reference.
 
-### Bundled content is seeded once, then belongs to the user
+### Bundled content, and who owns it afterwards
 
-Three seeders run from [app.py](app.py), each guarded by its own `*_seeded` flag in `settings`:
-characters from [default_characters/](default_characters/), prompts from
+Three seeders run from [app.py](app.py): characters from
+[default_characters/](default_characters/), prompts from
 [default_prompts/](default_prompts/), and regex presets from `DEFAULT_REGEX_PRESETS` inline in
-[shared.py](shared.py) rather than a directory.
+[shared.py](shared.py) rather than a directory. Two hand their content over once and never look
+again; prompts do not.
 
-- The flag flips to `'1'` whether or not anything was inserted, and is **never reset**. A name
-  already taken is skipped rather than duplicated. **Never re-seed on a schedule.**
+- Characters and regex presets use a `*_seeded` flag. It flips to `'1'` whether or not anything was
+  inserted, and is **never reset**. A name already taken is skipped rather than duplicated.
+  **Never re-seed on a schedule.**
 - Characters seed on fresh installs only — an upgrade must not drop a card into a library the user
-  curates. Prompts and regex presets are owed to existing installs too, so their flags start at
+  curates. Regex presets are owed to existing installs too, so `default_regex_seeded` starts at
   `'0'` regardless of `fresh_install`.
 - Regex presets ship **inactive**: `active_regex_preset` is deliberately left alone so bundled rules
   never silently rewrite replies.
+- Prompts are the exception to every line above: no flag, and **restored on every start**. Anything
+  in [default_prompts/](default_prompts/) missing from `system_prompts` is reinserted, so the
+  directory is the source of truth and a deleted preset comes back — removing one means deleting
+  its file. A title is the **filename**, so shipping a revised preset means adding
+  `NanoBear v2.1.json`, never editing an existing file. An existing title is skipped, never
+  overwritten, so user edits survive. `DEFAULT_BUNDLED_PROMPT` names the one a fresh install starts
+  on. See the prompt section of [docs/db.md](docs/db.md).
 
-Afterwards it is ordinary user data — deleting a bundled item keeps it deleted.
+A seeded character or regex preset is ordinary user data afterwards — deleting it keeps it deleted.
+A seeded prompt is a copy of a file that outranks it.
 
 ### Two upgrade mechanisms, not interchangeable
 

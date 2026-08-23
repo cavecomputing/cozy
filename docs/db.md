@@ -200,7 +200,7 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-The migration ledger currently contains ten migrations:
+The migration ledger currently contains eleven migrations:
 
 1. Retire the historical duplicate-greeting repair.
 2. Delete the retired `context_max_messages` setting.
@@ -212,6 +212,7 @@ The migration ledger currently contains ten migrations:
 8. Remove the character gallery setting, collection tables, and archive column.
 9. Backfill `chats.persona_id` from each chat's most recent user message.
 10. Delete the retired `summary_compress_batch` setting.
+11. Delete the retired `default_prompts_seeded` setting.
 
 Prompt migrations change only known stock templates. Customized prompts are
 preserved. The rename in migration 7 is the one exception to matching on
@@ -219,12 +220,16 @@ content: it changes the name of a prompt still called "Default" whether or not
 its templates were edited, so a user's edits carry over under the new label. It
 is skipped when a "NanoBear" prompt already exists.
 
+Migrations 3–7 are the last of their kind. They repair a stock prompt that
+`init_db()` used to insert inline; the house prompt now ships as a file in
+`default_prompts/` and a revision arrives as a new file, so no future release
+rewrites a prompt row. They remain for databases written before them.
+
 ## Seeded data
 
 On first run, the database is seeded with:
 
 - **Default persona**: "Default User" (tagline: "The brave adventurer", `is_default = 1`)
-- **Default system prompt**: "NanoBear" with paired main and post-history Prompt Builder templates
 - **Default settings**: context token budget (`32768`), visible context meter, an
   empty extra-request-parameters value, blank summarizer endpoint/key/model
   overrides, a 10% summary cap (`summary_cap_pct`), and 10 messages per
@@ -236,23 +241,48 @@ chat.
 ## Bundled content
 
 Three kinds of content ship with the repository and are copied into the user's
-data at startup, each by its own seeder and each guarded by its own `settings`
-flag:
+data at startup, each by its own seeder:
 
-| Content | Source | Flag |
-|---------|--------|------|
+| Content | Source | Bookkeeping |
+|---------|--------|-------------|
 | Character cards | `default_characters/` | `default_characters_seeded` |
-| Prompt presets | `default_prompts/` | `default_prompts_seeded` |
+| Prompt presets | `default_prompts/` | none — restored every start |
 | Regex presets | `DEFAULT_REGEX_PRESETS` in `shared.py` | `default_regex_seeded` |
 
-Each flag flips to `1` whether or not anything was inserted, and is never reset,
-so deleting a bundled item keeps it deleted. A name already taken is skipped
-rather than duplicated.
+Both flags flip to `1` whether or not anything was inserted, and are never
+reset, so deleting a bundled character or regex preset keeps it deleted. A name
+already taken is skipped rather than duplicated.
 
 `default_characters_seeded` starts at `0` only on a fresh install; an upgraded
-install starts at `1`, so an existing library is never seeded. The prompt and
-regex flags start at `0` regardless, because existing installs are owed those
-presets too.
+install starts at `1`, so an existing library is never seeded. `default_regex_seeded`
+starts at `0` regardless, because existing installs are owed those presets too.
+
+### Prompt presets are restored on every start
+
+Prompts are the exception to all of the above. `seed_default_prompts()` keeps no
+bookkeeping and is deliberately not once-only: on every start it inserts any
+bundled preset whose title is missing from `system_prompts`. The directory, not
+the database, is the source of truth for which presets exist.
+
+- Dropping a JSON file into `default_prompts/` makes it appear on the next
+  start, on new and existing installs alike.
+- Deleting a preset in Settings removes it until the next start, then it is
+  back. Removing one for good means deleting its file — under Docker, that
+  means rebuilding the image, since only `data/` is mounted.
+- A title already present is skipped, never overwritten, so edits to a bundled
+  preset survive a restart. Renaming one does not: the original title is
+  missing again, so the bundled copy returns beside the renamed row.
+- A file that fails to parse is logged and skipped; the next start retries it.
+
+A preset's title is its **filename** minus `.json`, not the `name` inside it —
+the two are kept identical so a hand-import lands under the same title. That is
+what makes a revised preset a new file: an install holding `NanoBear v2.0` gains
+`NanoBear v2.1` alongside it and the older row is left untouched.
+
+On a fresh install the bundle also picks the starting selection:
+`active_system_prompt` is set to `DEFAULT_BUNDLED_PROMPT` (`shared.py`), since
+otherwise the picker would fall back to whichever preset sorts first
+alphabetically. An install that already has prompts keeps its own selection.
 
 Seeded characters become ordinary cards on disk — the `characters` index picks
 them up on the next listing request, and deleting one deletes it for good.
