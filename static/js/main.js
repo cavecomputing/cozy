@@ -957,7 +957,12 @@ function bindComposerHandlers() {
     });
     el.userInput.addEventListener('keydown', e => {
         if (handleSlashKeydown(e)) return;
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+        // On touch shells Enter is the on-screen keyboard's line-break key, not
+        // a submit shortcut, so leave it alone there; desktop keeps Enter-to-send.
+        if (e.key === 'Enter' && !e.shiftKey && !window.matchMedia('(pointer: coarse)').matches) {
+            e.preventDefault();
+            handleSend();
+        }
     });
     // Both views run the full context analysis (template + lorebook
     // resolution); per-keystroke that adds up on long chats and slower
