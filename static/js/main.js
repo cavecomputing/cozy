@@ -1014,6 +1014,26 @@ function bindScrollHandlers() {
         scrollToBottom();
     });
 
+    // A streaming reply calls maybeScrollToBottom() on every token, and the
+    // native 'scroll' event from a user's wheel/touch gesture is async — a
+    // token can land in that gap and snap the view back down before the event
+    // ever fires, which reads as the scroll being stuck (same race noted on
+    // jumpToContextBoundary's autoScroll reset). Reading the gesture directly
+    // lets an upward scroll win synchronously, before the next token can.
+    const breakAutoScroll = () => { state.autoScroll = false; };
+    el.chatHistory.addEventListener('wheel', e => {
+        if (e.deltaY < 0 && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
+    }, { passive: true });
+    let touchStartY = null;
+    el.chatHistory.addEventListener('touchstart', e => {
+        touchStartY = e.touches[0]?.clientY ?? null;
+    }, { passive: true });
+    el.chatHistory.addEventListener('touchmove', e => {
+        const y = e.touches[0]?.clientY;
+        if (touchStartY != null && y != null && y > touchStartY
+            && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
+    }, { passive: true });
+
     // Auto-scroll detection on chat scroll area
     el.chatHistory.addEventListener('scroll', () => {
         const atBottom =
