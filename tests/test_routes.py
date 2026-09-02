@@ -4,10 +4,11 @@ import json
 import os
 from io import BytesIO
 
-import shared
-import routes.llm as llm_module
-from routes import settings as settings_module
-from png_utils import make_minimal_png
+from cozy import shared
+from cozy import defaults
+import cozy.routes.llm as llm_module
+from cozy.routes import settings as settings_module
+from cozy.png_utils import make_minimal_png
 
 
 class TestSettings:
@@ -92,7 +93,7 @@ class TestSettings:
 
 class TestSystemPrompts:
     def test_list_includes_the_bundled_presets(self, client):
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
 
         r = client.get('/api/system-prompts')
         assert r.status_code == 200
@@ -121,7 +122,7 @@ class TestSystemPrompts:
         assert 'id' in data
 
     def test_update_prompt(self, client):
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         prompts = client.get('/api/system-prompts').get_json()
         pid = prompts[0]['id']
         r = client.put(f'/api/system-prompts/{pid}', json={
@@ -199,7 +200,7 @@ class TestSystemPrompts:
         body = r.get_json()
         assert body['name'] == 'Imported Prompt'
         # Omitted post_history_content falls back to the current default.
-        assert body['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
+        assert body['post_history_content'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
 
     def test_import_prompt_accepts_legacy_system_only_json(self, client):
         r = client.post(
@@ -211,7 +212,7 @@ class TestSystemPrompts:
         body = r.get_json()
         assert body['name'] == 'Legacy'
         assert body['content'] == 'system only'
-        assert body['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
+        assert body['post_history_content'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
 
     def test_export_missing_prompt_returns_404(self, client):
         r = client.get('/api/system-prompts/99999/export')
@@ -228,7 +229,7 @@ class TestSystemPrompts:
                     '{{#scenario}}', '{{#persona}}', '{{#mesExamples}}', '{{#lorebook}}'):
             assert var in data['template']
         # The default post-history is the enforced house style (no card variable).
-        assert data['post_history_template'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
+        assert data['post_history_template'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
         assert '((OOC:' in data['post_history_template']
 
 class TestMessages:

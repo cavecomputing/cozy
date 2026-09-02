@@ -15,9 +15,10 @@ _IMPORT_DATA_DIR = tempfile.TemporaryDirectory(prefix='cozy-test-import-')
 os.environ['COZY_DATA_DIR'] = _IMPORT_DATA_DIR.name
 
 import app as app_module
-import card_store
-import shared
-from png_utils import make_minimal_png
+from cozy import card_store
+from cozy import shared
+from cozy import schema
+from cozy.png_utils import make_minimal_png
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -52,7 +53,7 @@ def _test_db(tmp_path, monkeypatch):
     # tests should not quietly depend on that.
     card_store._crc_memo.clear()
     card_store._card_memo.clear()
-    shared.init_db()
+    schema.init_db()
     yield db_path
 
 

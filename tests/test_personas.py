@@ -3,9 +3,9 @@
 import os
 from io import BytesIO
 
-import shared
-import routes.personas as personas_module
-from png_utils import make_minimal_png
+from cozy import shared
+import cozy.routes.personas as personas_module
+from cozy.png_utils import make_minimal_png
 
 
 class TestPersonaList:

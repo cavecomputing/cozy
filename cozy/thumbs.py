@@ -24,8 +24,8 @@ from flask import abort, send_from_directory
 from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.security import safe_join
 
-import shared
-from png_utils import png_pixel_key
+from cozy import shared
+from cozy.png_utils import png_pixel_key
 
 Image.MAX_IMAGE_PIXELS = shared.MAX_IMAGE_PIXELS
 

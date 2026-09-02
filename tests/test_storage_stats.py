@@ -1,7 +1,7 @@
 import os
 
-import shared
-from routes import settings as settings_module
+from cozy import shared
+from cozy.routes import settings as settings_module
 
 
 def _write_bytes(path, size):

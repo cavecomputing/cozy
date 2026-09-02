@@ -140,4 +140,5 @@ def get_build_info(base_dir):
 
 
 if __name__ == '__main__':
-    print(read_git_commit(os.path.dirname(os.path.abspath(__file__))) or 'unknown')
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    print(read_git_commit(repo_root) or 'unknown')

@@ -6,14 +6,14 @@ import os
 from flask import Blueprint, request, jsonify, Response
 from werkzeug.utils import secure_filename
 
-import shared
-from card_store import (
+from cozy import shared
+from cozy.card_store import (
     CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, file_crc_cached, get_character_card,
     normalize_to_v2, normalize_character_book, read_character_card, read_character_card_cached,
     write_character_card,
 )
-from shared import get_db, json_download, not_found
-from png_utils import make_minimal_png, write_png_chara, extract_png_chara
+from cozy.shared import get_db, json_download, not_found
+from cozy.png_utils import make_minimal_png, write_png_chara, extract_png_chara
 
 characters_bp = Blueprint('characters', __name__)
 

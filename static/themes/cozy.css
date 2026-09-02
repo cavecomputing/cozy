@@ -2,8 +2,6 @@
 :root {
     /* Layout */
     --app-bg:         #131b34;
-    --app-bg-blur:    rgba(19, 27, 52, 0.7);
-    --app-bg-clear:   rgba(19, 27, 52, 0);
     --bg-color:       #1d2849;
     --sidebar-bg:     #182142;
     --char-msg-bg:    #28335a;

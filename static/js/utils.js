@@ -277,7 +277,6 @@ export function updateComposerState() {
     const hasChat = !!state.activeCharacter && !!state.activeChat;
     const hasCharacter = !!state.activeCharacter;
     el.inputContainer?.classList.toggle('composer-no-character', !hasCharacter);
-    el.inputContainer?.classList.toggle('composer-no-chat', hasCharacter && !hasChat);
     el.userInput.disabled = !hasChat;
     if (hasChat) {
         const name = state.activeCharacter?.name || 'this character';

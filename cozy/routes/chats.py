@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, Response
 
-from card_store import get_character_card_data
-from shared import get_db, not_found, safe_download_name
-from summarizer import parse_summary_json
+from cozy.card_store import get_character_card_data
+from cozy.shared import get_db, not_found, safe_download_name
+from cozy.summarizer import parse_summary_json
 
 chats_bp = Blueprint('chats', __name__)
 

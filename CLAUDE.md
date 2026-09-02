@@ -108,18 +108,21 @@ follows is the map, plus the rules the code cannot tell you on its own.
 
 | Module | Owns |
 |---|---|
-| [app.py](app.py) | Entry point. Registers eight blueprints from [routes/](routes/) (all `/api/*`), runs `init_db()` and the seeders. |
-| [shared.py](shared.py) | Paths, `get_db()`, `init_db()` schema + seed data, the `MIGRATIONS` tuple, `DEFAULT_PROMPT_TEMPLATE`. |
-| [card_store.py](card_store.py) | Character-card reads/writes — the layer routes actually call. [png_utils.py](png_utils.py) is the raw tEXt-chunk reader beneath it. |
-| [thumbs.py](thumbs.py) | `/thumbs/...` WebP avatars, keyed by image content. Pure cache, safe to delete wholesale. |
-| [summarizer.py](summarizer.py) | Auto Summaries logic. **Keep it free of Flask, DB and network** so `routes/chats.py` and `routes/summaries.py` can both import it. |
+| [app.py](app.py) | Entry point, and the only Python file at the repo root — `Flask(__name__)` resolves `templates/` and `static/` beside it, and `gunicorn app:app` names it. Registers eight blueprints from [cozy/routes/](cozy/routes/) (all `/api/*`), runs `init_db()` and the seeders. |
+| [cozy/shared.py](cozy/shared.py) | Paths, `get_db()`, and the small request helpers. `BASE_DIR` is the *repo root*, one level above the package — bundled content and `static/themes` hang off it. |
+| [cozy/schema.py](cozy/schema.py) | `init_db()` and the `MIGRATIONS` tuple. |
+| [cozy/defaults.py](cozy/defaults.py) | `DEFAULT_PROMPT_TEMPLATE`, `DEFAULT_REGEX_PRESETS`, and the three seeders. |
+| [cozy/card_store.py](cozy/card_store.py) | Character-card reads/writes — the layer routes actually call. [cozy/png_utils.py](cozy/png_utils.py) is the raw tEXt-chunk reader beneath it. |
+| [cozy/thumbs.py](cozy/thumbs.py) | `/thumbs/...` WebP avatars, keyed by image content. Pure cache, safe to delete wholesale. |
+| [cozy/summarizer.py](cozy/summarizer.py) | Auto Summaries logic. **Keep it free of Flask, DB and network** so `cozy/routes/chats.py` and `cozy/routes/summaries.py` can both import it. |
 | [templates/index.html](templates/index.html) | The entire SPA. JS modules in [static/js/](static/js/), entry [main.js](static/js/main.js). |
 
 ### Data lives in two places
 
 Character cards are **PNG files on disk** (`data/characters/*.png`) carrying a `chara` tEXt chunk of
 base64 V2 JSON — the format SillyTavern reads. The SQLite `characters` table is only an index, so
-card data is read back out of the PNG through [card_store.py](card_store.py) at request time.
+card data is read back out of the PNG through [cozy/card_store.py](cozy/card_store.py) at request
+time.
 
 Everything else is in `data/cozy_chat.db`; [docs/db.md](docs/db.md) is the schema reference.
 
@@ -128,8 +131,8 @@ Everything else is in `data/cozy_chat.db`; [docs/db.md](docs/db.md) is the schem
 Three seeders run from [app.py](app.py): characters from
 [default_characters/](default_characters/), prompts from
 [default_prompts/](default_prompts/), and regex presets from `DEFAULT_REGEX_PRESETS` inline in
-[shared.py](shared.py) rather than a directory. Two hand their content over once and never look
-again; prompts do not.
+[cozy/defaults.py](cozy/defaults.py) rather than a directory. Two hand their content over once
+and never look again; prompts do not.
 
 - Characters and regex presets use a `*_seeded` flag. It flips to `'1'` whether or not anything was
   inserted, and is **never reset**. A name already taken is skipped rather than duplicated.
@@ -156,12 +159,13 @@ A seeded prompt is a copy of a file that outranks it.
 `init_db()` must stay idempotent.
 
 - **Adding a column** → the `PRAGMA table_info` / `ALTER TABLE ADD COLUMN` block near the end of
-  `init_db()`, guarded by a column-presence check.
+  `init_db()` in [cozy/schema.py](cozy/schema.py), guarded by a column-presence check.
 - **Changing existing rows** (rewriting a stock template, renaming, deleting a retired setting) →
-  the `MIGRATIONS` tuple in [shared.py](shared.py). Append with the next version and a new name; a
-  shipped entry must **never be renumbered, renamed or reordered**, because `_run_migrations()`
-  raises on versions that aren't unique and increasing or on a recorded name that no longer matches.
-  Migrations touching stock prompts check for user edits first and skip customized rows.
+  the `MIGRATIONS` tuple in [cozy/schema.py](cozy/schema.py). Append with the next version and a new
+  name; a shipped entry must **never be renumbered, renamed or reordered**, because
+  `_run_migrations()` raises on versions that aren't unique and increasing or on a recorded name
+  that no longer matches. Migrations touching stock prompts check for user edits first and skip
+  customized rows.
 
 ### Prompt templates
 
@@ -170,13 +174,13 @@ Mustache-ish: `{{variable}}` plus `{{#var}}…{{/var}}` conditional sections —
 flow through. Each saved prompt is **paired**, a `content` template and a `post_history_content`
 (`DEFAULT_POST_HISTORY_TEMPLATE`) injected after the chat history; both live on the `system_prompts`
 row and travel together through the import/export endpoints in
-[routes/settings.py](routes/settings.py).
+[cozy/routes/settings.py](cozy/routes/settings.py).
 
 ### LLM proxy and streaming
 
-[routes/llm.py](routes/llm.py) proxies any OpenAI-compatible endpoint, and `/api/llm/chat` always
-streams SSE — so **never introduce middleware that buffers responses**. That is also why `app.py`
-uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE.
+[cozy/routes/llm.py](cozy/routes/llm.py) proxies any OpenAI-compatible endpoint, and `/api/llm/chat`
+always streams SSE — so **never introduce middleware that buffers responses**. That is also why
+`app.py` uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE.
 
 ### Regex output filters
 
@@ -200,10 +204,10 @@ the preview honest. **Don't add a second implementation.**
 - Find and Replace are single-line `<input>`s that silently strip CR/LF, hence `escapeForInput()`
   out and `expandEscapes()` in — the only reason patterns holding a real newline (every bundled
   preset has one) survive an edit round trip.
-- [routes/settings.py](routes/settings.py) keeps its own copies of the slash-form splitter and
-  control-character escaping for the `/api/regex-presets` import/export, which accept both Cozy's
-  `{name, filters}` shape and SillyTavern regex scripts. **Escaping or slash-form changes have to
-  land on the JS and Python sides together.**
+- [cozy/routes/settings.py](cozy/routes/settings.py) keeps its own copies of the slash-form splitter
+  and control-character escaping for the `/api/regex-presets` import/export, which accept both
+  Cozy's `{name, filters}` shape and SillyTavern regex scripts. **Escaping or slash-form changes
+  have to land on the JS and Python sides together.**
 
 Separately, [rp-dialogue.js](static/js/rp-dialogue.js) owns which quote marks count as speech for
 the `rpDialogue` extension — German `„…“`, guillemets, Japanese corner brackets — and the renderer
@@ -228,15 +232,17 @@ User themes in `$DATA_DIR/themes/` **take precedence** over the built-ins in
   there. A user-visible feature also means checking the README feature list and the matching
   `docs/` page.
 
-The About page's build string comes from the current Git commit via [build_info.py](build_info.py)
-(checkouts read `.git`, Docker embeds `.cozy-commit`). The `0.0.0` in `pyproject.toml` is a
-permanent packaging placeholder, not a version — never bump it.
+The About page's build string comes from the current Git commit via
+[cozy/build_info.py](cozy/build_info.py) (checkouts read `.git`, Docker embeds `.cozy-commit`). The
+`0.0.0` in `pyproject.toml` is a permanent packaging placeholder, not a version — never bump it.
 
 ## Testing gotchas
 
-[tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR`. [app.py](app.py) and route modules resolve data paths through `shared`, so new path constants used at runtime should follow the same pattern or be included in the fixture when tests need to isolate them.
+[tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR`. [app.py](app.py) and route modules resolve data paths through `cozy.shared`, so new path constants used at runtime should follow the same pattern or be included in the fixture when tests need to isolate them.
 
-When creating a character in tests, use `make_minimal_png()` from [png_utils.py](png_utils.py) — anything smaller is rejected by Pillow.
+That fixture patches attributes **on the `cozy.shared` module object**, which is why every other module has to reach a path as `shared.DATABASE` / `shared.CHARACTERS_DIR` and never `from cozy.shared import DATABASE`. A `from` import binds the value once at import time, the patch never reaches it, and the tests quietly start writing into the real `data/` directory instead of failing. [cozy/schema.py](cozy/schema.py) and [cozy/defaults.py](cozy/defaults.py) both depend on this.
+
+When creating a character in tests, use `make_minimal_png()` from [cozy/png_utils.py](cozy/png_utils.py) — anything smaller is rejected by Pillow.
 
 Eleven test files exercise frontend modules by shelling out to `node`: `test_request_builder.py`, `test_regex_engine.py`, `test_rp_dialogue.py`, `test_default_regex.py`, and the seven `test_*_frontend.py` files. Every one of them **skips** (not fails) when `node` isn't on PATH, so a green run on a machine without Node is covering none of that JS — check for skips before trusting a pass.
 

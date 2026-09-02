@@ -247,7 +247,7 @@ data at startup, each by its own seeder:
 |---------|--------|-------------|
 | Character cards | `default_characters/` | `default_characters_seeded` |
 | Prompt presets | `default_prompts/` | none — restored every start |
-| Regex presets | `DEFAULT_REGEX_PRESETS` in `shared.py` | `default_regex_seeded` |
+| Regex presets | `DEFAULT_REGEX_PRESETS` in `cozy/defaults.py` | `default_regex_seeded` |
 
 Both flags flip to `1` whether or not anything was inserted, and are never
 reset, so deleting a bundled character or regex preset keeps it deleted. A name

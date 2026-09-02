@@ -11,11 +11,11 @@ import json
 
 from flask import Blueprint, request, jsonify
 
-from card_store import (
+from cozy.card_store import (
     coerce_keys, get_character_card, normalize_character_book, safe_int,
     set_character_book,
 )
-from shared import get_db, json_download, not_found, safe_download_name
+from cozy.shared import get_db, json_download, not_found, safe_download_name
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
 

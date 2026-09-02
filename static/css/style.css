@@ -5,7 +5,6 @@
     --mobile-inline-padding: 0.75rem;
     --mobile-header-height: 52px;
     --mobile-tap-target: 44px;
-    --mobile-composer-gap: 0.5rem;
 }
 
 * {
@@ -4556,7 +4555,6 @@ input[type="checkbox"]:disabled {
     }
 
     #input-container.composer-no-character #chat-flyout-btn,
-    #input-container.composer-no-character #lorebook-flyout-btn,
     #input-container.composer-no-character #send-btn {
         display: none;
     }

@@ -3,7 +3,9 @@
 import json
 import os
 
-import shared
+from cozy import shared
+from cozy import defaults
+from cozy import schema
 
 
 def _active_prompt_name():
@@ -104,11 +106,11 @@ class TestSeeding:
         assert _prompt_names() == []
 
     def test_fresh_install_seeds_every_bundled_preset(self):
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         assert _prompt_names() == _bundled_titles()
 
     def test_fresh_install_starts_on_the_last_title_alphabetically(self):
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         assert _active_prompt_name() == _bundled_titles()[-1]
 
     def test_a_later_version_takes_over_the_default_on_a_fresh_install(self, tmp_path):
@@ -128,7 +130,7 @@ class TestSeeding:
         original_dir = shared.BUNDLED_PROMPTS_DIR
         shared.BUNDLED_PROMPTS_DIR = str(later)
         try:
-            shared.seed_default_prompts()
+            defaults.seed_default_prompts()
         finally:
             shared.BUNDLED_PROMPTS_DIR = original_dir
 
@@ -146,32 +148,32 @@ class TestSeeding:
         original_dir = shared.BUNDLED_PROMPTS_DIR
         shared.BUNDLED_PROMPTS_DIR = str(bundle)
         try:
-            shared.seed_default_prompts()
+            defaults.seed_default_prompts()
         finally:
             shared.BUNDLED_PROMPTS_DIR = original_dir
 
         assert _active_prompt_name() == 'Alpha v1'
 
     def test_seeding_does_not_duplicate_on_restart(self):
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         before = _prompt_names()
 
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         assert _prompt_names() == before
 
     def test_a_deleted_preset_comes_back_on_the_next_start(self):
         # The directory is the source of truth: removing a preset for good
         # means deleting its file, not deleting the row.
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         with shared.get_db() as conn:
             conn.execute("DELETE FROM system_prompts WHERE name='BigBear - General'")
         assert 'BigBear - General' not in _prompt_names()
 
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         assert 'BigBear - General' in _prompt_names()
 
     def test_a_preset_whose_file_is_gone_stays_deleted(self, tmp_path):
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         with shared.get_db() as conn:
             conn.execute("DELETE FROM system_prompts WHERE name='BigBear - General'")
 
@@ -187,7 +189,7 @@ class TestSeeding:
         original_dir = shared.BUNDLED_PROMPTS_DIR
         shared.BUNDLED_PROMPTS_DIR = str(kept)
         try:
-            shared.seed_default_prompts()
+            defaults.seed_default_prompts()
         finally:
             shared.BUNDLED_PROMPTS_DIR = original_dir
 
@@ -196,14 +198,14 @@ class TestSeeding:
     def test_an_edited_preset_is_never_overwritten(self):
         # Editing a bundled preset in place has to survive a restart, or the
         # restore-on-start behaviour would quietly undo the user's work.
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         with shared.get_db() as conn:
             conn.execute(
                 "UPDATE system_prompts SET content='my edit' WHERE name=?",
                 ('NanoBear v2.1',),
             )
 
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         with shared.get_db() as conn:
             rows = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
@@ -220,7 +222,7 @@ class TestSeeding:
                 "VALUES ('BigBear - General', 'mine', 'mine')",
             )
 
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         with shared.get_db() as conn:
             rows = conn.execute(
                 "SELECT content FROM system_prompts WHERE name='BigBear - General'"
@@ -235,7 +237,7 @@ class TestSeeding:
                 "VALUES ('Mine', 'mine', 'mine')",
             )
 
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         with shared.get_db() as conn:
             active = conn.execute(
                 "SELECT value FROM settings WHERE key='active_system_prompt'"
@@ -243,7 +245,7 @@ class TestSeeding:
         assert active is None
 
     def test_a_newly_bundled_preset_reaches_an_existing_install(self, tmp_path):
-        shared.seed_default_prompts()
+        defaults.seed_default_prompts()
         assert 'Later Release v1' not in _prompt_names()
 
         later = tmp_path / 'default_prompts'
@@ -260,7 +262,7 @@ class TestSeeding:
         original_dir = shared.BUNDLED_PROMPTS_DIR
         shared.BUNDLED_PROMPTS_DIR = str(later)
         try:
-            shared.seed_default_prompts()
+            defaults.seed_default_prompts()
         finally:
             shared.BUNDLED_PROMPTS_DIR = original_dir
 
@@ -278,14 +280,14 @@ class TestSeeding:
         original_dir = shared.BUNDLED_PROMPTS_DIR
         shared.BUNDLED_PROMPTS_DIR = str(broken)
         try:
-            shared.seed_default_prompts()
+            defaults.seed_default_prompts()
             assert _prompt_names() == ['Good v1']
 
             (broken / 'Broken v1.json').write_text(
                 json.dumps({'name': 'Broken v1', 'content': 'fixed', 'post_history_content': ''}),
                 encoding='utf-8',
             )
-            shared.seed_default_prompts()
+            defaults.seed_default_prompts()
         finally:
             shared.BUNDLED_PROMPTS_DIR = original_dir
 
@@ -304,7 +306,7 @@ class TestUpgradeFromTheSeededFlag:
                 ('delete_default_prompts_seeded',),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             flag = conn.execute(
@@ -326,8 +328,8 @@ class TestUpgradeFromTheSeededFlag:
                 "VALUES ('NanoBear', 'the old stock prompt', '')",
             )
 
-        shared.init_db()
-        shared.seed_default_prompts()
+        schema.init_db()
+        defaults.seed_default_prompts()
 
         assert _prompt_names() == sorted([*_bundled_titles(), 'NanoBear'])
         with shared.get_db() as conn:

@@ -4,8 +4,8 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify
 
-from routes.chats import chat_to_dict
-from shared import get_db, not_found, persona_avatar_url
+from cozy.routes.chats import chat_to_dict
+from cozy.shared import get_db, not_found, persona_avatar_url
 
 messages_bp = Blueprint('messages', __name__)
 

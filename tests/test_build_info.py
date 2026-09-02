@@ -1,8 +1,8 @@
 from subprocess import CompletedProcess
 
-import build_info
-import shared
-from build_info import BuildInfo
+from cozy import build_info
+from cozy import shared
+from cozy.build_info import BuildInfo
 
 
 COMMIT = '0123456789abcdef0123456789abcdef01234567'

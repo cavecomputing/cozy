@@ -2,8 +2,6 @@
 :root {
     /* Layout (soft lavender-grey base) */
     --app-bg:         #e8e0f0;
-    --app-bg-blur:    rgba(232, 224, 240, 0.7);
-    --app-bg-clear:   rgba(232, 224, 240, 0);
     --bg-color:       #f5f0fa;
     --sidebar-bg:     #ede6f5;
     --char-msg-bg:    #f5f0fa;

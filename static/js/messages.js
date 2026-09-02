@@ -487,7 +487,6 @@ export function startEditing(messageEl) {
 
     // Swap toolbar to Save / Cancel
     actionsBar.replaceChildren(...buildEditActions().childNodes);
-    actionsBar.classList.add('always-visible');
 
     const handler = e => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finishEditing(true); }
@@ -563,7 +562,6 @@ export function finishEditing(save) {
     const activeIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
     const isGreeting = messageEl.dataset.isGreeting === 'true';
     actionsBar.replaceChildren(...buildMsgActions(role, swipes.length, activeIdx, isGreeting).childNodes);
-    actionsBar.classList.remove('always-visible');
 
     state.currentEdit = null;
     updateContextBoundary();

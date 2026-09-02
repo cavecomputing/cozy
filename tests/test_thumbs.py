@@ -8,10 +8,10 @@ from io import BytesIO
 import pytest
 from PIL import Image
 
-import shared
-import thumbs
+from cozy import shared
+from cozy import thumbs
 from helpers import v2_card
-from png_utils import make_minimal_png, png_pixel_key, write_png_chara
+from cozy.png_utils import make_minimal_png, png_pixel_key, write_png_chara
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────

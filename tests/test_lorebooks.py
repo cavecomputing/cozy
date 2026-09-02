@@ -4,9 +4,9 @@ import json
 import os
 from io import BytesIO
 
-import shared
+from cozy import shared
 from helpers import v2_card
-from png_utils import extract_png_chara, write_png_chara
+from cozy.png_utils import extract_png_chara, write_png_chara
 
 
 def _make_book(name='Test Book', entries=None):

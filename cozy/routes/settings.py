@@ -6,15 +6,9 @@ import stat
 
 from flask import Blueprint, request, jsonify
 
-import shared
-from shared import (
-    get_db,
-    json_download,
-    not_found,
-    safe_download_name,
-    DEFAULT_PROMPT_TEMPLATE,
-    DEFAULT_POST_HISTORY_TEMPLATE,
-)
+from cozy import shared
+from cozy.defaults import DEFAULT_PROMPT_TEMPLATE, DEFAULT_POST_HISTORY_TEMPLATE
+from cozy.shared import get_db, json_download, not_found, safe_download_name
 
 settings_bp = Blueprint('settings', __name__)
 

@@ -3,13 +3,14 @@ import json
 
 import pytest
 
-import shared
+from cozy import shared
+from cozy import defaults
 from helpers import run_node_module
 from test_regex_engine import SETUP
 
 
 GERMAN = 'German punctuation'
-ALL_NAMES = [p['name'] for p in shared.DEFAULT_REGEX_PRESETS]
+ALL_NAMES = [p['name'] for p in defaults.DEFAULT_REGEX_PRESETS]
 
 
 def _seeded_flag():
@@ -26,30 +27,30 @@ def _preset_names():
 
 
 def _filters_for(name):
-    return next(p['filters'] for p in shared.DEFAULT_REGEX_PRESETS if p['name'] == name)
+    return next(p['filters'] for p in defaults.DEFAULT_REGEX_PRESETS if p['name'] == name)
 
 
 class TestSeeding:
     def test_seeds_every_bundled_preset(self):
         assert _seeded_flag() == '0'
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         for name in ALL_NAMES:
             assert name in _preset_names()
 
     def test_seeding_flips_the_flag_and_does_not_repeat(self):
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         assert _seeded_flag() == '1'
         before = _preset_names()
 
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         assert _preset_names() == before
 
     def test_a_deleted_preset_stays_deleted(self):
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         with shared.get_db() as conn:
             conn.execute('DELETE FROM regex_presets WHERE name = ?', (GERMAN,))
 
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         assert GERMAN not in _preset_names()
 
     def test_an_existing_name_is_not_duplicated(self):
@@ -60,7 +61,7 @@ class TestSeeding:
                 (GERMAN, '[]'),
             )
 
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         with shared.get_db() as conn:
             rows = conn.execute(
                 'SELECT scripts_json FROM regex_presets WHERE name = ?', (GERMAN,)
@@ -70,7 +71,7 @@ class TestSeeding:
 
     def test_seeding_does_not_activate_anything(self):
         """They ship as worked examples, not as behaviour that starts on its own."""
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         with shared.get_db() as conn:
             row = conn.execute(
                 "SELECT value FROM settings WHERE key='active_regex_preset'"
@@ -90,7 +91,7 @@ class TestSeededContent:
         The normaliser fills in ``display`` for filters that predate the option;
         every bundled one rewrites the stored reply, so it must default off.
         """
-        shared.seed_default_regex_presets()
+        defaults.seed_default_regex_presets()
         listed = client.get('/api/regex-presets').get_json()
         preset = next(p for p in listed if p['name'] == name)
         assert preset['filters'] == [{**f, 'display': False} for f in _filters_for(name)]
@@ -102,7 +103,7 @@ class TestSeededContent:
         first time any row in the preset was touched, and that truncated version
         was then saved — quietly turning "don't cross a line break" off.
         """
-        for preset in shared.DEFAULT_REGEX_PRESETS:
+        for preset in defaults.DEFAULT_REGEX_PRESETS:
             for f in preset['filters']:
                 for field in ('find', 'replace'):
                     assert not set('\r\n\t') & set(f[field]), (
@@ -112,7 +113,7 @@ class TestSeededContent:
 
     def test_every_bundled_pattern_compiles(self):
         """A shipped pattern that doesn't compile would be silently skipped."""
-        every = [f for p in shared.DEFAULT_REGEX_PRESETS for f in p['filters']]
+        every = [f for p in defaults.DEFAULT_REGEX_PRESETS for f in p['filters']]
         run_node_module(SETUP + f"""
             const filters = {json.dumps(every)};
             for (const f of filters) {{

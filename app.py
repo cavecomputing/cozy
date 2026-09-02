@@ -6,8 +6,10 @@ import argparse
 from flask import Flask, render_template, jsonify, send_from_directory
 from werkzeug.exceptions import HTTPException
 
-import shared
-import thumbs
+from cozy import shared
+from cozy import defaults
+from cozy import schema
+from cozy import thumbs
 
 log = logging.getLogger('cozy')
 
@@ -37,8 +39,8 @@ def serve_persona_avatar(filename):
 
 
 # Downscaled copies of the above, generated on demand. The URL names the source
-# file and the wanted size; thumbs.py maps that to a content-addressed cache
-# entry, so callers never need to know the key. See thumbs.py.
+# file and the wanted size; cozy/thumbs.py maps that to a content-addressed cache
+# entry, so callers never need to know the key. See cozy/thumbs.py.
 @app.route('/thumbs/characters/<int:size>/<path:filename>')
 def serve_character_thumb(size, filename):
     return thumbs.serve(shared.CHARACTERS_DIR, size, filename)
@@ -77,14 +79,14 @@ def serve_theme(filename):
 
 
 # ── Register blueprints ────────────────────────────────────────────────────
-from routes.characters import characters_bp
-from routes.chats import chats_bp
-from routes.messages import messages_bp
-from routes.personas import personas_bp
-from routes.settings import settings_bp
-from routes.llm import llm_bp
-from routes.lorebooks import lorebooks_bp
-from routes.summaries import summaries_bp
+from cozy.routes.characters import characters_bp
+from cozy.routes.chats import chats_bp
+from cozy.routes.messages import messages_bp
+from cozy.routes.personas import personas_bp
+from cozy.routes.settings import settings_bp
+from cozy.routes.llm import llm_bp
+from cozy.routes.lorebooks import lorebooks_bp
+from cozy.routes.summaries import summaries_bp
 
 for blueprint in (
     characters_bp,
@@ -100,10 +102,10 @@ for blueprint in (
 
 
 # ── Initialise DB (runs under both gunicorn and `python app.py`) ────────────
-shared.init_db()
-shared.seed_default_characters()
-shared.seed_default_prompts()
-shared.seed_default_regex_presets()
+schema.init_db()
+defaults.seed_default_characters()
+defaults.seed_default_prompts()
+defaults.seed_default_regex_presets()
 
 # ── Entry point ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':

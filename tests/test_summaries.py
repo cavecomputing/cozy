@@ -7,11 +7,12 @@ from contextlib import contextmanager
 
 import pytest
 
-import shared
-import routes.chats as chat_routes
-from routes.settings import get_settings
-import routes.summaries as summaries
-from summarizer import (
+from cozy import shared
+from cozy import schema
+import cozy.routes.chats as chat_routes
+from cozy.routes.settings import get_settings
+import cozy.routes.summaries as summaries
+from cozy.summarizer import (
     append_token_limits,
     append_summary,
     bond_key,
@@ -396,7 +397,7 @@ def test_append_summary_keeps_previous_bonds_when_reply_has_none():
 
 
 def test_build_append_messages_asks_for_exactly_one_story_entry():
-    from summarizer import APPEND_INSTRUCTIONS
+    from cozy.summarizer import APPEND_INSTRUCTIONS
     msgs = build_append_messages(
         'PREV STORY', 'PREV BONDS', [{'role': 'user', 'content': 'hi there'}],
         240, 120, 360)
@@ -697,7 +698,7 @@ def test_run_job_rejects_overlong_summary_without_advancing(client, sample_chat,
 
 def test_append_mode_accumulates_story_across_batches(client, sample_chat, monkeypatch):
     """The core fix: consecutive batches ADD story beats instead of compressing."""
-    from summarizer import APPEND_INSTRUCTIONS
+    from cozy.summarizer import APPEND_INSTRUCTIONS
     client.put('/api/settings', json={'summary_trigger_interval': '1'})
     replies = iter((
         'STORY SO FAR\n- S1 happened\n\nBONDS\n- A & B: allies',
@@ -848,7 +849,7 @@ def test_rebuild_drops_legacy_pinned_flags(client, sample_chat, monkeypatch):
 
 def test_append_overflow_preserves_the_previous_checkpoint(client, sample_chat, monkeypatch):
     """An oversized delta cannot evict stored history or advance the watermark."""
-    from summarizer import APPEND_INSTRUCTIONS
+    from cozy.summarizer import APPEND_INSTRUCTIONS
     client.put('/api/settings', json={'context_max_tokens': '500', 'summary_cap_pct': '10'})
     over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}\n\nBONDS\n- A & B: allies"
     calls = []
@@ -1645,7 +1646,7 @@ def test_completion_budget_defaults_without_a_saved_sampler_row(raw):
 
 def test_migration_idempotent_and_columns_present():
     # Fixture already ran init_db once; a second call must not error.
-    shared.init_db()
+    schema.init_db()
     with shared.get_db() as conn:
         cols = {c[1] for c in conn.execute('PRAGMA table_info(chats)').fetchall()}
     for col in ('summary_enabled', 'summary_json', 'summary_up_to_msg_id',
@@ -1663,10 +1664,10 @@ def test_migration_deletes_the_retired_compress_batch_setting(client):
         )
         conn.execute('DELETE FROM schema_migrations WHERE version=?', (10,))
 
-    shared.init_db()
+    schema.init_db()
 
     assert 'summary_compress_batch' not in get_settings()
-    shared.init_db()  # rerunning must be a no-op, not an error
+    schema.init_db()  # rerunning must be a no-op, not an error
     assert 'summary_compress_batch' not in get_settings()
 
 
@@ -1678,7 +1679,7 @@ def test_startup_recovery_resets_running(client, sample_chat):
             'WHERE id=?',
             (cid,),
         )
-    shared.init_db()  # should clear stale 'running'
+    schema.init_db()  # should clear stale 'running'
     with shared.get_db() as conn:
         row = conn.execute(
             'SELECT summary_status, summary_status_detail FROM chats WHERE id=?', (cid,)

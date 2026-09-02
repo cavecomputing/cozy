@@ -7,9 +7,9 @@ from copy import deepcopy
 
 from PIL import Image
 
-import shared
-from shared import get_db
-from png_utils import extract_png_chara, write_png_chara
+from cozy import shared
+from cozy.shared import get_db
+from cozy.png_utils import extract_png_chara, write_png_chara
 
 Image.MAX_IMAGE_PIXELS = shared.MAX_IMAGE_PIXELS
 

@@ -1,7 +1,7 @@
 import json
 from io import BytesIO
 
-import shared
+from cozy import shared
 
 
 def make_preset(client, name='Filters', filters=None):

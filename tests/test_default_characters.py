@@ -2,8 +2,10 @@
 
 import os
 
-import shared
-from png_utils import extract_png_chara, make_minimal_png
+from cozy import shared
+from cozy import defaults
+from cozy import schema
+from cozy.png_utils import extract_png_chara, make_minimal_png
 
 
 def _seeded_flag():
@@ -49,7 +51,7 @@ class TestSeeding:
     def test_fresh_install_copies_bundled_cards_into_data_dir(self, client):
         assert _seeded_flag() == '0'
 
-        shared.seed_default_characters()
+        defaults.seed_default_characters()
 
         assert _seeded_flag() == '1'
         for filename in _bundled_filenames():
@@ -60,7 +62,7 @@ class TestSeeding:
         assert 'Sasha' in names
 
     def test_seeded_card_can_be_deleted_and_stays_deleted(self, client):
-        shared.seed_default_characters()
+        defaults.seed_default_characters()
         chars = client.get('/api/characters').get_json()
         sasha = next(c for c in chars if c['name'] == 'Sasha')
 
@@ -68,18 +70,18 @@ class TestSeeding:
         assert not os.path.exists(os.path.join(shared.CHARACTERS_DIR, sasha['filename']))
 
         # A later restart must not resurrect it.
-        shared.init_db()
-        shared.seed_default_characters()
+        schema.init_db()
+        defaults.seed_default_characters()
 
         assert not os.path.exists(os.path.join(shared.CHARACTERS_DIR, sasha['filename']))
         assert client.get('/api/characters').get_json() == []
 
     def test_seeding_runs_only_once(self, client):
-        shared.seed_default_characters()
+        defaults.seed_default_characters()
         path = os.path.join(shared.CHARACTERS_DIR, 'Sasha.png')
         os.remove(path)
 
-        shared.seed_default_characters()
+        defaults.seed_default_characters()
 
         assert not os.path.exists(path)
 
@@ -89,7 +91,7 @@ class TestSeeding:
             f.write(make_minimal_png())
         before = os.path.getsize(path)
 
-        shared.seed_default_characters()
+        defaults.seed_default_characters()
 
         assert os.path.getsize(path) == before
 
@@ -98,8 +100,8 @@ class TestSeeding:
         with shared.get_db() as conn:
             conn.execute("DELETE FROM settings WHERE key='default_characters_seeded'")
 
-        shared.init_db()
-        shared.seed_default_characters()
+        schema.init_db()
+        defaults.seed_default_characters()
 
         assert _seeded_flag() == '1'
         assert not os.path.exists(os.path.join(shared.CHARACTERS_DIR, 'Sasha.png'))

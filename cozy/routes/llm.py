@@ -6,7 +6,7 @@ import logging
 import requests as http_requests
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 
-from routes.settings import get_settings
+from cozy.routes.settings import get_settings
 
 log = logging.getLogger('cozy')
 

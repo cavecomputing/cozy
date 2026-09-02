@@ -6,7 +6,7 @@ COPY . .
 
 # Capture only the commit ref exposed by .dockerignore, then discard the Git
 # metadata so neither it nor the repository history reaches the runtime image.
-RUN python build_info.py > .cozy-commit \
+RUN python cozy/build_info.py > .cozy-commit \
  && rm -rf .git
 
 

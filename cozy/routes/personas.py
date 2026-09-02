@@ -4,8 +4,8 @@ import os
 
 from flask import Blueprint, request, jsonify
 
-import shared
-from shared import get_db, not_found, persona_avatar_url
+from cozy import shared
+from cozy.shared import get_db, not_found, persona_avatar_url
 
 personas_bp = Blueprint('personas', __name__)
 

@@ -2,8 +2,6 @@
 :root {
     /* Layout  (Solarized base03/base02 — deeper app-bg, lighter panels) */
     --app-bg:         #001e28;
-    --app-bg-blur:    rgba(0, 30, 40, 0.7);
-    --app-bg-clear:   rgba(0, 30, 40, 0);
     --bg-color:       #0c3d4e;
     --sidebar-bg:     #0c3d4e;
     --char-msg-bg:    #0f4356;

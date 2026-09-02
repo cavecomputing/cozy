@@ -6,11 +6,11 @@ from io import BytesIO
 
 from PIL import Image
 
-import card_store
-import shared
-import routes.characters as characters_module
+from cozy import card_store
+from cozy import shared
+import cozy.routes.characters as characters_module
 from helpers import v2_card
-from png_utils import extract_png_chara, write_png_chara, make_minimal_png
+from cozy.png_utils import extract_png_chara, write_png_chara, make_minimal_png
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────

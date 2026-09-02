@@ -17,7 +17,6 @@ data/
 # Local tooling metadata
 .venv/
 .claude/
-.codex
 .codex/
 .playwright-mcp/
 

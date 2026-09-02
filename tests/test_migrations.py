@@ -4,8 +4,10 @@ import os
 
 import pytest
 
-import shared
-from png_utils import make_minimal_png
+from cozy import shared
+from cozy import defaults
+from cozy import schema
+from cozy.png_utils import make_minimal_png
 
 
 def _migration_rows():
@@ -22,7 +24,7 @@ def _migration_rows():
 def _registered_migrations():
     return [
         {'version': version, 'name': name}
-        for version, name, _migrate in shared.MIGRATIONS
+        for version, name, _migrate in schema.MIGRATIONS
     ]
 
 
@@ -38,7 +40,7 @@ def stock_prompt():
         conn.execute(
             'INSERT INTO system_prompts (name, content, post_history_content) '
             'VALUES (?, ?, ?)',
-            ('NanoBear', shared.DEFAULT_PROMPT_TEMPLATE, shared.DEFAULT_POST_HISTORY_TEMPLATE),
+            ('NanoBear', defaults.DEFAULT_PROMPT_TEMPLATE, defaults.DEFAULT_POST_HISTORY_TEMPLATE),
         )
 
 
@@ -47,7 +49,7 @@ class TestSchemaMigrationLedger:
         fresh_db = tmp_path / 'fresh.db'
         monkeypatch.setattr(shared, 'DATABASE', str(fresh_db))
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             columns = {
@@ -84,7 +86,7 @@ class TestSchemaMigrationLedger:
                 ('pre_ledger_probe', 'keep me'),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             probe = conn.execute(
@@ -104,17 +106,17 @@ class TestSchemaMigrationLedger:
                 ('migration_probe', 'ran'),
             )
 
-        probe_version = shared.MIGRATIONS[-1][0] + 1
+        probe_version = schema.MIGRATIONS[-1][0] + 1
         monkeypatch.setattr(
-            shared,
+            schema,
             'MIGRATIONS',
-            (*shared.MIGRATIONS, (probe_version, 'add_migration_probe', add_probe)),
+            (*schema.MIGRATIONS, (probe_version, 'add_migration_probe', add_probe)),
         )
 
-        shared.init_db()
+        schema.init_db()
         before = _migration_rows()
-        shared.init_db()
-        shared.init_db()
+        schema.init_db()
+        schema.init_db()
 
         assert _migration_rows() == before
         assert before[-1]['version'] == probe_version
@@ -129,15 +131,15 @@ class TestSchemaMigrationLedger:
             raise RuntimeError('migration failed')
 
         before = _migration_rows()
-        probe_version = shared.MIGRATIONS[-1][0] + 1
+        probe_version = schema.MIGRATIONS[-1][0] + 1
         monkeypatch.setattr(
-            shared,
+            schema,
             'MIGRATIONS',
-            (*shared.MIGRATIONS, (probe_version, 'failing_migration', fail_after_write)),
+            (*schema.MIGRATIONS, (probe_version, 'failing_migration', fail_after_write)),
         )
 
         with pytest.raises(RuntimeError, match='migration failed'):
-            shared.init_db()
+            schema.init_db()
 
         with shared.get_db() as conn:
             probe = conn.execute(
@@ -148,23 +150,23 @@ class TestSchemaMigrationLedger:
         assert _migration_rows() == before
 
     def test_reusing_a_version_with_a_different_name_fails(self, monkeypatch):
-        original_migrations = shared.MIGRATIONS
+        original_migrations = schema.MIGRATIONS
         probe_version = original_migrations[-1][0] + 1
         monkeypatch.setattr(
-            shared,
+            schema,
             'MIGRATIONS',
             (*original_migrations, (probe_version, 'original_name', lambda conn: None)),
         )
-        shared.init_db()
+        schema.init_db()
         before = _migration_rows()
 
         monkeypatch.setattr(
-            shared,
+            schema,
             'MIGRATIONS',
             (*original_migrations, (probe_version, 'replacement_name', lambda conn: None)),
         )
         with pytest.raises(RuntimeError, match='already recorded'):
-            shared.init_db()
+            schema.init_db()
 
         assert _migration_rows() == before
 
@@ -190,8 +192,8 @@ class TestSchemaMigrationLedger:
         with shared.get_db() as conn:
             conn.execute('DROP TABLE schema_migrations')
 
-        shared.init_db()
-        shared.init_db()
+        schema.init_db()
+        schema.init_db()
 
         messages = client.get(f'/api/chats/{chat_id}/messages').get_json()
         assert [
@@ -218,9 +220,9 @@ class TestSchemaMigrationLedger:
                 ('context_max_messages', '64'),
             )
 
-        shared.init_db()
+        schema.init_db()
         after_upgrade = _migration_rows()
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             legacy_row = conn.execute(
@@ -240,26 +242,26 @@ class TestSchemaMigrationLedger:
             conn.execute('DROP TABLE schema_migrations')
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (shared._DEFAULT_PROMPT_TEMPLATE_V1, 'NanoBear'),
+                (defaults._DEFAULT_PROMPT_TEMPLATE_V1, 'NanoBear'),
             )
 
-        shared.init_db()
+        schema.init_db()
         after_upgrade = _migration_rows()
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
                 ('NanoBear',),
             ).fetchone()
-        assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
+        assert prompt['content'] == defaults.DEFAULT_PROMPT_TEMPLATE
         assert '{{#summary}}' in prompt['content']
         assert _migration_rows() == after_upgrade
 
     def test_summary_prompt_migration_preserves_customized_prompt(self, stock_prompt):
-        custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V1 + '\n\nCustom instructions.'
+        custom_prompt = defaults._DEFAULT_PROMPT_TEMPLATE_V1 + '\n\nCustom instructions.'
         migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
+            v for v, name, _ in schema.MIGRATIONS
             if name == 'add_summary_to_legacy_default_prompt'
         )
         with shared.get_db() as conn:
@@ -272,7 +274,7 @@ class TestSchemaMigrationLedger:
                 (migration_version,),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
@@ -288,33 +290,33 @@ class TestSchemaMigrationLedger:
 
     def test_unversioned_upgrade_adds_narrative_preamble_to_default_prompt(self, stock_prompt):
         migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
+            v for v, name, _ in schema.MIGRATIONS
             if name == 'add_narrative_preamble_to_default_prompt'
         )
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (shared._DEFAULT_PROMPT_TEMPLATE_V2, 'NanoBear'),
+                (defaults._DEFAULT_PROMPT_TEMPLATE_V2, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
                 (migration_version,),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
                 ('NanoBear',),
             ).fetchone()
-        assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V3
+        assert prompt['content'] == defaults._DEFAULT_PROMPT_TEMPLATE_V3
         assert 'simulated world' in prompt['content']
 
     def test_narrative_preamble_migration_preserves_customized_prompt(self, stock_prompt):
-        custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V2 + '\n\nCustom instructions.'
+        custom_prompt = defaults._DEFAULT_PROMPT_TEMPLATE_V2 + '\n\nCustom instructions.'
         migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
+            v for v, name, _ in schema.MIGRATIONS
             if name == 'add_narrative_preamble_to_default_prompt'
         )
         with shared.get_db() as conn:
@@ -327,7 +329,7 @@ class TestSchemaMigrationLedger:
                 (migration_version,),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
@@ -338,33 +340,33 @@ class TestSchemaMigrationLedger:
 
     def test_unversioned_upgrade_upgrades_default_prompt_to_v4(self, stock_prompt):
         migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
+            v for v, name, _ in schema.MIGRATIONS
             if name == 'upgrade_default_prompt_to_v4'
         )
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
-                (shared._DEFAULT_PROMPT_TEMPLATE_V3, 'NanoBear'),
+                (defaults._DEFAULT_PROMPT_TEMPLATE_V3, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
                 (migration_version,),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
                 ('NanoBear',),
             ).fetchone()
-        assert prompt['content'] == shared._DEFAULT_PROMPT_TEMPLATE_V4
-        assert prompt['content'] == shared.DEFAULT_PROMPT_TEMPLATE
+        assert prompt['content'] == defaults._DEFAULT_PROMPT_TEMPLATE_V4
+        assert prompt['content'] == defaults.DEFAULT_PROMPT_TEMPLATE
 
     def test_v4_prompt_migration_preserves_customized_prompt(self, stock_prompt):
-        custom_prompt = shared._DEFAULT_PROMPT_TEMPLATE_V3 + '\n\nCustom instructions.'
+        custom_prompt = defaults._DEFAULT_PROMPT_TEMPLATE_V3 + '\n\nCustom instructions.'
         migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
+            v for v, name, _ in schema.MIGRATIONS
             if name == 'upgrade_default_prompt_to_v4'
         )
         with shared.get_db() as conn:
@@ -377,7 +379,7 @@ class TestSchemaMigrationLedger:
                 (migration_version,),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
@@ -388,33 +390,33 @@ class TestSchemaMigrationLedger:
 
     def test_enforce_house_style_post_history_upgrades_untouched(self, stock_prompt):
         migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
+            v for v, name, _ in schema.MIGRATIONS
             if name == 'enforce_house_style_post_history'
         )
         with shared.get_db() as conn:
             conn.execute(
                 'UPDATE system_prompts SET post_history_content=? WHERE name=?',
-                (shared._DEFAULT_POST_HISTORY_TEMPLATE_V1, 'NanoBear'),
+                (defaults._DEFAULT_POST_HISTORY_TEMPLATE_V1, 'NanoBear'),
             )
             conn.execute(
                 'DELETE FROM schema_migrations WHERE version=?',
                 (migration_version,),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
                 'SELECT post_history_content FROM system_prompts WHERE name=?',
                 ('NanoBear',),
             ).fetchone()
-        assert prompt['post_history_content'] == shared.DEFAULT_POST_HISTORY_TEMPLATE
+        assert prompt['post_history_content'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
         assert '{{post_history_instructions}}' not in prompt['post_history_content']
 
     def test_post_history_migration_preserves_customized(self, stock_prompt):
-        custom_phi = shared._DEFAULT_POST_HISTORY_TEMPLATE_V1 + '\n\nExtra house rule.'
+        custom_phi = defaults._DEFAULT_POST_HISTORY_TEMPLATE_V1 + '\n\nExtra house rule.'
         migration_version = next(
-            v for v, name, _ in shared.MIGRATIONS
+            v for v, name, _ in schema.MIGRATIONS
             if name == 'enforce_house_style_post_history'
         )
         with shared.get_db() as conn:
@@ -427,7 +429,7 @@ class TestSchemaMigrationLedger:
                 (migration_version,),
             )
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             prompt = conn.execute(
@@ -438,8 +440,8 @@ class TestSchemaMigrationLedger:
 
     def test_init_db_runs_twice_safely(self):
         """Running init_db repeatedly on an existing DB should be a no-op."""
-        shared.init_db()
-        shared.init_db()
+        schema.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             cols = {row['name'] for row in conn.execute('PRAGMA table_info(chats)')}
@@ -494,7 +496,7 @@ class TestSchemaMigrationLedger:
                 );
             ''')
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             def columns(table):
@@ -548,7 +550,7 @@ class TestSchemaMigrationLedger:
                     (2, 'character', 'Nobody has spoken yet', NULL);
             ''')
 
-        shared.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             personas = dict(
@@ -622,7 +624,7 @@ class TestSchemaMigrationLedger:
             ''')
             conn.executemany(
                 'INSERT INTO schema_migrations (version, name) VALUES (?, ?)',
-                [(version, name) for version, name, _migrate in shared.MIGRATIONS[:7]],
+                [(version, name) for version, name, _migrate in schema.MIGRATIONS[:7]],
             )
             conn.execute(
                 '''INSERT INTO characters
@@ -648,8 +650,8 @@ class TestSchemaMigrationLedger:
                 "INSERT INTO settings (key, value) VALUES ('show_gallery_button', '0')"
             )
 
-        shared.init_db()
-        shared.init_db()
+        schema.init_db()
+        schema.init_db()
 
         with shared.get_db() as conn:
             tables = {

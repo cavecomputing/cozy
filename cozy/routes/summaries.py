@@ -16,11 +16,11 @@ import uuid
 import requests as http_requests
 from flask import Blueprint, request, jsonify
 
-from routes.chats import chat_to_dict
-from routes.llm import _error_detail, _summary_llm_settings
-from routes.settings import get_settings
-from shared import get_db, not_found
-from summarizer import (
+from cozy.routes.chats import chat_to_dict
+from cozy.routes.llm import _error_detail, _summary_llm_settings
+from cozy.routes.settings import get_settings
+from cozy.shared import get_db, not_found
+from cozy.summarizer import (
     append_token_limits,
     append_summary,
     build_append_messages,
