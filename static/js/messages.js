@@ -489,7 +489,9 @@ export function startEditing(messageEl) {
     actionsBar.replaceChildren(...buildEditActions().childNodes);
 
     const handler = e => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finishEditing(true); }
+        // Match the composer: on touch shells Enter is the on-screen keyboard's
+        // line-break key, not a submit shortcut; desktop keeps Enter-to-save.
+        if (e.key === 'Enter' && !e.shiftKey && !window.matchMedia('(pointer: coarse)').matches) { e.preventDefault(); finishEditing(true); }
         if (e.key === 'Escape') finishEditing(false);
     };
     contentDiv.addEventListener('keydown', handler);
