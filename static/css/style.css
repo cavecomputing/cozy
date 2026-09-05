@@ -1938,19 +1938,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 .prompt-help-tips li { margin-bottom: 0.35rem; }
 
-.prompt-help-default { margin: 0.4rem 0 0.9rem; }
-.prompt-help-default-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-}
-.prompt-help-default-head h4 { margin: 0; }
-.prompt-help-default .prompt-help-example {
-    max-height: 220px;
-    overflow-y: auto;
-}
-
 .modal-overlay[hidden] {
     display: none !important;
 }
@@ -2194,6 +2181,19 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .prompt-select-row .export-dropdown,
 .preset-select-row .icon-btn {
     flex: none;
+}
+/* Prompt description under the selector: read-only text in basic mode. */
+.prompt-description-text {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.prompt-description-text--empty {
+    font-style: italic;
+    opacity: 0.75;
+}
+.prompt-description-input {
+    font-size: 0.8rem;
 }
 /* Right-align the import/export menu so it doesn't overflow the row's edge */
 .prompt-select-row .export-menu {

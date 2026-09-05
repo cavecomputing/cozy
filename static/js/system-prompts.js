@@ -28,16 +28,28 @@ function activePrompt() {
 export function syncActivePromptFromEditors() {
     const p = activePrompt();
     if (!p) return null;
+    if (el.syspromptDescription) p.description = el.syspromptDescription.value;
     if (el.syspromptContent) p.content = el.syspromptContent.value;
     if (el.postHistoryContent) p.post_history_content = el.postHistoryContent.value;
+    renderPromptDescription(p);
     return p;
 }
 
+/** Show the active prompt's description under the selector (basic mode). */
+function renderPromptDescription(prompt) {
+    if (!el.syspromptDescriptionText) return;
+    const text = (prompt?.description || '').trim();
+    el.syspromptDescriptionText.textContent = prompt ? (text || 'No description') : '';
+    el.syspromptDescriptionText.classList.toggle('prompt-description-text--empty', Boolean(prompt) && !text);
+}
+
 function setEditorValues(prompt) {
+    if (el.syspromptDescription) el.syspromptDescription.value = prompt ? (prompt.description || '') : '';
     if (el.syspromptContent) el.syspromptContent.value = prompt ? prompt.content : '';
     if (el.postHistoryContent) {
         el.postHistoryContent.value = prompt ? (prompt.post_history_content || '') : '';
     }
+    renderPromptDescription(prompt);
 }
 
 async function savePromptFields({ showSuccess = false } = {}) {
@@ -46,6 +58,7 @@ async function savePromptFields({ showSuccess = false } = {}) {
     if (!p) return;
     try {
         await API.updateSystemPrompt(state.activeSystemPromptId, {
+            description: p.description || '',
             content: p.content || '',
             post_history_content: p.post_history_content || '',
         });
@@ -129,38 +142,6 @@ export async function deleteSystemPrompt() {
 
 export async function updateSystemPromptContent() {
     await savePromptFields();
-}
-
-let _defaultTemplate = null;
-let _defaultPostHistoryTemplate = null;
-async function getDefaultTemplates() {
-    if (_defaultTemplate !== null && _defaultPostHistoryTemplate !== null) {
-        return {
-            template: _defaultTemplate,
-            postHistoryTemplate: _defaultPostHistoryTemplate,
-        };
-    }
-    const data = await API.getDefaultPromptTemplates();
-    _defaultTemplate = data.template || '';
-    _defaultPostHistoryTemplate = data.post_history_template || '';
-    return {
-        template: _defaultTemplate,
-        postHistoryTemplate: _defaultPostHistoryTemplate,
-    };
-}
-
-/** Fill the help modal's read-only default-template blocks (for copy/paste). */
-export async function populateDefaultTemplateHelp() {
-    const sysEl = document.getElementById('prompt-help-default-system');
-    const postEl = document.getElementById('prompt-help-default-post-history');
-    if (!sysEl && !postEl) return;
-    try {
-        const defaults = await getDefaultTemplates();
-        if (sysEl) sysEl.textContent = defaults.template;
-        if (postEl) postEl.textContent = defaults.postHistoryTemplate;
-    } catch (e) {
-        console.warn('Failed to load default templates:', e);
-    }
 }
 
 // ── Import / export ───────────────────────────────────────────────────────

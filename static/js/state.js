@@ -113,6 +113,8 @@ export function initElements() {
         modelPickerMenu:   document.getElementById('model-picker-menu'),
         testApi:           document.getElementById('settings-test-api'),
         syspromptSelect:   document.getElementById('settings-sysprompt-select'),
+        syspromptDescription: document.getElementById('settings-sysprompt-description'),
+        syspromptDescriptionText: document.getElementById('settings-sysprompt-description-text'),
         syspromptContent:  document.getElementById('settings-sysprompt-content'),
         syspromptNew:      document.getElementById('settings-sysprompt-new'),
         syspromptDelete:   document.getElementById('settings-sysprompt-delete'),

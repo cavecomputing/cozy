@@ -417,9 +417,10 @@ function applySettingsToUI(s) {
 // ── Advanced configuration gate ──────────────────────────────────────────
 // Surfaces hidden unless "Show advanced configuration" is checked in the
 // General tab: the Regex tab (nav item and page), the Prompt template
-// editors + Variables help (the prompt selector stays visible), the
-// Summaries Behavior card, the Extra request parameters card, and the
-// Lorebooks global-overrides card.
+// editors + Variables help (the prompt selector and description stay
+// visible, the description as read-only text), the Summaries Behavior
+// card, the Extra request parameters card, and the Lorebooks
+// global-overrides card.
 export function applyAdvancedConfigurationVisibility() {
     const visible = Boolean(state.showAdvancedConfiguration);
     document.querySelectorAll(
@@ -432,6 +433,10 @@ export function applyAdvancedConfigurationVisibility() {
     ).forEach(node => { node.hidden = !visible; });
     // The basic-mode hint holds the editor's place while it is hidden.
     if (el.promptBasicHint) el.promptBasicHint.hidden = visible;
+    // The prompt description is plain text in basic mode, an editable
+    // field once advanced configuration is shown.
+    if (el.syspromptDescription) el.syspromptDescription.hidden = !visible;
+    if (el.syspromptDescriptionText) el.syspromptDescriptionText.hidden = visible;
     // The Regex page itself still follows section switching: it is only
     // shown when advanced is on AND it is the current section.
     const regexSection = document.querySelector('.settings-section[data-section="regex"]');

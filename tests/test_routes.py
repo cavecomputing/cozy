@@ -160,6 +160,7 @@ class TestSystemPrompts:
     def test_export_prompt_round_trips_through_import(self, client):
         created = client.post('/api/system-prompts', json={
             'name': 'Roundtrip',
+            'description': 'A short note about this prompt.',
             'content': 'You are {{char}}. End.',
             'post_history_content': '((OOC: End with motion.))',
         }).get_json()
@@ -172,6 +173,7 @@ class TestSystemPrompts:
         body = json.loads(r.data.decode('utf-8'))
         assert body == {
             'name': 'Roundtrip',
+            'description': 'A short note about this prompt.',
             'content': 'You are {{char}}. End.',
             'post_history_content': '((OOC: End with motion.))',
         }
@@ -185,9 +187,38 @@ class TestSystemPrompts:
         assert r.status_code == 201
         imported = r.get_json()
         assert imported['name'] == 'Roundtrip (2)'
+        assert imported['description'] == 'A short note about this prompt.'
         assert imported['content'] == 'You are {{char}}. End.'
         assert imported['post_history_content'] == '((OOC: End with motion.))'
         assert imported['id'] != created['id']
+
+    def test_prompt_description_defaults_to_empty(self, client):
+        created = client.post('/api/system-prompts', json={'name': 'NoDesc'}).get_json()
+        assert created['description'] == ''
+        prompts = client.get('/api/system-prompts').get_json()
+        assert next(p for p in prompts if p['id'] == created['id'])['description'] == ''
+
+    def test_update_prompt_description(self, client):
+        created = client.post('/api/system-prompts', json={'name': 'Desc'}).get_json()
+        r = client.put(f'/api/system-prompts/{created["id"]}', json={'description': 'Hello.'})
+        assert r.status_code == 200
+        assert r.get_json()['description'] == 'Hello.'
+        # Omitted on update means preserved, not cleared.
+        r = client.put(f'/api/system-prompts/{created["id"]}', json={'content': 'Edited.'})
+        assert r.get_json()['description'] == 'Hello.'
+
+    def test_prompt_description_must_be_a_string(self, client):
+        r = client.post('/api/system-prompts', json={'name': 'Bad', 'description': 5})
+        assert r.status_code == 400
+        created = client.post('/api/system-prompts', json={'name': 'BadUpdate'}).get_json()
+        r = client.put(f'/api/system-prompts/{created["id"]}', json={'description': ['x']})
+        assert r.status_code == 400
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (BytesIO(b'{"name":"BadImport","description":5}'), 'bad.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 400
 
     def test_import_prompt_rejects_non_json(self, client):
         r = client.post(
@@ -225,19 +256,9 @@ class TestSystemPrompts:
         r = client.get('/api/system-prompts/99999/export')
         assert r.status_code == 404
 
-    def test_default_template_endpoint(self, client):
+    def test_default_template_endpoint_removed(self, client):
         r = client.get('/api/system-prompts/default-template')
-        assert r.status_code == 200
-        data = r.get_json()
-        assert 'template' in data
-        assert 'post_history_template' in data
-        # The default template uses conditional blocks for every assembled section
-        for var in ('{{#system_prompt}}', '{{#description}}', '{{#personality}}',
-                    '{{#scenario}}', '{{#persona}}', '{{#mesExamples}}', '{{#lorebook}}'):
-            assert var in data['template']
-        # The default post-history is the enforced house style (no card variable).
-        assert data['post_history_template'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
-        assert '((OOC:' in data['post_history_template']
+        assert r.status_code == 404
 
 class TestMessages:
     def test_add_message_creates_swipe(self, client, sample_chat):

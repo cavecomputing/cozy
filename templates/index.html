@@ -454,7 +454,7 @@
                                 <p>The template that instructs an AI model how to behave.</p>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help & default prompts" aria-label="Template syntax help">
+                                <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help" aria-label="Template syntax help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -481,6 +481,8 @@
                                         </div>
                                         <input type="file" id="settings-sysprompt-import-file" accept="application/json,.json" hidden>
                                     </div>
+                                    <p id="settings-sysprompt-description-text" class="prompt-description-text"></p>
+                                    <input id="settings-sysprompt-description" type="text" class="form-input prompt-description-input" placeholder="Add a short description…" aria-label="Prompt description" autocomplete="off" hidden>
                                 </div>
                                 <div class="prompt-vars-panel">
                                     <div class="prompt-vars-title">Variables <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></div>
@@ -1256,22 +1258,6 @@
                     <li>You can save several templates and switch between them with the dropdown.</li>
                 </ul>
 
-                <h3>Default templates</h3>
-                <p>Here are the originals. Edited a template and want to start fresh? Copy a block and paste it back into the editor.</p>
-                <div class="prompt-help-default">
-                    <div class="prompt-help-default-head">
-                        <h4>System</h4>
-                        <button type="button" class="btn btn-secondary btn-sm prompt-help-copy" data-copy-default="system">Copy</button>
-                    </div>
-                    <pre class="prompt-help-example" id="prompt-help-default-system">Loading…</pre>
-                </div>
-                <div class="prompt-help-default">
-                    <div class="prompt-help-default-head">
-                        <h4>User</h4>
-                        <button type="button" class="btn btn-secondary btn-sm prompt-help-copy" data-copy-default="post-history">Copy</button>
-                    </div>
-                    <pre class="prompt-help-example" id="prompt-help-default-post-history">Loading…</pre>
-                </div>
             </div>
         </div>
     </div>

@@ -278,6 +278,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS system_prompts (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 name       TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
                 content    TEXT NOT NULL DEFAULT '',
                 post_history_content TEXT NOT NULL DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -358,6 +359,8 @@ def init_db():
             conn.execute("ALTER TABLE api_presets ADD COLUMN settings_json TEXT NOT NULL DEFAULT '{}'")
 
         system_prompt_cols = [c[1] for c in conn.execute('PRAGMA table_info(system_prompts)').fetchall()]
+        if system_prompt_cols and 'description' not in system_prompt_cols:
+            conn.execute("ALTER TABLE system_prompts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
         if system_prompt_cols and 'post_history_content' not in system_prompt_cols:
             conn.execute("ALTER TABLE system_prompts ADD COLUMN post_history_content TEXT NOT NULL DEFAULT ''")
             # Backfill with the V1 stock sentinel; the enforce_house_style_post_history

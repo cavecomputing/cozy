@@ -510,6 +510,7 @@ class TestSchemaMigrationLedger:
             assert 'author_note' in columns('chats')
             assert 'settings_json' in columns('api_presets')
             assert 'post_history_content' in columns('system_prompts')
+            assert 'description' in columns('system_prompts')
             assert columns('schema_migrations') == {
                 'version',
                 'name',

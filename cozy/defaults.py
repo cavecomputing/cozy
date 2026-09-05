@@ -234,6 +234,9 @@ def seed_default_prompts():
                     preset = json.load(handle)
                 content = preset['content']
                 post_history = preset.get('post_history_content', '')
+                description = preset.get('description', '')
+                if not isinstance(description, str):
+                    description = ''
             except (OSError, ValueError, KeyError, TypeError):
                 # A bundled preset is a nicety, not a reason to refuse to start.
                 # Log it and move on; the next start retries the file.
@@ -241,9 +244,9 @@ def seed_default_prompts():
                 continue
 
             cursor = conn.execute(
-                'INSERT INTO system_prompts (name, content, post_history_content) '
-                'VALUES (?, ?, ?)',
-                (title, content, post_history),
+                'INSERT INTO system_prompts (name, description, content, post_history_content) '
+                'VALUES (?, ?, ?, ?)',
+                (title, description, content, post_history),
             )
             existing.add(title)
             # Titles arrive in ascending order, so the last one to land is the

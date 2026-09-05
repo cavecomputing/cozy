@@ -25,7 +25,7 @@ import {
 } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
-    updateSystemPromptContent, syncActivePromptFromEditors, populateDefaultTemplateHelp,
+    updateSystemPromptContent, syncActivePromptFromEditors,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, switchPromptBuilderMode, initPromptVarsPanel,
     toggleRenderedPrompts, closeRenderedPrompts,
@@ -450,6 +450,13 @@ function bindSettingsHandlers() {
     };
     el.syspromptContent?.addEventListener('input', handleSystemPromptInput);
     el.syspromptContent?.addEventListener('blur', persistSystemPrompt);
+    // Description edits reuse the same debounced autosave, without
+    // re-running the context meter (the text doesn't affect the request).
+    el.syspromptDescription?.addEventListener('input', () => {
+        syncActivePromptFromEditors();
+        saveSystemPromptDebounced();
+    });
+    el.syspromptDescription?.addEventListener('blur', persistSystemPrompt);
     el.postHistoryContent?.addEventListener('input', handleSystemPromptInput);
     el.postHistoryContent?.addEventListener('blur', persistSystemPrompt);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
@@ -473,19 +480,7 @@ function bindSettingsHandlers() {
     });
     el.syspromptHelp?.addEventListener('click', () => {
         rememberSettingsSubmodalTrigger();
-        populateDefaultTemplateHelp();
         if (el.promptHelpModal) el.promptHelpModal.hidden = false;
-    });
-    el.promptHelpModal?.addEventListener('click', e => {
-        const copyBtn = e.target.closest('.prompt-help-copy');
-        if (!copyBtn) return;
-        const which = copyBtn.dataset.copyDefault === 'post-history'
-            ? 'prompt-help-default-post-history' : 'prompt-help-default-system';
-        const text = document.getElementById(which)?.textContent || '';
-        copyText(text)
-            .then(ok => ok
-                ? showToast('Copied default template', 'success', 2000)
-                : showToast('Could not copy template'));
     });
     // Import / export dropdown
     const closeSyspromptIoMenu = () => {

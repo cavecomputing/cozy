@@ -299,12 +299,6 @@ export const API = {
     async importSystemPrompt(file) {
         return formRequest('/api/system-prompts/import', { file }, 'Import failed');
     },
-    async getDefaultPromptTemplates() {
-        return jsonRequest('/api/system-prompts/default-template', {
-            fallback: 'Failed to load default template',
-        });
-    },
-
     // Regex presets
     async getRegexPresets() {
         return jsonRequest('/api/regex-presets', { fallback: 'Failed to load regex presets' });

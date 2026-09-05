@@ -116,6 +116,7 @@ Saved system prompt templates.
 |------------|----------|---------------------------------|
 | id         | INTEGER  | Primary key (auto-increment).   |
 | name       | TEXT     | Prompt display name.            |
+| description | TEXT    | Optional short prompt summary.  |
 | content    | TEXT     | Main system-prompt template.    |
 | post_history_content | TEXT | Paired post-history template. |
 | created_at | DATETIME | Creation timestamp.             |
