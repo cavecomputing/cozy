@@ -162,12 +162,11 @@ def _backfill_stock_prompt_descriptions(conn):
     stays. Text comes from the bundled files, the same source the seeder
     reads, so the two can never disagree. A missing file is skipped rather
     than failing startup.
+
+    The column is guaranteed here: _run_migrations() runs after the
+    ADD COLUMN block in init_db(). Guarding on it would be worse than
+    useless — a skipped run is still recorded as done and never retried.
     """
-    cols = {
-        row['name'] for row in conn.execute('PRAGMA table_info(system_prompts)').fetchall()
-    }
-    if 'description' not in cols:
-        return
     for title in ('NanoBear v2.1', 'NanoBear Author v1'):
         try:
             with open(os.path.join(shared.BUNDLED_PROMPTS_DIR, title + '.json'), encoding='utf-8') as handle:
