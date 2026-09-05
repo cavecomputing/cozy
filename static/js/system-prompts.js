@@ -1,7 +1,7 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
-import { sanitize, showToast } from './utils.js';
+import { sanitize, showToast, copyText } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { previewChatPayload, previewRenderedTemplates } from './request-builder.js';
 
@@ -251,12 +251,10 @@ export function initPromptVarsPanel() {
     panel.addEventListener('click', async e => {
         const code = e.target.closest('.settings-help-vars dt code');
         if (!code) return;
-        try {
-            await navigator.clipboard.writeText(code.textContent.trim());
-            showToast(`Copied ${code.textContent.trim()}`);
-        } catch {
-            showToast('Copy failed — select the tag manually');
-        }
+        const tag = code.textContent.trim();
+        const ok = await copyText(tag);
+        showToast(ok ? `Copied ${tag}` : 'Copy failed — select the tag manually',
+            ok ? 'success' : 'error', 2000);
     });
 }
 
