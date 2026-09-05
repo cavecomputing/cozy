@@ -2956,7 +2956,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .help-tip-portal {
     position: fixed;
     z-index: 9999;
-    min-width: 200px;
+    width: max-content;
     max-width: 320px;
     padding: 0.5rem 0.65rem;
     background: var(--bg-color);
