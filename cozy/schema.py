@@ -380,6 +380,10 @@ def init_db():
             "ON CONFLICT(key) DO NOTHING"
         )
         conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('show_advanced_configuration', '0') "
+            "ON CONFLICT(key) DO NOTHING"
+        )
+        conn.execute(
             "INSERT INTO settings (key, value) VALUES ('extra_request_params', '') "
             "ON CONFLICT(key) DO NOTHING"
         )

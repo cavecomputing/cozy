@@ -382,6 +382,8 @@ function applySettingsToUI(s) {
     state.contextMaxTokens = s.context_max_tokens || '32768';
     state.showContextTokenMeter = s.show_context_token_meter !== '0';
     if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = state.showContextTokenMeter;
+    state.showAdvancedConfiguration = s.show_advanced_configuration === '1';
+    if (el.settingsAdvancedToggle) el.settingsAdvancedToggle.checked = state.showAdvancedConfiguration;
     state.extraRequestParams = s.extra_request_params || '';
     if (el.extraParams) el.extraParams.value = state.extraRequestParams;
     state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;
@@ -403,6 +405,39 @@ function applySettingsToUI(s) {
     if (el.summaryCapInput) el.summaryCapInput.value = state.summaryCapPct;
     if (el.summaryIntervalInput) el.summaryIntervalInput.value = state.summaryTriggerInterval;
     state.modelContextLength = state.modelDetails[state.apiModel] ?? null;
+}
+
+// ── Advanced configuration gate ──────────────────────────────────────────
+// Surfaces hidden unless "Show advanced configuration" is checked in the
+// General tab: the Regex tab (nav item and page), the Prompt template
+// editors + Variables help (the prompt selector stays visible), the
+// Summaries Behavior card, the Extra request parameters card, and the
+// Lorebooks global-overrides card.
+export function applyAdvancedConfigurationVisibility() {
+    const visible = Boolean(state.showAdvancedConfiguration);
+    document.querySelectorAll(
+        '.settings-section[data-section="prompt"] .prompt-vars-panel,'
+        + ' .settings-section[data-section="prompt"] .prompt-section-right,'
+        + ' #summary-behavior-card,'
+        + ' #extra-params-card,'
+        + ' #lorebook-overrides-card,'
+        + ' .settings-nav-item[data-section="regex"]'
+    ).forEach(node => { node.hidden = !visible; });
+    // The Regex page itself still follows section switching: it is only
+    // shown when advanced is on AND it is the current section.
+    const regexSection = document.querySelector('.settings-section[data-section="regex"]');
+    if (regexSection) regexSection.hidden = !visible || state.settingsSection !== 'regex';
+}
+
+/**
+ * Show or hide the advanced configuration UI and remember the choice.
+ * Shared by the General-tab checkbox, so gated pages update live.
+ */
+export function setAdvancedConfigurationVisible(visible) {
+    state.showAdvancedConfiguration = visible;
+    if (el.settingsAdvancedToggle) el.settingsAdvancedToggle.checked = visible;
+    saveLLMSettings({ show_advanced_configuration: visible ? '1' : '0' });
+    applyAdvancedConfigurationVisibility();
 }
 
 export async function activatePreset(id) {

@@ -2029,6 +2029,14 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--bg-color);
 }
 
+/* The badge's accent text vanishes against the accent tab background,
+   so flip it to the tab's own foreground while its tab is selected. */
+.settings-nav-item.active .advanced-badge {
+    color: var(--bg-color);
+    background-color: transparent;
+    border-color: var(--bg-color);
+}
+
 .settings-pane {
     flex: 1;
     overflow-y: auto;
@@ -2110,6 +2118,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 .settings-card-header h4 {
+    display: flex;
+    align-items: center;
     margin: 0;
     font-size: 0.82rem;
     font-weight: 600;
@@ -2223,6 +2233,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     background: var(--input-bg);
 }
 .prompt-vars-title {
+    display: flex;
+    align-items: center;
     font-size: 0.68rem;
     color: var(--text-secondary);
     text-transform: uppercase;
@@ -2260,6 +2272,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem;
+    /* Trim the empty band above the tab strip: the tabs carry their own
+       0.25rem padding and the Variables panel starts at 0.5rem, so 0.25rem
+       here lines the tab text (and its ADV badge) up with the panel title. */
+    padding-top: 0.25rem;
     position: relative;
 }
 
@@ -2438,6 +2454,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 .settings-section[hidden] { display: none; }
+.settings-nav-item[hidden] { display: none; }
 
 .settings-hint {
     font-size: 0.7rem;
@@ -3882,7 +3899,8 @@ input[type="checkbox"]:disabled {
     .sampler-help-row { grid-template-columns: 1fr; }
     .sampler-help-row dt { margin-bottom: 0.1rem; }
 }
-.sampler-advanced-badge {
+.sampler-advanced-badge,
+.advanced-badge {
     margin-left: auto;
     font-size: 0.62rem;
     font-weight: 600;

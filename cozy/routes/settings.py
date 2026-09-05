@@ -108,6 +108,7 @@ SETTINGS_KEYS = {
     'sampler_seed',
     'active_samplers',
     'show_context_token_meter',
+    'show_advanced_configuration',
     'context_max_tokens',
     'lorebook_scan_depth_override',
     'lorebook_always_inject_all',

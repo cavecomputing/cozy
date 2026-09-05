@@ -73,6 +73,13 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['show_context_token_meter'] == '0'
 
+    def test_advanced_configuration_setting_defaults_hidden_and_persists(self, client):
+        r = client.get('/api/settings')
+        assert r.get_json()['show_advanced_configuration'] == '0'
+        client.put('/api/settings', json={'show_advanced_configuration': '1'})
+        r = client.get('/api/settings')
+        assert r.get_json()['show_advanced_configuration'] == '1'
+
     def test_retired_gallery_setting_is_rejected(self, client):
         client.put('/api/settings', json={'show_gallery_button': '0'})
         r = client.get('/api/settings')

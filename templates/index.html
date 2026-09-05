@@ -159,6 +159,7 @@
                             <button class="settings-nav-item" data-section="regex" role="tab" aria-selected="false">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
                                 <span>Regex</span>
+                                <span class="advanced-badge" data-tip="Advanced configuration">ADV</span>
                             </button>
                             <button class="settings-nav-item" data-section="about" role="tab" aria-selected="false">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
@@ -191,6 +192,11 @@
                                     <label class="settings-row-label" for="settings-context-meter-toggle">Show context token meter</label>
                                     <input type="checkbox" id="settings-context-meter-toggle">
                                 </div>
+                                <div class="settings-row">
+                                    <label class="settings-row-label" for="settings-show-advanced-toggle">Show advanced configuration</label>
+                                    <input type="checkbox" id="settings-show-advanced-toggle">
+                                </div>
+                                <p class="settings-hint">Reveals the Regex tab, the prompt template editor, summary behavior settings, extra request parameters, and lorebook overrides.</p>
                             </section>
                         </div>
                     </div>
@@ -246,7 +252,7 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Context &amp; Generation</h4>
-                                    <p>Set the context-window budget, reply length, and any extra JSON sent with each request.</p>
+                                    <p>Set the context-window budget and reply length.</p>
                                 </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
@@ -259,9 +265,14 @@
                                     <input type="number" id="settings-sampler-max-tokens" class="form-input"
                                            step="1" min="1" max="32768" value="512">
                                 </div>
+                            </section>
+                            <section class="settings-card" id="extra-params-card">
+                                <header class="settings-card-header">
+                                    <h4>Extra request parameters <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></h4>
+                                    <p>Custom JSON fields merged directly into the <code>/chat/completions</code> request body. <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Keys and string values need double quotes. Invalid JSON is silently ignored.">?</span></p>
+                                </header>
                                 <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-extra-params">Extra request parameters <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="Add custom JSON fields that are merged directly into the &lt;code&gt;/chat/completions&lt;/code&gt; request body. These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Keys and string values need double quotes. Invalid JSON is silently ignored.">?</span></label>
-                                    <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
+                                    <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" aria-label="Extra request parameters JSON" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
                                 </div>
                             </section>
                         </div>
@@ -467,7 +478,7 @@
                                     </div>
                                 </div>
                                 <div class="prompt-vars-panel">
-                                    <div class="prompt-vars-title">Variables</div>
+                                    <div class="prompt-vars-title">Variables <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></div>
                                     <p class="prompt-vars-lead">Each tag below is swapped for its value when a message is sent.</p>
                                     <dl class="settings-help-vars">
                                         <dt><code>&#123;&#123;char&#125;&#125;</code> / <code>&#123;&#123;user&#125;&#125;</code></dt><dd>Character name / active persona name.</dd>
@@ -503,6 +514,7 @@
                                     <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both templates filled in" aria-label="Preview both templates filled in" aria-expanded="false" aria-controls="prompt-rendered-flyout">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                                     </button>
+                                    <span class="advanced-badge" data-tip="Advanced configuration">ADV</span>
                                 </div>
                                 <textarea id="settings-sysprompt-content" class="form-textarea" placeholder="Enter prompt template…"></textarea>
                                 <textarea id="settings-posthistory-content" class="form-textarea" placeholder="Enter user message template…" hidden></textarea>
@@ -525,7 +537,11 @@
                             <p>Manage standalone and character-embedded world info, then choose which book each chat uses.</p>
                         </header>
                         <div class="settings-section-body lorebook-section-body">
-                            <section class="settings-card lorebook-card lorebook-card--global">
+                            <section class="settings-card lorebook-card lorebook-card--global" id="lorebook-overrides-card">
+                                <header class="settings-card-header">
+                                    <h4>Global overrides <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></h4>
+                                    <p>Replace each book's own scan settings on this install.</p>
+                                </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-lorebook-scan-override">
                                         Scan depth override
@@ -659,9 +675,9 @@
                                     </div>
                                 </div>
                             </section>
-                            <section class="settings-card">
+                            <section class="settings-card" id="summary-behavior-card">
                                 <header class="settings-card-header">
-                                    <h4>Behavior</h4>
+                                    <h4>Behavior <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></h4>
                                     <p>How large the summary may grow and how much history each update folds in.</p>
                                 </header>
                                 <div class="settings-row settings-row--inline">
@@ -681,7 +697,7 @@
                         <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
                             <div class="settings-page-title">
                                 <h3>Regex</h3>
-                                <p>Find-and-replace rules that clean up the character's replies as they arrive.</p>
+                                <p>Find-and-replace rules that clean up the character's replies as they arrive. If you don't know what this is, you probably don't need to enable it.</p>
                             </div>
                             <div class="prompt-header-actions">
                                 <button id="settings-regex-help" class="icon-btn" title="Regex syntax help &amp; examples" aria-label="Regex syntax help">

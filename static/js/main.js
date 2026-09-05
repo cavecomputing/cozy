@@ -16,7 +16,8 @@ import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
 import {
     loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
-    flushLLMSettingsSave,
+    flushLLMSettingsSave, applyAdvancedConfigurationVisibility,
+    setAdvancedConfigurationVisible,
     browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
     selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
     activatePreset, createNewPreset, deletePreset, searchModelsFromInput,
@@ -103,6 +104,8 @@ const MOBILE_SHELL_QUERY = '(max-width: 768px)';
 const isMobileSettings = () => window.matchMedia(MOBILE_SHELL_QUERY).matches;
 
 function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
+    // The Regex tab is advanced-only: never land on it while hidden.
+    if (key === 'regex' && !state.showAdvancedConfiguration) key = 'general';
     state.settingsSection = key;
     for (const sec of el.settingsPane.querySelectorAll('.settings-section')) {
         sec.hidden = sec.dataset.section !== key;
@@ -291,11 +294,18 @@ function bindSettingsHandlers() {
         el.settingsFlyout.hidden = false;
         // On desktop: restore the saved section. On mobile: show the list view first
         // (saved section stays "active" in the nav so reopening from the list is one tap away).
+        const requestedSection = state.settingsSection;
         applySettingsSection(state.settingsSection);
         exitSettingsDetail();
         renderThemePicker();
         const s = await loadLLMSettings();
         await loadSystemPrompts(s);
+        applyAdvancedConfigurationVisibility();
+        // A first open may have bounced off the hidden Regex tab before
+        // settings loaded; restore it for advanced users.
+        if (requestedSection === 'regex' && state.showAdvancedConfiguration) {
+            applySettingsSection('regex');
+        }
         await loadRegexPresets(s);
     };
     el.settingsBtn?.addEventListener('click', openSettings);
@@ -329,6 +339,9 @@ function bindSettingsHandlers() {
     });
     el.settingsContextMeterToggle?.addEventListener('change', () => {
         setContextMeterVisible(el.settingsContextMeterToggle.checked);
+    });
+    el.settingsAdvancedToggle?.addEventListener('change', () => {
+        setAdvancedConfigurationVisible(el.settingsAdvancedToggle.checked);
     });
     // Auto Summaries config — autosave while typing, flush on blur.
     el.summaryEndpoint?.addEventListener('input', () => {
@@ -1071,7 +1084,7 @@ async function init() {
             // Filters have to be live from the first reply, not just once the
             // settings flyout has been opened.
             loadRegexPresets(settings),
-        ])),
+        ]).then(() => applyAdvancedConfigurationVisibility())),
         loadLorebooks(),
     ]);
     // Deliberately not in the group above: loadCharacters() cascades into

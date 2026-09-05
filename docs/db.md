@@ -230,7 +230,8 @@ rewrites a prompt row. They remain for databases written before them.
 On first run, the database is seeded with:
 
 - **Default persona**: "Default User" (tagline: "The brave adventurer", `is_default = 1`)
-- **Default settings**: context token budget (`32768`), visible context meter, an
+- **Default settings**: context token budget (`32768`), visible context meter,
+  hidden advanced configuration (`show_advanced_configuration`), an
   empty extra-request-parameters value, blank summarizer endpoint/key/model
   overrides, a 10% summary cap (`summary_cap_pct`), and 10 messages per
   summarizer batch (`summary_trigger_interval`)
