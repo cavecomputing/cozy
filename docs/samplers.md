@@ -10,20 +10,27 @@ Start with the defaults. Change one setting at a time.
 
 ## Core settings
 
-| Setting | Default | What it changes |
-|---|---:|---|
-| Temperature | 1.0 | Higher values add variation. Lower values are more predictable. |
-| Top-P | 0.95 | Limits choices to tokens inside a cumulative probability threshold. `1.0` disables the filter on most servers. |
-| Top-K | 0 | Limits choices to the K most likely tokens. `0` usually disables it. |
-| Min-P | 0.05 | Removes tokens that are too unlikely compared with the best token. `0` usually disables it. |
-| Repetition penalty | 1.0 | Reduces repeated tokens. `1.0` disables the penalty. |
-| Last N tokens | 64 | Controls how far back repetition detection looks. |
-| Max response tokens | 512 | Maximum tokens the server may generate for one reply. |
+Temperature, Top-P and Min-P are shown on a fresh install. The rest of this
+table is a core sampler you have to switch on first — open **Settings → API →
+Samplers → Active samplers**.
+
+| Setting | Default | Shown by default | What it changes |
+|---|---:|:---:|---|
+| Temperature | 1.0 | yes | Higher values add variation. Lower values are more predictable. |
+| Top-P | 0.95 | yes | Limits choices to tokens inside a cumulative probability threshold. `1.0` disables the filter on most servers. |
+| Min-P | 0.05 | yes | Removes tokens that are too unlikely compared with the best token. `0` usually disables it. |
+| Top-K | 0 | no | Limits choices to the K most likely tokens. `0` usually disables it. |
+| Repetition penalty | 1.0 | no | Reduces repeated tokens. `1.0` disables the penalty. |
+| Last N tokens | 64 | no | Controls how far back repetition detection looks. |
+| Max response tokens | 512 | yes | Maximum tokens the server may generate for one reply. Lives under **Context & Generation**, not the sampler list. |
+
+Every shown setting pairs a slider with the number box. They are two views of
+the same value — drag or type, whichever is quicker.
 
 ## Advanced settings
 
-Advanced samplers are hidden by default. Open **Settings → Samplers → Active
-samplers** to enable them.
+Advanced samplers are hidden by default. Open **Settings → API → Samplers →
+Active samplers** to enable them.
 
 | Setting | Disabled value | Purpose |
 |---|---:|---|
