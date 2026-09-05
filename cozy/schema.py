@@ -6,6 +6,7 @@ the MIGRATIONS tuple below, appended with the next version and a new name —
 a shipped entry must never be renumbered, renamed or reordered.
 """
 
+import json
 import os
 
 from cozy import shared
@@ -153,6 +154,34 @@ def _delete_default_prompts_seeded(conn):
     )
 
 
+def _backfill_stock_prompt_descriptions(conn):
+    """Fill blank descriptions on the bundled NanoBear prompts.
+
+    The description column is new, so every pre-existing row holds ''. Only
+    those rows are touched — a description the user already set is theirs and
+    stays. Text comes from the bundled files, the same source the seeder
+    reads, so the two can never disagree. A missing file is skipped rather
+    than failing startup.
+    """
+    cols = {
+        row['name'] for row in conn.execute('PRAGMA table_info(system_prompts)').fetchall()
+    }
+    if 'description' not in cols:
+        return
+    for title in ('NanoBear v2.1', 'NanoBear Author v1'):
+        try:
+            with open(os.path.join(shared.BUNDLED_PROMPTS_DIR, title + '.json'), encoding='utf-8') as handle:
+                description = json.load(handle).get('description', '')
+        except (OSError, ValueError, AttributeError):
+            continue
+        if not isinstance(description, str) or not description:
+            continue
+        conn.execute(
+            "UPDATE system_prompts SET description=? WHERE name=? AND description=''",
+            (description, title),
+        )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -165,6 +194,7 @@ MIGRATIONS = (
     (9, 'backfill_chat_persona', _backfill_chat_persona),
     (10, 'delete_summary_compress_batch', _delete_summary_compress_batch),
     (11, 'delete_default_prompts_seeded', _delete_default_prompts_seeded),
+    (12, 'backfill_stock_prompt_descriptions', _backfill_stock_prompt_descriptions),
 )
 
 

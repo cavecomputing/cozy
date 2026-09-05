@@ -73,9 +73,12 @@ class TestBundledPresets:
     def test_bundled_presets_match_the_export_payload_shape(self):
         for filename in _bundled_filenames():
             preset = _read_preset(filename)
-            assert set(preset) == {'name', 'content', 'post_history_content'}, filename
+            assert {'name', 'content', 'post_history_content'} <= set(preset), filename
+            assert set(preset) <= {'name', 'description', 'content', 'post_history_content'}, filename
             assert preset['content'].strip(), filename
             assert preset['post_history_content'].strip(), filename
+            if 'description' in preset:
+                assert preset['description'].strip(), filename
 
     def test_preset_name_matches_its_filename(self):
         # Seeding titles from the filename is what lets a revised preset ship
@@ -129,6 +132,21 @@ class TestSeeding:
     def test_fresh_install_seeds_every_bundled_preset(self):
         defaults.seed_default_prompts()
         assert _prompt_names() == _bundled_titles()
+
+    def test_seeding_stores_each_bundled_description(self):
+        defaults.seed_default_prompts()
+        with shared.get_db() as conn:
+            rows = {
+                r['name']: r['description'] for r in
+                conn.execute('SELECT name, description FROM system_prompts').fetchall()
+            }
+        for filename in _bundled_filenames():
+            preset = _read_preset(filename)
+            assert rows[preset['name']] == preset.get('description', ''), filename
+
+    def test_nanobear_presets_carry_a_description(self):
+        for title in ('NanoBear v2.1', 'NanoBear Author v1'):
+            assert _read_preset(title + '.json')['description'].strip(), title
 
     def test_fresh_install_starts_on_the_greatest_standard_nanobear(self):
         defaults.seed_default_prompts()

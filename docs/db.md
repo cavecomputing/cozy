@@ -201,7 +201,7 @@ After those shape checks, pending entries from the ordered migration registry
 run inside a serialized transaction and are recorded in `schema_migrations`.
 Repeated startup skips versions already present in the ledger.
 
-The migration ledger currently contains eleven migrations:
+The migration ledger currently contains twelve migrations:
 
 1. Retire the historical duplicate-greeting repair.
 2. Delete the retired `context_max_messages` setting.
@@ -214,6 +214,8 @@ The migration ledger currently contains eleven migrations:
 9. Backfill `chats.persona_id` from each chat's most recent user message.
 10. Delete the retired `summary_compress_batch` setting.
 11. Delete the retired `default_prompts_seeded` setting.
+12. Backfill blank descriptions on the bundled NanoBear prompts from
+    `default_prompts/`; prompts with a user-set description are untouched.
 
 Prompt migrations change only known stock templates. Customized prompts are
 preserved. The rename in migration 7 is the one exception to matching on
@@ -225,6 +227,8 @@ Migrations 3–7 are the last of their kind. They repair a stock prompt that
 `init_db()` used to insert inline; the house prompt now ships as a file in
 `default_prompts/` and a revision arrives as a new file, so no future release
 rewrites a prompt row. They remain for databases written before them.
+Migration 12 is the narrow exception: it fills only the new `description`
+column, only on rows still blank, so user-set text is never overwritten.
 
 ## Seeded data
 

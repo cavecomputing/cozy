@@ -517,6 +517,47 @@ class TestSchemaMigrationLedger:
                 'applied_at',
             }
 
+    def test_stock_prompt_descriptions_backfill_blank_rows_only(self, tmp_path, monkeypatch):
+        legacy_db = tmp_path / 'descriptions.db'
+        monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
+        with shared.get_db() as conn:
+            conn.executescript('''
+                CREATE TABLE system_prompts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    content TEXT NOT NULL DEFAULT '',
+                    post_history_content TEXT NOT NULL DEFAULT '',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT INTO system_prompts (name, content)
+                    VALUES ('NanoBear v2.1', 'x'), ('NanoBear Author v1', 'x'), ('Custom', 'x');
+            ''')
+
+        schema.init_db()
+
+        with shared.get_db() as conn:
+            rows = {
+                r['name']: r['description'] for r in
+                conn.execute('SELECT name, description FROM system_prompts').fetchall()
+            }
+        assert rows['NanoBear v2.1'].strip()
+        assert rows['NanoBear Author v1'].strip()
+        assert rows['Custom'] == ''
+
+        # A description the user set themselves survives a re-run.
+        with shared.get_db() as conn:
+            conn.execute(
+                "UPDATE system_prompts SET description='Mine' WHERE name='NanoBear v2.1'"
+            )
+            conn.execute('DELETE FROM schema_migrations WHERE version=12')
+        schema.init_db()
+        with shared.get_db() as conn:
+            row = conn.execute(
+                "SELECT description FROM system_prompts WHERE name='NanoBear v2.1'"
+            ).fetchone()
+        assert row['description'] == 'Mine'
+
     def test_chat_persona_backfills_from_last_user_message(self, tmp_path, monkeypatch):
         legacy_db = tmp_path / 'persona.db'
         monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
