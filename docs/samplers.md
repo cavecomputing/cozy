@@ -13,9 +13,9 @@ Start with the defaults. Change one setting at a time.
 | Setting | Default | What it changes |
 |---|---:|---|
 | Temperature | 1.0 | Higher values add variation. Lower values are more predictable. |
-| Top-P | 1.0 | Limits choices to tokens inside a cumulative probability threshold. `1.0` disables the filter on most servers. |
+| Top-P | 0.95 | Limits choices to tokens inside a cumulative probability threshold. `1.0` disables the filter on most servers. |
 | Top-K | 0 | Limits choices to the K most likely tokens. `0` usually disables it. |
-| Min-P | 0 | Removes tokens that are too unlikely compared with the best token. `0` usually disables it. |
+| Min-P | 0.05 | Removes tokens that are too unlikely compared with the best token. `0` usually disables it. |
 | Repetition penalty | 1.0 | Reduces repeated tokens. `1.0` disables the penalty. |
 | Last N tokens | 64 | Controls how far back repetition detection looks. |
 | Max response tokens | 512 | Maximum tokens the server may generate for one reply. |

@@ -8,9 +8,9 @@ export const SAMPLER_DEFAULTS = {
     sampler_temperature:        '1.0',
     sampler_dynatemp_range:     '0',
     sampler_dynatemp_exponent:  '1.0',
-    sampler_top_p:              '1.0',
+    sampler_top_p:              '0.95',
     sampler_top_k:              '0',
-    sampler_min_p:              '0',
+    sampler_min_p:              '0.05',
     sampler_typical_p:          '1.0',
     sampler_top_n_sigma:        '-1',
     sampler_repetition_penalty: '1.0',
@@ -85,7 +85,7 @@ for (const [group, info] of Object.entries(SAMPLER_GROUPS)) {
 }
 
 export const DEFAULT_ACTIVE_GROUPS = new Set([
-    'temperature', 'top_p', 'top_k', 'min_p', 'repetition_penalty',
+    'temperature', 'top_p', 'min_p',
 ]);
 
 export const CORE_GROUPS = new Set([
