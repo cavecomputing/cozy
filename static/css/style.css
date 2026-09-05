@@ -1862,9 +1862,18 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 /* Preview / Help stack above the settings flyout they were opened from —
-   each takes half the settings flyout's width so the pair reads as one split pane. */
+   each takes half the settings flyout's width so the pair reads as one split
+   pane. One list for all three rules: a modal that gets the width but not the
+   z-index opens *behind* the flyout, and one without the body rule can't
+   scroll. The mobile override near the end of this file pins the same set
+   back to full width. */
 #prompt-preview-modal.modal-overlay,
-#prompt-help-modal.modal-overlay { z-index: 600; }
+#prompt-help-modal.modal-overlay,
+#sampler-help-modal.modal-overlay,
+#regex-help-modal.modal-overlay,
+#lorebook-help-modal.modal-overlay,
+#summary-help-modal.modal-overlay,
+#api-help-modal.modal-overlay { z-index: 600; }
 #prompt-preview-modal .modal,
 #prompt-help-modal .modal,
 #sampler-help-modal .modal,
@@ -1873,9 +1882,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 #summary-help-modal .modal,
 #api-help-modal .modal { width: calc((100vw - var(--sidebar-width) - 30px) / 2); max-width: 90vw; display: flex; flex-direction: column; }
 #prompt-preview-modal .modal-body,
-#prompt-help-modal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
-#sampler-help-modal.modal-overlay { z-index: 600; }
-#sampler-help-modal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
+#prompt-help-modal .modal-body,
+#sampler-help-modal .modal-body,
+#regex-help-modal .modal-body,
+#lorebook-help-modal .modal-body,
+#summary-help-modal .modal-body,
+#api-help-modal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
 
 .prompt-help-body { font-size: 0.85rem; line-height: 1.5; color: var(--text-color); }
 .prompt-help-body p { margin: 0 0 0.6rem; color: var(--text-secondary); }
@@ -3392,7 +3404,6 @@ input[type="checkbox"]:disabled {
 }
 
 
-
 /* Sub-section headers inside the combined sampler card. The core header
    carries the Active-samplers gear on its right. */
 .sampler-subsection-header {
@@ -4365,6 +4376,8 @@ input[type="checkbox"]:disabled {
     #prompt-help-modal .modal,
     #lorebook-help-modal .modal,
     #summary-help-modal .modal,
+    #api-help-modal .modal,
+    #regex-help-modal .modal,
     #sampler-help-modal .modal {
         width: 100%;
         max-width: 100%;
