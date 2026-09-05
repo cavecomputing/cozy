@@ -169,6 +169,10 @@ Select the character in the sidebar to start chatting.
 - **Theme** — **Settings → General → Appearance** switches between the built-in
   themes. The choice is per-browser. You can also drop your own CSS file into
   `data/themes/`; see [User themes](themes.md).
+- **Slash commands** — type `/` in the chat input to see them. `/prompt <name>`
+  and `/api <name>` switch prompt and API presets without opening Settings;
+  keep typing after the space and matching presets are offered. With no name
+  they show what is active and what is available.
 
 Cozy saves changes automatically unless the screen shows a **Save** button.
 

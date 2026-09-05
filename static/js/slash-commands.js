@@ -5,6 +5,9 @@ import { exportChat } from './export.js';
 import { clearDraft } from './drafts.js';
 import { regenerateLastAssistantMessage, handleSwipeAction } from './messages.js';
 import { jumpToContextBoundary, setContextMeterVisible } from './context-meter.js';
+import { matchPresetByName } from './preset-match.js';
+import { activatePreset } from './llm-settings.js';
+import { selectSystemPrompt } from './system-prompts.js';
 
 const COMMANDS = [
     { name: '/retry',  description: 'Regenerate the last assistant message', run: retryLastAssistant },
@@ -16,6 +19,8 @@ const COMMANDS = [
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
     { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
     { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
+    { name: '/prompt', description: 'Switch prompt preset: /prompt <name>', run: switchPromptPreset },
+    { name: '/api',    description: 'Switch API preset: /api <name>', run: switchApiPreset },
 ];
 
 let menuEl = null;
@@ -51,13 +56,39 @@ export function updateSlashCommands() {
         return;
     }
     const q = value.trim().toLowerCase();
-    visibleCommands = COMMANDS.filter(cmd => cmd.name.startsWith(q));
+    visibleCommands = presetSuggestions(value) ?? COMMANDS.filter(cmd => cmd.name.startsWith(q));
     if (visibleCommands.length === 0) {
         closeSlashCommands();
         return;
     }
     activeIndex = Math.min(activeIndex, visibleCommands.length - 1);
     renderMenu();
+}
+
+/**
+ * Preset-name suggestions once a command token and a space are typed, e.g.
+ * "/api loc" → the matching API presets. Each entry carries its full name
+ * as `args` so picking it runs the switch without re-parsing the partial
+ * text. Anything else (bare "/prompt", unknown command) is not ours: null
+ * lets the caller fall back to the plain command list.
+ */
+function presetSuggestions(value) {
+    const m = value.match(/^\/(prompt|api)\s([\s\S]*)$/i);
+    if (!m) return null;
+    const key = `/${m[1].toLowerCase()}`;
+    const partial = m[2].trim().toLowerCase();
+    const source = key === '/prompt' ? state.systemPrompts : state.apiPresets;
+    const run = key === '/prompt' ? switchPromptPreset : switchApiPreset;
+    const kind = key === '/prompt' ? 'Prompt' : 'API';
+    return source
+        .filter(p => typeof p?.name === 'string' && p.name.toLowerCase().startsWith(partial))
+        .slice(0, 8)
+        .map(p => ({
+            name: `${key} ${p.name}`,
+            description: `Switch ${kind.toLowerCase()} preset`,
+            args: p.name,
+            run,
+        }));
 }
 
 export function closeSlashCommands() {
@@ -93,9 +124,11 @@ export function handleSlashKeydown(e) {
 }
 
 export function executeSlashCommand(rawText) {
-    const command = COMMANDS.find(cmd => cmd.name === rawText.trim().split(/\s+/, 1)[0].toLowerCase());
+    const text = rawText.trim();
+    const token = text.split(/\s+/, 1)[0].toLowerCase();
+    const command = COMMANDS.find(cmd => cmd.name === token);
     if (!command) return false;
-    runCommand(command);
+    runCommand(command, text.slice(token.length));
     return true;
 }
 
@@ -136,10 +169,13 @@ function resetComposer() {
     closeSlashCommands();
 }
 
-function runCommand(command) {
+function runCommand(command, args) {
     if (!command) return;
+    // Suggestion entries carry their full preset name; plain menu selections
+    // take whatever was typed after the command token before resetComposer().
+    if (args === undefined) args = command.args ?? (el.userInput?.value || '').slice(command.name.length);
     resetComposer();
-    command.run();
+    command.run(args);
 }
 
 function retryLastAssistant() {
@@ -204,4 +240,41 @@ function toggleMeter() {
     const visible = !state.showContextTokenMeter;
     setContextMeterVisible(visible);
     showToast(visible ? 'Context token meter shown' : 'Context token meter hidden');
+}
+
+/** Keep the not-found toast readable no matter how many presets exist. */
+function candidateNames(candidates) {
+    return candidates.length > 6 ? `${candidates.slice(0, 6).join(', ')}, …` : candidates.join(', ');
+}
+
+async function switchPromptPreset(args) {
+    const { preset, error, candidates } = matchPresetByName(state.systemPrompts, args);
+    if (!preset) {
+        if (candidates.length === 0) return showToast('No prompt presets yet — create one in Settings → Prompt');
+        const active = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
+        if (error === 'missing') {
+            return showToast(`Current prompt: ${active?.name || 'none'}. Available: ${candidateNames(candidates)}`);
+        }
+        return showToast(`No prompt preset matches "${String(args).trim()}". Available: ${candidateNames(candidates)}`);
+    }
+    await selectSystemPrompt(preset.id);
+    if (el.syspromptSelect) el.syspromptSelect.value = String(preset.id);
+    showToast(`Prompt preset: ${preset.name}`, 'success');
+}
+
+async function switchApiPreset(args) {
+    const { preset, error, candidates } = matchPresetByName(state.apiPresets, args);
+    if (!preset) {
+        if (candidates.length === 0) return showToast('No API presets yet — create one in Settings → API');
+        const active = state.apiPresets.find(p => String(p.id) === String(state.activePresetId));
+        if (error === 'missing') {
+            return showToast(`Current API preset: ${active?.name || 'none'}. Available: ${candidateNames(candidates)}`);
+        }
+        return showToast(`No API preset matches "${String(args).trim()}". Available: ${candidateNames(candidates)}`);
+    }
+    await activatePreset(String(preset.id));
+    // activatePreset toasts on failure, so confirm only a real switch.
+    if (String(state.activePresetId) === String(preset.id)) {
+        showToast(`API preset: ${preset.name}`, 'success');
+    }
 }
