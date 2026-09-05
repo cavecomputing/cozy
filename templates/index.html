@@ -211,6 +211,9 @@
                                 <button id="settings-sysprompt-preview" class="icon-btn" title="Preview assembled request" aria-label="Preview request">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 </button>
+                                <button id="settings-api-help" class="icon-btn" title="API connection help" aria-label="API connection help">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                </button>
                             </div>
                         </header>
                         <div class="settings-section-body settings-section-stack">
@@ -227,7 +230,7 @@
                             </section>
                             <section class="settings-card">
                                 <header class="settings-card-header">
-                                    <h4>Connection <span class="help-tip" tabindex="0" aria-label="Connection help" data-tip="Credentials are stored locally and masked in API responses.">?</span></h4>
+                                    <h4>Connection</h4>
                                     <p>Endpoint, model, and credentials.</p>
                                 </header>
                                 <div class="settings-row">
@@ -510,6 +513,10 @@
                                     <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon on the API page for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
                                 </div>
                             </div>
+                            <div id="settings-prompt-basic-hint" class="settings-card prompt-basic-hint" hidden>
+                                <p class="settings-hint">The template editor is an advanced feature and is currently hidden — the preset above still applies to every message.</p>
+                                <button id="settings-prompt-enable-advanced" class="btn btn-secondary btn-sm">Show advanced configuration</button>
+                            </div>
                             <div class="prompt-section-right settings-card">
                                 <div class="prompt-builder-bar">
                                     <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
@@ -537,9 +544,16 @@
                         </div>
                     </div>
                     <div class="settings-section" data-section="lorebooks" hidden>
-                        <header class="settings-page-header">
-                            <h3>Lorebooks</h3>
-                            <p>Manage standalone and character-embedded world info, then choose which book each chat uses.</p>
+                        <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
+                            <div class="settings-page-title">
+                                <h3>Lorebooks</h3>
+                                <p>Manage standalone and character-embedded world info, then choose which book each chat uses.</p>
+                            </div>
+                            <div class="prompt-header-actions">
+                                <button id="settings-lorebook-help" class="icon-btn" title="Lorebook help" aria-label="Lorebook help">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                </button>
+                            </div>
                         </header>
                         <div class="settings-section-body lorebook-section-body">
                             <section class="settings-card lorebook-card lorebook-card--global" id="lorebook-overrides-card">
@@ -564,10 +578,6 @@
                             </section>
 
                             <div class="lorebook-card lorebook-card--workspace">
-                                <header class="settings-card-header settings-card-header--workspace">
-                                    <h4>Lorebook workspace</h4>
-                                    <p>Select a book, edit its metadata, and manage entries in one place.</p>
-                                </header>
                                 <div class="lorebook-workspace-grid">
                                     <header class="lorebook-col-header">
                                         <h4 class="lorebook-card-title">Lorebooks</h4>
@@ -649,9 +659,16 @@
                         </div>
                     </div>
                     <div class="settings-section" data-section="summaries" hidden>
-                        <header class="settings-page-header">
-                            <h3>Auto Summaries</h3>
-                            <p>Keep a running memory of everything that scrolls out of the context window. Choose which chats use it from the memory button in the chat bar.</p>
+                        <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
+                            <div class="settings-page-title">
+                                <h3>Auto Summaries</h3>
+                                <p>Keep a running memory of everything that scrolls out of the context window. Choose which chats use it from the memory button in the chat bar.</p>
+                            </div>
+                            <div class="prompt-header-actions">
+                                <button id="settings-summary-help" class="icon-btn" title="Auto Summary help" aria-label="Auto Summary help">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                </button>
+                            </div>
                         </header>
                         <div class="settings-section-body settings-section-stack">
                             <section class="settings-card">
@@ -1428,6 +1445,154 @@ Flags    g</pre>
                 </div>
 
                 <p class="prompt-help-note">Different backends support different samplers — anything your engine doesn't recognise is silently ignored. When in doubt, leave the advanced ones off.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="api-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="api-help-title" hidden>
+        <div class="modal">
+            <div class="modal-header panel-header">
+                <h2 id="api-help-title" class="section-label panel-title panel-title--left">API connection</h2>
+                <div class="modal-header-actions">
+                    <button id="api-help-close" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="modal-body sampler-help-body">
+                <p class="prompt-help-callout"><strong>Cozy is a chat interface, not a model.</strong> Every reply comes from an OpenAI-compatible server — hosted or running on your own machine. This page tells Cozy where that server is and which model to ask.</p>
+
+                <div class="sampler-help-section">
+                    <h3>Connection</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Endpoint</dt><dd>The server's base URL, which normally ends in <code>/v1</code>. Cozy appends <code>/models</code> to list models and <code>/chat/completions</code> to chat — the chat endpoint must support streaming.</dd></div>
+                        <div class="sampler-help-row"><dt>API Key</dt><dd>Sent as an auth header with each request. Keys live in your data directory and are masked in API responses. Leave it blank if your server needs none.</dd></div>
+                        <div class="sampler-help-row"><dt>Model</dt><dd>The model identifier to send with each request. Type it, or use the chevron to browse what the server reports via <code>/models</code>. If the list comes up empty, type the identifier by hand.</dd></div>
+                        <div class="sampler-help-row"><dt>Test Connection</dt><dd>Sends a short "say hello" request capped at 10 tokens and shows the reply. A failure usually names the cause — check the endpoint, key, and model name first.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Common endpoints</h3>
+                    <dl class="sampler-help-list sampler-help-list--urls">
+                        <div class="sampler-help-row"><dt><code>https://api.openai.com/v1</code></dt><dd>OpenAI's own API. Needs an OpenAI key, and model ids are plain names such as <code>gpt-4o</code>.</dd></div>
+                        <div class="sampler-help-row"><dt><code>https://openrouter.ai/api/v1</code></dt><dd>OpenRouter, a gateway where one key reaches models from many providers. Model ids are prefixed with the vendor, e.g. <code>anthropic/claude-sonnet-4</code>.</dd></div>
+                        <div class="sampler-help-row"><dt><code>http://localhost:8080/v1</code></dt><dd>A local <code>llama-server</code> (llama.cpp), which serves <code>/v1/chat/completions</code> and <code>/v1/models</code> on port 8080 by default. No key needed unless you set one.</dd></div>
+                    </dl>
+                    <p>If Cozy runs in Docker while the model server runs on the host, <code>localhost</code> inside the container means the container itself — use an address Docker can reach, such as <code>host.docker.internal</code> on Docker Desktop.</p>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Context and response size</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Max Context Tokens</dt><dd>The total budget for one request: the prompt plus reserved reply space. Set it to the model's real context window (default 32768). Old messages are left out so the prompt fits inside it. <code>0</code> means no cap — Cozy never trims.</dd></div>
+                        <div class="sampler-help-row"><dt>Max Response Tokens</dt><dd>How long a single reply may run (default 512). It is also the allowance reused for summary runs. Reasoning models spend their thinking tokens from this same allowance before writing a word, so a low value cuts replies and summaries off mid-write — raise it if runs keep failing with <em>cut off by its completion token limit</em>.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Presets, context, preview</h3>
+                    <ul class="prompt-help-tips">
+                        <li>Use <strong>+</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</li>
+                        <li><strong>Max Context Tokens</strong> should match your server's context window; <strong>Max Response Tokens</strong> caps how long a single reply may run.</li>
+                        <li>The <strong>eye</strong> icon previews the exact assembled request for the active character and persona.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lorebook-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lorebook-help-title" hidden>
+        <div class="modal">
+            <div class="modal-header panel-header">
+                <h2 id="lorebook-help-title" class="section-label panel-title panel-title--left">Lorebooks</h2>
+                <div class="modal-header-actions">
+                    <button id="lorebook-help-close" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="modal-body sampler-help-body">
+                <p class="prompt-help-callout"><strong>A lorebook is background the model reads only when it is relevant.</strong> Each entry has trigger words and a block of text. When a trigger word appears in the recent chat, the text is added to the next request. Each chat uses one lorebook at a time.</p>
+
+                <div class="sampler-help-section">
+                    <h3>How an entry fires</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Keywords</dt><dd>The entry fires when one of its keywords appears as a whole word in the recent messages. Keyword <code>tavern</code> fires on "the old tavern" but not on "taverns". Only entries with <code>Enabled</code> checked can fire.</dd></div>
+                        <div class="sampler-help-row"><dt>Always include</dt><dd>Entries with this checked are sent on every message. They ignore keywords completely.</dd></div>
+                        <div class="sampler-help-row"><dt>Require secondary keys</dt><dd>When this is on, the entry fires only when a primary keyword <em>and</em> one of the secondary keywords both appear in the recent messages.</dd></div>
+                        <div class="sampler-help-row"><dt>Case-sensitive</dt><dd>Off means upper and lower case are treated the same. On means the keyword must match exactly, including capitals.</dd></div>
+                        <div class="sampler-help-row"><dt>Insertion order</dt><dd>Entries that fire at the same time are sorted by this number, lowest first. The default is 100. Equal numbers keep their list order.</dd></div>
+                        <div class="sampler-help-row"><dt>Limits</dt><dd>Each book checks the last <code>scan depth</code> messages (default 20) and sends at most <code>max entries</code> matches per message (default 20). Identical texts are sent once, even if two entries contain them.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Where the text goes</h3>
+                    <p>The matched entries are joined with <code>---</code> lines and placed where <code>&#123;&#123;lorebook&#125;&#125;</code> sits in the prompt template. If the template does not contain it, nothing is sent, and the memory flyout shows a &#8857; marker next to Active Lorebook.</p>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Choosing the book for a chat</h3>
+                    <p>Open the memory flyout (the button beside the chat input) and pick the book under <strong>Active Lorebook</strong>. The options are <strong>None</strong> (no lorebook), the active character's own lorebook when its card has one, and each standalone book by name.</p>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Where books are saved</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Standalone</dt><dd>Saved in Cozy's database file inside your data directory. These books exist on their own and any chat can use them. Deleting one removes it from every chat that used it.</dd></div>
+                        <div class="sampler-help-row"><dt>Embedded</dt><dd>Saved inside a character's PNG card file, in its <code>character_book</code> data. The book travels with the card when you import or export it. Editing a character's book here and pressing <strong>Save</strong> writes the change back into that PNG file.</dd></div>
+                        <div class="sampler-help-row"><dt>Destination</dt><dd>The <strong>Destination</strong> dropdown next to <strong>Save</strong> chooses where the book lives. Changing it and pressing <strong>Save</strong> moves the book there — for example from the database into a character card, or back out again.</dd></div>
+                    </dl>
+                    <ul class="prompt-help-tips">
+                        <li><strong>Comment</strong> on an entry is a note to yourself. It is never sent to the model.</li>
+                        <li><strong>Description</strong> on a book works the same way. Only entry text reaches the model.</li>
+                        <li><strong>Global overrides</strong> above replace every book's scan depth for this install, or skip keyword checking entirely with <strong>Always inject all entries</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="summary-help-title" hidden>
+        <div class="modal">
+            <div class="modal-header panel-header">
+                <h2 id="summary-help-title" class="section-label panel-title panel-title--left">Auto Summaries</h2>
+                <div class="modal-header-actions">
+                    <button id="summary-help-close" class="icon-btn" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-divider"></div>
+            <div class="modal-body sampler-help-body">
+                <p class="prompt-help-callout"><strong>Auto Summaries compress old chat into a short memory so the story stays coherent longer.</strong> The model can only read a fixed number of tokens at once. Once early messages no longer fit, their summary is sent instead of the messages themselves.</p>
+
+                <div class="sampler-help-section">
+                    <h3>How they work</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Nothing at first</dt><dd>While the whole chat still fits in the context window, nothing is summarized. Work starts the moment the oldest message falls outside it.</dd></div>
+                        <div class="sampler-help-row"><dt>Batches in, entries out</dt><dd>Cozy folds <code>Batch size</code> messages at a time into exactly one compact entry. A user message and a character message each count as one, whatever their length. Catching up several batches runs as one numbered run, such as batch 1/12.</dd></div>
+                        <div class="sampler-help-row"><dt>Rolling window</dt><dd>New entries are appended on the end. When the summary reaches its size cap, the oldest entries roll off to make room. The summary remembers the recent past, not the whole chat.</dd></div>
+                        <div class="sampler-help-row"><dt>Where it is sent</dt><dd>The summary reaches the model only through <code>&#123;&#123;summary&#125;&#125;</code> in the prompt template. Without it, nothing is sent, and the memory flyout shows a &#8857; marker next to Auto Summary.</dd></div>
+                    </dl>
+                    <ul class="prompt-help-tips">
+                        <li>Summaries are off for new chats. Open the memory flyout (the button beside the chat input) and turn on <strong>Auto Summary</strong> for each chat that should have one.</li>
+                        <li>Anything that must always be remembered — a premise, a standing rule, an early fact — belongs in the <strong>Author's Note</strong> above the summary card. It is sent word for word on every request and never rolls off.</li>
+                    </ul>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Summarizer model</h3>
+                    <p>A smaller or cheaper model is usually enough — it only has to write a few bullets. Any field left blank reuses the main connection: blank endpoint, key, or model means the main endpoint, key, or model. Summarizing sends old chat content to that server, which can add API cost or local processing time.</p>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Batch and size settings</h3>
+                    <p>The <strong>Behavior</strong> card below — <strong>Batch size</strong> and <strong>Size cap</strong> — only appears when <strong>Show advanced configuration</strong> is turned on in <strong>Settings &#8594; General</strong>. The cap is a percentage of the Max Context Tokens budget. Once the summary is full, the oldest entries roll off.</p>
+                </div>
             </div>
         </div>
     </div>

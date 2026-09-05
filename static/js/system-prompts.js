@@ -9,6 +9,18 @@ import { previewChatPayload, previewRenderedTemplates } from './request-builder.
 // PAIRED PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Standard house prompt ("NanoBear v2.1"); an "Author" second word
+// ("NanoBear Author v1") is a variant, never the default. Mirrors
+// STANDARD_NANOBEAR_RE in cozy/defaults.py.
+const STANDARD_NANOBEAR_RE = /^NanoBear(?!\s+Author\b)/;
+
+function defaultPromptId() {
+    const matches = state.systemPrompts
+        .filter(p => STANDARD_NANOBEAR_RE.test(p.name || ''))
+        .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    return (matches.length ? matches[matches.length - 1] : state.systemPrompts[0]).id;
+}
+
 function activePrompt() {
     return state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
 }
@@ -71,7 +83,7 @@ export async function loadSystemPrompts(existingSettings = null) {
             el.syspromptSelect.appendChild(opt);
         });
         if (!state.activeSystemPromptId || !state.systemPrompts.find(p => p.id === state.activeSystemPromptId)) {
-            state.activeSystemPromptId = state.systemPrompts[0].id;
+            state.activeSystemPromptId = defaultPromptId();
             el.syspromptSelect.value = state.activeSystemPromptId;
             saveLLMSettings({ active_system_prompt: String(state.activeSystemPromptId) });
         }

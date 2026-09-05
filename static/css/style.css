@@ -1861,15 +1861,20 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     }
 }
 
-/* Preview / Help stack above the settings flyout they were opened from */
+/* Preview / Help stack above the settings flyout they were opened from —
+   each takes half the settings flyout's width so the pair reads as one split pane. */
 #prompt-preview-modal.modal-overlay,
 #prompt-help-modal.modal-overlay { z-index: 600; }
 #prompt-preview-modal .modal,
-#prompt-help-modal .modal { width: 560px; max-width: 90vw; display: flex; flex-direction: column; }
+#prompt-help-modal .modal,
+#sampler-help-modal .modal,
+#regex-help-modal .modal,
+#lorebook-help-modal .modal,
+#summary-help-modal .modal,
+#api-help-modal .modal { width: calc((100vw - var(--sidebar-width) - 30px) / 2); max-width: 90vw; display: flex; flex-direction: column; }
 #prompt-preview-modal .modal-body,
 #prompt-help-modal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
 #sampler-help-modal.modal-overlay { z-index: 600; }
-#sampler-help-modal .modal { width: 680px; max-width: 90vw; display: flex; flex-direction: column; }
 #sampler-help-modal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
 
 .prompt-help-body { font-size: 0.85rem; line-height: 1.5; color: var(--text-color); }
@@ -2113,10 +2118,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin: 0 0 0.65rem;
     padding-bottom: 0.55rem;
     border-bottom: 1px solid var(--border-color);
-}
-
-.settings-card-header--workspace {
-    margin-bottom: 0.9rem;
 }
 
 .settings-card-header h4 {
@@ -2393,6 +2394,21 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     resize: none;
 }
 
+/* Empty-state card holding the editor's grid slot while advanced
+   configuration is off. Shown instead of the template editor. */
+.prompt-basic-hint {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+.prompt-basic-hint .settings-hint {
+    margin: 0;
+}
+
 /* Compact stacked variable list for the narrow left column */
 .prompt-vars-panel .settings-help-vars {
     display: block;
@@ -2428,6 +2444,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     }
     .prompt-section-controls,
     .prompt-vars-panel,
+    .prompt-basic-hint,
     .prompt-section-right {
         grid-column: auto;
         grid-row: auto;
@@ -3955,8 +3972,14 @@ input[type="checkbox"]:disabled {
     color: var(--text-secondary);
 }
 .sampler-help-list em { color: var(--text-color); font-style: normal; font-weight: 500; }
+/* Common-endpoints rows are labeled with full URLs, which need more than the
+   default 180px dt column — size to the longest URL, wrapping on narrow screens. */
+.sampler-help-list--urls .sampler-help-row { grid-template-columns: minmax(140px, max-content) 1fr; }
+.sampler-help-list--urls .sampler-help-row dt { min-width: 0; }
+.sampler-help-list--urls .sampler-help-row dt code { overflow-wrap: anywhere; }
 @media (max-width: 768px) {
     .sampler-help-row { grid-template-columns: 1fr; }
+    .sampler-help-list--urls .sampler-help-row { grid-template-columns: 1fr; }
     .sampler-help-row dt { margin-bottom: 0.1rem; }
 }
 .sampler-advanced-badge,
@@ -4365,6 +4388,8 @@ input[type="checkbox"]:disabled {
        so they fill the screen on mobile like every other modal. */
     #prompt-preview-modal .modal,
     #prompt-help-modal .modal,
+    #lorebook-help-modal .modal,
+    #summary-help-modal .modal,
     #sampler-help-modal .modal {
         width: 100%;
         max-width: 100%;

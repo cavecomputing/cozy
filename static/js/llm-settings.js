@@ -439,6 +439,8 @@ export function applyAdvancedConfigurationVisibility() {
         + ' #lorebook-overrides-card,'
         + ' .settings-nav-item[data-section="regex"]'
     ).forEach(node => { node.hidden = !visible; });
+    // The basic-mode hint holds the editor's place while it is hidden.
+    if (el.promptBasicHint) el.promptBasicHint.hidden = visible;
     // The Regex page itself still follows section switching: it is only
     // shown when advanced is on AND it is the current section.
     const regexSection = document.querySelector('.settings-section[data-section="regex"]');

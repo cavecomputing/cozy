@@ -329,7 +329,7 @@ function bindSettingsHandlers() {
         const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
         if (el.settingsFlyout.contains(e.target) || path.includes(el.settingsFlyout)) return;
         if (e.target.closest('#settings-btn')) return;
-        if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal, #regex-help-modal')) return;
+        if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal, #regex-help-modal, #api-help-modal, #lorebook-help-modal, #summary-help-modal')) return;
         closeSettingsFlyout();
     });
 
@@ -454,6 +454,9 @@ function bindSettingsHandlers() {
     el.postHistoryContent?.addEventListener('blur', persistSystemPrompt);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);
+    el.promptEnableAdvanced?.addEventListener('click', () => {
+        setAdvancedConfigurationVisible(true);
+    });
     el.syspromptPreview?.addEventListener('click', () => {
         rememberSettingsSubmodalTrigger();
         previewSystemPrompt();
@@ -567,6 +570,39 @@ function bindSettingsHandlers() {
     });
     el.samplerHelpModal?.addEventListener('click', e => {
         if (e.target === el.samplerHelpModal) closeSettingsSubmodal(el.samplerHelpModal);
+    });
+
+    el.apiHelpBtn?.addEventListener('click', () => {
+        rememberSettingsSubmodalTrigger();
+        if (el.apiHelpModal) el.apiHelpModal.hidden = false;
+    });
+    el.apiHelpClose?.addEventListener('click', () => {
+        closeSettingsSubmodal(el.apiHelpModal);
+    });
+    el.apiHelpModal?.addEventListener('click', e => {
+        if (e.target === el.apiHelpModal) closeSettingsSubmodal(el.apiHelpModal);
+    });
+
+    el.lorebookHelpBtn?.addEventListener('click', () => {
+        rememberSettingsSubmodalTrigger();
+        if (el.lorebookHelpModal) el.lorebookHelpModal.hidden = false;
+    });
+    el.lorebookHelpClose?.addEventListener('click', () => {
+        closeSettingsSubmodal(el.lorebookHelpModal);
+    });
+    el.lorebookHelpModal?.addEventListener('click', e => {
+        if (e.target === el.lorebookHelpModal) closeSettingsSubmodal(el.lorebookHelpModal);
+    });
+
+    el.summaryHelpBtn?.addEventListener('click', () => {
+        rememberSettingsSubmodalTrigger();
+        if (el.summaryHelpModal) el.summaryHelpModal.hidden = false;
+    });
+    el.summaryHelpClose?.addEventListener('click', () => {
+        closeSettingsSubmodal(el.summaryHelpModal);
+    });
+    el.summaryHelpModal?.addEventListener('click', e => {
+        if (e.target === el.summaryHelpModal) closeSettingsSubmodal(el.summaryHelpModal);
     });
 
     // Sampler configure popover

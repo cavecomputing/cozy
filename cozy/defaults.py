@@ -10,6 +10,7 @@ the source of truth for which presets exist.
 import json
 import logging
 import os
+import re
 import shutil
 
 from cozy import shared
@@ -175,6 +176,12 @@ def seed_default_characters():
         )
 
 
+# Titles like "NanoBear v2.1": the standard house prompt. Anything with an
+# "Author" second word ("NanoBear Author v1") is a variant and never the
+# default, even when it sorts above every standard title.
+STANDARD_NANOBEAR_RE = re.compile(r'^NanoBear(?!\s+Author\b)')
+
+
 def seed_default_prompts():
     """Restore every bundled prompt preset missing from system_prompts, each start.
 
@@ -193,10 +200,13 @@ def seed_default_prompts():
     preset survive a restart. Renaming one does not — the original title is
     missing again, and the bundled copy comes back beside it.
 
-    On a fresh install the alphabetically greatest title also becomes the active
-    prompt, which is how a new house version takes over without a constant to
-    maintain. Two things follow from that rule: a preset titled after "NanoBear"
-    would claim the default, and "NanoBear v10.0" would sort *below* v2.1.
+    On a fresh install the alphabetically greatest *standard NanoBear* title
+    also becomes the active prompt, which is how a new house version takes over
+    without a constant to maintain: "NanoBear v2.2" outranks "NanoBear v2.1" on
+    its own. An "Author" variant never wins, however it sorts, and with no
+    standard title in the bundle the default falls back to the alphabetically
+    greatest title overall. One caveat survives from the old rule: "NanoBear
+    v10.0" would sort *below* v2.1.
     """
     if not os.path.isdir(shared.BUNDLED_PROMPTS_DIR):
         return
@@ -210,6 +220,7 @@ def seed_default_prompts():
         # also decides which preset starts out active.
         fresh_install = not existing
         default_id = None
+        nanobear_id = None
 
         for filename in sorted(os.listdir(shared.BUNDLED_PROMPTS_DIR)):
             if not filename.lower().endswith('.json') or filename.startswith('.'):
@@ -239,10 +250,13 @@ def seed_default_prompts():
             # greatest. That is the fresh-install default: "NanoBear v2.2"
             # outranks "NanoBear v2.1" on its own, with nothing to bump here.
             default_id = cursor.lastrowid
+            if STANDARD_NANOBEAR_RE.match(title):
+                nanobear_id = cursor.lastrowid
 
         # Left to itself the picker falls back to whichever prompt sorts
         # *first*, which is a BigBear. An existing install already has a
         # selection, and gaining presets must not move it.
+        default_id = nanobear_id or default_id
         if fresh_install and default_id is not None:
             conn.execute(
                 "INSERT INTO settings (key, value) VALUES ('active_system_prompt', ?) "

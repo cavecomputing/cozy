@@ -46,6 +46,25 @@ def _read_preset(filename):
         return json.load(handle)
 
 
+def _seed_custom_bundle(tmp_path, files):
+    """Seed from a scratch bundle dir; *files* maps filename to JSON text."""
+    bundle = tmp_path / 'default_prompts'
+    bundle.mkdir()
+    for filename, content in files.items():
+        (bundle / filename).write_text(content, encoding='utf-8')
+
+    original_dir = shared.BUNDLED_PROMPTS_DIR
+    shared.BUNDLED_PROMPTS_DIR = str(bundle)
+    try:
+        defaults.seed_default_prompts()
+    finally:
+        shared.BUNDLED_PROMPTS_DIR = original_dir
+
+
+def _preset_file(name, content='x'):
+    return json.dumps({'name': name, 'content': content, 'post_history_content': ''})
+
+
 class TestBundledPresets:
     def test_bundled_dir_ships_presets(self):
         assert os.path.isdir(shared.BUNDLED_PROMPTS_DIR)
@@ -65,11 +84,13 @@ class TestBundledPresets:
         for filename in _bundled_filenames():
             assert _read_preset(filename)['name'] == filename[:-len('.json')]
 
-    def test_the_house_prompt_sorts_last(self):
-        # A fresh install activates the alphabetically greatest title, so the
-        # current NanoBear has to stay at the end of the listing. A new preset
-        # titled after it would quietly become every new user's default.
-        assert _bundled_titles()[-1] == 'NanoBear v2.1'
+    def test_the_bundled_default_is_a_standard_nanobear(self):
+        # A fresh install activates the greatest standard-NanoBear title, so
+        # the bundle has to ship one — and the Author variant must never be
+        # the only NanoBear in it.
+        matches = [t for t in _bundled_titles() if defaults.STANDARD_NANOBEAR_RE.match(t)]
+        assert matches
+        assert 'NanoBear Author v1' not in matches
 
     def test_bigbear_post_history_wraps_the_user_message(self):
         # Without {{user_message}} the template appends as a separate user
@@ -109,9 +130,38 @@ class TestSeeding:
         defaults.seed_default_prompts()
         assert _prompt_names() == _bundled_titles()
 
-    def test_fresh_install_starts_on_the_last_title_alphabetically(self):
+    def test_fresh_install_starts_on_the_greatest_standard_nanobear(self):
         defaults.seed_default_prompts()
-        assert _active_prompt_name() == _bundled_titles()[-1]
+        expected = max(
+            t for t in _bundled_titles()
+            if defaults.STANDARD_NANOBEAR_RE.match(t)
+        )
+        assert _active_prompt_name() == expected
+
+    def test_an_author_variant_never_becomes_the_default(self, tmp_path):
+        # Under the old greatest-title rule the Zulu preset below would win;
+        # the Author variant must not win either, however it sorts.
+        _seed_custom_bundle(tmp_path, {
+            'NanoBear v2.1.json': _preset_file('NanoBear v2.1'),
+            'NanoBear Author v1.json': _preset_file('NanoBear Author v1'),
+            'Zulu v9.json': _preset_file('Zulu v9'),
+        })
+        assert _active_prompt_name() == 'NanoBear v2.1'
+
+    def test_among_several_standard_nanobears_the_greatest_wins(self, tmp_path):
+        _seed_custom_bundle(tmp_path, {
+            'NanoBear v2.0.json': _preset_file('NanoBear v2.0'),
+            'NanoBear v2.1.json': _preset_file('NanoBear v2.1'),
+            'NanoBear Author v1.json': _preset_file('NanoBear Author v1'),
+        })
+        assert _active_prompt_name() == 'NanoBear v2.1'
+
+    def test_with_no_standard_nanobear_the_greatest_title_wins(self, tmp_path):
+        _seed_custom_bundle(tmp_path, {
+            'Alpha v1.json': _preset_file('Alpha v1'),
+            'Zulu v1.json': _preset_file('Zulu v1'),
+        })
+        assert _active_prompt_name() == 'Zulu v1'
 
     def test_a_later_version_takes_over_the_default_on_a_fresh_install(self, tmp_path):
         # The point of the alphabetical rule: shipping NanoBear v2.2 makes it
