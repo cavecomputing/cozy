@@ -149,21 +149,34 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
         btn.type = 'button';
         btn.className = 'toast-action';
         btn.textContent = action.label;
-        btn.addEventListener('click', () => { toast.remove(); action.onClick(); });
+        btn.addEventListener('click', e => {
+            // Keep the click from reaching document-level outside-click
+            // closers (settings flyout, popovers): the action may open one
+            // of the very panels they guard.
+            e.stopPropagation();
+            toast.remove();
+            action.onClick();
+        });
         toast.appendChild(btn);
     }
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, duration);
 }
 
-// Inline "no API configured" notice above the composer. Shown when a send is
-// attempted without a model; cleared on dismiss or once a model is set.
+// Error toast when a send is attempted without a model configured. The
+// action deep-links to the API settings section, like the old inline notice.
 export function showApiNotice() {
-    if (el.apiNotice) el.apiNotice.hidden = false;
+    showToast(
+        'No API configured — connect an endpoint and choose a model to start chatting.',
+        'error',
+        5000,
+        { label: 'Open API Settings', onClick: openApiSettings },
+    );
 }
 
-export function hideApiNotice() {
-    if (el.apiNotice) el.apiNotice.hidden = true;
+function openApiSettings() {
+    if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
+    document.querySelector('.settings-nav-item[data-section="api"]')?.click();
 }
 
 export function scrollToBottom() {
@@ -273,7 +286,6 @@ function updateComposerContextControls(hasChat, hasCharacter) {
 
 export function updateComposerState() {
     if (!el.userInput || !el.sendBtn) return;
-    if (state.apiModel) hideApiNotice();
     const hasChat = !!state.activeCharacter && !!state.activeChat;
     const hasCharacter = !!state.activeCharacter;
     el.inputContainer?.classList.toggle('composer-no-character', !hasCharacter);

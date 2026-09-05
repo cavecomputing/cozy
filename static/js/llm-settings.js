@@ -245,10 +245,6 @@ async function fetchPickerModels(profile, { force = false, filter = '' } = {}) {
     }
 
     button.classList.add('spinning');
-    if (profile === 'main' && el.testResult) {
-        el.testResult.textContent = '';
-        el.testResult.className = 'settings-test-result';
-    }
     try {
         await flushLLMSettingsSave({ strict: true });
         if (force || !picker.loaded) await loadModels(profile);
@@ -322,20 +318,15 @@ export const clearModelListCache = () => clearPickerCache('main');
 export const clearSummaryModelListCache = () => clearPickerCache('summary');
 
 export async function testLLMConnection() {
-    if (!el.testApi || !el.testResult) return;
+    if (!el.testApi) return;
     el.testApi.disabled = true;
-    el.testResult.textContent = 'Testing\u2026';
-    el.testResult.className = 'settings-test-result';
     try {
         await flushLLMSettingsSave({ strict: true });
         const body = await API.testLLM();
         const reply = String(body.reply ?? '');
-        el.testResult.textContent = reply.length > 120 ? `Connected · ${reply.slice(0, 120)}…` : `Connected · ${reply}`;
-        el.testResult.title = reply;
-        el.testResult.className = 'settings-test-result success';
+        showToast(reply.length > 120 ? `Connected · ${reply.slice(0, 120)}…` : `Connected · ${reply}`, 'success');
     } catch (e) {
-        el.testResult.textContent = e.message || 'Failed';
-        el.testResult.className = 'settings-test-result error';
+        showToast(e.message || 'Failed', 'error');
     } finally {
         el.testApi.disabled = false;
     }

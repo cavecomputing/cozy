@@ -10,6 +10,20 @@ SEND_GUARD_SETUP = r"""
     import { queueLLMSettingsSave } from './static/js/llm-settings.js';
     import { handleSend } from './static/js/send.js';
 
+    // Sending without a model fires the "no API configured" error toast, so
+    // the harness needs enough document for showToast to build into.
+    function stubEl() {
+        return {
+            className: '', textContent: '', innerHTML: '', type: '',
+            remove() {}, setAttribute() {}, appendChild() {},
+            addEventListener() {},
+            classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+        };
+    }
+    globalThis.document = {
+        createElement: stubEl,
+        getElementById: stubEl,
+    };
     Object.assign(el, {
         userInput: {
             value: 'hello there', disabled: false, placeholder: '',

@@ -703,7 +703,6 @@ def test_connection_test_and_model_fetch_flush_settings_before_api_calls():
         state.activePresetId = null;
         Object.assign(el, {
             testApi: { disabled: false },
-            testResult: { textContent: '', className: '' },
             refreshModels: {
                 classList: { add() {}, remove() {} },
                 setAttribute() {},
@@ -716,6 +715,8 @@ def test_connection_test_and_model_fetch_flush_settings_before_api_calls():
                 querySelector() { return null; },
             },
         });
+        // testLLMConnection reports through showToast, so the stub document
+        // needs enough surface to build a toast into.
         globalThis.document = {
             createElement() {
                 return {
@@ -723,8 +724,14 @@ def test_connection_test_and_model_fetch_flush_settings_before_api_calls():
                     textContent: '',
                     dataset: {},
                     setAttribute() {},
+                    appendChild() {},
+                    addEventListener() {},
+                    remove() {},
                     classList: { add() {} },
                 };
+            },
+            getElementById() {
+                return { appendChild() {} };
             },
         };
         const order = [];

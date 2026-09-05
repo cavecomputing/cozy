@@ -1,6 +1,6 @@
 import { state, el, llm } from './state.js';
 import {
-    autoResize, showToast, showApiNotice, hideApiNotice, maybeScrollToBottom,
+    autoResize, showToast, showApiNotice, maybeScrollToBottom,
     setSendButtonMode, updateComposerState, beginGeneration, endGeneration,
 } from './utils.js';
 import { appendMessage, renderMarkdown } from './messages.js';
@@ -58,7 +58,6 @@ async function sendOnce(text) {
         showApiNotice();
         return;
     }
-    hideApiNotice();
 
     el.userInput.value = '';
     autoResize(el.userInput);
