@@ -196,6 +196,44 @@ export function loadSamplerSettings(settings) {
     state.activeSamplers = getActiveSamplers(settings);
     renderSamplerPopover();
     applySamplerVisibility();
+    initSamplerSliders();
+}
+
+/**
+ * Pair each sampler number input with a range slider built from its own
+ * min/max/step, so the two can never disagree. Moving the slider writes the
+ * number and re-fires its input handler, so saving flows through the
+ * existing autosave path untouched. Idempotent: safe to re-run after
+ * loadSamplerSettings() rewrites the number values (e.g. preset switch).
+ * The seed stays number-only — its range makes a slider noise.
+ */
+export function initSamplerSliders() {
+    for (const input of document.querySelectorAll('.sampler-card input[type="number"]')) {
+        if (input.id === 'settings-sampler-seed') continue;
+        let slider = input.parentElement?.querySelector(':scope > .sampler-slider') ?? null;
+        if (!slider) {
+            slider = document.createElement('input');
+            slider.type = 'range';
+            slider.className = 'sampler-slider';
+            slider.min = input.min || '0';
+            slider.max = input.max || '100';
+            slider.step = input.step || '1';
+            slider.tabIndex = -1;
+            slider.setAttribute('aria-hidden', 'true');
+            const wrap = document.createElement('span');
+            wrap.className = 'sampler-value-wrap';
+            input.replaceWith(wrap);
+            wrap.append(slider, input);
+            slider.addEventListener('input', () => {
+                input.value = slider.value;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            input.addEventListener('input', () => {
+                if (input.value !== '' && !Number.isNaN(Number(input.value))) slider.value = input.value;
+            });
+        }
+        if (input.value !== '') slider.value = input.value;
+    }
 }
 
 export function updateContextSizeWarning() {

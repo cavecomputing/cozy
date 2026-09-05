@@ -95,6 +95,7 @@ export function initElements() {
         settingsBtn:       document.getElementById('settings-btn'),
         settingsFlyout:    document.getElementById('settings-flyout'),
         settingsCloseBtn:  document.getElementById('settings-close-btn'),
+        settingsSavedTick: document.getElementById('settings-saved-tick'),
         settingsBackBtn:   document.getElementById('settings-back-btn'),
         settingsShell:     document.getElementById('settings-shell'),
         settingsNav:       document.getElementById('settings-nav'),

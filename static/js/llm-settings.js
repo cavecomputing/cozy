@@ -79,6 +79,7 @@ async function drainLLMSettingsQueue() {
     // There is only ever one drain. Besides making the barrier deterministic,
     // this prevents an older failed snapshot from being restored behind a
     // newer same-field snapshot and then overwriting it on retry.
+    let saved = false;
     while (Object.keys(pendingSettings).length > 0) {
         clearTimeout(settingsSaveTimer);
         settingsSaveTimer = null;
@@ -91,16 +92,28 @@ async function drainLLMSettingsQueue() {
             const presetSnapshot = presetId ? collectPresetSettings() : null;
             await API.saveSettings(fields);
             if (presetId) await API.updatePreset(presetId, presetSnapshot);
+            saved = true;
         } catch (error) {
             // Newer edits accumulated while this snapshot was saving. They win
             // field-by-field when the failed snapshot is put back for retry.
             pendingSettings = { ...fields, ...pendingSettings };
             console.warn('Failed to autosave LLM settings:', error);
             showToast('Failed to save settings: ' + error.message);
-            return { ok: false, error };
+            return { ok: false, error, saved };
         }
     }
-    return { ok: true, error: null };
+    return { ok: true, error: null, saved };
+}
+
+let savedTickTimer = null;
+
+/** Flash the "Saved" tick in the settings header after an autosave. */
+function flashSettingsSavedTick() {
+    if (!el.settingsSavedTick) return;
+    el.settingsSavedTick.textContent = 'Saved';
+    el.settingsSavedTick.classList.add('visible');
+    clearTimeout(savedTickTimer);
+    savedTickTimer = setTimeout(() => el.settingsSavedTick?.classList.remove('visible'), 1600);
 }
 
 /** Persist queued edits immediately, preserving their active-preset target. */
@@ -125,6 +138,7 @@ export async function flushLLMSettingsSave({ strict = false } = {}) {
     if (!result.ok && strict) {
         throw new Error(`Settings could not be saved: ${result.error.message}`);
     }
+    if (result.ok && result.saved) flashSettingsSavedTick();
     return result;
 }
 
@@ -315,7 +329,9 @@ export async function testLLMConnection() {
     try {
         await flushLLMSettingsSave({ strict: true });
         const body = await API.testLLM();
-        el.testResult.textContent = 'Connected! Reply: ' + body.reply;
+        const reply = String(body.reply ?? '');
+        el.testResult.textContent = reply.length > 120 ? `Connected · ${reply.slice(0, 120)}…` : `Connected · ${reply}`;
+        el.testResult.title = reply;
         el.testResult.className = 'settings-test-result success';
     } catch (e) {
         el.testResult.textContent = e.message || 'Failed';

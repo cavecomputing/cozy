@@ -128,6 +128,7 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                     </button>
                     <h2 class="section-label panel-title panel-title--left">Settings</h2>
+                    <span id="settings-saved-tick" class="settings-saved-tick" role="status" aria-live="polite"></span>
                     <button id="settings-close-btn" class="icon-btn" aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
@@ -201,9 +202,16 @@
                         </div>
                     </div>
                     <div class="settings-section" data-section="api" hidden>
-                        <header class="settings-page-header">
-                            <h3>API</h3>
-                            <p>The API endpoint serving the AI model as well as related context and sampler settings.</p>
+                        <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
+                            <div class="settings-page-title">
+                                <h3>API</h3>
+                                <p>The API endpoint serving the AI model as well as related context and sampler settings.</p>
+                            </div>
+                            <div class="prompt-header-actions">
+                                <button id="settings-sysprompt-preview" class="icon-btn" title="Preview assembled request" aria-label="Preview request">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
                         </header>
                         <div class="settings-section-body settings-section-stack">
                             <section class="settings-card">
@@ -219,22 +227,22 @@
                             </section>
                             <section class="settings-card">
                                 <header class="settings-card-header">
-                                    <h4>Connection</h4>
-                                    <p>Endpoint, credentials, and model. Credentials are stored locally and masked in API responses.</p>
+                                    <h4>Connection <span class="help-tip" tabindex="0" aria-label="Connection help" data-tip="Credentials are stored locally and masked in API responses.">?</span></h4>
+                                    <p>Endpoint, model, and credentials.</p>
                                 </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-api-endpoint">Endpoint</label>
                                     <span class="settings-row-hint">OpenAI-Compatible Endpoint</span>
-                                    <input type="text" id="settings-api-endpoint" class="form-input" placeholder="https://api.openai.com/v1">
+                                    <input type="text" id="settings-api-endpoint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-api-key">API Key</label>
-                                    <input type="password" id="settings-api-key" class="form-input" placeholder="sk-...">
+                                    <input type="password" id="settings-api-key" class="form-input mono-input" placeholder="sk-...">
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-model">Model</label>
                                     <div class="settings-model-row model-picker-row">
-                                        <input type="text" id="settings-model" class="form-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="model-picker-menu" aria-expanded="false">
+                                        <input type="text" id="settings-model" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="model-picker-menu" aria-expanded="false">
                                         <button id="settings-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </button>
@@ -246,7 +254,7 @@
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                         Test Connection
                                     </button>
-                                    <span id="settings-test-result" class="settings-test-result"></span>
+                                    <span id="settings-test-result" class="settings-test-result" role="status"></span>
                                 </div>
                             </section>
                             <section class="settings-card">
@@ -272,21 +280,21 @@
                                     <p>Custom JSON fields merged directly into the <code>/chat/completions</code> request body. <span class="help-tip" tabindex="0" aria-label="Extra parameters help" data-tip="These can override generated values or add backend-specific sampler parameters.&lt;br&gt;&lt;br&gt;&lt;b&gt;Example:&lt;/b&gt;&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;top_a&amp;quot;: 0.5,&lt;br&gt;&amp;nbsp;&amp;quot;min_p&amp;quot;: 0.05,&lt;br&gt;&amp;nbsp;&amp;quot;n&amp;quot;: 1,&lt;br&gt;&amp;nbsp;&amp;quot;stop&amp;quot;: [&amp;quot;User:&amp;quot;]&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Values can be nested objects. For llama.cpp / llama-server, template arguments such as disabling Qwen3 reasoning must be nested under &lt;code&gt;chat_template_kwargs&lt;/code&gt;:&lt;br&gt;&lt;code&gt;{&lt;br&gt;&amp;nbsp;&amp;quot;chat_template_kwargs&amp;quot;: {&amp;quot;enable_thinking&amp;quot;: false}&lt;br&gt;}&lt;/code&gt;&lt;br&gt;&lt;br&gt;Keys and string values need double quotes. Invalid JSON is silently ignored.">?</span></p>
                                 </header>
                                 <div class="settings-row">
-                                    <textarea id="settings-extra-params" class="form-input" rows="4" spellcheck="false" aria-label="Extra request parameters JSON" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
+                                    <textarea id="settings-extra-params" class="form-input mono-input" rows="4" spellcheck="false" aria-label="Extra request parameters JSON" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
                                 </div>
                             </section>
                         </div>
                     </div>
                     <div class="settings-section settings-section--samplers" data-section="api" hidden>
-                        <header class="settings-page-header">
+                        <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
                             <div class="settings-page-title">
-                                <div class="sampler-title-row">
-                                    <h3>Samplers</h3>
-                                    <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                    </button>
-                                </div>
+                                <h3>Samplers</h3>
                                 <p>Tune generation behavior. Keep common controls visible and enable only the advanced samplers you use.</p>
+                            </div>
+                            <div class="prompt-header-actions">
+                                <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                </button>
                             </div>
                         </header>
                         <div class="settings-section-body sampler-section-body">
@@ -446,9 +454,6 @@
                                 <p>The template that instructs an AI model how to behave.</p>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="settings-sysprompt-preview" class="icon-btn" title="Preview rendered prompt" aria-label="Preview prompt">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                </button>
                                 <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help & default prompts" aria-label="Template syntax help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
@@ -479,7 +484,7 @@
                                 </div>
                                 <div class="prompt-vars-panel">
                                     <div class="prompt-vars-title">Variables <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></div>
-                                    <p class="prompt-vars-lead">Each tag below is swapped for its value when a message is sent.</p>
+                                    <p class="prompt-vars-lead">Each tag below is swapped for its value when a message is sent. Click a tag to copy it.</p>
                                     <dl class="settings-help-vars">
                                         <dt><code>&#123;&#123;char&#125;&#125;</code> / <code>&#123;&#123;user&#125;&#125;</code></dt><dd>Character name / active persona name.</dd>
                                         <dt><code>&#123;&#123;description&#125;&#125;</code></dt><dd>Character description.</dd>
@@ -502,7 +507,7 @@
                                         <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options at random each time the prompt is built.</dd>
                                         <dt><code>&lt;tag&gt;…&lt;/tag&gt;</code></dt><dd>Tags of your own, for marking a part of the prompt off for the model. If everything inside a pair resolves to nothing, the tags are dropped with it — no empty <code>&lt;memory&gt;&lt;/memory&gt;</code> is sent. If only some of it resolves away, the tag closes up the blank lines left behind and sits on the content that remains. Nested tags clear from the inside out, and any tag still holding text stays. Nothing to switch on.</dd>
                                     </dl>
-                                    <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon above for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
+                                    <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon on the API page for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
                                 </div>
                             </div>
                             <div class="prompt-section-right settings-card">
@@ -652,22 +657,22 @@
                             <section class="settings-card">
                                 <header class="settings-card-header">
                                     <h4>Summarizer model</h4>
-                                    <p>A separate OpenAI-compatible endpoint for summarizing — usually a cheaper/faster model than your main chat model. Leave any field blank to reuse the main API connection.</p>
+                                    <p>Optional separate endpoint for summaries — usually cheaper or faster. Blank fields reuse the main connection.</p>
                                 </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-summary-endpoint">Endpoint</label>
                                     <span class="settings-row-hint">Blank = use main endpoint</span>
-                                    <input type="text" id="settings-summary-endpoint" class="form-input" placeholder="https://api.openai.com/v1">
+                                    <input type="text" id="settings-summary-endpoint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-summary-key">API Key</label>
-                                    <input type="password" id="settings-summary-key" class="form-input" placeholder="sk-...">
+                                    <input type="password" id="settings-summary-key" class="form-input mono-input" placeholder="sk-...">
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-summary-model">Model</label>
                                     <span class="settings-row-hint">Blank = use main model</span>
                                     <div class="settings-model-row model-picker-row">
-                                        <input type="text" id="settings-summary-model" class="form-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="summary-model-picker-menu" aria-expanded="false">
+                                        <input type="text" id="settings-summary-model" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="summary-model-picker-menu" aria-expanded="false">
                                         <button id="settings-summary-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </button>
@@ -1430,7 +1435,7 @@ Flags    g</pre>
     <div id="prompt-preview-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
-                <h2 id="prompt-preview-title" class="section-label panel-title panel-title--left">Prompt preview</h2>
+                <h2 id="prompt-preview-title" class="section-label panel-title panel-title--left">Request preview</h2>
                 <div class="modal-header-actions">
                     <button id="prompt-preview-close" class="icon-btn" aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>

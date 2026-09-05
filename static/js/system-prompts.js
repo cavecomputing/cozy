@@ -248,6 +248,25 @@ export function toggleRenderedPrompts() {
     else closeRenderedPrompts();
 }
 
+/**
+ * Wire the Prompt Variables panel: click-to-copy on each variable tag.
+ * Static markup, so one binding at startup is enough.
+ */
+export function initPromptVarsPanel() {
+    const panel = document.querySelector('.prompt-vars-panel');
+    if (!panel) return;
+    panel.addEventListener('click', async e => {
+        const code = e.target.closest('.settings-help-vars dt code');
+        if (!code) return;
+        try {
+            await navigator.clipboard.writeText(code.textContent.trim());
+            showToast(`Copied ${code.textContent.trim()}`);
+        } catch {
+            showToast('Copy failed — select the tag manually');
+        }
+    });
+}
+
 export function switchPromptBuilderMode(mode) {
     const selected = mode === 'post-history' ? 'post-history' : 'system';
     document.querySelectorAll('[data-prompt-builder-tab]').forEach(btn => {

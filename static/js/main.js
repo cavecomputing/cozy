@@ -27,7 +27,7 @@ import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
     updateSystemPromptContent, syncActivePromptFromEditors, populateDefaultTemplateHelp,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
-    exportSystemPrompt, switchPromptBuilderMode,
+    exportSystemPrompt, switchPromptBuilderMode, initPromptVarsPanel,
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
@@ -1067,6 +1067,11 @@ async function init() {
     });
     initTooltips();
     initContextMeter();
+    // Lift the pinned settings header off the cards once the pane scrolls.
+    el.settingsPane?.addEventListener('scroll', () => {
+        el.settingsPane.classList.toggle('has-scrolled', el.settingsPane.scrollTop > 0);
+    }, { passive: true });
+    initPromptVarsPanel();
     loadPrefs();
     applyTheme(state.theme);
     bindResponsiveShellHandlers();

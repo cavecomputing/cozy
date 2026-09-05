@@ -165,7 +165,7 @@ Select the character in the sidebar to start chatting.
   message.
 - **System prompt** — **Settings → Prompt** holds the template that assembles
   character, persona, lorebook and chat context. Several presets ship with Cozy;
-  the eye icon previews exactly what will be sent.
+  the eye icon on **Settings → API** previews exactly what will be sent.
 - **Theme** — **Settings → General → Appearance** switches between the built-in
   themes. The choice is per-browser. You can also drop your own CSS file into
   `data/themes/`; see [User themes](themes.md).
