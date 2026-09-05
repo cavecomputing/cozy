@@ -562,14 +562,12 @@
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-lorebook-scan-override">
                                         Scan depth override
-                                        <span class="help-tip" tabindex="0" aria-label="Scan depth override help" data-tip="Replaces every book's scan depth for this install. Scan depth is how many recent messages are checked for keyword hits. &lt;code&gt;0&lt;/code&gt; = use each book's own value.">?</span>
                                     </label>
                                     <input type="number" id="settings-lorebook-scan-override" class="form-input" step="1" min="0" max="500" value="0">
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-lorebook-always-inject-all">
                                         Always inject all entries
-                                        <span class="help-tip" tabindex="0" aria-label="Always inject all entries help" data-tip="Skip keyword scanning and inject every enabled entry from the active lorebook on every turn. Useful for dense, story-critical lore where you want everything always available. Still respects insertion order and max_entries.">?</span>
                                     </label>
                                     <input type="checkbox" id="settings-lorebook-always-inject-all">
                                 </div>
@@ -579,16 +577,6 @@
                                 <div class="lorebook-workspace-grid">
                                     <header class="lorebook-col-header">
                                         <h4 class="lorebook-card-title">Lorebooks</h4>
-                                        <div class="lorebook-side-actions">
-                                            <button id="settings-lorebook-import" class="btn btn-secondary btn-sm" title="Import lorebook from JSON" aria-label="Import lorebook">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                                Import
-                                            </button>
-                                            <button id="settings-lorebook-new" class="btn btn-secondary btn-sm" title="New lorebook" aria-label="New lorebook">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                                New
-                                            </button>
-                                        </div>
                                     </header>
                                     <header class="lorebook-col-header">
                                         <h4 class="lorebook-card-title">Selected lorebook</h4>
@@ -601,49 +589,43 @@
                                         </button>
                                     </header>
 
-                                    <ul id="settings-lorebook-list" class="lorebook-list"></ul>
-                                    <input type="file" id="settings-lorebook-import-file" accept="application/json,.json" hidden>
+                                    <div class="lorebook-list-pane">
+                                        <ul id="settings-lorebook-list" class="lorebook-list"></ul>
+                                        <input type="file" id="settings-lorebook-import-file" accept="application/json,.json" hidden>
+                                        <div class="lorebook-list-footer">
+                                            <button id="settings-lorebook-new" class="btn btn-secondary btn-sm lorebook-list-new" title="New lorebook" aria-label="New lorebook">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                                New lorebook
+                                            </button>
+                                            <button id="settings-lorebook-import" class="icon-btn" title="Import lorebook from JSON" aria-label="Import lorebook">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                            </button>
+                                        </div>
+                                    </div>
 
                                     <div id="settings-lorebook-empty-meta" class="lorebook-empty-panel">
                                         <strong>Select a lorebook</strong>
-                                        <span>Choose a book from the list to edit its name, destination, and scan settings.</span>
+                                        <span>Choose a book from the list to edit its name, save location, and scan settings.</span>
                                     </div>
                                     <div id="settings-lorebook-meta" class="lorebook-meta" hidden>
-                                        <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-lorebook-name">Name</label>
-                                            <input type="text" id="settings-lorebook-name" class="form-input" placeholder="Lorebook name…">
+                                        <div class="lorebook-name-row">
+                                            <input type="text" id="settings-lorebook-name" class="form-input" placeholder="Lorebook name…" aria-label="Lorebook name">
+                                            <button id="settings-lorebook-save" class="btn btn-primary btn-sm">Save</button>
                                         </div>
-                                        <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-lorebook-description">Description</label>
-                                            <textarea id="settings-lorebook-description" class="form-textarea" rows="2" placeholder="Optional notes — not sent to the model"></textarea>
-                                        </div>
+                                        <textarea id="settings-lorebook-description" class="form-textarea lorebook-description" rows="2" placeholder="Description (optional) — not sent to the model" aria-label="Lorebook description"></textarea>
                                         <div class="lorebook-meta-row">
                                             <label class="lorebook-entry-field lorebook-entry-field-narrow">
-                                                <span>
-                                                    Scan depth
-                                                    <span class="help-tip" tabindex="0" aria-label="Scan depth help" data-tip="How many of the most recent messages this book scans for keyword matches. Higher = more chances to fire, more tokens scanned.">?</span>
-                                                </span>
+                                                <span>Scan depth</span>
                                                 <input type="number" id="settings-lorebook-scan-depth" class="form-input" step="1" min="1" max="500" value="20">
                                             </label>
                                             <label class="lorebook-entry-field lorebook-entry-field-narrow">
-                                                <span>
-                                                    Max entries
-                                                    <span class="help-tip" tabindex="0" aria-label="Max entries help" data-tip="Caps how many matched entries from this book get added to the prompt at once.">?</span>
-                                                </span>
+                                                <span>Max entries</span>
                                                 <input type="number" id="settings-lorebook-max-entries" class="form-input" step="1" min="1" max="500" value="20">
                                             </label>
-                                        </div>
-                                        <div class="lorebook-footer">
-                                            <div class="settings-row">
-                                                <label class="settings-row-label" for="settings-lorebook-destination">
-                                                    Save destination
-                                                    <span class="help-tip" tabindex="0" aria-label="Save destination help" data-tip="Switching destination on save moves the book between standalone storage and a character card.">?</span>
-                                                </label>
+                                            <label class="lorebook-entry-field lorebook-entry-field-narrow lorebook-entry-field--wide">
+                                                <span>Saved in</span>
                                                 <select id="settings-lorebook-destination" class="form-input settings-select"></select>
-                                            </div>
-                                            <div class="lorebook-footer-actions">
-                                                <button id="settings-lorebook-save" class="btn btn-primary btn-sm">Save</button>
-                                            </div>
+                                            </label>
                                         </div>
                                     </div>
 
@@ -1489,23 +1471,47 @@ Flags    g</pre>
             </div>
             <div class="panel-divider"></div>
             <div class="modal-body sampler-help-body">
-                <p class="prompt-help-callout"><strong>A lorebook is background the model reads only when it is relevant.</strong> Each entry has trigger words and a block of text. When a trigger word appears in the recent chat, the text is added to the next request. Each chat uses one lorebook at a time.</p>
+                <p class="prompt-help-callout"><strong>A lorebook is a list of facts about your story world.</strong> The model reads a fact only when that fact matches what you are talking about. Each chat uses one lorebook at a time.</p>
 
                 <div class="sampler-help-section">
-                    <h3>How an entry fires</h3>
+                    <h3>Parts of an entry</h3>
+                    <p>An entry has 3 parts: keywords, text, and 4 checkboxes. Here is what each part does.</p>
                     <dl class="sampler-help-list">
-                        <div class="sampler-help-row"><dt>Keywords</dt><dd>The entry fires when one of its keywords appears as a whole word in the recent messages. Keyword <code>tavern</code> fires on "the old tavern" but not on "taverns". Only entries with <code>Enabled</code> checked can fire.</dd></div>
-                        <div class="sampler-help-row"><dt>Always include</dt><dd>Entries with this checked are sent on every message. They ignore keywords completely.</dd></div>
-                        <div class="sampler-help-row"><dt>Require secondary keys</dt><dd>When this is on, the entry fires only when a primary keyword <em>and</em> one of the secondary keywords both appear in the recent messages.</dd></div>
-                        <div class="sampler-help-row"><dt>Case-sensitive</dt><dd>Off means upper and lower case are treated the same. On means the keyword must match exactly, including capitals.</dd></div>
-                        <div class="sampler-help-row"><dt>Insertion order</dt><dd>Entries that fire at the same time are sorted by this number, lowest first. The default is 100. Equal numbers keep their list order.</dd></div>
-                        <div class="sampler-help-row"><dt>Limits</dt><dd>Each book checks the last <code>scan depth</code> messages (default 20) and sends at most <code>max entries</code> matches per message (default 20). Identical texts are sent once, even if two entries contain them.</dd></div>
+                        <div class="sampler-help-row"><dt>Keywords</dt><dd>The words that select this entry. Type words with commas between them. Example: <code>tavern, barkeep, ale</code>. The entry is used when one of these words appears as a whole word in the checked messages. The keyword <code>tavern</code> matches "the old tavern". It does not match "taverns". An entry with an empty keyword box is never selected by keywords.</dd></div>
+                        <div class="sampler-help-row"><dt>Text</dt><dd>The fact the model reads. This is the only box on an entry that is sent to the model. Every other box is an instruction for Cozy, or a note for you.</dd></div>
+                        <div class="sampler-help-row"><dt>Enabled</dt><dd>Checked: the entry can be used. Unchecked: the entry is skipped completely. The entry is not deleted. Use this to switch an entry off for a while.</dd></div>
+                        <div class="sampler-help-row"><dt>Always include</dt><dd>Checked: this entry is sent with every message. The keywords are ignored.</dd></div>
+                        <div class="sampler-help-row"><dt>Case-sensitive</dt><dd>Unchecked: <code>TAVERN</code>, <code>Tavern</code>, and <code>tavern</code> all match. This is the normal setting. Checked: only the exact capital letters match.</dd></div>
+                        <div class="sampler-help-row"><dt>Require secondary keys</dt><dd>Checked: the entry is used only when one keyword <em>and</em> one secondary keyword both appear in the checked messages. Unchecked: the secondary keywords box is ignored. If this is checked but the secondary keywords box is empty, the entry works like normal.</dd></div>
+                        <div class="sampler-help-row"><dt>Secondary keys</dt><dd>A second list of words. It does nothing unless <strong>Require secondary keys</strong> is checked.</dd></div>
+                        <div class="sampler-help-row"><dt>Insertion order</dt><dd>A number. The default is 100. When more than one entry is used at the same time, the entry with the lowest number is placed first. Entries with equal numbers keep their top-to-bottom list order.</dd></div>
+                        <div class="sampler-help-row"><dt>Comment</dt><dd>A note to yourself. It is never sent to the model.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Book settings</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Name</dt><dd>The title shown in the list. It is never sent to the model.</dd></div>
+                        <div class="sampler-help-row"><dt>Description</dt><dd>Notes about the book. It is never sent to the model.</dd></div>
+                        <div class="sampler-help-row"><dt>Scan depth</dt><dd>How many past messages Cozy checks for keywords. The default is 20. Only these last messages can select entries.</dd></div>
+                        <div class="sampler-help-row"><dt>Max entries</dt><dd>The largest number of entries sent with one message. The default is 20. If more entries are selected, only the first ones by insertion order are sent. Two entries with identical text are sent once, not twice.</dd></div>
+                        <div class="sampler-help-row"><dt>Saved in</dt><dd>Where the book is stored. Changing it and pressing <strong>Save</strong> moves the book there. See <strong>Where books are saved</strong> below.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Global overrides</h3>
+                    <p>These two settings replace the book settings above. They apply to every book on this install.</p>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Scan depth override</dt><dd><code>0</code> means no override. Each book uses its own scan depth. Any other number replaces every book's scan depth with that number.</dd></div>
+                        <div class="sampler-help-row"><dt>Always inject all entries</dt><dd>Checked: keyword checking is skipped. Every enabled entry is sent with every message. Insertion order and max entries still apply.</dd></div>
                     </dl>
                 </div>
 
                 <div class="sampler-help-section">
                     <h3>Where the text goes</h3>
-                    <p>The matched entries are joined with <code>---</code> lines and placed where <code>&#123;&#123;lorebook&#125;&#125;</code> sits in the prompt template. If the template does not contain it, nothing is sent, and the memory flyout shows a &#8857; marker next to Active Lorebook.</p>
+                    <p>The used entries are joined with <code>---</code> lines and placed where <code>&#123;&#123;lorebook&#125;&#125;</code> sits in the prompt template. If the template does not contain it, nothing is sent, and the memory flyout shows a &#8857; marker next to Active Lorebook.</p>
                 </div>
 
                 <div class="sampler-help-section">
@@ -1517,14 +1523,8 @@ Flags    g</pre>
                     <h3>Where books are saved</h3>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Standalone</dt><dd>Saved in Cozy's database file inside your data directory. These books exist on their own and any chat can use them. Deleting one removes it from every chat that used it.</dd></div>
-                        <div class="sampler-help-row"><dt>Embedded</dt><dd>Saved inside a character's PNG card file, in its <code>character_book</code> data. The book travels with the card when you import or export it. Editing a character's book here and pressing <strong>Save</strong> writes the change back into that PNG file.</dd></div>
-                        <div class="sampler-help-row"><dt>Destination</dt><dd>The <strong>Destination</strong> dropdown next to <strong>Save</strong> chooses where the book lives. Changing it and pressing <strong>Save</strong> moves the book there — for example from the database into a character card, or back out again.</dd></div>
+                        <div class="sampler-help-row"><dt>Embedded</dt><dd>Saved inside a character's PNG card file. The book travels with the card when you import or export it. Editing a character's book here and pressing <strong>Save</strong> writes the change back into that PNG file.</dd></div>
                     </dl>
-                    <ul class="prompt-help-tips">
-                        <li><strong>Comment</strong> on an entry is a note to yourself. It is never sent to the model.</li>
-                        <li><strong>Description</strong> on a book works the same way. Only entry text reaches the model.</li>
-                        <li><strong>Global overrides</strong> above replace every book's scan depth for this install, or skip keyword checking entirely with <strong>Always inject all entries</strong>.</li>
-                    </ul>
                 </div>
             </div>
         </div>

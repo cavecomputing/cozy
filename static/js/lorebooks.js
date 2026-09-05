@@ -17,22 +17,6 @@ const empty = () => ({
     recursive_scanning: false, extensions: {}, entries: [],
 });
 
-const ENTRY_TOOLTIPS = {
-    keys: "Comma-separated trigger words. The entry fires when one of these appears in the recent chat (within the book's scan depth).",
-    enabled: "Uncheck to disable this entry without deleting it.",
-    constant: "Inject this entry every turn, regardless of keywords.",
-    case_sensitive: "If on, key matching respects upper/lower case.",
-    selective: "Only fire when a primary AND a secondary key are both present in the recent chat.",
-    secondary_keys: "Optional second list. Used when 'Require secondary keys' is on.",
-    insertion_order: "When multiple entries match, they're inserted in ascending order. Lower numbers come earlier in the prompt.",
-    comment: "Notes for yourself — never sent to the model.",
-};
-
-function tip(label, text) {
-    const safe = text.replace(/"/g, '&quot;');
-    return `<span class="help-tip" tabindex="0" aria-label="${label} help" data-tip="${safe}">?</span>`;
-}
-
 // ── Loading ───────────────────────────────────────────────────────────────
 
 export async function loadLorebooks() {
@@ -190,7 +174,6 @@ function buildEntryRow(entry, idx, origIndex = -1) {
             <div class="lorebook-entry-keys-wrap">
                 <input type="text" class="form-input lorebook-entry-keys" data-field="keys"
                     placeholder="key1, key2 (comma-separated triggers)">
-                ${tip('Keys', ENTRY_TOOLTIPS.keys)}
             </div>
             <button type="button" class="icon-btn lorebook-entry-up" title="Move up" aria-label="Move up">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
@@ -203,23 +186,23 @@ function buildEntryRow(entry, idx, origIndex = -1) {
         <textarea class="form-textarea lorebook-entry-content" data-field="content"
             rows="3" placeholder="The lore text injected when this entry triggers…"></textarea>
         <div class="lorebook-entry-meta">
-            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="enabled"> Enabled ${tip('Enabled', ENTRY_TOOLTIPS.enabled)}</label>
-            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="constant"> Always include (ignore keys) ${tip('Always include', ENTRY_TOOLTIPS.constant)}</label>
-            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="case_sensitive"> Case-sensitive ${tip('Case-sensitive', ENTRY_TOOLTIPS.case_sensitive)}</label>
-            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="selective"> Require secondary keys ${tip('Require secondary keys', ENTRY_TOOLTIPS.selective)}</label>
+            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="enabled"> Enabled</label>
+            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="constant"> Always include</label>
+            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="case_sensitive"> Case-sensitive</label>
+            <label class="lorebook-entry-toggle"><input type="checkbox" data-field="selective"> Require secondary keys</label>
         </div>
         <div class="lorebook-entry-row">
             <label class="lorebook-entry-field">
-                <span>Secondary keys ${tip('Secondary keys', ENTRY_TOOLTIPS.secondary_keys)}</span>
+                <span>Secondary keys</span>
                 <input type="text" class="form-input" data-field="secondary_keys" placeholder="optional, comma-separated">
             </label>
             <label class="lorebook-entry-field lorebook-entry-field-narrow">
-                <span>Insertion order ${tip('Insertion order', ENTRY_TOOLTIPS.insertion_order)}</span>
+                <span>Insertion order</span>
                 <input type="number" class="form-input" data-field="insertion_order" step="1" min="0" max="9999" value="100">
             </label>
         </div>
         <label class="lorebook-entry-field">
-            <span>Comment (optional) ${tip('Comment', ENTRY_TOOLTIPS.comment)}</span>
+            <span>Comment (optional)</span>
             <input type="text" class="form-input" data-field="comment" placeholder="Notes about this entry — not sent to the model">
         </label>
     `;
