@@ -2082,12 +2082,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
 }
 
-/* Second group on the API page — clear zone break before Samplers */
-.settings-section--samplers {
-    margin-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
-}
-
 .settings-page-header--with-action {
     display: flex;
     align-items: flex-start;
@@ -2127,18 +2121,143 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
    setting drift hundreds of pixels apart. Prompt and Lorebooks are two-column
    layouts that want the whole pane, so they are left out by the :has() test —
    the API page is in because its samplers sit below a stack.
-   Padding rather than max-width, so the sticky header keeps its full-bleed
-   rule while its text lines up with the cards below. */
-.settings-section:has(.settings-section-stack) > .settings-page-header {
-    padding-inline: max(1rem, (100% - 46rem) / 2);
+   Regex is excluded by hand: it has no label/control rows to pull apart, so
+   the cap bought it nothing, and its filter rows are two-column content —
+   Find beside Replace, then a row of flags — that the narrower column cramped.
+   General is excluded too: it holds one short card, and a full-width card
+   with its air inside it reads better than a capped card beside a void. API
+   is excluded as well: its combined preset card is two-zone content whose
+   connection half wants the width, while the context half carries its own
+   measure. The samplers group below it never had the stacked-form class, so
+   it was never capped either way.
+   Only the right edge moves. Capping both sides would centre these pages while
+   the uncapped ones stay left, so every heading would jump sideways as you
+   moved between tabs. */
+.settings-section:has(.settings-section-stack):not([data-section="regex"]):not([data-section="general"]):not([data-section="api"]) > .settings-section-body {
+    padding-right: max(0.75rem, 100% - 46.75rem);
 }
-.settings-section:has(.settings-section-stack) > .settings-section-body {
-    padding-inline: max(0.75rem, (100% - 46rem) / 2);
+
+/* The header box is never capped, on any page. Its buttons are pinned to the
+   pane's right edge by the flex row, so the help icon lands in the same place
+   on every tab whether or not that tab's cards are capped — capping the box
+   dragged the icon inward by 216px on the pages that were. The text inside
+   takes the measure instead, which is all the subtitle prose needed. */
+.settings-page-title,
+.settings-page-header > h3,
+.settings-page-header > p {
+    max-width: 46rem;
 }
 /* The one stacked card on a page that is otherwise two-column, so it misses
    the rule above and would stretch its two rows across the whole pane. */
 #lorebook-overrides-card {
     max-width: 46rem;
+}
+
+/* API preset card: picker, connection, and context/generation in one box, so
+   the preset reads as a single unit. Two zones side by side on a wide pane —
+   connection takes the width its URLs want, context keeps a form measure so
+   its inline number rows never drift — folding to a stack via flex-wrap. */
+/* Card header carries the picker: title left, preset controls right, wrapping
+   to a stack on a narrow pane. */
+.preset-card-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+.preset-card-title {
+    flex: 999 1 16rem;
+    min-width: 0;
+}
+.preset-card-header .preset-select-row {
+    flex: 1 1 20rem;
+    max-width: 30rem;
+    min-width: 0;
+}
+.preset-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    align-items: stretch;
+    margin-top: 0.35rem;
+}
+/* Each zone is its own bordered panel, so the two halves read as sections
+   whether they sit side by side or wrap to a stack. */
+.preset-connection,
+.preset-context {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.6rem;
+}
+.preset-connection {
+    flex: 999 1 26rem;
+    min-width: 0;
+}
+.preset-context {
+    flex: 1 1 15rem;
+    max-width: 26rem;
+    min-width: 0;
+}
+/* Ruled zone headers: each panel gets a labeled rule above its rows. */
+.preset-subhead {
+    margin: 0 0 0.45rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+/* The Active-samplers gear is taller than the small-caps text — collapse its
+   share of the row height (click target unchanged) so the Core header matches
+   the other zone headers. The toolbar also nudges right, past most of the
+   panel padding, so the gear sits as far from the right edge as it does from
+   the top edge. */
+.preset-subhead .sampler-toolbar {
+    margin-right: -0.75rem;
+}
+/* The Active-samplers popover lives inside the subhead header — keep the
+   small-caps label styling (bold, uppercase, spaced, secondary) from leaking
+   into it. Row and footer sizes below still apply on top of this reset. */
+.preset-subhead .sampler-popover {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-color);
+    text-align: left;
+}
+.preset-subhead .sampler-toolbar .icon-btn {
+    margin-top: -0.35rem;
+    margin-bottom: -0.35rem;
+}
+/* Connection rows sit label-left / field-right with no dividers: the label
+   holds a fixed column and the field takes the rest, so the two ends never
+   drift apart no matter how wide the panel gets. */
+.preset-connection .settings-row {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.75rem;
+    padding: 0.4rem 0;
+}
+.preset-connection .settings-row + .settings-row {
+    border-top: 0;
+}
+.preset-connection .settings-row-label {
+    flex: 0 0 6.5rem;
+}
+/* .form-input is width:100% by default, which would force each field onto its
+   own line as a flex item — grow instead, inside the row beside its label. */
+.preset-connection .settings-row > .form-input,
+.preset-connection .settings-row > .settings-model-row {
+    flex: 1 1 10rem;
+    width: auto;
+    min-width: 0;
+}
+.preset-context .settings-row {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
 }
 
 .settings-card {
@@ -3438,13 +3557,17 @@ input[type="checkbox"]:disabled {
     opacity: 1;
 }
 
-.sampler-section-body {
-    padding-top: 0.65rem;
-}
-
-/* Full width, matching the API cards in the section above. */
+/* Full width inside the preset card's sampler zone. */
 .sampler-card {
     width: 100%;
+}
+/* Sampler zone below the connection/context panels: the same bordered panel,
+   so all three zones read alike. */
+.preset-samplers {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.6rem;
+    margin-top: 0.75rem;
 }
 
 
@@ -3460,9 +3583,6 @@ input[type="checkbox"]:disabled {
        the full width of the row dividers. */
     margin-inline: -0.25rem;
     padding-inline: 0.6rem;
-}
-.sampler-subsection-title {
-    min-width: 0;
 }
 /* Break between the core and advanced groups within the one card. No rule
    here: it sat directly under the last core sampler and read as that row's
@@ -5607,11 +5727,15 @@ input[type="checkbox"]:disabled {
     font-weight: 500;
 }
 
+/* The column gap has to beat .regex-filter-flag's own gap by enough that each
+   switch reads as belonging to the label on its right. At 0.7rem against that
+   0.3rem it was too close to call, and the switches — wider than the 16px
+   boxes this row was spaced for — ran the four flags together. */
 .regex-filter-meta {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.25rem 0.7rem;
+    gap: 0.35rem 1.25rem;
 }
 
 .regex-filter-flags-label {

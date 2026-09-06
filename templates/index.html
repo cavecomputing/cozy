@@ -211,67 +211,207 @@
                                 <button id="settings-sysprompt-preview" class="icon-btn" title="Preview assembled request" aria-label="Preview request">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 </button>
-                                <button id="settings-api-help" class="icon-btn" data-help="api-help-modal" title="API connection help" aria-label="API connection help">
+                                <button id="settings-api-help" class="icon-btn" data-help="api-help-modal" title="API and sampler help" aria-label="API and sampler help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
                         </header>
                         <div class="settings-section-body settings-section-stack">
                             <section class="settings-card">
-                                <div class="preset-select-row">
-                                    <select id="settings-api-preset" class="form-input settings-select" aria-label="API preset"></select>
-                                    <button id="settings-preset-new" class="icon-btn" title="New preset" aria-label="New preset">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                    </button>
-                                    <button id="settings-preset-delete" class="icon-btn" title="Delete selected preset" aria-label="Delete preset">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                    </button>
-                                </div>
-                            </section>
-                            <section class="settings-card">
-                                <header class="settings-card-header">
-                                    <h4>Connection
+                                <header class="settings-card-header preset-card-header">
+                                    <div class="preset-card-title">
+                                        <h4>Preset</h4>
+                                    </div>
+                                    <div class="preset-select-row">
+                                        <select id="settings-api-preset" class="form-input settings-select" aria-label="API preset"></select>
+                                        <button id="settings-preset-new" class="icon-btn" title="New preset" aria-label="New preset">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        </button>
+                                        <button id="settings-preset-delete" class="icon-btn" title="Delete selected preset" aria-label="Delete preset">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        </button>
                                         <button id="settings-test-api" class="icon-btn" title="Test connection" aria-label="Test connection">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                         </button>
-                                    </h4>
-                                    <p>Endpoint, model, and credentials.</p>
+                                    </div>
                                 </header>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-api-endpoint">Endpoint</label>
-                                    <span class="settings-row-hint">OpenAI-Compatible Endpoint</span>
-                                    <input type="text" id="settings-api-endpoint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-api-key">API Key</label>
-                                    <input type="password" id="settings-api-key" class="form-input mono-input" placeholder="sk-...">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-model">Model</label>
-                                    <div class="settings-model-row model-picker-row">
-                                        <input type="text" id="settings-model" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="model-picker-menu" aria-expanded="false">
-                                        <button id="settings-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                        </button>
-                                        <div id="model-picker-menu" class="model-picker-menu" hidden role="listbox"></div>
+                                <div class="preset-columns">
+                                    <div class="preset-connection">
+                                        <h5 class="preset-subhead">Connection</h5>
+                                        <div class="settings-row settings-row--inline">
+                                            <label class="settings-row-label" for="settings-api-endpoint">Endpoint</label>
+                                            <input type="text" id="settings-api-endpoint" class="form-input mono-input" placeholder="OpenAI-compatible endpoint, e.g. https://api.openai.com/v1" spellcheck="false">
+                                        </div>
+                                        <div class="settings-row settings-row--inline">
+                                            <label class="settings-row-label" for="settings-api-key">API Key</label>
+                                            <input type="password" id="settings-api-key" class="form-input mono-input" placeholder="sk-...">
+                                        </div>
+                                        <div class="settings-row settings-row--inline">
+                                            <label class="settings-row-label" for="settings-model">Model</label>
+                                            <div class="settings-model-row model-picker-row">
+                                                <input type="text" id="settings-model" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="model-picker-menu" aria-expanded="false">
+                                                <button id="settings-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                                </button>
+                                                <div id="model-picker-menu" class="model-picker-menu" hidden role="listbox"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="preset-context">
+                                        <h5 class="preset-subhead">Context &amp; generation</h5>
+                                        <div class="settings-row settings-row--inline">
+                                            <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
+                                            <input type="number" id="settings-context-tokens" class="form-input"
+                                                   min="0" step="256" value="32768" placeholder="0 = no cap">
+                                        </div>
+                                        <span id="context-size-warning" class="settings-warning" hidden></span>
+                                        <div class="settings-row settings-row--inline">
+                                            <label class="settings-row-label" for="settings-sampler-max-tokens">Max Response Tokens</label>
+                                            <input type="number" id="settings-sampler-max-tokens" class="form-input"
+                                                   step="1" min="1" max="32768" value="512">
+                                        </div>
                                     </div>
                                 </div>
-                            </section>
-                            <section class="settings-card">
-                                <header class="settings-card-header">
-                                    <h4>Context &amp; Generation</h4>
-                                    <p>Set the context-window budget and reply length.</p>
-                                </header>
-                                <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
-                                    <input type="number" id="settings-context-tokens" class="form-input"
-                                           min="0" step="256" value="32768" placeholder="0 = no cap">
-                                </div>
-                                <span id="context-size-warning" class="settings-warning" hidden></span>
-                                <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-sampler-max-tokens">Max Response Tokens</label>
-                                    <input type="number" id="settings-sampler-max-tokens" class="form-input"
-                                           step="1" min="1" max="32768" value="512">
+                                <div class="preset-samplers sampler-card">
+                                        <div class="sampler-subsection">
+                                        <header class="sampler-subsection-header preset-subhead">
+                                            <span>Core samplers</span>
+                                            <div class="sampler-toolbar">
+                                                <button id="sampler-configure-btn" class="icon-btn" title="Active samplers" aria-label="Active samplers" aria-haspopup="true" aria-expanded="false">
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                                </button>
+                                                <div id="sampler-popover" class="sampler-popover" hidden></div>
+                                            </div>
+                                        </header>
+                                    <p id="sampler-core-empty" class="sampler-empty-state" hidden>No core samplers active. Use Active samplers to add day-to-day controls here.</p>
+                                    <!-- Temperature -->
+                                    <div class="settings-row" data-sampler="temperature">
+                                        <label class="settings-row-label" for="settings-sampler-temperature">Temperature</label>
+                                        <input type="number" id="settings-sampler-temperature" class="form-input" step="0.01" min="0" max="5" value="1.0">
+                                    </div>
+                                    <!-- Dynamic Temperature -->
+                                    <div class="sampler-group" data-sampler="dynatemp">
+                                        <div class="sampler-group-header">Dynamic Temperature</div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-dynatemp-range">Range</label>
+                                            <input type="number" id="settings-sampler-dynatemp-range" class="form-input" step="0.01" min="0" max="5" value="0">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-dynatemp-exponent">Exponent</label>
+                                            <input type="number" id="settings-sampler-dynatemp-exponent" class="form-input" step="0.01" min="0" max="10" value="1.0">
+                                        </div>
+                                    </div>
+                                    <!-- Top-P -->
+                                    <div class="settings-row" data-sampler="top_p">
+                                        <label class="settings-row-label" for="settings-sampler-top-p">Top-P</label>
+                                        <input type="number" id="settings-sampler-top-p" class="form-input" step="0.01" min="0" max="1" value="0.95">
+                                    </div>
+                                    <!-- Top-K -->
+                                    <div class="settings-row" data-sampler="top_k">
+                                        <label class="settings-row-label" for="settings-sampler-top-k">Top-K</label>
+                                        <input type="number" id="settings-sampler-top-k" class="form-input" step="1" min="0" max="500" value="0">
+                                    </div>
+                                    <!-- Min-P -->
+                                    <div class="settings-row" data-sampler="min_p">
+                                        <label class="settings-row-label" for="settings-sampler-min-p">Min-P</label>
+                                        <input type="number" id="settings-sampler-min-p" class="form-input" step="0.01" min="0" max="1" value="0.05">
+                                    </div>
+                                    <!-- Repetition Penalty -->
+                                    <div class="sampler-group" data-sampler="repetition_penalty">
+                                        <div class="sampler-group-header">Repetition Penalty</div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-rep-penalty">Penalty</label>
+                                            <input type="number" id="settings-sampler-rep-penalty" class="form-input" step="0.01" min="0" max="3" value="1.0">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-repeat-last-n">Last N Tokens</label>
+                                            <input type="number" id="settings-sampler-repeat-last-n" class="form-input" step="1" min="-1" max="4096" value="64">
+                                        </div>
+                                    </div>
+                                    </div>
+                                    <div class="sampler-subsection">
+                                    <header class="sampler-subsection-header sampler-subsection-header--advanced preset-subhead">
+                                        <span>Advanced samplers</span>
+                                    </header>
+                                    <p id="sampler-advanced-empty" class="sampler-empty-state" hidden>No advanced samplers active. Enable one from Active samplers to show controls here.</p>
+                                    <!-- Typical-P -->
+                                    <div class="settings-row" data-sampler="typical_p">
+                                        <label class="settings-row-label" for="settings-sampler-typical-p">Typical-P</label>
+                                        <input type="number" id="settings-sampler-typical-p" class="form-input" step="0.01" min="0" max="1" value="1.0">
+                                    </div>
+                                    <!-- Top-N Sigma -->
+                                    <div class="settings-row" data-sampler="top_n_sigma">
+                                        <label class="settings-row-label" for="settings-sampler-top-n-sigma">Top-N Sigma</label>
+                                        <input type="number" id="settings-sampler-top-n-sigma" class="form-input" step="0.1" min="-1" max="10" value="-1">
+                                    </div>
+                                    <!-- Presence Penalty -->
+                                    <div class="settings-row" data-sampler="presence_penalty">
+                                        <label class="settings-row-label" for="settings-sampler-presence-penalty">Presence Penalty</label>
+                                        <input type="number" id="settings-sampler-presence-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
+                                    </div>
+                                    <!-- Frequency Penalty -->
+                                    <div class="settings-row" data-sampler="frequency_penalty">
+                                        <label class="settings-row-label" for="settings-sampler-frequency-penalty">Frequency Penalty</label>
+                                        <input type="number" id="settings-sampler-frequency-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
+                                    </div>
+                                    <!-- DRY -->
+                                    <div class="sampler-group" data-sampler="dry">
+                                        <div class="sampler-group-header">DRY (Don't Repeat Yourself)</div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-dry-multiplier">Multiplier</label>
+                                            <input type="number" id="settings-sampler-dry-multiplier" class="form-input" step="0.01" min="0" max="5" value="0">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-dry-base">Base</label>
+                                            <input type="number" id="settings-sampler-dry-base" class="form-input" step="0.01" min="0" max="5" value="1.75">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-dry-allowed-length">Allowed Length</label>
+                                            <input type="number" id="settings-sampler-dry-allowed-length" class="form-input" step="1" min="0" max="100" value="2">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-dry-penalty-last-n">Penalty Last N</label>
+                                            <input type="number" id="settings-sampler-dry-penalty-last-n" class="form-input" step="1" min="-1" max="4096" value="-1">
+                                        </div>
+                                    </div>
+                                    <!-- Mirostat -->
+                                    <div class="sampler-group" data-sampler="mirostat">
+                                        <div class="sampler-group-header">Mirostat</div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-mirostat">Mode</label>
+                                            <select id="settings-sampler-mirostat" class="form-input settings-select">
+                                                <option value="0">0 — Disabled</option>
+                                                <option value="1">1 — Mirostat</option>
+                                                <option value="2">2 — Mirostat 2.0</option>
+                                            </select>
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-mirostat-tau">Tau</label>
+                                            <input type="number" id="settings-sampler-mirostat-tau" class="form-input" step="0.1" min="0" max="20" value="5.0">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-mirostat-eta">Eta</label>
+                                            <input type="number" id="settings-sampler-mirostat-eta" class="form-input" step="0.01" min="0" max="1" value="0.1">
+                                        </div>
+                                    </div>
+                                    <!-- XTC -->
+                                    <div class="sampler-group" data-sampler="xtc">
+                                        <div class="sampler-group-header">XTC (eXclude Top Choices)</div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-xtc-probability">Probability</label>
+                                            <input type="number" id="settings-sampler-xtc-probability" class="form-input" step="0.01" min="0" max="1" value="0">
+                                        </div>
+                                        <div class="settings-row">
+                                            <label class="settings-row-label" for="settings-sampler-xtc-threshold">Threshold</label>
+                                            <input type="number" id="settings-sampler-xtc-threshold" class="form-input" step="0.01" min="0" max="1" value="0.1">
+                                        </div>
+                                    </div>
+                                    <!-- Seed -->
+                                    <div class="settings-row" data-sampler="seed">
+                                        <label class="settings-row-label" for="settings-sampler-seed">Seed</label>
+                                        <input type="number" id="settings-sampler-seed" class="form-input" step="1" min="-1" max="999999999" value="-1">
+                                    </div>
+                                    </div>
                                 </div>
                             </section>
                             <section class="settings-card" id="extra-params-card">
@@ -282,168 +422,6 @@
                                 <div class="settings-row">
                                     <textarea id="settings-extra-params" class="form-input mono-input" rows="4" spellcheck="false" aria-label="Extra request parameters JSON" placeholder='{"chat_template_kwargs": {"enable_thinking": false}}'></textarea>
                                 </div>
-                            </section>
-                        </div>
-                    </div>
-                    <div class="settings-section settings-section--samplers" data-section="api" hidden>
-                        <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
-                            <div class="settings-page-title">
-                                <h3>Samplers</h3>
-                                <p>Tune generation behavior. Keep common controls visible and enable only the advanced samplers you use.</p>
-                            </div>
-                            <div class="prompt-header-actions">
-                                <button id="sampler-help-btn" class="icon-btn" data-help="sampler-help-modal" title="What does each sampler do?" aria-label="Sampler help">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                </button>
-                            </div>
-                        </header>
-                        <div class="settings-section-body sampler-section-body">
-                            <section class="settings-card sampler-card">
-                                <div class="sampler-subsection">
-                                <header class="settings-card-header sampler-subsection-header">
-                                    <div class="sampler-subsection-title">
-                                        <h4>Core samplers</h4>
-                                        <p>These are the controls most likely to affect day-to-day output quality.</p>
-                                    </div>
-                                    <div class="sampler-toolbar">
-                                        <button id="sampler-configure-btn" class="icon-btn" title="Active samplers" aria-label="Active samplers" aria-haspopup="true" aria-expanded="false">
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                        </button>
-                                        <div id="sampler-popover" class="sampler-popover" hidden></div>
-                                    </div>
-                                </header>
-                            <p id="sampler-core-empty" class="sampler-empty-state" hidden>No core samplers active. Use Active samplers to add day-to-day controls here.</p>
-                            <!-- Temperature -->
-                            <div class="settings-row" data-sampler="temperature">
-                                <label class="settings-row-label" for="settings-sampler-temperature">Temperature</label>
-                                <input type="number" id="settings-sampler-temperature" class="form-input" step="0.01" min="0" max="5" value="1.0">
-                            </div>
-                            <!-- Dynamic Temperature -->
-                            <div class="sampler-group" data-sampler="dynatemp">
-                                <div class="sampler-group-header">Dynamic Temperature</div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-dynatemp-range">Range</label>
-                                    <input type="number" id="settings-sampler-dynatemp-range" class="form-input" step="0.01" min="0" max="5" value="0">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-dynatemp-exponent">Exponent</label>
-                                    <input type="number" id="settings-sampler-dynatemp-exponent" class="form-input" step="0.01" min="0" max="10" value="1.0">
-                                </div>
-                            </div>
-                            <!-- Top-P -->
-                            <div class="settings-row" data-sampler="top_p">
-                                <label class="settings-row-label" for="settings-sampler-top-p">Top-P</label>
-                                <input type="number" id="settings-sampler-top-p" class="form-input" step="0.01" min="0" max="1" value="0.95">
-                            </div>
-                            <!-- Top-K -->
-                            <div class="settings-row" data-sampler="top_k">
-                                <label class="settings-row-label" for="settings-sampler-top-k">Top-K</label>
-                                <input type="number" id="settings-sampler-top-k" class="form-input" step="1" min="0" max="500" value="0">
-                            </div>
-                            <!-- Min-P -->
-                            <div class="settings-row" data-sampler="min_p">
-                                <label class="settings-row-label" for="settings-sampler-min-p">Min-P</label>
-                                <input type="number" id="settings-sampler-min-p" class="form-input" step="0.01" min="0" max="1" value="0.05">
-                            </div>
-                            <!-- Repetition Penalty -->
-                            <div class="sampler-group" data-sampler="repetition_penalty">
-                                <div class="sampler-group-header">Repetition Penalty</div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-rep-penalty">Penalty</label>
-                                    <input type="number" id="settings-sampler-rep-penalty" class="form-input" step="0.01" min="0" max="3" value="1.0">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-repeat-last-n">Last N Tokens</label>
-                                    <input type="number" id="settings-sampler-repeat-last-n" class="form-input" step="1" min="-1" max="4096" value="64">
-                                </div>
-                            </div>
-                            </div>
-                            <div class="sampler-subsection">
-                            <header class="settings-card-header sampler-subsection-header sampler-subsection-header--advanced">
-                                <div class="sampler-subsection-title">
-                                    <h4>Advanced samplers</h4>
-                                    <p>Niche or experimental samplers — off by default. Enable any of them from Active samplers.</p>
-                                </div>
-                            </header>
-                            <p id="sampler-advanced-empty" class="sampler-empty-state" hidden>No advanced samplers active. Enable one from Active samplers to show controls here.</p>
-                            <!-- Typical-P -->
-                            <div class="settings-row" data-sampler="typical_p">
-                                <label class="settings-row-label" for="settings-sampler-typical-p">Typical-P</label>
-                                <input type="number" id="settings-sampler-typical-p" class="form-input" step="0.01" min="0" max="1" value="1.0">
-                            </div>
-                            <!-- Top-N Sigma -->
-                            <div class="settings-row" data-sampler="top_n_sigma">
-                                <label class="settings-row-label" for="settings-sampler-top-n-sigma">Top-N Sigma</label>
-                                <input type="number" id="settings-sampler-top-n-sigma" class="form-input" step="0.1" min="-1" max="10" value="-1">
-                            </div>
-                            <!-- Presence Penalty -->
-                            <div class="settings-row" data-sampler="presence_penalty">
-                                <label class="settings-row-label" for="settings-sampler-presence-penalty">Presence Penalty</label>
-                                <input type="number" id="settings-sampler-presence-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
-                            </div>
-                            <!-- Frequency Penalty -->
-                            <div class="settings-row" data-sampler="frequency_penalty">
-                                <label class="settings-row-label" for="settings-sampler-frequency-penalty">Frequency Penalty</label>
-                                <input type="number" id="settings-sampler-frequency-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
-                            </div>
-                            <!-- DRY -->
-                            <div class="sampler-group" data-sampler="dry">
-                                <div class="sampler-group-header">DRY (Don't Repeat Yourself)</div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-dry-multiplier">Multiplier</label>
-                                    <input type="number" id="settings-sampler-dry-multiplier" class="form-input" step="0.01" min="0" max="5" value="0">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-dry-base">Base</label>
-                                    <input type="number" id="settings-sampler-dry-base" class="form-input" step="0.01" min="0" max="5" value="1.75">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-dry-allowed-length">Allowed Length</label>
-                                    <input type="number" id="settings-sampler-dry-allowed-length" class="form-input" step="1" min="0" max="100" value="2">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-dry-penalty-last-n">Penalty Last N</label>
-                                    <input type="number" id="settings-sampler-dry-penalty-last-n" class="form-input" step="1" min="-1" max="4096" value="-1">
-                                </div>
-                            </div>
-                            <!-- Mirostat -->
-                            <div class="sampler-group" data-sampler="mirostat">
-                                <div class="sampler-group-header">Mirostat</div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-mirostat">Mode</label>
-                                    <select id="settings-sampler-mirostat" class="form-input settings-select">
-                                        <option value="0">0 — Disabled</option>
-                                        <option value="1">1 — Mirostat</option>
-                                        <option value="2">2 — Mirostat 2.0</option>
-                                    </select>
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-mirostat-tau">Tau</label>
-                                    <input type="number" id="settings-sampler-mirostat-tau" class="form-input" step="0.1" min="0" max="20" value="5.0">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-mirostat-eta">Eta</label>
-                                    <input type="number" id="settings-sampler-mirostat-eta" class="form-input" step="0.01" min="0" max="1" value="0.1">
-                                </div>
-                            </div>
-                            <!-- XTC -->
-                            <div class="sampler-group" data-sampler="xtc">
-                                <div class="sampler-group-header">XTC (eXclude Top Choices)</div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-xtc-probability">Probability</label>
-                                    <input type="number" id="settings-sampler-xtc-probability" class="form-input" step="0.01" min="0" max="1" value="0">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-sampler-xtc-threshold">Threshold</label>
-                                    <input type="number" id="settings-sampler-xtc-threshold" class="form-input" step="0.01" min="0" max="1" value="0.1">
-                                </div>
-                            </div>
-                            <!-- Seed -->
-                            <div class="settings-row" data-sampler="seed">
-                                <label class="settings-row-label" for="settings-sampler-seed">Seed</label>
-                                <input type="number" id="settings-sampler-seed" class="form-input" step="1" min="-1" max="999999999" value="-1">
-                            </div>
-                            </div>
                             </section>
                         </div>
                     </div>
@@ -1305,18 +1283,57 @@ Flags    g</pre>
         </div>
     </div>
 
-    <div id="sampler-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="sampler-help-title" hidden>
+    <div id="api-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="api-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
-                <h2 id="sampler-help-title" class="section-label panel-title panel-title--left">Sampler reference</h2>
+                <h2 id="api-help-title" class="section-label panel-title panel-title--left">API &amp; samplers</h2>
                 <div class="modal-header-actions">
-                    <button id="sampler-help-close" class="icon-btn" data-submodal-close aria-label="Close">
+                    <button id="api-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
             </div>
             <div class="panel-divider"></div>
             <div class="modal-body settings-help-body">
+                <p class="prompt-help-callout"><strong>Cozy is a chat interface, not a model.</strong> Every reply comes from an OpenAI-compatible server — hosted or running on your own machine. This page tells Cozy where that server is and which model to ask.</p>
+
+                <div class="sampler-help-section">
+                    <h3>Connection</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Endpoint</dt><dd>The server's base URL, which normally ends in <code>/v1</code>. Cozy appends <code>/models</code> to list models and <code>/chat/completions</code> to chat — the chat endpoint must support streaming.</dd></div>
+                        <div class="sampler-help-row"><dt>API Key</dt><dd>Sent as an auth header with each request. Keys live in your data directory and are masked in API responses. Leave it blank if your server needs none.</dd></div>
+                        <div class="sampler-help-row"><dt>Model</dt><dd>The model identifier to send with each request. Type it, or use the chevron to browse what the server reports via <code>/models</code>. If the list comes up empty, type the identifier by hand.</dd></div>
+                        <div class="sampler-help-row"><dt>Test Connection</dt><dd>Sends a short "say hello" request capped at 10 tokens and shows the reply. A failure usually names the cause — check the endpoint, key, and model name first.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Common endpoints</h3>
+                    <dl class="sampler-help-list sampler-help-list--urls">
+                        <div class="sampler-help-row"><dt><code>https://api.openai.com/v1</code></dt><dd>OpenAI's own API. Needs an OpenAI key, and model ids are plain names such as <code>gpt-4o</code>.</dd></div>
+                        <div class="sampler-help-row"><dt><code>https://openrouter.ai/api/v1</code></dt><dd>OpenRouter, a gateway where one key reaches models from many providers. Model ids are prefixed with the vendor, e.g. <code>anthropic/claude-sonnet-4</code>.</dd></div>
+                        <div class="sampler-help-row"><dt><code>http://localhost:8080/v1</code></dt><dd>A local <code>llama-server</code> (llama.cpp), which serves <code>/v1/chat/completions</code> and <code>/v1/models</code> on port 8080 by default. No key needed unless you set one.</dd></div>
+                    </dl>
+                    <p>If Cozy runs in Docker while the model server runs on the host, <code>localhost</code> inside the container means the container itself — use an address Docker can reach, such as <code>host.docker.internal</code> on Docker Desktop.</p>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Context and response size</h3>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Max Context Tokens</dt><dd>The total budget for one request: the prompt plus reserved reply space. Set it to the model's real context window (default 32768). Old messages are left out so the prompt fits inside it. <code>0</code> means no cap — Cozy never trims.</dd></div>
+                        <div class="sampler-help-row"><dt>Max Response Tokens</dt><dd>How long a single reply may run (default 512). It is also the allowance reused for summary runs. Reasoning models spend their thinking tokens from this same allowance before writing a word, so a low value cuts replies and summaries off mid-write — raise it if runs keep failing with <em>cut off by its completion token limit</em>.</dd></div>
+                    </dl>
+                </div>
+
+                <div class="sampler-help-section">
+                    <h3>Presets, context, preview</h3>
+                    <ul class="prompt-help-tips">
+                        <li>Use <strong>+</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</li>
+                        <li><strong>Max Context Tokens</strong> should match your server's context window; <strong>Max Response Tokens</strong> caps how long a single reply may run.</li>
+                        <li>The <strong>eye</strong> icon previews the exact assembled request for the active character and persona.</li>
+                    </ul>
+                </div>
+
                 <p class="prompt-help-callout">Samplers shape <em>how</em> the model picks its next word. The defaults are sensible — only tweak these if you want to change the feel of the output. Settings marked <span class="sampler-advanced-badge">ADV</span> are niche or experimental.</p>
 
                 <div class="sampler-help-section">
@@ -1388,60 +1405,6 @@ Flags    g</pre>
                 </div>
 
                 <p class="prompt-help-note">Different backends support different samplers — anything your engine doesn't recognise is silently ignored. When in doubt, leave the advanced ones off.</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="api-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="api-help-title" hidden>
-        <div class="modal">
-            <div class="modal-header panel-header">
-                <h2 id="api-help-title" class="section-label panel-title panel-title--left">API connection</h2>
-                <div class="modal-header-actions">
-                    <button id="api-help-close" class="icon-btn" data-submodal-close aria-label="Close">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-            </div>
-            <div class="panel-divider"></div>
-            <div class="modal-body settings-help-body">
-                <p class="prompt-help-callout"><strong>Cozy is a chat interface, not a model.</strong> Every reply comes from an OpenAI-compatible server — hosted or running on your own machine. This page tells Cozy where that server is and which model to ask.</p>
-
-                <div class="sampler-help-section">
-                    <h3>Connection</h3>
-                    <dl class="sampler-help-list">
-                        <div class="sampler-help-row"><dt>Endpoint</dt><dd>The server's base URL, which normally ends in <code>/v1</code>. Cozy appends <code>/models</code> to list models and <code>/chat/completions</code> to chat — the chat endpoint must support streaming.</dd></div>
-                        <div class="sampler-help-row"><dt>API Key</dt><dd>Sent as an auth header with each request. Keys live in your data directory and are masked in API responses. Leave it blank if your server needs none.</dd></div>
-                        <div class="sampler-help-row"><dt>Model</dt><dd>The model identifier to send with each request. Type it, or use the chevron to browse what the server reports via <code>/models</code>. If the list comes up empty, type the identifier by hand.</dd></div>
-                        <div class="sampler-help-row"><dt>Test Connection</dt><dd>Sends a short "say hello" request capped at 10 tokens and shows the reply. A failure usually names the cause — check the endpoint, key, and model name first.</dd></div>
-                    </dl>
-                </div>
-
-                <div class="sampler-help-section">
-                    <h3>Common endpoints</h3>
-                    <dl class="sampler-help-list sampler-help-list--urls">
-                        <div class="sampler-help-row"><dt><code>https://api.openai.com/v1</code></dt><dd>OpenAI's own API. Needs an OpenAI key, and model ids are plain names such as <code>gpt-4o</code>.</dd></div>
-                        <div class="sampler-help-row"><dt><code>https://openrouter.ai/api/v1</code></dt><dd>OpenRouter, a gateway where one key reaches models from many providers. Model ids are prefixed with the vendor, e.g. <code>anthropic/claude-sonnet-4</code>.</dd></div>
-                        <div class="sampler-help-row"><dt><code>http://localhost:8080/v1</code></dt><dd>A local <code>llama-server</code> (llama.cpp), which serves <code>/v1/chat/completions</code> and <code>/v1/models</code> on port 8080 by default. No key needed unless you set one.</dd></div>
-                    </dl>
-                    <p>If Cozy runs in Docker while the model server runs on the host, <code>localhost</code> inside the container means the container itself — use an address Docker can reach, such as <code>host.docker.internal</code> on Docker Desktop.</p>
-                </div>
-
-                <div class="sampler-help-section">
-                    <h3>Context and response size</h3>
-                    <dl class="sampler-help-list">
-                        <div class="sampler-help-row"><dt>Max Context Tokens</dt><dd>The total budget for one request: the prompt plus reserved reply space. Set it to the model's real context window (default 32768). Old messages are left out so the prompt fits inside it. <code>0</code> means no cap — Cozy never trims.</dd></div>
-                        <div class="sampler-help-row"><dt>Max Response Tokens</dt><dd>How long a single reply may run (default 512). It is also the allowance reused for summary runs. Reasoning models spend their thinking tokens from this same allowance before writing a word, so a low value cuts replies and summaries off mid-write — raise it if runs keep failing with <em>cut off by its completion token limit</em>.</dd></div>
-                    </dl>
-                </div>
-
-                <div class="sampler-help-section">
-                    <h3>Presets, context, preview</h3>
-                    <ul class="prompt-help-tips">
-                        <li>Use <strong>+</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</li>
-                        <li><strong>Max Context Tokens</strong> should match your server's context window; <strong>Max Response Tokens</strong> caps how long a single reply may run.</li>
-                        <li>The <strong>eye</strong> icon previews the exact assembled request for the active character and persona.</li>
-                    </ul>
-                </div>
             </div>
         </div>
     </div>

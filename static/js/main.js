@@ -141,7 +141,7 @@ function blurSettingsFlyoutFocus() {
     }
 }
 
-// Settings sub-modals — the six help panels and the request preview. They open
+// Settings sub-modals — the five help panels and the request preview. They open
 // at the same spot above the settings flyout, so only one is up at a time, and
 // closing the flyout takes it along rather than leaving it over the chat.
 let settingsSubmodal = null;
