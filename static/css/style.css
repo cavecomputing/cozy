@@ -2,6 +2,11 @@
 
 :root {
     --sidebar-width: 240px;
+    /* Width of the chat column, shared by the messages, the composer, the token
+       meter and the lorebook notice so they all line up. Sized for the reading
+       measure: ~78 characters per line of message prose, near the top of the
+       comfortable 45–75 range for the long replies this app is built to read. */
+    --chat-max-width: 44rem;
     --mobile-inline-padding: 0.75rem;
     --mobile-header-height: 52px;
     --mobile-tap-target: 44px;
@@ -968,7 +973,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     width: 100%;
     /* Cap line length for readability on wide viewports; the scroll
        container stays full-width so the scrollbar hugs the window edge. */
-    max-width: var(--chat-max-width, 56rem);
+    max-width: var(--chat-max-width);
     margin-left: auto;
     margin-right: auto;
 }
@@ -1069,12 +1074,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .message-content {
     word-wrap: break-word;
     overflow-wrap: break-word;
-    line-height: 1.45;
+    line-height: 1.6;
 }
 
 /* Markdown typography inside bubbles — RP-enhanced styles */
 .message-content img          { max-width: var(--img-max-width, 300px); height: auto; display: block; border-radius: var(--radius-sm); }
-.message-content p            { margin: 0 0 0.35em; }
+/* Wider than the 0.6em gap between lines, so a paragraph break reads as one. */
+.message-content p            { margin: 0 0 0.8em; }
 .message-content p:last-child { margin-bottom: 0; }
 .message-content a            { color: inherit; text-decoration: underline; opacity: 0.85; }
 .message-content a:hover      { opacity: 1; }
@@ -1272,7 +1278,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     display: flex;
     align-items: center;
     width: 100%;
-    max-width: var(--chat-max-width, 56rem);
+    max-width: var(--chat-max-width);
     margin: 0.5rem auto;
     gap: 0.75rem;
     color: var(--text-secondary);
@@ -1478,7 +1484,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 #input-wrapper {
     order: 2;
     width: 100%;
-    max-width: var(--chat-max-width, 56rem);
+    max-width: var(--chat-max-width);
     margin-left: auto;
     margin-right: auto;
     position: relative;
@@ -1594,7 +1600,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     align-items: center;
     gap: 0.55rem;
     width: 100%;
-    max-width: var(--chat-max-width, 56rem);
+    max-width: var(--chat-max-width);
     margin: 0 auto var(--composer-meter-gap);
     padding: 0;
     color: var(--text-secondary);
@@ -4796,7 +4802,7 @@ input[type="checkbox"]:disabled {
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    max-width: var(--chat-max-width, 56rem);
+    max-width: var(--chat-max-width);
     margin: 0 auto 0.5rem;
     padding: 0.4rem 0.75rem;
     background-color: var(--hover-bg);
