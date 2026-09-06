@@ -2157,23 +2157,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
    the preset reads as a single unit. Two zones side by side on a wide pane —
    connection takes the width its URLs want, context keeps a form measure so
    its inline number rows never drift — folding to a stack via flex-wrap. */
-/* Card header carries the picker: title left, preset controls right, wrapping
-   to a stack on a narrow pane. */
-.preset-card-header {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem 1rem;
-}
-.preset-card-title {
-    flex: 999 1 16rem;
-    min-width: 0;
-}
-.preset-card-header .preset-select-row {
-    flex: 1 1 20rem;
-    max-width: 30rem;
-    min-width: 0;
-}
 .preset-columns {
     display: flex;
     flex-wrap: wrap;
