@@ -1,7 +1,7 @@
 /* Cozy — Everforest Light Theme */
 :root {
     /* Layout */
-    --app-bg:         #d8dbbe;
+    --app-bg:         #e9ebd7;
     --bg-color:       #fffbef;
     --sidebar-bg:     #f4f0d9;
     --char-msg-bg:    #fffbef;
@@ -12,7 +12,7 @@
 
     /* Typography */
     --text-color:     #5c6a72;
-    --text-secondary: #829181;
+    --text-secondary: #586964;
 
     /* Accent */
     --accent-color:   #8da101;
