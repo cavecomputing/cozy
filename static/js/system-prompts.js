@@ -183,7 +183,6 @@ export function previewSystemPrompt() {
     if (el.promptPreviewContent) {
         el.promptPreviewContent.textContent = JSON.stringify(payload, null, 2);
     }
-    if (el.promptPreviewModal) el.promptPreviewModal.hidden = false;
 }
 
 /** Download the request preview as shown, formatted JSON. */

@@ -1853,38 +1853,23 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     }
 }
 
-/* Preview / Help stack above the settings flyout they were opened from —
-   each takes half the settings flyout's width so the pair reads as one split
-   pane. One list for all three rules: a modal that gets the width but not the
-   z-index opens *behind* the flyout, and one without the body rule can't
-   scroll. The mobile override near the end of this file pins the same set
-   back to full width. */
-#prompt-preview-modal.modal-overlay,
-#prompt-help-modal.modal-overlay,
-#sampler-help-modal.modal-overlay,
-#regex-help-modal.modal-overlay,
-#lorebook-help-modal.modal-overlay,
-#summary-help-modal.modal-overlay,
-#api-help-modal.modal-overlay { z-index: 600; }
-#prompt-preview-modal .modal,
-#prompt-help-modal .modal,
-#sampler-help-modal .modal,
-#regex-help-modal .modal,
-#lorebook-help-modal .modal,
-#summary-help-modal .modal,
-#api-help-modal .modal { width: calc((100vw - var(--sidebar-width) - 30px) / 2); max-width: 90vw; display: flex; flex-direction: column; }
-#prompt-preview-modal .modal-body,
-#prompt-help-modal .modal-body,
-#sampler-help-modal .modal-body,
-#regex-help-modal .modal-body,
-#lorebook-help-modal .modal-body,
-#summary-help-modal .modal-body,
-#api-help-modal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
+/* Preview / Help stack above the settings flyout they were opened from — each
+   takes half the flyout's width so the pair reads as one split pane. The
+   z-index is what puts them in *front* of the flyout rather than behind it,
+   and the body rule is what lets them scroll. Desktop-only width: on mobile
+   `.modal-overlay > .modal` takes over and fills the screen. */
+.settings-submodal { z-index: 600; }
+@media (min-width: 769px) {
+    .settings-submodal .modal { width: calc((100vw - var(--sidebar-width) - 30px) / 2); max-width: 90vw; }
+}
+.settings-submodal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
 
-.prompt-help-body { font-size: 0.85rem; line-height: 1.5; color: var(--text-color); }
-.prompt-help-body p { margin: 0 0 0.6rem; color: var(--text-secondary); }
-.prompt-help-body strong { color: var(--text-color); }
-.prompt-help-body em { color: var(--text-color); font-style: italic; }
+/* Shared by every settings help panel — the prose ones (Prompt syntax) and the
+   reference ones, which nest their content in .sampler-help-section boxes. */
+.settings-help-body { font-size: 0.88rem; line-height: 1.55; color: var(--text-color); }
+.settings-help-body p { margin: 0 0 0.6rem; color: var(--text-secondary); }
+.settings-help-body strong { color: var(--text-color); }
+.settings-help-body em { color: var(--text-color); font-style: italic; }
 .prompt-help-callout {
     margin: 0 0 1rem !important;
     padding: 0.7rem 0.85rem;
@@ -1894,7 +1879,9 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-color) !important;
     font-size: 0.82rem;
 }
-.prompt-help-body h3 {
+/* Prose heading. The reference panels put every h3 inside a
+   .sampler-help-section, which restyles it as an uppercase box header. */
+.settings-help-body h3 {
     margin: 1.4rem 0 0.5rem;
     font-size: 0.92rem;
     color: var(--text-color);
@@ -1902,14 +1889,14 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding-bottom: 0.3rem;
     border-bottom: 1px solid var(--border-color);
 }
-.prompt-help-body h3:first-of-type { margin-top: 0.6rem; }
-.prompt-help-body h4 {
+.settings-help-body > h3:first-of-type { margin-top: 0.6rem; }
+.settings-help-body h4 {
     margin: 0.9rem 0 0.35rem;
     font-size: 0.82rem;
     color: var(--text-color);
     font-weight: 600;
 }
-.prompt-help-body code {
+.settings-help-body code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.78rem;
     background: var(--code-bg);
@@ -3896,7 +3883,6 @@ input[type="checkbox"]:disabled {
     background-color: var(--hover-bg);
     color: var(--accent-color);
 }
-.sampler-help-body { font-size: 0.88rem; line-height: 1.55; }
 .sampler-help-section {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -3908,7 +3894,7 @@ input[type="checkbox"]:disabled {
     border-left: 3px solid var(--accent-color);
     background-color: var(--accent-edit-bg);
 }
-.sampler-help-body h3 {
+.sampler-help-section h3 {
     margin: 0 0 0.7rem;
     font-size: 0.9rem;
     font-weight: 700;
@@ -4357,20 +4343,6 @@ input[type="checkbox"]:disabled {
         height: 100dvh;
         border-radius: 0;
         border: none;
-    }
-
-    /* The preview/help modals set an explicit desktop width via an ID rule that
-       outranks the generic full-screen rule above — pin them back to full width
-       so they fill the screen on mobile like every other modal. */
-    #prompt-preview-modal .modal,
-    #prompt-help-modal .modal,
-    #lorebook-help-modal .modal,
-    #summary-help-modal .modal,
-    #api-help-modal .modal,
-    #regex-help-modal .modal,
-    #sampler-help-modal .modal {
-        width: 100%;
-        max-width: 100%;
     }
 
     .modal-header {

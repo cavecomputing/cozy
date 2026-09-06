@@ -211,7 +211,7 @@
                                 <button id="settings-sysprompt-preview" class="icon-btn" title="Preview assembled request" aria-label="Preview request">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 </button>
-                                <button id="settings-api-help" class="icon-btn" title="API connection help" aria-label="API connection help">
+                                <button id="settings-api-help" class="icon-btn" data-help="api-help-modal" title="API connection help" aria-label="API connection help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -292,7 +292,7 @@
                                 <p>Tune generation behavior. Keep common controls visible and enable only the advanced samplers you use.</p>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="sampler-help-btn" class="icon-btn" title="What does each sampler do?" aria-label="Sampler help">
+                                <button id="sampler-help-btn" class="icon-btn" data-help="sampler-help-modal" title="What does each sampler do?" aria-label="Sampler help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -454,7 +454,7 @@
                                 <p>The template that instructs an AI model how to behave.</p>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="settings-sysprompt-help" class="icon-btn" title="Template syntax help" aria-label="Template syntax help">
+                                <button id="settings-sysprompt-help" class="icon-btn" data-help="prompt-help-modal" title="Template syntax help" aria-label="Template syntax help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -548,7 +548,7 @@
                                 <p>Manage standalone and character-embedded world info, then choose which book each chat uses.</p>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="settings-lorebook-help" class="icon-btn" title="Lorebook help" aria-label="Lorebook help">
+                                <button id="settings-lorebook-help" class="icon-btn" data-help="lorebook-help-modal" title="Lorebook help" aria-label="Lorebook help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -645,7 +645,7 @@
                                 <p>Keep a running memory of everything that scrolls out of the context window. Choose which chats use it from the memory button in the chat bar.</p>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="settings-summary-help" class="icon-btn" title="Auto Summary help" aria-label="Auto Summary help">
+                                <button id="settings-summary-help" class="icon-btn" data-help="summary-help-modal" title="Auto Summary help" aria-label="Auto Summary help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -702,7 +702,7 @@
                                 <p>Find-and-replace rules that clean up the character's replies as they arrive. If you don't know what this is, you probably don't need to enable it.</p>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="settings-regex-help" class="icon-btn" title="Regex syntax help &amp; examples" aria-label="Regex syntax help">
+                                <button id="settings-regex-help" class="icon-btn" data-help="regex-help-modal" title="Regex syntax help &amp; examples" aria-label="Regex syntax help">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -1167,18 +1167,18 @@
 
     <div id="toast-container" aria-live="polite" role="status"></div>
 
-    <div id="prompt-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="prompt-help-title" hidden>
+    <div id="prompt-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="prompt-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
                 <h2 id="prompt-help-title" class="section-label panel-title panel-title--left">Prompt syntax</h2>
                 <div class="modal-header-actions">
-                    <button id="prompt-help-close" class="icon-btn" aria-label="Close">
+                    <button id="prompt-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
             </div>
             <div class="panel-divider"></div>
-            <div class="modal-body prompt-help-body">
+            <div class="modal-body settings-help-body">
                 <p class="prompt-help-callout"><strong>You usually don't need to touch this.</strong> The default template already builds a solid prompt for every character. Edit it only if you want to change <em>how</em> the prompt is put together — reorder sections, rename labels, drop one, or add your own instructions.</p>
 
                 <h3>The big picture</h3>
@@ -1244,18 +1244,18 @@
         </div>
     </div>
 
-    <div id="regex-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="regex-help-title" hidden>
+    <div id="regex-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="regex-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
                 <h2 id="regex-help-title" class="section-label panel-title panel-title--left">Regex syntax</h2>
                 <div class="modal-header-actions">
-                    <button id="regex-help-close" class="icon-btn" aria-label="Close">
+                    <button id="regex-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
             </div>
             <div class="panel-divider"></div>
-            <div class="modal-body sampler-help-body">
+            <div class="modal-body settings-help-body">
                 <p class="prompt-help-callout"><strong>A filter finds a pattern and swaps it for something else.</strong> If Find is <code>apple</code> and Replace is <code>orange</code>, every "apple" in the reply becomes "orange". Everything below is just ways of describing the thing to find more loosely than a literal word.</p>
 
                 <div class="sampler-help-section">
@@ -1318,18 +1318,18 @@ Flags    g</pre>
         </div>
     </div>
 
-    <div id="sampler-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sampler-help-title" hidden>
+    <div id="sampler-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="sampler-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
                 <h2 id="sampler-help-title" class="section-label panel-title panel-title--left">Sampler reference</h2>
                 <div class="modal-header-actions">
-                    <button id="sampler-help-close" class="icon-btn" aria-label="Close">
+                    <button id="sampler-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
             </div>
             <div class="panel-divider"></div>
-            <div class="modal-body sampler-help-body">
+            <div class="modal-body settings-help-body">
                 <p class="prompt-help-callout">Samplers shape <em>how</em> the model picks its next word. The defaults are sensible — only tweak these if you want to change the feel of the output. Settings marked <span class="sampler-advanced-badge">ADV</span> are niche or experimental.</p>
 
                 <div class="sampler-help-section">
@@ -1405,18 +1405,18 @@ Flags    g</pre>
         </div>
     </div>
 
-    <div id="api-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="api-help-title" hidden>
+    <div id="api-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="api-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
                 <h2 id="api-help-title" class="section-label panel-title panel-title--left">API connection</h2>
                 <div class="modal-header-actions">
-                    <button id="api-help-close" class="icon-btn" aria-label="Close">
+                    <button id="api-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
             </div>
             <div class="panel-divider"></div>
-            <div class="modal-body sampler-help-body">
+            <div class="modal-body settings-help-body">
                 <p class="prompt-help-callout"><strong>Cozy is a chat interface, not a model.</strong> Every reply comes from an OpenAI-compatible server — hosted or running on your own machine. This page tells Cozy where that server is and which model to ask.</p>
 
                 <div class="sampler-help-section">
@@ -1459,18 +1459,18 @@ Flags    g</pre>
         </div>
     </div>
 
-    <div id="lorebook-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lorebook-help-title" hidden>
+    <div id="lorebook-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="lorebook-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
                 <h2 id="lorebook-help-title" class="section-label panel-title panel-title--left">Lorebooks</h2>
                 <div class="modal-header-actions">
-                    <button id="lorebook-help-close" class="icon-btn" aria-label="Close">
+                    <button id="lorebook-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
             </div>
             <div class="panel-divider"></div>
-            <div class="modal-body sampler-help-body">
+            <div class="modal-body settings-help-body">
                 <p class="prompt-help-callout"><strong>A lorebook is a list of facts about your story world.</strong> The model reads a fact only when that fact matches what you are talking about. Each chat uses one lorebook at a time.</p>
 
                 <div class="sampler-help-section">
@@ -1530,18 +1530,18 @@ Flags    g</pre>
         </div>
     </div>
 
-    <div id="summary-help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="summary-help-title" hidden>
+    <div id="summary-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="summary-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
                 <h2 id="summary-help-title" class="section-label panel-title panel-title--left">Auto Summaries</h2>
                 <div class="modal-header-actions">
-                    <button id="summary-help-close" class="icon-btn" aria-label="Close">
+                    <button id="summary-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
             </div>
             <div class="panel-divider"></div>
-            <div class="modal-body sampler-help-body">
+            <div class="modal-body settings-help-body">
                 <p class="prompt-help-callout"><strong>Auto Summaries compress old chat into a short memory so the story stays coherent longer.</strong> The model can only read a fixed number of tokens at once. Once early messages no longer fit, their summary is sent instead of the messages themselves.</p>
 
                 <div class="sampler-help-section">
@@ -1571,7 +1571,7 @@ Flags    g</pre>
         </div>
     </div>
 
-    <div id="prompt-preview-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title" hidden>
+    <div id="prompt-preview-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
                 <h2 id="prompt-preview-title" class="section-label panel-title panel-title--left">Request preview</h2>
@@ -1579,7 +1579,7 @@ Flags    g</pre>
                     <button id="prompt-preview-export" class="icon-btn" title="Export preview as JSON" aria-label="Export preview as JSON">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     </button>
-                    <button id="prompt-preview-close" class="icon-btn" aria-label="Close">
+                    <button id="prompt-preview-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>

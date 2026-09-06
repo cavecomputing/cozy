@@ -142,7 +142,37 @@ function blurSettingsFlyoutFocus() {
     }
 }
 
+// Settings sub-modals — the six help panels and the request preview. They open
+// at the same spot above the settings flyout, so only one is up at a time, and
+// closing the flyout takes it along rather than leaving it over the chat.
+let settingsSubmodal = null;
+let settingsSubmodalReturnFocus = null;
+
+function openSettingsSubmodal(modal) {
+    if (!modal) return;
+    // Read the trigger before closing the previous panel: that close restores
+    // focus to *its* trigger, which is what we would otherwise record here.
+    const trigger = document.activeElement;
+    closeSettingsSubmodal(settingsSubmodal);
+    settingsSubmodalReturnFocus = trigger;
+    settingsSubmodal = modal;
+    modal.hidden = false;
+}
+
+function closeSettingsSubmodal(modal) {
+    if (!modal) return;
+    modal.hidden = true;
+    if (modal === settingsSubmodal) settingsSubmodal = null;
+    if (settingsSubmodalReturnFocus && document.contains(settingsSubmodalReturnFocus)) {
+        settingsSubmodalReturnFocus.focus();
+    }
+    settingsSubmodalReturnFocus = null;
+}
+
 function closeSettingsFlyout() {
+    // Ahead of the blur, so focus lands on the trigger and is cleared with the
+    // rest of the flyout instead of being left inside a hidden subtree.
+    closeSettingsSubmodal(settingsSubmodal);
     blurSettingsFlyoutFocus();
     el.settingsFlyout.hidden = true;
     closeRenderedPrompts();
@@ -150,19 +180,6 @@ function closeSettingsFlyout() {
     exitSettingsDetail();
     // An edit made in the last half-second would otherwise die in the debounce.
     void flushRegexSave();
-}
-
-let settingsSubmodalReturnFocus = null;
-function rememberSettingsSubmodalTrigger() {
-    settingsSubmodalReturnFocus = document.activeElement;
-}
-function closeSettingsSubmodal(modal) {
-    if (!modal) return;
-    modal.hidden = true;
-    if (settingsSubmodalReturnFocus && document.contains(settingsSubmodalReturnFocus)) {
-        settingsSubmodalReturnFocus.focus();
-    }
-    settingsSubmodalReturnFocus = null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -316,7 +333,7 @@ function bindSettingsHandlers() {
         const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
         if (el.settingsFlyout.contains(e.target) || path.includes(el.settingsFlyout)) return;
         if (e.target.closest('#settings-btn')) return;
-        if (e.target.closest('#prompt-help-modal, #prompt-preview-modal, #sampler-help-modal, #regex-help-modal, #api-help-modal, #lorebook-help-modal, #summary-help-modal')) return;
+        if (e.target.closest('.settings-submodal')) return;
         closeSettingsFlyout();
     });
 
@@ -452,8 +469,8 @@ function bindSettingsHandlers() {
         setAdvancedConfigurationVisible(true);
     });
     el.syspromptPreview?.addEventListener('click', () => {
-        rememberSettingsSubmodalTrigger();
         previewSystemPrompt();
+        openSettingsSubmodal(el.promptPreviewModal);
     });
     el.promptRenderedBtn?.addEventListener('click', e => {
         // The outside-click handler below would otherwise close it right away.
@@ -464,10 +481,6 @@ function bindSettingsHandlers() {
     document.addEventListener('click', e => {
         if (el.promptRenderedFlyout?.hidden !== false) return;
         if (!e.target.closest('#prompt-rendered-flyout')) closeRenderedPrompts();
-    });
-    el.syspromptHelp?.addEventListener('click', () => {
-        rememberSettingsSubmodalTrigger();
-        if (el.promptHelpModal) el.promptHelpModal.hidden = false;
     });
     // Import / export dropdown
     const closeSyspromptIoMenu = () => {
@@ -490,18 +503,6 @@ function bindSettingsHandlers() {
     el.syspromptImportFile?.addEventListener('change', handleSystemPromptImportFile);
     el.syspromptExport?.addEventListener('click', () => { closeSyspromptIoMenu(); exportSystemPrompt(); });
     el.promptPreviewExport?.addEventListener('click', exportPreviewPayload);
-    el.promptPreviewClose?.addEventListener('click', () => {
-        closeSettingsSubmodal(el.promptPreviewModal);
-    });
-    el.promptPreviewModal?.addEventListener('click', e => {
-        if (e.target === el.promptPreviewModal) closeSettingsSubmodal(el.promptPreviewModal);
-    });
-    el.promptHelpClose?.addEventListener('click', () => {
-        closeSettingsSubmodal(el.promptHelpModal);
-    });
-    el.promptHelpModal?.addEventListener('click', e => {
-        if (e.target === el.promptHelpModal) closeSettingsSubmodal(el.promptHelpModal);
-    });
     // Regex output filters
     el.regexPresetSelect?.addEventListener('change', () => {
         void selectRegexPreset(el.regexPresetSelect.value);
@@ -533,59 +534,18 @@ function bindSettingsHandlers() {
     el.regexImport?.addEventListener('click', () => { closeRegexIoMenu(); importRegexPreset(); });
     el.regexImportFile?.addEventListener('change', handleRegexImportFile);
     el.regexExport?.addEventListener('click', () => { closeRegexIoMenu(); void exportRegexPreset(); });
-    el.regexHelpBtn?.addEventListener('click', () => {
-        rememberSettingsSubmodalTrigger();
-        if (el.regexHelpModal) el.regexHelpModal.hidden = false;
-    });
-    el.regexHelpClose?.addEventListener('click', () => {
-        closeSettingsSubmodal(el.regexHelpModal);
-    });
-    el.regexHelpModal?.addEventListener('click', e => {
-        if (e.target === el.regexHelpModal) closeSettingsSubmodal(el.regexHelpModal);
-    });
-
-    el.samplerHelpBtn?.addEventListener('click', () => {
-        rememberSettingsSubmodalTrigger();
-        if (el.samplerHelpModal) el.samplerHelpModal.hidden = false;
-    });
-    el.samplerHelpClose?.addEventListener('click', () => {
-        closeSettingsSubmodal(el.samplerHelpModal);
-    });
-    el.samplerHelpModal?.addEventListener('click', e => {
-        if (e.target === el.samplerHelpModal) closeSettingsSubmodal(el.samplerHelpModal);
-    });
-
-    el.apiHelpBtn?.addEventListener('click', () => {
-        rememberSettingsSubmodalTrigger();
-        if (el.apiHelpModal) el.apiHelpModal.hidden = false;
-    });
-    el.apiHelpClose?.addEventListener('click', () => {
-        closeSettingsSubmodal(el.apiHelpModal);
-    });
-    el.apiHelpModal?.addEventListener('click', e => {
-        if (e.target === el.apiHelpModal) closeSettingsSubmodal(el.apiHelpModal);
-    });
-
-    el.lorebookHelpBtn?.addEventListener('click', () => {
-        rememberSettingsSubmodalTrigger();
-        if (el.lorebookHelpModal) el.lorebookHelpModal.hidden = false;
-    });
-    el.lorebookHelpClose?.addEventListener('click', () => {
-        closeSettingsSubmodal(el.lorebookHelpModal);
-    });
-    el.lorebookHelpModal?.addEventListener('click', e => {
-        if (e.target === el.lorebookHelpModal) closeSettingsSubmodal(el.lorebookHelpModal);
-    });
-
-    el.summaryHelpBtn?.addEventListener('click', () => {
-        rememberSettingsSubmodalTrigger();
-        if (el.summaryHelpModal) el.summaryHelpModal.hidden = false;
-    });
-    el.summaryHelpClose?.addEventListener('click', () => {
-        closeSettingsSubmodal(el.summaryHelpModal);
-    });
-    el.summaryHelpModal?.addEventListener('click', e => {
-        if (e.target === el.summaryHelpModal) closeSettingsSubmodal(el.summaryHelpModal);
+    // Every help panel opens and closes the same way, so the markup carries the
+    // wiring: data-help names the panel to open, data-submodal-close is the
+    // header X. The request preview shares the close half.
+    document.addEventListener('click', e => {
+        const opener = e.target.closest('[data-help]');
+        if (opener) {
+            openSettingsSubmodal(document.getElementById(opener.dataset.help));
+            return;
+        }
+        if (e.target.closest('[data-submodal-close]')) {
+            closeSettingsSubmodal(e.target.closest('.settings-submodal'));
+        }
     });
 
     // Sampler configure popover
@@ -734,6 +694,11 @@ function bindChatHandlers() {
             e.preventDefault();
             e.stopPropagation();
             stopGeneration();
+            return;
+        }
+        if (settingsSubmodal) {
+            e.preventDefault();
+            closeSettingsSubmodal(settingsSubmodal);
             return;
         }
         if (el.promptRenderedFlyout?.hidden === false) {
