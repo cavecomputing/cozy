@@ -27,7 +27,7 @@ import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
     updateSystemPromptContent, syncActivePromptFromEditors,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
-    exportSystemPrompt, switchPromptBuilderMode, initPromptVarsPanel,
+    exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, initPromptVarsPanel,
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
@@ -208,19 +208,6 @@ function bindResponsiveShellHandlers() {
     }
     handleMobileModals(mobileQuery);
     mobileQuery.addEventListener('change', handleMobileModals);
-
-    // Keep flyout bottom edge aligned with chat scroll area.
-    // Containing block is sidebar's padding box (inside border), so subtract
-    // both the bottom margin and bottom border of the sidebar.
-    const sidebarStyle = getComputedStyle(el.sidebar);
-    const sidebarBottomOffset = parseFloat(sidebarStyle.marginBottom)
-                              + parseFloat(sidebarStyle.borderBottomWidth);
-    function updateModalBottom() {
-        const offset = el.inputContainer.offsetHeight - sidebarBottomOffset;
-        document.documentElement.style.setProperty('--modal-bottom-offset', `${offset}px`);
-    }
-    new ResizeObserver(updateModalBottom).observe(el.inputContainer);
-    updateModalBottom();
 }
 
 function bindSheetBackdropHandlers() {
@@ -502,6 +489,7 @@ function bindSettingsHandlers() {
     el.syspromptImport?.addEventListener('click', () => { closeSyspromptIoMenu(); importSystemPrompt(); });
     el.syspromptImportFile?.addEventListener('change', handleSystemPromptImportFile);
     el.syspromptExport?.addEventListener('click', () => { closeSyspromptIoMenu(); exportSystemPrompt(); });
+    el.promptPreviewExport?.addEventListener('click', exportPreviewPayload);
     el.promptPreviewClose?.addEventListener('click', () => {
         closeSettingsSubmodal(el.promptPreviewModal);
     });

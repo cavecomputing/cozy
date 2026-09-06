@@ -186,6 +186,20 @@ export function previewSystemPrompt() {
     if (el.promptPreviewModal) el.promptPreviewModal.hidden = false;
 }
 
+/** Download the request preview as shown, formatted JSON. */
+export function exportPreviewPayload() {
+    const shown = (el.promptPreviewContent?.textContent || '').trim();
+    const text = shown || JSON.stringify(previewChatPayload(), null, 2);
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'request-preview.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
 // ── Filled-in preview flyout ───────────────────────────────────────────────
 // The two templates as the request builder's own analysis pass renders them —
 // nothing is resolved a second time here. Scoped to the templates on purpose:

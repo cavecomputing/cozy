@@ -1843,14 +1843,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     pointer-events: auto;
 }
 
-/* This modal stops above the input bar — JS sets --modal-bottom-offset.
-   Settings and the character editor are omitted on purpose: they extend all
-   the way down to the sidebar's bottom border (which is level with the input
-   box bottom) for more vertical room. */
-#prompt-preview-modal.modal-overlay {
-    bottom: var(--modal-bottom-offset, 4.25rem);
-}
-
 /* Character editor — wider than the 380px .modal base so card fields
    have more room to breathe. Desktop-only: the ID selector outranks the
    mobile breakpoint's `.modal-overlay > .modal { width: 100% }`, so an
@@ -2993,8 +2985,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .prompt-preview-content {
     white-space: pre-wrap;
     word-break: break-word;
-    max-height: 60vh;
-    overflow-y: auto;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.78rem;
     line-height: 1.5;

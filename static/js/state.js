@@ -136,6 +136,7 @@ export function initElements() {
         promptRenderedClose:  document.getElementById('prompt-rendered-close'),
         promptPreviewModal:   document.getElementById('prompt-preview-modal'),
         promptPreviewContent: document.getElementById('prompt-preview-content'),
+        promptPreviewExport:  document.getElementById('prompt-preview-export'),
         promptPreviewClose:   document.getElementById('prompt-preview-close'),
         promptHelpModal:   document.getElementById('prompt-help-modal'),
         promptHelpClose:   document.getElementById('prompt-help-close'),
