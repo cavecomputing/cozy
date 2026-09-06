@@ -19,11 +19,11 @@ are never rewritten.
 There is no undo. A filter rewrites the saved message, so use the **Test** box
 to check a pattern before it runs on a real reply.
 
-Ticking **Display only** on a filter changes all of that — see below.
+Turning on **Display only** for a filter changes all of that — see below.
 
 ## Display-only filters
 
-Each filter has a **Display only** checkbox. With it on, the filter moves to
+Each filter has a **Display only** switch. With it on, the filter moves to
 render time: it rewrites the message on screen and nothing else. The stored
 message keeps the model's original words, so that is what the edit box shows,
 what is exported, and what goes back to the model next turn.
