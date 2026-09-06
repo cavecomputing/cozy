@@ -1581,6 +1581,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 #user-input::placeholder {
     color: var(--text-secondary);
     opacity: 1;   /* Firefox dims placeholders by default; --text-secondary is already the quiet tier. */
+    /* The textarea starts one row tall, so a placeholder that wraps has its
+       second line cut in half. Truncate instead — a long character name can
+       still outrun the box on a phone even without the slash hint. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #user-input:disabled {

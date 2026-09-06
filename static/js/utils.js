@@ -3,6 +3,12 @@ import { state, el, llm, SEND_SVG, STOP_SVG } from './state.js';
 // ═══════════════════════════════════════════════════════════════════════════
 // UTILITY
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * The shell breakpoint. Below it the sidebar, the modals and the composer
+ * flyouts all switch to their mobile arrangement.
+ */
+export const MOBILE_SHELL_QUERY = '(max-width: 768px)';
 export function autoResize(textarea) {
     textarea.style.height = 'auto';
     textarea.style.height = (textarea.scrollHeight + 2) + 'px';
@@ -292,9 +298,12 @@ export function updateComposerState() {
     el.userInput.disabled = !hasChat;
     if (hasChat) {
         const name = state.activeCharacter?.name || 'this character';
+        // The composer is barely 200px wide on a phone, where the slash hint
+        // wraps to a line the one-row textarea has no height to show.
+        const hint = window.matchMedia(MOBILE_SHELL_QUERY).matches ? '' : ' (type / for commands)';
         el.userInput.placeholder = llm.abortController
             ? 'Generating response...'
-            : `Message ${name}... (type / for commands)`;
+            : `Message ${name}...${hint}`;
     } else if (state.activeCharacter) {
         el.userInput.placeholder = 'Create or select a chat to start messaging';
     } else {

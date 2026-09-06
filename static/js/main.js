@@ -5,7 +5,7 @@ import { state, el, llm, initElements } from './state.js';
 import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
-    debounce, updateComposerState, copyText, stopGeneration,
+    debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
@@ -100,7 +100,6 @@ function loadPrefs() {
 // ═══════════════════════════════════════════════════════════════════════════
 // SETTINGS NAV (macOS-style two-pane)
 // ═══════════════════════════════════════════════════════════════════════════
-const MOBILE_SHELL_QUERY = '(max-width: 768px)';
 const isMobileSettings = () => window.matchMedia(MOBILE_SHELL_QUERY).matches;
 
 function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
@@ -222,6 +221,8 @@ function bindResponsiveShellHandlers() {
             // Desktop popovers anchor absolutely to #input-wrapper
             sheets.forEach(s => el.inputWrapper?.appendChild(s));
         }
+        // The composer placeholder carries the slash hint on desktop only.
+        updateComposerState();
     }
     handleMobileModals(mobileQuery);
     mobileQuery.addEventListener('change', handleMobileModals);

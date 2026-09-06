@@ -24,6 +24,9 @@ SEND_GUARD_SETUP = r"""
         createElement: stubEl,
         getElementById: stubEl,
     };
+    // updateComposerState checks the shell breakpoint to decide whether the
+    // placeholder has room for the slash hint.
+    globalThis.window = { matchMedia: () => ({ matches: false }) };
     Object.assign(el, {
         userInput: {
             value: 'hello there', disabled: false, placeholder: '',
