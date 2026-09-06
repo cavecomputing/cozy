@@ -7,6 +7,15 @@
        measure: ~78 characters per line of message prose, near the top of the
        comfortable 45–75 range for the long replies this app is built to read. */
     --chat-max-width: 44rem;
+    /* Three transition speeds, in place of the nine that had accumulated
+       between 0.1s and 0.4s. Fast is pointer feedback and popovers, base is a
+       colour or border settling into a new state, slow is something moving
+       across the screen. Spinners, the context-boundary flash and the typing
+       bounce keep their own timings: those are periods and attention cues,
+       not state changes. */
+    --motion-fast: 0.12s;
+    --motion-base: 0.18s;
+    --motion-slow: 0.3s;
     --mobile-inline-padding: 0.75rem;
     --mobile-header-height: 52px;
     --mobile-tap-target: 44px;
@@ -69,7 +78,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.4s ease;
+    transition: opacity var(--motion-slow) ease;
 }
 #loading-screen.fade-out {
     opacity: 0;
@@ -109,7 +118,7 @@ body {
     overflow: visible;   /* allow the profile dropup to escape the card */
     display: flex;
     flex-direction: column;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .icon-btn {
@@ -122,7 +131,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, color 0.2s, transform 0.1s;
+    transition: background var(--motion-base), color var(--motion-base), transform var(--motion-fast);
 }
 
 .icon-btn:hover {
@@ -250,7 +259,7 @@ body {
     padding: 0;
     border-radius: var(--radius-md);
     margin-bottom: 0.25rem;
-    transition: all 0.2s ease;
+    transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease;
     color: var(--text-secondary);
     font-size: 0.9rem;
     font-weight: 500;
@@ -384,7 +393,7 @@ body {
     color: var(--text-secondary);
     margin-bottom: 0.25rem;
     position: relative;
-    transition: all 0.2s ease;
+    transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
     min-width: 0;
 }
 
@@ -459,7 +468,7 @@ body {
     margin-left: 4px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.12s;
+    transition: opacity var(--motion-fast);
 }
 
 .chat-item:hover .chat-item-actions,
@@ -539,7 +548,7 @@ body {
     padding: 0.45rem 0.6rem;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background var(--motion-base);
 }
 
 #user-profile:hover {
@@ -577,7 +586,7 @@ body {
     border-radius: var(--radius-sm);
     cursor: pointer;
     color: var(--text-secondary);
-    transition: background 0.2s, color 0.2s;
+    transition: background var(--motion-base), color var(--motion-base);
 }
 
 .profile-settings-btn:hover {
@@ -704,7 +713,7 @@ body {
     cursor: pointer;
     font-size: 0.9rem;
     color: var(--text-color);
-    transition: background 0.2s;
+    transition: background var(--motion-base);
 }
 
 .persona-option:hover {
@@ -853,7 +862,7 @@ body {
 .persona-edit-btn,
 .persona-delete-btn {
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity var(--motion-base);
     padding: 2px !important;
 }
 
@@ -936,7 +945,7 @@ body {
     justify-content: center;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity var(--motion-base) ease, transform var(--motion-base) ease;
     z-index: 10;
     box-shadow: var(--scroll-bottom-shadow, 0 2px 8px rgba(0, 0, 0, 0.25));
 }
@@ -1322,7 +1331,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 4px 5px;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
+    transition: background-color var(--motion-base), color var(--motion-base);
     line-height: 1;
 }
 
@@ -1352,7 +1361,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 3px 4px;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
+    transition: background-color var(--motion-base), color var(--motion-base);
     line-height: 1;
 }
 
@@ -1502,7 +1511,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
        composer's popovers (slash menu, chat flyout), which are trapped in this
        wrapper's stacking context and cannot outrank it from the inside. */
     z-index: 2;
-    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    transition: border-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
 }
 
 #input-wrapper:focus-within {
@@ -1649,7 +1658,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border-right: 1px solid color-mix(in srgb, var(--bg-color) 46%, transparent);
     border-radius: 0;
     cursor: help;
-    transition: filter 0.12s ease, opacity 0.12s ease;
+    transition: filter var(--motion-fast) ease, opacity var(--motion-fast) ease;
 }
 
 .context-meter-segment:last-child { border-right: 0; }
@@ -1707,7 +1716,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-sm);
-    transition: all 0.2s;
+    transition: background-color var(--motion-base), color var(--motion-base), opacity var(--motion-base);
     flex-shrink: 0;
 }
 
@@ -1784,7 +1793,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 /* Expandable message avatars */
 .message-container .avatar[data-has-image="true"] {
     cursor: pointer;
-    transition: width 0.25s ease, height 0.25s ease, background-size 0.25s ease, border-radius 0.25s ease;
+    transition: width var(--motion-slow) ease, height var(--motion-slow) ease, background-size var(--motion-slow) ease, border-radius var(--motion-slow) ease;
 }
 
 .message-container .avatar.avatar-expanded {
@@ -1804,7 +1813,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.18s, color 0.18s, opacity 0.18s;
+    transition: background var(--motion-base), color var(--motion-base), opacity var(--motion-base);
     white-space: nowrap;
 }
 
@@ -2051,7 +2060,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     position: sticky;
     top: 0;
     z-index: 5;
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow var(--motion-base) ease;
 }
 
 /* Lift the pinned header off the cards once the pane scrolls. Toggled by
@@ -2796,7 +2805,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border-radius: var(--radius-sm);
     color: var(--text-color);
     text-decoration: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color var(--motion-base) ease, border-color var(--motion-base) ease;
 }
 
 .settings-section[data-section="about"] a.about-link:hover {
@@ -2918,7 +2927,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.05rem 0.3rem;
     white-space: nowrap;
     cursor: copy;
-    transition: border-color 0.12s ease, color 0.12s ease;
+    transition: border-color var(--motion-fast) ease, color var(--motion-fast) ease;
 }
 .settings-help-vars dt code:hover {
     border-color: var(--accent-color);
@@ -2996,7 +3005,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     white-space: normal;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.12s ease;
+    transition: opacity var(--motion-fast) ease;
 }
 
 .help-tip-portal--visible {
@@ -3184,7 +3193,7 @@ input[type="checkbox"] {
     position: relative;
     flex-shrink: 0;
     vertical-align: middle;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition: border-color var(--motion-base) ease, background-color var(--motion-base) ease;
 }
 /* The knob. 12px inside a 32px track leaves 2px of padding at either end, so
    the travel is exactly 16px. */
@@ -3198,7 +3207,7 @@ input[type="checkbox"]::after {
     margin-top: -6px;
     border-radius: 50%;
     background-color: var(--text-secondary);
-    transition: transform 0.15s ease, background-color 0.15s ease;
+    transition: transform var(--motion-base) ease, background-color var(--motion-base) ease;
 }
 input[type="checkbox"]:hover {
     border-color: var(--accent-color);
@@ -3262,7 +3271,7 @@ input[type="checkbox"]:disabled {
     padding: 0.25rem 0;
     opacity: 1;
     transform: translateY(0);
-    transition: opacity 0.12s ease-out, transform 0.12s ease-out;
+    transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
 }
 
 .model-picker-menu[hidden] {
@@ -3357,7 +3366,7 @@ input[type="checkbox"]:disabled {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
     opacity: 1;
     transform: translateY(0);
-    transition: opacity 0.12s ease-out, transform 0.12s ease-out;
+    transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
 }
 .cozy-select-menu[hidden] {
     display: block;
@@ -3407,7 +3416,7 @@ input[type="checkbox"]:disabled {
     font-weight: 500;
     color: var(--text-secondary);
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity var(--motion-slow) ease;
     white-space: nowrap;
     margin-right: 0.25rem;
 }
@@ -3494,7 +3503,7 @@ input[type="checkbox"]:disabled {
 .export-trigger-chevron {
     margin-left: 0.1rem;
     opacity: 0.7;
-    transition: transform 0.15s ease;
+    transition: transform var(--motion-base) ease;
 }
 
 .export-dropdown.open .export-trigger-chevron {
@@ -3597,7 +3606,7 @@ input[type="checkbox"]:disabled {
     justify-content: center;
     opacity: 0;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: opacity var(--motion-base);
 }
 
 .modal-avatar-wrap:hover .avatar-change-label {
@@ -3662,7 +3671,7 @@ input[type="checkbox"]:disabled {
     color: var(--text-secondary);
     cursor: pointer;
     margin-bottom: -1px;
-    transition: color 0.18s, border-color 0.18s;
+    transition: color var(--motion-base), border-color var(--motion-base);
 }
 
 .tab-btn:hover {
@@ -3734,7 +3743,7 @@ input[type="checkbox"]:disabled {
     line-height: 1.4;
     outline: none;
     box-shadow: var(--input-shadow, none);
-    transition: border-color 0.18s, box-shadow 0.18s;
+    transition: border-color var(--motion-base), box-shadow var(--motion-base);
 }
 
 .form-input:focus,
@@ -3807,7 +3816,7 @@ input[type="checkbox"]:disabled {
     padding: 0.4rem 0.6rem;
     cursor: text;
     box-shadow: var(--input-shadow, none);
-    transition: border-color 0.18s, box-shadow 0.18s;
+    transition: border-color var(--motion-base), box-shadow var(--motion-base);
     min-height: 40px;
 }
 
@@ -3845,7 +3854,7 @@ input[type="checkbox"]:disabled {
     font-size: 0.9rem;
     line-height: 1;
     opacity: 0.7;
-    transition: opacity 0.15s;
+    transition: opacity var(--motion-base);
 }
 
 .tag-chip-remove:hover {
@@ -3882,7 +3891,7 @@ input[type="checkbox"]:disabled {
     padding: 0.25rem 0;
     opacity: 1;
     transform: translateY(0);
-    transition: opacity 0.12s ease-out, transform 0.12s ease-out;
+    transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
 }
 .sampler-popover[hidden] {
     /* Override default `display:none` so we can fade out smoothly */
@@ -4192,13 +4201,13 @@ input[type="checkbox"]:disabled {
     font-size: 0.75rem;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background var(--motion-base);
 }
 
 .thinking-toggle:hover { background-color: var(--hover-bg); }
 
 .thinking-toggle .chevron {
-    transition: transform 0.15s;
+    transition: transform var(--motion-base);
     font-size: 0.6rem;
 }
 
@@ -4297,7 +4306,7 @@ input[type="checkbox"]:disabled {
         transform: translateX(-100%);
         visibility: hidden;
         pointer-events: none;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-md);
     }
 
@@ -4888,7 +4897,7 @@ input[type="checkbox"]:disabled {
     font-size: 0.8rem;
     font-family: inherit;
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color var(--motion-base) ease;
 }
 .lorebook-flyout-manage svg { width: 15px; height: 15px; }
 .lorebook-flyout-manage:hover { background-color: var(--hover-bg); }
@@ -5186,7 +5195,7 @@ input[type="checkbox"]:disabled {
     margin-bottom: 2px;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color var(--motion-base) ease;
 }
 .lorebook-list-item:hover { background-color: var(--hover-bg); }
 .lorebook-list-item.active {
@@ -5248,7 +5257,7 @@ input[type="checkbox"]:disabled {
     flex-shrink: 0;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.12s ease;
+    transition: opacity var(--motion-fast) ease;
 }
 .lorebook-list-item:hover .lorebook-list-actions,
 .lorebook-list-item:focus-within .lorebook-list-actions {
@@ -5699,5 +5708,22 @@ input[type="checkbox"]:disabled {
     .settings-card-header--with-action {
         flex-direction: column;
         align-items: stretch;
+    }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Last in the file so it wins over every animation and transition above.
+   Durations collapse to a near-zero value rather than `none` so that anything
+   watching for transitionend still has a transition to end. Nothing is allowed
+   to depend on that alone — the loading screen, the one place that did, now
+   drops on a timer too (main.js). */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }

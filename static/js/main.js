@@ -1115,7 +1115,13 @@ init().then(() => {
     const loader = document.getElementById('loading-screen');
     if (loader) {
         loader.classList.add('fade-out');
-        loader.addEventListener('transitionend', () => loader.remove());
+        // transitionend on its own is not safe for a full-screen overlay: under
+        // prefers-reduced-motion the fade collapses to a near-zero duration, and
+        // a browser that rounds that away fires no event and leaves the loading
+        // screen covering the app forever. Drop it on a timer as well.
+        const drop = () => loader.remove();
+        loader.addEventListener('transitionend', drop, { once: true });
+        setTimeout(drop, 600);
     }
     // Land in the composer on desktop, ready to type into the restored chat.
     // Skipped on touch shells, where focusing throws up the keyboard over the
