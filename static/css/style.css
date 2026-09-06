@@ -2103,6 +2103,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .settings-section:has(.settings-section-stack) > .settings-section-body {
     padding-inline: max(0.75rem, (100% - 46rem) / 2);
 }
+/* The one stacked card on a page that is otherwise two-column, so it misses
+   the rule above and would stretch its two rows across the whole pane. */
+#lorebook-overrides-card {
+    max-width: 46rem;
+}
 
 .settings-card {
     background-color: var(--app-bg);
