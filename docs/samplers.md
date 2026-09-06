@@ -10,14 +10,14 @@ Start with the defaults. Change one setting at a time.
 
 ## Core settings
 
-Temperature, Top-P and Min-P are shown on a fresh install. The rest of this
+Temperature and Min-P are shown on a fresh install. The rest of this
 table is a core sampler you have to switch on first — open **Settings → API →
 Samplers → Active samplers**.
 
 | Setting | Default | Shown by default | What it changes |
 |---|---:|:---:|---|
 | Temperature | 1.0 | yes | Higher values add variation. Lower values are more predictable. |
-| Top-P | 0.95 | yes | Limits choices to tokens inside a cumulative probability threshold. `1.0` disables the filter on most servers. |
+| Top-P | 0.95 | no | Limits choices to tokens inside a cumulative probability threshold. `1.0` disables the filter on most servers. |
 | Min-P | 0.05 | yes | Removes tokens that are too unlikely compared with the best token. `0` usually disables it. |
 | Top-K | 0 | no | Limits choices to the K most likely tokens. `0` usually disables it. |
 | Repetition penalty | 1.0 | no | Reduces repeated tokens. `1.0` disables the penalty. |

@@ -85,7 +85,7 @@ for (const [group, info] of Object.entries(SAMPLER_GROUPS)) {
 }
 
 export const DEFAULT_ACTIVE_GROUPS = new Set([
-    'temperature', 'top_p', 'min_p',
+    'temperature', 'min_p',
 ]);
 
 export const CORE_GROUPS = new Set([
