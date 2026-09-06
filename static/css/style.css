@@ -2090,6 +2090,20 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.9rem 0.75rem 1rem;
 }
 
+/* Bound the measure on the stacked-form pages. Their rows are label-left /
+   control-right with space-between, so on a wide pane the two ends of one
+   setting drift hundreds of pixels apart. Prompt and Lorebooks are two-column
+   layouts that want the whole pane, so they are left out by the :has() test —
+   the API page is in because its samplers sit below a stack.
+   Padding rather than max-width, so the sticky header keeps its full-bleed
+   rule while its text lines up with the cards below. */
+.settings-section:has(.settings-section-stack) > .settings-page-header {
+    padding-inline: max(1rem, (100% - 46rem) / 2);
+}
+.settings-section:has(.settings-section-stack) > .settings-section-body {
+    padding-inline: max(0.75rem, (100% - 46rem) / 2);
+}
+
 .settings-card {
     background-color: var(--app-bg);
     border: 1px solid var(--border-color);
