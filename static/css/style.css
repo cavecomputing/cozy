@@ -3152,20 +3152,38 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 /* Themed checkboxes — apply app-wide so every <input type="checkbox"> picks
    up the active theme's accent color and border. The check glyph uses
    mask-image so its color tracks --btn-primary-color across themes. */
+/* Every on/off control in the app is this pill switch: settings rows, lorebook
+   entry flags, regex flags, sampler toggles, and the Auto Summary switch in the
+   memory flyout, which used to be the only one drawn this way. Styling the bare
+   input keeps it that way with no wrapper markup at any call site. */
 input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 34px;
+    height: 18px;
     margin: 0;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 999px;
     background-color: var(--input-bg);
     cursor: pointer;
     position: relative;
     flex-shrink: 0;
     vertical-align: middle;
     transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+/* The knob. 12px inside a 32px track leaves 2px of padding at either end, so
+   the travel is exactly 16px. */
+input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background-color: var(--text-secondary);
+    transition: transform 0.15s ease, background-color 0.15s ease;
 }
 input[type="checkbox"]:hover {
     border-color: var(--accent-color);
@@ -3179,15 +3197,8 @@ input[type="checkbox"]:checked {
     border-color: var(--accent-color);
 }
 input[type="checkbox"]:checked::after {
-    content: '';
-    position: absolute;
-    inset: 0;
+    transform: translateX(16px);
     background-color: var(--btn-primary-color, #fff);
-    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
-            mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
-    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-    -webkit-mask-position: center; mask-position: center;
-    -webkit-mask-size: 70%; mask-size: 70%;
 }
 input[type="checkbox"]:disabled {
     opacity: 0.5;
@@ -4944,51 +4955,8 @@ input[type="checkbox"]:disabled {
 }
 
 /* Auto Summary card (memory flyout) */
-.memory-card-header .summary-switch {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
+.memory-card-header input[type="checkbox"] {
     margin-left: 0.35rem;
-}
-.summary-switch input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-.summary-switch-track {
-    display: inline-block;
-    width: 34px;
-    height: 18px;
-    border-radius: 999px;
-    background: var(--border-color);
-    position: relative;
-    transition: background 0.15s ease;
-}
-.summary-switch-track::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #fff;
-    transition: transform 0.15s ease;
-}
-.summary-switch input:checked + .summary-switch-track {
-    background: var(--accent-color);
-}
-.summary-switch input:checked + .summary-switch-track::after {
-    transform: translateX(16px);
-}
-.summary-switch input:focus-visible + .summary-switch-track {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 2px;
-}
-.summary-switch input:disabled + .summary-switch-track {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 .summary-status {
     font-size: 0.75rem;
