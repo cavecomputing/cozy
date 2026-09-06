@@ -90,6 +90,15 @@ The complete current variable list is in
 - Borders, shadows, and corner radius
 - Roleplay Markdown colors
 - User-message colors
+- Context token meter segments (`--meter-system-prompt`, `--meter-character-card`,
+  `--meter-persona`, `--meter-lorebook`, `--meter-author-note`,
+  `--meter-auto-summary`, `--meter-message-history`, `--meter-current-draft`,
+  `--meter-response-reserve`, `--meter-unused`)
+
+The meter needs nine colors that stay distinguishable from each other, more
+than a palette usually carries, so no built-in theme declares them and every
+theme falls back to a shared default set tuned for the dark signature theme.
+Declare them to retune the meter for a lighter or quieter palette.
 
 Theme files are intended to override CSS variables. Direct component selectors
 may break when Cozy's interface changes.

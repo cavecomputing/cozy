@@ -1663,18 +1663,22 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     outline-offset: -2px;
 }
 
-.context-meter-segment[data-source="system_prompt"]    { background: #8b5cf6; }
-.context-meter-segment[data-source="character_card"]   { background: #ec4899; }
-.context-meter-segment[data-source="persona"]          { background: #06b6d4; }
-.context-meter-segment[data-source="lorebook"]         { background: #22c55e; }
-.context-meter-segment[data-source="author_note"]      { background: #eab308; }
-.context-meter-segment[data-source="auto_summary"]     { background: #6366f1; }
-.context-meter-segment[data-source="message_history"]  { background: #3b82f6; }
-.context-meter-segment[data-source="current_draft"]    { background: #14b8a6; }
-.context-meter-segment[data-source="response_reserve"] { background: #f97316; }
-.context-meter-segment[data-source="unused"] {
-    background: color-mix(in srgb, var(--border-color) 70%, var(--bg-color));
-}
+/* The one place in the app that needs nine hues telling each other apart, more
+   than any theme's palette provides. The defaults below are tuned for the navy
+   signature theme and can shout on a light or pastel ground, so each is a
+   variable a theme may declare on :root to retune the meter to its own palette.
+   The hex is the fallback, not a declaration, which is what lets the theme —
+   loaded before this file — win. */
+.context-meter-segment[data-source="system_prompt"]    { background: var(--meter-system-prompt,    #8b5cf6); }
+.context-meter-segment[data-source="character_card"]   { background: var(--meter-character-card,   #ec4899); }
+.context-meter-segment[data-source="persona"]          { background: var(--meter-persona,          #06b6d4); }
+.context-meter-segment[data-source="lorebook"]         { background: var(--meter-lorebook,         #22c55e); }
+.context-meter-segment[data-source="author_note"]      { background: var(--meter-author-note,      #eab308); }
+.context-meter-segment[data-source="auto_summary"]     { background: var(--meter-auto-summary,     #6366f1); }
+.context-meter-segment[data-source="message_history"]  { background: var(--meter-message-history,  #3b82f6); }
+.context-meter-segment[data-source="current_draft"]    { background: var(--meter-current-draft,    #14b8a6); }
+.context-meter-segment[data-source="response_reserve"] { background: var(--meter-response-reserve, #f97316); }
+.context-meter-segment[data-source="unused"]           { background: var(--meter-unused, color-mix(in srgb, var(--border-color) 70%, var(--bg-color))); }
 
 .context-token-meter[data-level="warn"] .context-token-meter-track {
     box-shadow: inset 0 0 0 1px var(--warning-color, #b97a00);
