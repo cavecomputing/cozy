@@ -106,7 +106,7 @@
 
 *::-webkit-scrollbar-thumb {
     background-color: var(--border-color);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     border: 2px solid transparent;
     background-clip: padding-box;
 }
@@ -174,7 +174,7 @@ body {
     width: 240px;
     background-color: var(--sidebar-bg);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     margin: 0.625rem 0 0.625rem 0.625rem;
     z-index: 20;
     overflow: visible;   /* allow the profile dropup to escape the card */
@@ -189,7 +189,7 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     padding: 6px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -319,7 +319,7 @@ body {
     align-items: center;
     gap: 0.25rem;
     padding: 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     margin-bottom: 0.25rem;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease;
     color: var(--text-secondary);
@@ -356,7 +356,7 @@ body {
     min-width: 0;
     padding: 0.6rem 0.75rem;
     border: 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background: none;
     color: inherit;
     cursor: pointer;
@@ -450,7 +450,7 @@ body {
     align-items: center;
     gap: 0;
     padding: 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     font-size: var(--text-lg);
     color: var(--text-secondary);
     margin-bottom: 0.25rem;
@@ -481,7 +481,7 @@ body {
     min-width: 0;
     padding: 0.5rem 0.4rem 0.5rem 0.75rem;
     border: 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background: none;
     color: inherit;
     cursor: pointer;
@@ -542,7 +542,7 @@ body {
 .chat-item-actions .icon-btn,
 .char-item-actions .icon-btn {
     padding: 3px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
 }
 
 .chat-item-actions .icon-btn {
@@ -597,7 +597,7 @@ body {
     background-color: var(--bg-color);
     margin: 0 0.625rem 0.625rem;   /* matches sidebar's own outer margin */
     padding: 0.2rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-md);
     flex-shrink: 0;
@@ -608,7 +608,7 @@ body {
     align-items: center;
     gap: 0.6rem;
     padding: 0.45rem 0.6rem;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     cursor: pointer;
     transition: background var(--motion-base);
 }
@@ -645,7 +645,7 @@ body {
     padding: 0.35rem 0.6rem;
     border: none;
     background: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     cursor: pointer;
     color: var(--text-secondary);
     transition: background var(--motion-base), color var(--motion-base);
@@ -676,7 +676,7 @@ body {
     left: 0;
     right: 0;
     background-color: var(--bg-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     border: 1px solid var(--border-color);
     z-index: 100;
     padding: 0.5rem;
@@ -718,7 +718,7 @@ body {
         min-height: 172px;
         max-height: min(70vh, 520px);
         padding: 0;
-        border-radius: var(--radius-lg);
+        border-radius: var(--radius);
         box-shadow: var(--shadow-md);
         z-index: 500;
         overflow: hidden;
@@ -771,7 +771,7 @@ body {
     align-items: center;
     gap: 0.75rem;
     padding: 0.6rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     cursor: pointer;
     font-size: var(--text-xl);
     color: var(--text-color);
@@ -813,7 +813,7 @@ body {
 .persona-inline-form {
     padding: 0.5rem;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     margin: 0.35rem 0.25rem;
     background-color: var(--hover-bg);
 }
@@ -883,7 +883,7 @@ body {
     gap: 0.3rem;
     width: fit-content;
     padding: 0.08rem 0.35rem 0.08rem 0.25rem;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background-color: var(--active-bg);
     color: var(--accent-color);
     font-size: var(--text-2xs);
@@ -1030,7 +1030,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     min-height: 0;
 }
 
@@ -1061,7 +1061,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     display: flex;
     gap: 0.6rem;
     padding: 0.55rem 0.75rem;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     line-height: 1.45;
     position: relative;
     width: 100%;
@@ -1072,7 +1072,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .message .avatar {
     width: 46px;
     height: 46px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     margin-bottom: 0;
     font-size: var(--text-lg);
     align-self: flex-start;
@@ -1149,7 +1149,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 /* Markdown typography inside bubbles — RP-enhanced styles */
-.message-content img          { max-width: var(--img-max-width, 300px); height: auto; display: block; border-radius: var(--radius-sm); }
+.message-content img          { max-width: var(--img-max-width, 300px); height: auto; display: block; border-radius: var(--radius); }
 /* Wider than the 0.6em gap between lines, so a paragraph break reads as one. */
 .message-content p            { margin: 0 0 0.8em; }
 .message-content p:last-child { margin-bottom: 0; }
@@ -1213,7 +1213,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border-left: 3px solid var(--rp-quote-color);
     margin: 0.5em 0;
     padding: 0.4em 0.75em;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
     background-color: var(--rp-quote-bg);
     color: var(--rp-quote-color);
     font-style: italic;
@@ -1241,7 +1241,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     font-family: "Fira Code", "Cascadia Code", ui-monospace, monospace;
     font-size: 0.85em;
     padding: 0.15em 0.45em;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background-color: var(--code-bg);
     color: var(--rp-ooc-color);
     border: 1px solid var(--code-border);
@@ -1255,7 +1255,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 /* Code block — extended OOC / system text */
 .message-content pre {
     margin: 0.5em 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     overflow-x: auto;
     background-color: var(--pre-bg);
     border: 1px solid var(--pre-border);
@@ -1319,7 +1319,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     cursor: text;
     white-space: pre-wrap;
     background-color: var(--editable-bg);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 2px 4px;
     min-height: 1.5em;
 }
@@ -1389,7 +1389,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     justify-content: center;
     background: none;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 4px 5px;
     color: var(--text-secondary);
     cursor: pointer;
@@ -1419,7 +1419,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     justify-content: center;
     background: none;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 3px 4px;
     color: var(--text-secondary);
     cursor: pointer;
@@ -1482,7 +1482,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     max-width: 340px;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     z-index: 50;
     max-height: 240px;
     display: flex;
@@ -1560,7 +1560,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     position: relative;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     padding: 0.5rem 1rem;
     display: flex;
     align-items: center;
@@ -1591,7 +1591,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     z-index: 55;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     overflow: hidden;
     padding: 0.25rem;
@@ -1604,7 +1604,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .slash-command-item {
     width: 100%;
     border: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     background: none;
     color: var(--text-color);
     cursor: pointer;
@@ -1693,7 +1693,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex: 1;
     height: 8px;
     overflow: hidden;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background-color: var(--border-color);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-color) 12%, transparent);
 }
@@ -1777,7 +1777,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     transition: background-color var(--motion-base), color var(--motion-base), opacity var(--motion-base);
     flex-shrink: 0;
 }
@@ -1859,7 +1859,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 .message-container .avatar.avatar-expanded {
-    border-radius: 8px;
+    border-radius: var(--radius);
     filter: none;
 }
 
@@ -1869,7 +1869,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     align-items: center;
     gap: 0.4rem;
     padding: 0.45rem 1rem;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     border: none;
     font-family: inherit;
     font-size: var(--text-xl);
@@ -1906,7 +1906,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .btn-sm {
     padding: 0.3rem 0.65rem;
     font-size: var(--text-md);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
 }
 
 .add-btn {
@@ -1961,7 +1961,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.7rem 0.85rem;
     background: var(--accent-edit-bg, var(--code-bg));
     border-left: 3px solid var(--accent-color, var(--border-color));
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--text-color) !important;
     font-size: var(--text-lg);
 }
@@ -1996,7 +1996,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.6rem 0.8rem;
     background: var(--pre-bg);
     border: 1px solid var(--pre-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: var(--text-md);
     line-height: 1.5;
@@ -2032,7 +2032,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .modal {
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     width: 380px;
     height: 100%;
     display: flex;
@@ -2077,7 +2077,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.45rem 0.6rem;
     border: 0;
     background: transparent;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--text-color);
     cursor: pointer;
     font: inherit;
@@ -2218,7 +2218,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .preset-connection,
 .preset-context {
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 0.55rem 0.6rem;
 }
 .preset-connection {
@@ -2295,7 +2295,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .settings-card {
     background-color: var(--app-bg);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     padding: 0.75rem;
 }
 
@@ -2429,7 +2429,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     min-height: 0;
     overflow-y: auto;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 0.5rem 0.6rem;
     background: var(--input-bg);
 }
@@ -2490,7 +2490,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex-direction: column;
     background: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     animation: slideInRight 0.18s ease-out;
 }
@@ -2562,7 +2562,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.6rem 0.75rem;
     background: var(--pre-bg);
     border: 1px solid var(--pre-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--text-color);
 }
 .prompt-rendered-tag {
@@ -2580,7 +2580,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-secondary);
     padding: 0.6rem 0.75rem;
     border: 1px dashed var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
 }
 .prompt-section-right .prompt-builder-bar {
     flex: none;
@@ -2700,7 +2700,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     width: 72px;
     height: 72px;
     flex-shrink: 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     /* The mark is a dark rounded square, so it disappears into dark themes
        without an edge of its own. */
     border: 1px solid var(--border-color);
@@ -2801,7 +2801,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     overflow: hidden;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
 }
 
 .about-storage-segment {
@@ -2840,13 +2840,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.55rem 0.6rem;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
 }
 
 .about-storage-dot {
     width: 7px;
     height: 28px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
 }
 
 .about-storage-tile-body,
@@ -2905,7 +2905,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.55rem 0.6rem;
     background-color: color-mix(in srgb, var(--bg-color) 76%, transparent);
     border: 1px dashed var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
 }
 
 .about-storage-cache-icon {
@@ -2966,7 +2966,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.5rem 0.6rem;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--text-color);
     text-decoration: none;
     transition: background-color var(--motion-base) ease, border-color var(--motion-base) ease;
@@ -2990,7 +2990,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex-shrink: 0;
     width: 28px;
     height: 28px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     background-color: var(--accent-edit-bg, var(--hover-bg));
     color: var(--accent-color);
 }
@@ -3155,7 +3155,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     background: var(--bg-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     font-size: var(--text-md);
     font-weight: 400;
@@ -3180,7 +3180,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.85rem 1rem;
     background: var(--pre-bg);
     border: 1px solid var(--pre-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--text-color);
     margin: 0;
 }
@@ -3223,7 +3223,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .sampler-group {
     margin: 0.45rem -0.25rem;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     overflow: hidden;
 }
 .sampler-group[hidden] { display: none; }
@@ -3346,7 +3346,7 @@ input[type="checkbox"] {
     height: 18px;
     margin: 0;
     border: 1px solid var(--border-color);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background-color: var(--input-bg);
     cursor: pointer;
     position: relative;
@@ -3425,7 +3425,7 @@ input[type="checkbox"]:disabled {
     overflow-y: auto;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
     padding: 0.25rem 0;
     opacity: 1;
@@ -3521,7 +3521,7 @@ input[type="checkbox"]:disabled {
     list-style: none;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
     opacity: 1;
     transform: translateY(0);
@@ -3535,7 +3535,7 @@ input[type="checkbox"]:disabled {
 }
 .cozy-select-option {
     padding: 0.4rem 0.6rem;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     font-size: var(--text-lg);
     color: var(--text-color);
     cursor: pointer;
@@ -3589,7 +3589,7 @@ input[type="checkbox"]:disabled {
    so all three zones read alike. */
 .preset-samplers {
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 0.55rem 0.6rem;
     margin-top: 0.75rem;
 }
@@ -3620,7 +3620,7 @@ input[type="checkbox"]:disabled {
     margin: 0 -0.25rem;
     padding: 0.65rem 0.55rem;
     border: 1px dashed var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--text-secondary);
     background-color: var(--bg-color);
     font-size: var(--text-md);
@@ -3675,7 +3675,7 @@ input[type="checkbox"]:disabled {
     min-width: 152px;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     padding: 0.3rem;
     margin: 0;
     list-style: none;
@@ -3693,7 +3693,7 @@ input[type="checkbox"]:disabled {
     padding: 0.45rem 0.7rem;
     background: none;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     font-size: var(--text-lg);
     color: var(--text-color);
     cursor: pointer;
@@ -3744,7 +3744,7 @@ input[type="checkbox"]:disabled {
     width: 3.25rem;
     height: 3.25rem;
     font-size: var(--text-3xl);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     cursor: pointer;
 }
 
@@ -3755,7 +3755,7 @@ input[type="checkbox"]:disabled {
 .avatar-change-label {
     position: absolute;
     inset: 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background: var(--overlay-bg, rgba(0, 0, 0, 0.45));
     color: var(--overlay-color, white);
     display: flex;
@@ -3892,7 +3892,7 @@ input[type="checkbox"]:disabled {
     width: 100%;
     background-color: var(--input-bg);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 0.35rem 0.6rem;
     color: var(--text-color);
     font-family: inherit;
@@ -3969,7 +3969,7 @@ input[type="checkbox"]:disabled {
     gap: 0.4rem;
     background-color: var(--input-bg);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 0.4rem 0.6rem;
     cursor: text;
     box-shadow: var(--input-shadow, none);
@@ -3996,7 +3996,7 @@ input[type="checkbox"]:disabled {
     gap: 0.3rem;
     background-color: var(--active-bg);
     color: var(--accent-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 0.15rem 0.45rem;
     font-size: var(--text-md);
     font-weight: 500;
@@ -4043,7 +4043,7 @@ input[type="checkbox"]:disabled {
     min-width: 220px;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
     padding: 0.25rem 0;
     opacity: 1;
@@ -4082,7 +4082,7 @@ input[type="checkbox"]:disabled {
     width: 100%;
     background: none;
     border: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--text-secondary);
     cursor: pointer;
     font: inherit;
@@ -4096,7 +4096,7 @@ input[type="checkbox"]:disabled {
 }
 .sampler-help-section {
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     padding: 0.85rem 1rem;
     margin-top: 0.85rem;
 }
@@ -4164,7 +4164,7 @@ input[type="checkbox"]:disabled {
     color: var(--text-secondary);
     background-color: transparent;
     border: 1px solid var(--border-color);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 0.05rem 0.35rem;
     line-height: 1.3;
     cursor: help;
@@ -4245,7 +4245,7 @@ input[type="checkbox"]:disabled {
     width: min(92vw, 380px);
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     padding: 1rem 1.1rem;
     display: flex;
@@ -4294,7 +4294,7 @@ input[type="checkbox"]:disabled {
 .toast {
     pointer-events: none;
     padding: 0.6rem 1rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     font-size: var(--text-lg);
     animation: slideInRight 0.2s ease-out;
     max-width: 360px;
@@ -4308,7 +4308,7 @@ input[type="checkbox"]:disabled {
     display: block;
     margin-top: 0.45rem;
     border: 1px solid currentColor;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     background: transparent;
     color: inherit;
     font: inherit;
@@ -4357,7 +4357,7 @@ input[type="checkbox"]:disabled {
     gap: 0.35rem;
     background: none;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     padding: 0.2rem 0.5rem;
     font-size: var(--text-sm);
     color: var(--text-secondary);
@@ -4528,7 +4528,7 @@ input[type="checkbox"]:disabled {
         bottom: calc(100% + 0.55rem);
         max-height: min(46dvh, 360px);
         overflow-y: auto;
-        border-radius: var(--radius-lg);
+        border-radius: var(--radius);
         box-shadow: var(--shadow-md);
         z-index: 240;
     }
@@ -4636,7 +4636,7 @@ input[type="checkbox"]:disabled {
     }
     .settings-card {
         padding: 0.7rem;
-        border-radius: var(--radius-md);
+        border-radius: var(--radius);
     }
     .sampler-popover {
         max-width: calc(100vw - 1.5rem);
@@ -4729,12 +4729,12 @@ input[type="checkbox"]:disabled {
         padding: 0.55rem 0.65rem;
         gap: 0.5rem;
         font-size: var(--text-2xl);
-        border-radius: var(--radius-md);
+        border-radius: var(--radius);
     }
 
     .message.user {
         max-width: 100%;
-        border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
+        border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
     }
 
     .message.character {
@@ -4792,7 +4792,7 @@ input[type="checkbox"]:disabled {
         min-height: 52px;
         padding: 0.25rem 0.35rem;
         gap: 0.2rem;
-        border-radius: var(--radius-lg);
+        border-radius: var(--radius);
     }
 
     .composer-context-controls {
@@ -4883,7 +4883,7 @@ input[type="checkbox"]:disabled {
         min-width: 0;
         max-width: none;
         max-height: min(60dvh, 440px);
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        border-radius: var(--radius) var(--radius) 0 0;
         border-bottom: none;
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
         box-shadow: var(--shadow-md);
@@ -4907,7 +4907,7 @@ input[type="checkbox"]:disabled {
         flex-shrink: 0;
         width: 2.25rem;
         height: 4px;
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         background: var(--border-color);
         margin: 0.45rem auto 0.15rem;
     }
@@ -5015,7 +5015,7 @@ input[type="checkbox"]:disabled {
     padding: 0.4rem 0.75rem;
     background-color: var(--hover-bg);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     font-size: var(--text-lg);
     color: var(--text-secondary);
     /* Parent #input-container is pointer-events:none (so the area between
@@ -5053,7 +5053,7 @@ input[type="checkbox"]:disabled {
     padding: 0.55rem 0.75rem;
     background: none;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--accent-color);
     font-size: var(--text-md);
     font-family: inherit;
@@ -5134,7 +5134,7 @@ input[type="checkbox"]:disabled {
 }
 .memory-authornote-hint code {
     padding: 0.05rem 0.25rem;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     background: var(--active-bg);
     font-size: var(--text-sm);
 }
@@ -5198,7 +5198,7 @@ input[type="checkbox"]:disabled {
     align-items: baseline;
     gap: 0.4rem;
     padding: 0.2rem 0.15rem;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
 }
 .summary-line-text {
     font-size: var(--text-md);
@@ -5244,7 +5244,7 @@ input[type="checkbox"]:disabled {
 .lorebook-card {
     background-color: var(--app-bg);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     padding: 0.85rem 1rem;
     margin: 0 0.6rem;
 }
@@ -5347,7 +5347,7 @@ input[type="checkbox"]:disabled {
     min-height: 9rem;
     padding: 1rem;
     border: 1px dashed var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background-color: var(--bg-color);
     color: var(--text-secondary);
     text-align: center;
@@ -5397,7 +5397,7 @@ input[type="checkbox"]:disabled {
     overflow-y: auto;
     padding: 0.75rem;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background-color: var(--app-bg);
 }
 .lorebook-entry-empty {
@@ -5422,7 +5422,7 @@ input[type="checkbox"]:disabled {
 .lorebook-entry {
     border: 1px solid var(--border-color);
     border-left: 3px solid var(--accent-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     padding: 0.85rem 0.95rem;
     background-color: var(--bg-color);
     box-shadow: var(--shadow-md);
@@ -5560,7 +5560,7 @@ input[type="checkbox"]:disabled {
 .regex-filter-empty {
     padding: 1rem 0.85rem;
     border: 1px dashed var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     color: var(--text-secondary);
     font-size: var(--text-md);
     text-align: center;
@@ -5572,7 +5572,7 @@ input[type="checkbox"]:disabled {
     gap: 0.5rem;
     padding: 0.7rem 0.8rem;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background: var(--input-bg);
 }
 
@@ -5642,7 +5642,7 @@ input[type="checkbox"]:disabled {
 .regex-filter-flag code {
     padding: 0.05rem 0.28rem;
     border: 1px solid var(--code-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     background: var(--code-bg);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: var(--text-sm);
@@ -5697,7 +5697,7 @@ input[type="checkbox"]:disabled {
     overflow: auto;
     padding: 0.4rem 0.6rem;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     background: var(--pre-bg);
     color: var(--text-color);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -5758,7 +5758,6 @@ input[type="checkbox"]:disabled {
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
     --settings-warm: color-mix(in srgb, var(--rp-emphasis-color, var(--accent-color)) 65%, var(--text-color));
     --settings-cool: color-mix(in srgb, var(--rp-action-color, var(--accent-color)) 65%, var(--text-color));
-    --settings-radius: 12px;
     --settings-gutter: clamp(16px, 1.5vw, 24px);
 }
 #settings-flyout .settings-modal { container-type: inline-size; }
@@ -5766,7 +5765,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .settings-body { flex: 1; min-height: 0; overflow: hidden; padding: 0; }
 /* Floor stays above the widest row ("Regex" plus its ADV badge, ~156px). */
 #settings-flyout .settings-nav { width: clamp(160px, 14vw, 200px); padding: 10px 8px; gap: 3px; }
-#settings-flyout .settings-nav-item { min-height: 44px; padding: 8px 10px; gap: 10px; border-radius: 10px; }
+#settings-flyout .settings-nav-item { min-height: 44px; padding: 8px 10px; gap: 10px; border-radius: var(--radius); }
 #settings-flyout .settings-nav-item svg { width: 18px; height: 18px; }
 #settings-flyout .settings-nav-item.active {
     background: color-mix(in srgb, var(--settings-warm) 10%, var(--settings-surface));
@@ -5782,7 +5781,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .settings-section-body { max-width: none; }
 #settings-flyout #lorebook-overrides-card { max-width: none; }
 #settings-flyout .settings-card,
-#settings-flyout .lorebook-card { background: var(--settings-surface); border-color: var(--settings-line); border-radius: var(--settings-radius); padding: 12px; min-width: 0; }
+#settings-flyout .lorebook-card { background: var(--settings-surface); border-color: var(--settings-line); border-radius: var(--radius); padding: 12px; min-width: 0; }
 #settings-flyout .settings-card-header { margin: -12px -12px 0; padding: 10px 12px; border-color: var(--settings-line); }
 /* Section headers all read the same rank: warm, 15px. `.preset-subhead` (API)
    and `.lorebook-card-title` match these values in their own rules below. */
@@ -5792,7 +5791,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .settings-row-label { min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
 #settings-flyout .settings-hint { padding: 2px 0 6px; margin-inline: 0; max-width: 68ch; line-height: 1.45; }
 #settings-flyout .settings-row > .cozy-select { flex-basis: 200px; }
-#settings-flyout :is(.form-input, .form-textarea, .cozy-select-trigger) { min-width: 0; max-width: 100%; border-radius: 8px; }
+#settings-flyout :is(.form-input, .form-textarea, .cozy-select-trigger) { min-width: 0; max-width: 100%; border-radius: var(--radius); }
 #settings-flyout :is(.form-input, .cozy-select-trigger) { min-height: 38px; }
 #settings-flyout .icon-btn { min-width: 32px; min-height: 32px; flex-shrink: 0; }
 #settings-flyout :is(button, input, textarea, select, a):focus-visible { outline: 2px solid var(--accent-color); outline-offset: 3px; }
@@ -5831,7 +5830,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .preset-columns { display: contents; }
 #settings-flyout :is(.preset-connection, .preset-context, .preset-samplers) {
     background: var(--settings-surface); border: 1px solid var(--settings-line);
-    border-radius: var(--settings-radius); padding: 12px; margin: 0; max-width: none;
+    border-radius: var(--radius); padding: 12px; margin: 0; max-width: none;
 }
 #settings-flyout .preset-subhead {
     font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--settings-warm);
@@ -5852,7 +5851,7 @@ input[type="checkbox"]:disabled {
     #settings-flyout :is(.preset-select-row, .prompt-select-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     #settings-flyout :is(.preset-select-row, .prompt-select-row) > .cozy-select { grid-column: 1 / -1; }
     #settings-flyout :is(.preset-select-row, .prompt-select-row) > .icon-btn,
-    #settings-flyout .prompt-select-row .export-dropdown > .icon-btn { width: 100%; border: 1px solid var(--settings-line); border-radius: 8px; }
+    #settings-flyout .prompt-select-row .export-dropdown > .icon-btn { width: 100%; border: 1px solid var(--settings-line); border-radius: var(--radius); }
     #settings-flyout .preset-connection .settings-row { flex-direction: column; align-items: stretch; }
     #settings-flyout .preset-connection .settings-row > * { flex: auto; width: 100%; }
     #settings-flyout .sampler-card .settings-row { flex-wrap: wrap; gap: 2px 10px; }
@@ -5888,7 +5887,7 @@ input[type="checkbox"]:disabled {
     #settings-flyout .prompt-section-right .form-textarea { min-height: 180px; height: clamp(180px, calc(var(--settings-viewport-height, 100dvh) * 0.45), 360px); background: var(--input-bg); border: 1px solid var(--settings-line); padding: 12px; }
     #settings-flyout .prompt-section-right .form-textarea:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
     #settings-flyout .prompt-vars-panel { flex: none; padding: 0; }
-    #settings-flyout .prompt-vars-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 52px; border: 0; background: transparent; color: var(--settings-cool); font: inherit; padding: 14px 16px; border-radius: var(--settings-radius); }
+    #settings-flyout .prompt-vars-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 52px; border: 0; background: transparent; color: var(--settings-cool); font: inherit; padding: 14px 16px; border-radius: var(--radius); }
     #settings-flyout #prompt-vars-content { padding: 0 16px 16px; }
     #settings-flyout .prompt-vars-toggle[aria-expanded="false"] + #prompt-vars-content { display: none; }
     #settings-flyout .prompt-vars-title:first-child { display: none; }
@@ -5904,7 +5903,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .lorebook-card { margin: 0; }
 #settings-flyout .lorebook-card--workspace { padding: 0; border: 0; background: transparent; }
 #settings-flyout .lorebook-workspace-grid { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
-#settings-flyout .lorebook-region { min-width: 0; padding: 16px; border: 1px solid var(--settings-line); border-radius: var(--settings-radius); background: var(--settings-surface); }
+#settings-flyout .lorebook-region { min-width: 0; padding: 16px; border: 1px solid var(--settings-line); border-radius: var(--radius); background: var(--settings-surface); }
 #settings-flyout .lorebook-col-header { padding-bottom: 12px; margin-bottom: 12px; min-height: 44px; border-bottom: 1px solid var(--settings-line); flex-wrap: wrap; }
 #settings-flyout .lorebook-card-title { font-size: 15px; color: var(--settings-warm); text-transform: none; letter-spacing: 0; }
 #settings-flyout :is(.lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
@@ -5925,7 +5924,7 @@ input[type="checkbox"]:disabled {
     #settings-flyout .lorebook-entry-toggle { min-height: 44px; white-space: normal; }
 }
 #settings-flyout .regex-filters { gap: 16px; padding-top: 16px; }
-#settings-flyout .regex-filter { gap: 12px; padding: 14px; border-radius: 10px; background: var(--settings-surface-strong); }
+#settings-flyout .regex-filter { gap: 12px; padding: 14px; border-radius: var(--radius); background: var(--settings-surface-strong); }
 #settings-flyout .regex-filter.has-error { border-color: var(--danger-color); }
 #settings-flyout .regex-filter-error { color: var(--danger-color); }
 #settings-flyout .regex-filter-row { gap: 16px; }
@@ -5937,7 +5936,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .about-storage-grid { gap: 0; }
 #settings-flyout .about-storage-tile { min-height: 58px; border: 0; border-bottom: 1px solid var(--settings-line); border-radius: 0; background: transparent; }
 #settings-flyout .about-storage-cache { border: 0; background: transparent; padding-block: 16px; }
-#settings-flyout .about-link { min-height: 58px; border: 1px solid var(--settings-line); border-radius: var(--radius-sm); background: var(--bg-color); }
+#settings-flyout .about-link { min-height: 58px; border: 1px solid var(--settings-line); border-radius: var(--radius); background: var(--bg-color); }
 #settings-flyout .about-link-title { color: var(--accent-color); text-decoration: underline; text-underline-offset: 3px; }
 #settings-flyout .about-link:hover { background: var(--hover-bg); border-color: var(--accent-color); }
 #settings-flyout .about-storage-summary { padding-top: 16px; flex-wrap: wrap; }
@@ -6002,7 +6001,7 @@ input[type="checkbox"]:disabled {
    the source, character and entry-count detail carried on each option. */
 #settings-flyout .lorebook-picker :is(.cozy-select-value, .cozy-select-option) { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; white-space: normal; }
 #settings-flyout .lorebook-picker .cozy-select-label { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
-#settings-flyout .lorebook-picker .cozy-select-badge { flex: none; padding: 2px 6px; border: 1px solid var(--settings-line); border-radius: 5px; color: var(--settings-cool); background: var(--settings-surface-strong); font-size: 11px; font-weight: 600; }
+#settings-flyout .lorebook-picker .cozy-select-badge { flex: none; padding: 2px 6px; border: 1px solid var(--settings-line); border-radius: var(--radius); color: var(--settings-cool); background: var(--settings-surface-strong); font-size: 11px; font-weight: 600; }
 #settings-flyout .lorebook-picker .cozy-select-detail { flex: 0 1 auto; max-width: 40%; overflow-wrap: anywhere; }
 #settings-flyout .lorebook-picker :is(.cozy-select-detail, .cozy-select-count) { color: var(--text-secondary); font-size: 12px; font-weight: 400; }
 #settings-flyout .lorebook-picker .cozy-select-count { white-space: nowrap; margin-left: auto; }

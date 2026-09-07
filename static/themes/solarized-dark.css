@@ -26,11 +26,6 @@
     --accent-edit-bg:     rgba(38, 139, 210, 0.1);
     --accent-border-light: rgba(38, 139, 210, 0.3);
 
-    /* Design tokens */
-    --radius-sm:  8px;
-    --radius-md:  8px;
-    --radius-lg:  8px;
-
     /* RP markdown accent colors (lifted for contrast) */
     --rp-dialogue-color:  #87c05a;   /* soft green — quoted dialogue */
     --rp-action-color:    #8389d4;   /* lighter violet — italics/actions */
