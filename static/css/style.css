@@ -3540,7 +3540,8 @@ input[type="checkbox"]:disabled {
     opacity: 0;
     transition: opacity var(--motion-slow) ease;
     white-space: nowrap;
-    margin-right: 0.25rem;
+    margin-right: 0.5rem;
+    pointer-events: none;
 }
 
 .settings-saved-tick.visible {
@@ -4254,8 +4255,11 @@ input[type="checkbox"]:disabled {
     pointer-events: none;
 }
 
+/* Toasts overlay whatever is beneath them — including the settings modal's
+   close button — so the body stays click-through and only the action button
+   takes pointer events. */
 .toast {
-    pointer-events: auto;
+    pointer-events: none;
     padding: 0.6rem 1rem;
     border-radius: var(--radius-md);
     font-size: var(--text-lg);
@@ -4267,6 +4271,7 @@ input[type="checkbox"]:disabled {
 .toast.success { background-color: var(--success-color); color: var(--toast-color, white); }
 
 .toast-action {
+    pointer-events: auto;
     display: block;
     margin-top: 0.45rem;
     border: 1px solid currentColor;
@@ -5758,8 +5763,6 @@ input[type="checkbox"]:disabled {
 #settings-flyout :is(.form-input, .cozy-select-trigger) { min-height: 38px; }
 #settings-flyout .icon-btn { min-width: 32px; min-height: 32px; flex-shrink: 0; }
 #settings-flyout :is(button, input, textarea, select, a):focus-visible { outline: 2px solid var(--accent-color); outline-offset: 3px; }
-#settings-flyout .settings-status-space { flex: 0 0 60px; display: flex; justify-content: flex-end; align-items: center; padding: 8px 20px; border-top: 1px solid var(--settings-line); }
-#settings-flyout .settings-saved-tick { margin: 0; padding: 10px 20px; min-width: 110px; text-align: center; background: var(--settings-surface-strong); border: 1px solid var(--settings-line); border-radius: 10px; color: var(--text-color); pointer-events: none; }
 #settings-flyout .summary-connection .settings-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 2fr); gap: 3px 20px; }
 #settings-flyout .summary-connection .settings-row-label { grid-column: 1; align-self: end; }
 #settings-flyout .summary-connection .settings-row-hint { grid-column: 1; align-self: start; margin: 0; line-height: 1.5; }
@@ -5783,8 +5786,6 @@ input[type="checkbox"]:disabled {
     #settings-flyout input[type="checkbox"] { width: 44px; height: 26px; margin-block: 9px; flex-shrink: 0; }
     #settings-flyout .settings-row:has(> input[type="checkbox"]) { position: relative; }
     #settings-flyout .settings-row:has(> input[type="checkbox"]) > label::after { content: ''; position: absolute; right: 0; top: 50%; width: 44px; height: 44px; transform: translateY(-50%); }
-    #settings-flyout .settings-status-space { flex-basis: auto; padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
-    #settings-flyout .settings-saved-tick { width: 100%; min-height: 44px; }
     #settings-flyout .summary-connection .settings-row { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
     #settings-flyout .settings-row--inline > .form-input[type="number"] { flex-basis: 96px; }
     #settings-flyout .settings-row > .cozy-select { flex-basis: 150px; }
@@ -5952,15 +5953,8 @@ input[type="checkbox"]:disabled {
     .settings-submodal .icon-btn { min-width: 44px; min-height: 44px; }
 }
 
-/* Keep action toasts and autosave feedback in flow, even during a burst of saves. */
-#settings-flyout .settings-status-space { display: grid; grid-template-columns: minmax(0, 1fr); flex: 0 0 auto; min-height: 60px; max-height: 30%; overflow-y: auto; }
-#settings-flyout .settings-status-space > * { grid-area: 1 / 1; justify-self: end; }
-#settings-flyout .settings-status-space:has(.toast) .settings-saved-tick { opacity: 0; }
-#settings-flyout #toast-container { position: static; max-width: 100%; }
-#settings-flyout .toast { max-width: 100%; overflow-wrap: anywhere; }
 #settings-flyout .model-picker-item { overflow-wrap: anywhere; }
 @media (max-width: 768px) {
-    #settings-flyout #toast-container { width: 100%; }
     #settings-flyout .model-picker-item { min-height: 44px; }
     #settings-flyout .prompt-basic-hint-link { min-height: 44px; padding: 8px; }
 }

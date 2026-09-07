@@ -194,7 +194,6 @@ function closeSettingsFlyout() {
     closeSettingsSubmodal(settingsSubmodal);
     blurSettingsFlyoutFocus();
     el.settingsFlyout.hidden = true;
-    document.body.appendChild(document.getElementById('toast-container'));
     closeRenderedPrompts();
     setSamplerPopoverOpen(false);
     exitSettingsDetail();
@@ -319,7 +318,6 @@ function bindSettingsHandlers() {
             closeMobileSidebar({ restoreFocus: false, immediate: true });
         }
         el.settingsFlyout.hidden = false;
-        el.settingsFlyout.querySelector('.settings-status-space').appendChild(document.getElementById('toast-container'));
         // On desktop: restore the saved section. On mobile: show the list view first
         // (saved section stays "active" in the nav so reopening from the list is one tap away).
         const requestedSection = state.settingsSection;
