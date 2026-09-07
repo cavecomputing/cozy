@@ -5739,8 +5739,9 @@ input[type="checkbox"]:disabled {
 #settings-flyout .settings-card,
 #settings-flyout .lorebook-card { background: var(--settings-surface); border-color: var(--settings-line); border-radius: var(--settings-radius); padding: 12px; min-width: 0; }
 #settings-flyout .settings-card-header { margin: -12px -12px 0; padding: 10px 12px; border-color: var(--settings-line); }
+/* Section headers all read the same rank: warm, 15px. `.preset-subhead` (API)
+   and `.lorebook-card-title` match these values in their own rules below. */
 #settings-flyout .settings-card-header h4 { font-size: 15px; color: var(--settings-warm); gap: 6px; }
-#settings-flyout .settings-card--cool h4 { color: var(--settings-cool); }
 #settings-flyout .settings-card-header p { max-width: 65ch; line-height: 1.4; margin-top: 3px; }
 #settings-flyout .settings-row { min-height: 52px; padding: 6px 0; margin-inline: 0; gap: 10px; border-color: var(--settings-line); }
 #settings-flyout .settings-row-label { min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
@@ -5793,7 +5794,7 @@ input[type="checkbox"]:disabled {
     border-radius: var(--settings-radius); padding: 12px; margin: 0; max-width: none;
 }
 #settings-flyout .preset-subhead {
-    font-size: 16px; text-transform: none; letter-spacing: 0; color: var(--settings-warm);
+    font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--settings-warm);
     padding: 0 0 10px; margin: 0; border-color: var(--settings-line);
 }
 #settings-flyout .preset-subhead .sampler-toolbar { margin: 0; }
@@ -5865,7 +5866,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .lorebook-workspace-grid { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
 #settings-flyout .lorebook-region { min-width: 0; padding: 16px; border: 1px solid var(--settings-line); border-radius: var(--settings-radius); background: var(--settings-surface); }
 #settings-flyout .lorebook-col-header { padding-bottom: 12px; margin-bottom: 12px; min-height: 44px; border-bottom: 1px solid var(--settings-line); flex-wrap: wrap; }
-#settings-flyout .lorebook-card-title { font-size: 15px; color: var(--settings-cool); text-transform: none; letter-spacing: 0; }
+#settings-flyout .lorebook-card-title { font-size: 15px; color: var(--settings-warm); text-transform: none; letter-spacing: 0; }
 #settings-flyout :is(.lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
 #settings-flyout .lorebook-empty-panel { padding: 20px 0; }
 #settings-flyout #settings-lorebook-empty-entries { min-height: 0; }
