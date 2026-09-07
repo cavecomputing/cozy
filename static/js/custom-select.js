@@ -227,8 +227,11 @@ export function enhanceSelect(select) {
         if (idx >= 0 && idx !== activeIndex) setActive(idx, false);
     });
 
+    // Test the dispatch path, not `e.target`: opening re-renders the trigger's
+    // value, so a click that landed on one of its spans arrives here with a
+    // detached target that `wrap.contains()` would read as an outside click.
     document.addEventListener('click', e => {
-        if (isOpen() && !wrap.contains(e.target)) close();
+        if (isOpen() && !e.composedPath().includes(wrap)) close();
     });
 
     // ── Auto-sync with the native select (no changes needed in callers) ─────
