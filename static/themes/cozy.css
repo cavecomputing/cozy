@@ -14,9 +14,12 @@
     --text-color:     #f0e6d0;
     --text-secondary: #9aa4c4;
 
-    /* Accent (warm cream — the toast) */
-    --accent-color:   #f0e6d0;
-    --accent-hover:   #ebd9b3;
+    /* Accent (toasted gold). Deliberately a step deeper than --text-color:
+       when the two match, every accent treatment in the app — active rows,
+       section headings, character names, focus rings — renders as plain body
+       text, which is what this theme did until now. */
+    --accent-color:   #d2b878;
+    --accent-hover:   #dfc994;
     --danger-color:   #e08585;
     --danger-bg-hover: rgba(224, 133, 133, 0.15);
     --success-color:  #95c79e;

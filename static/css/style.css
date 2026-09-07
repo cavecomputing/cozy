@@ -73,11 +73,14 @@
     --fg:         var(--text-color);
     --fg-quiet:   var(--text-secondary);
     --fg-accent:  var(--accent-color);
-    --fg-heading: var(--rp-emphasis-color, var(--text-color));
+    --fg-heading: var(--accent-color);
 
-    /* Every theme declares --rp-emphasis-color, which is what makes the warning
-       role theme-aware. --warning-color, which this replaces, was declared by
-       none of them and always fell back to a hardcoded ochre. */
+    /* --status-warning replaces --warning-color, which was declared by no theme
+       at all and always fell back to a hardcoded ochre. --rp-emphasis-color is
+       declared by all eight, so the warning takes each theme's emphasis hue.
+       It is deliberately NOT used for --fg-heading: it exists to colour bold
+       text inside roleplay messages and is gold-family in every theme, so a
+       heading keyed to it never expresses the theme's own identity. */
     --status-danger:  var(--danger-color);
     --status-warning: var(--rp-emphasis-color, var(--accent-color));
     --status-success: var(--success-color);
@@ -5756,7 +5759,6 @@ input[type="checkbox"]:disabled {
     --settings-surface: color-mix(in srgb, var(--bg-color) 72%, var(--app-bg));
     --settings-surface-strong: color-mix(in srgb, var(--bg-color) 82%, var(--input-bg));
     --settings-line: color-mix(in srgb, var(--border-color) 72%, transparent);
-    --settings-warm: color-mix(in srgb, var(--rp-emphasis-color, var(--accent-color)) 65%, var(--text-color));
     --settings-cool: color-mix(in srgb, var(--rp-action-color, var(--accent-color)) 65%, var(--text-color));
     --settings-gutter: clamp(16px, 1.5vw, 24px);
 }
@@ -5768,10 +5770,10 @@ input[type="checkbox"]:disabled {
 #settings-flyout .settings-nav-item { min-height: 44px; padding: 8px 10px; gap: 10px; border-radius: var(--radius); }
 #settings-flyout .settings-nav-item svg { width: 18px; height: 18px; }
 #settings-flyout .settings-nav-item.active {
-    background: color-mix(in srgb, var(--settings-warm) 10%, var(--settings-surface));
-    color: var(--text-color);
+    background: color-mix(in srgb, var(--fg-heading) 14%, var(--settings-surface));
+    color: var(--fg-heading);
 }
-#settings-flyout .settings-nav-item.active svg { color: var(--settings-warm); }
+#settings-flyout .settings-nav-item.active svg { color: var(--fg-heading); }
 #settings-flyout .settings-pane { scroll-padding-block: 80px 16px; }
 #settings-flyout .settings-page-header { padding: 12px var(--settings-gutter) 10px; border-color: transparent; }
 #settings-flyout .settings-pane.has-scrolled .settings-page-header { box-shadow: none; border-color: var(--settings-line); }
@@ -5785,7 +5787,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .settings-card-header { margin: -12px -12px 0; padding: 10px 12px; border-color: var(--settings-line); }
 /* Section headers all read the same rank: warm, 15px. `.preset-subhead` (API)
    and `.lorebook-card-title` match these values in their own rules below. */
-#settings-flyout .settings-card-header h4 { font-size: 15px; color: var(--settings-warm); gap: 6px; }
+#settings-flyout .settings-card-header h4 { font-size: 15px; color: var(--fg-heading); gap: 6px; }
 #settings-flyout .settings-card-header p { max-width: 65ch; line-height: 1.4; margin-top: 3px; }
 #settings-flyout .settings-row { min-height: 52px; padding: 6px 0; margin-inline: 0; gap: 10px; border-color: var(--settings-line); }
 #settings-flyout .settings-row-label { min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
@@ -5833,7 +5835,7 @@ input[type="checkbox"]:disabled {
     border-radius: var(--radius); padding: 12px; margin: 0; max-width: none;
 }
 #settings-flyout .preset-subhead {
-    font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--settings-warm);
+    font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--fg-heading);
     padding: 0 0 10px; margin: 0; border-color: var(--settings-line);
 }
 #settings-flyout .preset-subhead .sampler-toolbar { margin: 0; }
@@ -5905,7 +5907,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .lorebook-workspace-grid { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
 #settings-flyout .lorebook-region { min-width: 0; padding: 16px; border: 1px solid var(--settings-line); border-radius: var(--radius); background: var(--settings-surface); }
 #settings-flyout .lorebook-col-header { padding-bottom: 12px; margin-bottom: 12px; min-height: 44px; border-bottom: 1px solid var(--settings-line); flex-wrap: wrap; }
-#settings-flyout .lorebook-card-title { font-size: 15px; color: var(--settings-warm); text-transform: none; letter-spacing: 0; }
+#settings-flyout .lorebook-card-title { font-size: 15px; color: var(--fg-heading); text-transform: none; letter-spacing: 0; }
 #settings-flyout :is(.lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
 #settings-flyout .lorebook-empty-panel { padding: 20px 0; }
 #settings-flyout #settings-lorebook-empty-entries { min-height: 0; }
