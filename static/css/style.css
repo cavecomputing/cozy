@@ -221,22 +221,25 @@ body {
     color: var(--text-secondary);
 }
 
-.icon-btn:focus-visible,
-.btn:focus-visible,
-.char-select-btn:focus-visible,
-.chat-select-btn:focus-visible,
-.chat-rename-input:focus-visible,
-.msg-action-btn:focus-visible,
-.swipe-btn:focus-visible,
-.settings-nav-item:focus-visible,
-#send-btn:focus-visible {
-    outline: 2px solid var(--accent-color);
+/* One focus ring for everything that takes focus, in place of the nine-selector
+   allowlist this replaces. An allowlist has to be remembered into on every new
+   control, and wasn't: the enhanced select's trigger, the help tips and the
+   lorebook flyout's picker all shipped with no ring at all.
+   :where() contributes no specificity, so the whole selector weighs only its
+   :focus-visible — which is what lets the few controls that express focus
+   another way (below) keep overriding it with a plain class. */
+:where(a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--fg-accent);
     outline-offset: 2px;
 }
 
+/* Text fields opt out: they already show focus as a border colour and ring
+   (see .form-input:focus), and an outline on top of that reads as two states.
+   Scoped to the native <select> on purpose — .settings-select is also worn by
+   the custom picker's trigger, which is a button and keeps the ring. */
 .form-input:focus-visible,
 .form-textarea:focus-visible,
-.settings-select:focus-visible {
+select.settings-select:focus-visible {
     outline: none;
 }
 
@@ -2981,11 +2984,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     text-decoration: none;
 }
 
-.about-link:focus-visible {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 2px;
-}
-
 .about-link-icon {
     display: flex;
     align-items: center;
@@ -3128,7 +3126,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .help-tip:focus-visible {
     color: var(--accent-color);
     border-color: var(--accent-color);
-    outline: none;
 }
 
 /* Neutral "field not used by active prompt" marker — a muted ⊘ glyph, not an
@@ -3373,10 +3370,6 @@ input[type="checkbox"]::after {
 }
 input[type="checkbox"]:hover {
     border-color: var(--accent-color);
-}
-input[type="checkbox"]:focus-visible {
-    outline: none;
-    box-shadow: var(--input-focus-shadow);
 }
 input[type="checkbox"]:checked {
     background-color: var(--accent-color);
@@ -3901,7 +3894,10 @@ input[type="checkbox"]:disabled {
     font-family: inherit;
     font-size: var(--text-lg);
     line-height: 1.4;
-    outline: none;
+    /* No `outline: none` here. It weighed the same as the shared focus ring and
+       sat later in the file, so it silently suppressed the ring on everything
+       wearing .settings-select — including the custom picker's trigger, which
+       is a button, not a field. The fields' own opt-out is below and explicit. */
     box-shadow: var(--input-shadow, none);
     transition: border-color var(--motion-base), box-shadow var(--motion-base);
 }
@@ -5796,7 +5792,6 @@ input[type="checkbox"]:disabled {
 #settings-flyout :is(.form-input, .form-textarea, .cozy-select-trigger) { min-width: 0; max-width: 100%; border-radius: var(--radius); }
 #settings-flyout :is(.form-input, .cozy-select-trigger) { min-height: 38px; }
 #settings-flyout .icon-btn { min-width: 32px; min-height: 32px; flex-shrink: 0; }
-#settings-flyout :is(button, input, textarea, select, a):focus-visible { outline: 2px solid var(--accent-color); outline-offset: 3px; }
 #settings-flyout .summary-connection .settings-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 2fr); gap: 3px 20px; }
 #settings-flyout .summary-connection .settings-row-label { grid-column: 1; align-self: end; }
 #settings-flyout .summary-connection .settings-row-hint { grid-column: 1; align-self: start; margin: 0; line-height: 1.5; }
@@ -5887,7 +5882,7 @@ input[type="checkbox"]:disabled {
     #settings-flyout .prompt-section-left { display: contents; }
     #settings-flyout .prompt-section-right { flex: none; min-height: 0; }
     #settings-flyout .prompt-section-right .form-textarea { min-height: 180px; height: clamp(180px, calc(var(--settings-viewport-height, 100dvh) * 0.45), 360px); background: var(--input-bg); border: 1px solid var(--settings-line); padding: 12px; }
-    #settings-flyout .prompt-section-right .form-textarea:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+    #settings-flyout .prompt-section-right .form-textarea:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 2px; }
     #settings-flyout .prompt-vars-panel { flex: none; padding: 0; }
     #settings-flyout .prompt-vars-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 52px; border: 0; background: transparent; color: var(--settings-cool); font: inherit; padding: 14px 16px; border-radius: var(--radius); }
     #settings-flyout #prompt-vars-content { padding: 0 16px 16px; }
