@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Cozy</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,8 +127,7 @@
                     <button id="settings-back-btn" class="icon-btn settings-back-btn" aria-label="Back to settings list" hidden>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                     </button>
-                    <h2 class="section-label panel-title panel-title--left">Settings</h2>
-                    <span id="settings-saved-tick" class="settings-saved-tick" role="status" aria-live="polite"></span>
+                    <h2 id="settings-title" class="section-label panel-title panel-title--left" tabindex="-1">Settings</h2>
                     <button id="settings-close-btn" class="icon-btn" aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
@@ -174,7 +173,7 @@
                             <p>General interface and appearance settings.</p>
                         </header>
                         <div class="settings-section-body settings-section-stack">
-                            <section class="settings-card">
+                            <section class="settings-card settings-card--cool">
                                 <header class="settings-card-header">
                                     <h4>Appearance</h4>
                                     <p>Theme and visual styling for this device.</p>
@@ -217,17 +216,20 @@
                             </div>
                         </header>
                         <div class="settings-section-body settings-section-stack">
-                            <section class="settings-card">
-                                <div class="preset-select-row">
+                            <section class="api-preset-layout">
+                                <div class="preset-select-row settings-card">
                                     <select id="settings-api-preset" class="form-input settings-select" aria-label="API preset"></select>
                                     <button id="settings-preset-new" class="icon-btn" title="New preset" aria-label="New preset">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        <span class="settings-action-label">New</span>
                                     </button>
                                     <button id="settings-preset-delete" class="icon-btn" title="Delete selected preset" aria-label="Delete preset">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <span class="settings-action-label">Delete</span>
                                     </button>
                                     <button id="settings-test-api" class="icon-btn" title="Test connection" aria-label="Test connection">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        <span class="settings-action-label">Test</span>
                                     </button>
                                 </div>
                                 <div class="preset-columns">
@@ -439,13 +441,16 @@
                                         <select id="settings-sysprompt-select" class="form-input settings-select" aria-label="Prompt template"></select>
                                         <button id="settings-sysprompt-new" class="icon-btn" title="New prompt" aria-label="New prompt">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            <span class="settings-action-label">New</span>
                                         </button>
                                         <button id="settings-sysprompt-delete" class="icon-btn" title="Delete prompt" aria-label="Delete prompt">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            <span class="settings-action-label">Delete</span>
                                         </button>
                                         <div class="export-dropdown" id="sysprompt-io-dropdown">
                                             <button id="settings-sysprompt-io-btn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="Import or export a prompt" aria-label="Import or export a prompt">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 21 7 17 3"></polyline><line x1="21" y1="7" x2="9" y2="7"></line><polyline points="7 21 3 17 7 13"></polyline><line x1="15" y1="17" x2="3" y2="17"></line></svg>
+                                                <span class="settings-action-label">Import/export</span>
                                             </button>
                                             <ul class="export-menu" id="sysprompt-io-menu" hidden role="menu">
                                                 <li><button id="settings-sysprompt-import" role="menuitem">Import from JSON…</button></li>
@@ -456,33 +461,6 @@
                                     </div>
                                     <p id="settings-sysprompt-description-text" class="prompt-description-text"></p>
                                     <input id="settings-sysprompt-description" type="text" class="form-input prompt-description-input" placeholder="Add a short description…" aria-label="Prompt description" autocomplete="off" hidden>
-                                </div>
-                                <div class="prompt-vars-panel">
-                                    <div class="prompt-vars-title">Variables <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></div>
-                                    <p class="prompt-vars-lead">Each tag below is swapped for its value when a message is sent. Click a tag to copy it.</p>
-                                    <dl class="settings-help-vars">
-                                        <dt><code>&#123;&#123;char&#125;&#125;</code> / <code>&#123;&#123;user&#125;&#125;</code></dt><dd>Character name / active persona name.</dd>
-                                        <dt><code>&#123;&#123;description&#125;&#125;</code></dt><dd>Character description.</dd>
-                                        <dt><code>&#123;&#123;personality&#125;&#125;</code></dt><dd>Character personality.</dd>
-                                        <dt><code>&#123;&#123;scenario&#125;&#125;</code></dt><dd>Scenario from the card.</dd>
-                                        <dt><code>&#123;&#123;mesExamples&#125;&#125;</code></dt><dd>Example dialogue from the card.</dd>
-                                        <dt><code>&#123;&#123;persona&#125;&#125;</code></dt><dd>Active persona's description.</dd>
-                                        <dt><code>&#123;&#123;system_prompt&#125;&#125;</code></dt><dd>Per-character instructions (the card's system_prompt field).</dd>
-                                        <dt><code>&#123;&#123;post_history_instructions&#125;&#125;</code></dt><dd>Per-character post-history instructions from the card.</dd>
-                                        <dt><code>&#123;&#123;lorebook&#125;&#125;</code></dt><dd>Matched world-info entries (joined with separators).</dd>
-                                        <dt><code>&#123;&#123;author_note&#125;&#125;</code></dt><dd>Per-chat Author's Note (from the Memory flyout).</dd>
-                                        <dt><code>&#123;&#123;summary&#125;&#125;</code></dt><dd>Per-chat Auto Summary of aged-out history (from the Memory flyout).</dd>
-                                        <dt><code>&#123;&#123;user_message&#125;&#125;</code></dt><dd><strong>User tab only.</strong> Your latest message. Add it to the User template to wrap your message — position <code>&#123;&#123;lorebook&#125;&#125;</code>, <code>&#123;&#123;author_note&#125;&#125;</code>, etc. before or after it. Leave it out and the template is appended after your message instead. Those blocks sit in the System tab by default; move them here rather than copying, or they'll appear twice.</dd>
-                                        <dt><code>&#123;&#123;time&#125;&#125;</code> / <code>&#123;&#123;date&#125;&#125;</code></dt><dd>Current local time / date.</dd>
-                                    </dl>
-                                    <div class="prompt-vars-title prompt-vars-title--sub">Template syntax</div>
-                                    <p class="prompt-vars-lead">Building blocks that do more than a straight swap.</p>
-                                    <dl class="settings-help-vars">
-                                        <dt><code>&#123;&#123;#var&#125;&#125;…&#123;&#123;/var&#125;&#125;</code></dt><dd>Conditional block. Kept only when <code>var</code> has content; when it's empty the whole block — labels and all — is removed. The name must match on both ends.</dd>
-                                        <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options at random each time the prompt is built.</dd>
-                                        <dt><code>&lt;tag&gt;…&lt;/tag&gt;</code></dt><dd>Tags of your own, for marking a part of the prompt off for the model. If everything inside a pair resolves to nothing, the tags are dropped with it — no empty <code>&lt;memory&gt;&lt;/memory&gt;</code> is sent. If only some of it resolves away, the tag closes up the blank lines left behind and sits on the content that remains. Nested tags clear from the inside out, and any tag still holding text stays. Nothing to switch on.</dd>
-                                    </dl>
-                                    <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon on the API page for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
                                 </div>
                             </div>
                             <div id="settings-prompt-basic-hint" class="prompt-basic-hint" hidden>
@@ -496,6 +474,7 @@
                                     </div>
                                     <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both templates filled in" aria-label="Preview both templates filled in" aria-expanded="false" aria-controls="prompt-rendered-flyout">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                        <span class="settings-action-label">Preview</span>
                                     </button>
                                     <span class="advanced-badge" data-tip="Advanced configuration">ADV</span>
                                 </div>
@@ -512,6 +491,36 @@
                                     <div id="prompt-rendered-body" class="prompt-rendered-body"></div>
                                 </div>
                             </div>
+                                <div class="prompt-vars-panel settings-card">
+                                    <button id="prompt-vars-toggle" class="prompt-vars-toggle" type="button" aria-expanded="false" aria-controls="prompt-vars-content">Variables <span aria-hidden="true">⌄</span></button>
+                                    <div id="prompt-vars-content">
+                                        <div class="prompt-vars-title">Variables <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></div>
+                                        <p class="prompt-vars-lead">Each tag below is swapped for its value when a message is sent. Click a tag to copy it.</p>
+                                        <dl class="settings-help-vars">
+                                            <dt><code>&#123;&#123;char&#125;&#125;</code> / <code>&#123;&#123;user&#125;&#125;</code></dt><dd>Character name / active persona name.</dd>
+                                            <dt><code>&#123;&#123;description&#125;&#125;</code></dt><dd>Character description.</dd>
+                                            <dt><code>&#123;&#123;personality&#125;&#125;</code></dt><dd>Character personality.</dd>
+                                            <dt><code>&#123;&#123;scenario&#125;&#125;</code></dt><dd>Scenario from the card.</dd>
+                                            <dt><code>&#123;&#123;mesExamples&#125;&#125;</code></dt><dd>Example dialogue from the card.</dd>
+                                            <dt><code>&#123;&#123;persona&#125;&#125;</code></dt><dd>Active persona's description.</dd>
+                                            <dt><code>&#123;&#123;system_prompt&#125;&#125;</code></dt><dd>Per-character instructions (the card's system_prompt field).</dd>
+                                            <dt><code>&#123;&#123;post_history_instructions&#125;&#125;</code></dt><dd>Per-character post-history instructions from the card.</dd>
+                                            <dt><code>&#123;&#123;lorebook&#125;&#125;</code></dt><dd>Matched world-info entries (joined with separators).</dd>
+                                            <dt><code>&#123;&#123;author_note&#125;&#125;</code></dt><dd>Per-chat Author's Note (from the Memory flyout).</dd>
+                                            <dt><code>&#123;&#123;summary&#125;&#125;</code></dt><dd>Per-chat Auto Summary of aged-out history (from the Memory flyout).</dd>
+                                            <dt><code>&#123;&#123;user_message&#125;&#125;</code></dt><dd><strong>User tab only.</strong> Your latest message. Add it to the User template to wrap your message — position <code>&#123;&#123;lorebook&#125;&#125;</code>, <code>&#123;&#123;author_note&#125;&#125;</code>, etc. before or after it. Leave it out and the template is appended after your message instead. Those blocks sit in the System tab by default; move them here rather than copying, or they'll appear twice.</dd>
+                                            <dt><code>&#123;&#123;time&#125;&#125;</code> / <code>&#123;&#123;date&#125;&#125;</code></dt><dd>Current local time / date.</dd>
+                                        </dl>
+                                        <div class="prompt-vars-title prompt-vars-title--sub">Template syntax</div>
+                                        <p class="prompt-vars-lead">Building blocks that do more than a straight swap.</p>
+                                        <dl class="settings-help-vars">
+                                            <dt><code>&#123;&#123;#var&#125;&#125;…&#123;&#123;/var&#125;&#125;</code></dt><dd>Conditional block. Kept only when <code>var</code> has content; when it's empty the whole block — labels and all — is removed. The name must match on both ends.</dd>
+                                            <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options at random each time the prompt is built.</dd>
+                                            <dt><code>&lt;tag&gt;…&lt;/tag&gt;</code></dt><dd>Tags of your own, for marking a part of the prompt off for the model. If everything inside a pair resolves to nothing, the tags are dropped with it — no empty <code>&lt;memory&gt;&lt;/memory&gt;</code> is sent. If only some of it resolves away, the tag closes up the blank lines left behind and sits on the content that remains. Nested tags clear from the inside out, and any tag still holding text stays. Nothing to switch on.</dd>
+                                        </dl>
+                                        <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon on the API page for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
+                                    </div>
+                                </div>
                         </div>
                     </div>
                     <div class="settings-section" data-section="lorebooks" hidden>
@@ -548,20 +557,10 @@
 
                             <div class="lorebook-card lorebook-card--workspace">
                                 <div class="lorebook-workspace-grid">
+                                    <section class="lorebook-region lorebook-region--list">
                                     <header class="lorebook-col-header">
                                         <h4 class="lorebook-card-title">Lorebooks</h4>
                                     </header>
-                                    <header class="lorebook-col-header">
-                                        <h4 class="lorebook-card-title">Selected lorebook</h4>
-                                    </header>
-                                    <header class="lorebook-col-header">
-                                        <h4 class="lorebook-card-title">Entries <span id="settings-lorebook-entries-count" class="lorebook-entries-count"></span></h4>
-                                        <button id="settings-lorebook-add-entry" class="btn btn-secondary btn-sm" hidden>
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                            Add entry
-                                        </button>
-                                    </header>
-
                                     <div class="lorebook-list-pane">
                                         <ul id="settings-lorebook-list" class="lorebook-list"></ul>
                                         <input type="file" id="settings-lorebook-import-file" accept="application/json,.json" hidden>
@@ -576,6 +575,11 @@
                                         </div>
                                     </div>
 
+                                    </section>
+                                    <section class="lorebook-region lorebook-region--metadata">
+                                    <header class="lorebook-col-header">
+                                        <h4 class="lorebook-card-title">Selected lorebook</h4>
+                                    </header>
                                     <div id="settings-lorebook-empty-meta" class="lorebook-empty-panel">
                                         <strong>Select a lorebook</strong>
                                         <span>Choose a book from the list to edit its name, save location, and scan settings.</span>
@@ -602,11 +606,20 @@
                                         </div>
                                     </div>
 
+                                    </section>
+                                    <section class="lorebook-region lorebook-region--entries">
+                                    <header class="lorebook-col-header">
+                                        <h4 class="lorebook-card-title">Entries <span id="settings-lorebook-entries-count" class="lorebook-entries-count"></span></h4>
+                                        <button id="settings-lorebook-add-entry" class="btn btn-secondary btn-sm" hidden>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            Add entry
+                                        </button>
+                                    </header>
                                     <div id="settings-lorebook-empty-entries" class="lorebook-empty-panel">
                                         <strong>No entry selected</strong>
                                         <span>Entries for the selected lorebook will appear here.</span>
                                     </div>
-                                    <div id="settings-lorebook-entries" class="lorebook-entries" hidden></div>
+                                    <div id="settings-lorebook-entries" class="lorebook-entries" hidden></div>                                    </section>
                                 </div>
                             </div>
                         </div>
@@ -624,15 +637,15 @@
                             </div>
                         </header>
                         <div class="settings-section-body settings-section-stack">
-                            <section class="settings-card">
+                            <section class="settings-card settings-card--cool summary-connection">
                                 <header class="settings-card-header">
                                     <h4>Summarizer model</h4>
                                     <p>Optional separate endpoint for summaries — usually cheaper or faster. Blank fields reuse the main connection.</p>
                                 </header>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-summary-endpoint">Endpoint</label>
-                                    <span class="settings-row-hint">Blank = use main endpoint</span>
-                                    <input type="text" id="settings-summary-endpoint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
+                                    <span id="summary-endpoint-hint" class="settings-row-hint">Blank = use main endpoint</span>
+                                    <input type="text" id="settings-summary-endpoint" aria-describedby="summary-endpoint-hint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-summary-key">API Key</label>
@@ -640,9 +653,9 @@
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-summary-model">Model</label>
-                                    <span class="settings-row-hint">Blank = use main model</span>
+                                    <span id="summary-model-hint" class="settings-row-hint">Blank = use main model</span>
                                     <div class="settings-model-row model-picker-row">
-                                        <input type="text" id="settings-summary-model" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="summary-model-picker-menu" aria-expanded="false">
+                                        <input type="text" id="settings-summary-model" aria-describedby="summary-model-hint" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="summary-model-picker-menu" aria-expanded="false">
                                         <button id="settings-summary-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </button>
@@ -686,13 +699,16 @@
                                     <select id="settings-regex-preset-select" class="form-input settings-select" aria-label="Filter preset"></select>
                                     <button id="settings-regex-new" class="icon-btn" title="New preset" aria-label="New preset">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        <span class="settings-action-label">New</span>
                                     </button>
                                     <button id="settings-regex-delete" class="icon-btn" title="Delete preset" aria-label="Delete preset">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <span class="settings-action-label">Delete</span>
                                     </button>
                                     <div class="export-dropdown" id="regex-io-dropdown">
                                         <button id="settings-regex-io-btn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="Import or export a preset" aria-label="Import or export a preset">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 21 7 17 3"></polyline><line x1="21" y1="7" x2="9" y2="7"></line><polyline points="7 21 3 17 7 13"></polyline><line x1="15" y1="17" x2="3" y2="17"></line></svg>
+                                            <span class="settings-action-label">Import/export</span>
                                         </button>
                                         <ul class="export-menu" id="regex-io-menu" hidden role="menu">
                                             <li><button id="settings-regex-import" role="menuitem">Import from JSON…</button></li>
@@ -837,6 +853,9 @@
                     </div>
                         </div><!-- /.settings-pane -->
                     </div><!-- /.settings-shell -->
+                </div>
+                <div class="settings-status-space">
+                    <span id="settings-saved-tick" class="settings-saved-tick" role="status" aria-live="polite"></span>
                 </div>
             </div>
         </div>

@@ -118,15 +118,32 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
         el.settingsShell.classList.add('in-detail');
         el.settingsBackBtn.hidden = false;
     }
+    el.settingsPane.scrollTop = 0;
+    updateSettingsHeader();
+    if (drillIntoOnMobile && isMobileSettings()) {
+        document.getElementById('settings-title').focus();
+    }
     if (key === 'about' && !el.settingsFlyout.hidden) {
         void loadStorageStats();
     }
     savePrefs();
 }
 
+function updateSettingsHeader() {
+    const detail = isMobileSettings() && el.settingsShell.classList.contains('in-detail');
+    document.getElementById('settings-title').textContent = detail
+        ? el.settingsPane.querySelector('.settings-section:not([hidden]) h3').textContent
+        : 'Settings';
+}
+
 function exitSettingsDetail() {
+    const wasDetail = el.settingsShell?.classList.contains('in-detail');
     el.settingsShell?.classList.remove('in-detail');
     if (el.settingsBackBtn) el.settingsBackBtn.hidden = true;
+    updateSettingsHeader();
+    if (wasDetail && !el.settingsFlyout.hidden) {
+        el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
+    }
 }
 
 function setSamplerPopoverOpen(open) {
@@ -156,6 +173,7 @@ function openSettingsSubmodal(modal) {
     settingsSubmodalReturnFocus = trigger;
     settingsSubmodal = modal;
     modal.hidden = false;
+    modal.querySelector('button')?.focus();
 }
 
 function closeSettingsSubmodal(modal) {
@@ -169,16 +187,20 @@ function closeSettingsSubmodal(modal) {
 }
 
 function closeSettingsFlyout() {
+    const restoreFocus = el.settingsFlyout.contains(document.activeElement)
+        || settingsSubmodal?.contains(document.activeElement);
     // Ahead of the blur, so focus lands on the trigger and is cleared with the
     // rest of the flyout instead of being left inside a hidden subtree.
     closeSettingsSubmodal(settingsSubmodal);
     blurSettingsFlyoutFocus();
     el.settingsFlyout.hidden = true;
+    document.body.appendChild(document.getElementById('toast-container'));
     closeRenderedPrompts();
     setSamplerPopoverOpen(false);
     exitSettingsDetail();
     // An edit made in the last half-second would otherwise die in the debounce.
     void flushRegexSave();
+    if (restoreFocus) (isMobileSettings() ? el.mobileMenuBtn : el.settingsBtn)?.focus();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -297,11 +319,13 @@ function bindSettingsHandlers() {
             closeMobileSidebar({ restoreFocus: false, immediate: true });
         }
         el.settingsFlyout.hidden = false;
+        el.settingsFlyout.querySelector('.settings-status-space').appendChild(document.getElementById('toast-container'));
         // On desktop: restore the saved section. On mobile: show the list view first
         // (saved section stays "active" in the nav so reopening from the list is one tap away).
         const requestedSection = state.settingsSection;
         applySettingsSection(state.settingsSection);
         exitSettingsDetail();
+        el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
         renderThemePicker();
         const s = await loadLLMSettings();
         await loadSystemPrompts(s);
@@ -325,6 +349,34 @@ function bindSettingsHandlers() {
         applySettingsSection(btn.dataset.section, { drillIntoOnMobile: true });
     });
     el.settingsBackBtn?.addEventListener('click', exitSettingsDetail);
+
+    // Safari's keyboard shrinks the visual viewport without changing 100dvh.
+    // Leave pinch zoom to the browser; only follow the keyboard-sized viewport.
+    const fitSettingsViewport = () => {
+        const viewport = window.visualViewport;
+        const fit = isMobileSettings() && viewport?.scale === 1;
+        document.documentElement.style.setProperty('--settings-viewport-height', fit ? `${viewport.height}px` : '100dvh');
+        document.documentElement.style.setProperty('--settings-viewport-top', fit ? `${viewport.offsetTop}px` : '0px');
+    };
+    window.visualViewport?.addEventListener('resize', () => {
+        fitSettingsViewport();
+        const focused = document.activeElement;
+        if (isMobileSettings() && window.visualViewport.scale === 1
+            && el.settingsFlyout.contains(focused) && focused.matches('input, textarea')) {
+            requestAnimationFrame(() => focused.scrollIntoView({ block: 'center' }));
+        }
+    });
+    window.visualViewport?.addEventListener('scroll', fitSettingsViewport);
+    fitSettingsViewport();
+
+    window.matchMedia(MOBILE_SHELL_QUERY).addEventListener('change', () => {
+        exitSettingsDetail();
+    });
+
+    document.getElementById('prompt-vars-toggle').addEventListener('click', e => {
+        const button = e.currentTarget;
+        button.setAttribute('aria-expanded', String(button.getAttribute('aria-expanded') !== 'true'));
+    });
 
     // Close settings on outside click (matches chat / lorebook flyout behavior).
     // Skip the toggle button (it handles open/close itself) and the
@@ -700,6 +752,12 @@ function bindChatHandlers() {
         if (settingsSubmodal) {
             e.preventDefault();
             closeSettingsSubmodal(settingsSubmodal);
+            return;
+        }
+        if (!el.settingsFlyout.hidden && el.samplerPopover?.hidden === false) {
+            e.preventDefault();
+            setSamplerPopoverOpen(false);
+            el.samplerConfigureBtn.focus();
             return;
         }
         if (el.promptRenderedFlyout?.hidden === false) {

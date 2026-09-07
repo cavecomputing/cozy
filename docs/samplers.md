@@ -60,8 +60,7 @@ If a request fails after enabling a sampler:
 3. Check your LLM server's documentation for the exact parameter name and
    supported range.
 
-Backend-specific JSON can be added under **Settings → API → Context & Generation
-→ Extra request parameters**.
+Backend-specific JSON can be added under **Settings → API → Extra request parameters**.
 
 ## Simple starting points
 

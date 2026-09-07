@@ -174,6 +174,10 @@ Select the character in the sidebar to start chatting.
   keep typing after the space and matching presets are offered. With no name
   they show what is active and what is available.
 
+On a phone, Settings opens as a list. Choose a section to open its page and use
+the back arrow to return to the list. In the advanced Prompt editor, **Variables**
+opens the template reference below the editor.
+
 Cozy saves changes automatically unless the screen shows a **Save** button.
 
 ## 6. Advanced
