@@ -740,6 +740,67 @@ class TestLLMProxy:
         body = r.get_json()
         assert body['ok'] is False
 
+    def test_test_endpoint_tolerates_null_content(self, client, monkeypatch):
+        """OpenRouter returns content:null for some models — must not 500."""
+
+        class NullContentResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {'choices': [{'message': {'role': 'assistant', 'content': None}}]}
+
+        monkeypatch.setattr(llm_module.http_requests, 'post',
+                            lambda *a, **kw: NullContentResponse())
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://upstream.test/v1',
+            'api_model': 'test-model',
+        })
+        r = client.post('/api/llm/test')
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body == {'ok': True, 'reply': ''}
+
+    def test_test_endpoint_tolerates_empty_choices(self, client, monkeypatch):
+        class EmptyChoicesResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {'choices': []}
+
+        monkeypatch.setattr(llm_module.http_requests, 'post',
+                            lambda *a, **kw: EmptyChoicesResponse())
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://upstream.test/v1',
+            'api_model': 'test-model',
+        })
+        r = client.post('/api/llm/test')
+        assert r.status_code == 200
+        assert r.get_json() == {'ok': True, 'reply': ''}
+
+    def test_test_endpoint_rejects_non_json_body(self, client, monkeypatch):
+        import json as json_module
+
+        class NonJsonResponse:
+            text = '<html>proxy error</html>'
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                raise json_module.JSONDecodeError('x', self.text, 0)
+
+        monkeypatch.setattr(llm_module.http_requests, 'post',
+                            lambda *a, **kw: NonJsonResponse())
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://upstream.test/v1',
+            'api_model': 'test-model',
+        })
+        r = client.post('/api/llm/test')
+        assert r.status_code == 502
+        assert r.get_json()['ok'] is False
+
 
 # ── Messages: delete + cascade ─────────────────────────────────────────────
 

@@ -93,8 +93,20 @@ def test_llm():
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=15)
         r.raise_for_status()
-        body = r.json()
-        reply = body.get('choices', [{}])[0].get('message', {}).get('content', '')
+        try:
+            body = r.json()
+        except ValueError:
+            return jsonify({'ok': False, 'error': 'Upstream returned a non-JSON response'}), 502
+        # Providers may return null content (reasoning-only output), an
+        # empty choices list, or a non-dict body — none of those may 500.
+        message = {}
+        if isinstance(body, dict):
+            choices = body.get('choices') or []
+            if choices and isinstance(choices[0], dict):
+                message = choices[0].get('message') or {}
+        reply = message.get('content') or ''
+        if not isinstance(reply, str):
+            reply = str(reply)
         return jsonify({'ok': True, 'reply': reply.strip()})
     except http_requests.RequestException as e:
         return jsonify({'ok': False, 'error': _error_detail(e)}), 502
