@@ -210,9 +210,7 @@ body {
 
 .icon-btn:disabled,
 #send-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-    transform: none;
+    transform: none;   /* cancel the :active press */
 }
 
 .icon-btn:disabled:hover,
@@ -241,6 +239,15 @@ body {
 .form-textarea:focus-visible,
 select.settings-select:focus-visible {
     outline: none;
+}
+
+/* One disabled state for every control, in place of the six opacities that had
+   accumulated between 0.25 and 0.65 — how disabled a thing looked depended on
+   which control it happened to be rather than on it being disabled. Weighed at
+   :where() so a control needing more can still say so with a plain class. */
+:where(button, input, select, textarea):disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .icon-btn svg,
@@ -370,7 +377,12 @@ select.settings-select:focus-visible {
     text-align: left;
 }
 
+/* A character row is disabled because its PNG is missing, and .char-item.missing
+   already dims the whole row to 0.45. Opting out of the shared disabled opacity
+   keeps the two from compounding to 0.22. The row is not a control the user got
+   wrong, so it keeps the default cursor rather than not-allowed. */
 .char-select-btn:disabled {
+    opacity: 1;
     cursor: default;
 }
 
@@ -1438,11 +1450,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--accent-color);
 }
 
-.swipe-btn:disabled {
-    opacity: 0.25;
-    cursor: default;
-}
-
 .swipe-counter {
     font-size: var(--text-xs);
     font-weight: 600;
@@ -1666,11 +1673,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     text-overflow: ellipsis;
 }
 
-#user-input:disabled {
-    cursor: not-allowed;
-    opacity: 0.65;
-}
-
 #user-input:focus-visible {
     outline: none;
 }
@@ -1792,11 +1794,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--accent-color);
 }
 
-#send-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-}
-
 #send-btn.stop-mode {
     color: var(--danger-color);
 }
@@ -1883,11 +1880,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     cursor: pointer;
     transition: background var(--motion-base), color var(--motion-base), opacity var(--motion-base);
     white-space: nowrap;
-}
-
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .btn-primary {
@@ -3213,11 +3205,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin: -0.15rem 0 0;
 }
 
-.settings-model-row .icon-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
 /* Bleeds to the same -0.25rem as the row dividers so the group border starts
    and ends exactly where the dividers above and below it do. */
 .sampler-group {
@@ -3378,10 +3365,6 @@ input[type="checkbox"]:checked {
 input[type="checkbox"]:checked::after {
     transform: translateX(16px);
     background-color: var(--btn-primary-color, #fff);
-}
-input[type="checkbox"]:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .settings-row-label {
@@ -5227,7 +5210,6 @@ input[type="checkbox"]:disabled {
     padding: 0;
 }
 .summary-header-actions .icon-btn svg { width: 14px; height: 14px; }
-.summary-header-actions .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .summary-reset-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 /* Live only mid-run, so it should read as the one actionable control while busy. */
 .summary-cancel-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
