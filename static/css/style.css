@@ -2087,6 +2087,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .settings-modal {
     width: calc(100vw - var(--sidebar-width) - 30px);
     max-width: calc(100vw - var(--sidebar-width) - 30px);
+    /* The pane's own width, not the viewport's, decides whether the two-column
+       layouts inside it still fit — the sidebar and the nav column come out of
+       that budget first. The @container rules further down read this. */
+    container-type: inline-size;
 }
 
 .settings-body {
@@ -2199,7 +2203,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-secondary);
     font-size: var(--text-md);
     line-height: 1.45;
-    max-width: 56rem;
+    /* Measured in ch so the line length tracks the reader's font size rather
+       than a fixed rem width. Replaces the rem caps that used to bound the
+       header box and the card column instead of the text inside them. */
+    max-width: 65ch;
 }
 
 .settings-section-stack,
@@ -2210,42 +2217,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.9rem 0.75rem 1rem;
 }
 
-/* Bound the measure on the stacked-form pages. Their rows are label-left /
-   control-right with space-between, so on a wide pane the two ends of one
-   setting drift hundreds of pixels apart. Prompt and Lorebooks are two-column
-   layouts that want the whole pane, so they are left out by the :has() test —
-   the API page is in because its samplers sit below a stack.
-   Regex is excluded by hand: it has no label/control rows to pull apart, so
-   the cap bought it nothing, and its filter rows are two-column content —
-   Find beside Replace, then a row of flags — that the narrower column cramped.
-   General is excluded too: it holds one short card, and a full-width card
-   with its air inside it reads better than a capped card beside a void. API
-   is excluded as well: its combined preset card is two-zone content whose
-   connection half wants the width, while the context half carries its own
-   measure. The samplers group below it never had the stacked-form class, so
-   it was never capped either way.
-   Only the right edge moves. Capping both sides would centre these pages while
-   the uncapped ones stay left, so every heading would jump sideways as you
-   moved between tabs. */
-.settings-section:has(.settings-section-stack):not([data-section="regex"]):not([data-section="general"]):not([data-section="api"]) > .settings-section-body {
-    padding-right: max(0.75rem, 100% - 46.75rem);
-}
-
-/* The header box is never capped, on any page. Its buttons are pinned to the
-   pane's right edge by the flex row, so the help icon lands in the same place
-   on every tab whether or not that tab's cards are capped — capping the box
-   dragged the icon inward by 216px on the pages that were. The text inside
-   takes the measure instead, which is all the subtitle prose needed. */
-.settings-page-title,
-.settings-page-header > h3,
-.settings-page-header > p {
-    max-width: 46rem;
-}
-/* The one stacked card on a page that is otherwise two-column, so it misses
-   the rule above and would stretch its two rows across the whole pane. */
-#lorebook-overrides-card {
-    max-width: 46rem;
-}
+/* Measure is bounded on the prose that needs it — the page subtitle, the card
+   subtitle, the hint under a row — rather than on the boxes those sit in. An
+   earlier system capped the containers instead: a padding-right trick on the
+   stacked-form pages, a 46rem cap on the header block, and a hand-maintained
+   list of which sections opted out. Capping the text directly needs none of
+   that bookkeeping, and a card is free to use the width its controls want. */
 
 /* API preset card: picker, connection, and context/generation in one box, so
    the preset reads as a single unit. Two zones side by side on a wide pane —
@@ -2364,6 +2341,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     font-size: var(--text-sm);
     line-height: 1.4;
     color: var(--text-secondary);
+    max-width: 65ch;
 }
 
 .settings-card-header code {
@@ -2393,13 +2371,16 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 .prompt-section-body {
     display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    /* Editor first, reference column second: the template is what you came to
+       edit, and the variable list is what you consult while editing it. */
+    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-rows: auto auto;
     gap: 0.75rem;
-    flex: 1;
+    align-items: stretch;
     min-height: 0;
     padding: 0.75rem;
 }
+
 .prompt-section-left {
     display: contents;
 }
@@ -2468,7 +2449,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin-bottom: 0.15rem;
 }
 .prompt-vars-panel {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 2;
     flex: 1;
     min-height: 0;
@@ -2510,7 +2491,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     font-weight: 600;
 }
 .prompt-section-right {
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 2;
     flex: 1;
     min-width: 0;
@@ -2683,6 +2664,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     line-height: 1.4;
 }
 
+/* Template tags run long and carry no spaces to break at. */
+.prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) {
+    overflow-wrap: anywhere;
+}
+
 @media (max-width: 768px) {
     .prompt-section-body {
         display: flex;
@@ -2732,6 +2718,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-secondary);
     margin: 0;
     padding: 0.25rem 0.6rem 0.3rem;
+    max-width: 68ch;
 }
 
 /* ── About page ─────────────────────────────────────────────────────────── */
@@ -3243,6 +3230,9 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex-direction: column;
     gap: 0.3rem;
     padding: 0.45rem 0.6rem;
+    /* A settings row is a tap target on every device, not only under the
+       mobile breakpoint — a touch laptop is a wide viewport with fingers. */
+    min-height: 52px;
 }
 
 .settings-row[hidden] { display: none; }
@@ -3420,6 +3410,11 @@ input[type="checkbox"]:checked::after {
     font-size: var(--text-lg);
     font-weight: 500;
     color: var(--text-color);
+    /* A label sits in a flex row beside its control; without these a long one
+       refuses to shrink and pushes the field past the edge of the pane. */
+    min-width: 0;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .settings-select {
@@ -3479,6 +3474,8 @@ input[type="checkbox"]:checked::after {
     font-size: var(--text-lg);
     color: var(--text-color);
     cursor: pointer;
+    /* Model identifiers are long, unspaced and vendor-prefixed. */
+    overflow-wrap: anywhere;
 }
 
 @media (hover: hover) {
@@ -4641,7 +4638,22 @@ input[type="checkbox"]:checked::after {
     }
 
     /* ── Settings: iOS-style drill-down ────────────────────────────────── */
-    .settings-modal { width: 100%; }
+    /* iOS shrinks the visual viewport for the keyboard without resizing the
+       layout viewport, so 100dvh leaves the modal's footer under the keyboard.
+       main.js measures visualViewport and publishes it as this custom property;
+       the fallback is what non-iOS browsers use. */
+    .settings-modal {
+        width: 100%;
+        max-width: 100%;
+        height: var(--settings-viewport-height, 100dvh);
+    }
+    .about-build { overflow-wrap: anywhere; }
+    .cozy-select-option {
+        min-height: 44px;
+        padding-block: 12px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
     .settings-shell { position: relative; overflow: hidden; }
     .settings-nav,
     .settings-pane {
@@ -5780,6 +5792,38 @@ input[type="checkbox"]:checked::after {
         flex-direction: column;
         align-items: stretch;
     }
+}
+
+/* ── Container queries ───────────────────────────────────────────────────
+   These answer to the settings pane's own width, not the viewport's: the
+   sidebar and the settings nav come out of the budget first, so a viewport
+   breakpoint folds these layouts at the wrong moment on every screen but
+   one. `.settings-modal` declares the container; see container-type there.
+   Placed after every rule they rearrange — a container query carries no
+   extra specificity, so it only wins by coming last. */
+/* Against the pane, not the viewport: the editor and its Variables column are
+   side by side only while the pane is wide enough for both, and the pane is
+   the viewport minus the sidebar and the settings nav. A viewport breakpoint
+   would fold this at the wrong moment on every screen but one. */
+@container (max-width: 950px) {
+    .prompt-section-body { grid-template-columns: minmax(0, 1fr); }
+    .prompt-vars-panel { grid-column: 1; grid-row: 3; }
+}
+
+/* Same container, one step narrower: the preset picker's row of actions wraps,
+   the paired summary fields stack, and sampler rows drop their sliders below
+   the label rather than squeezing them. */
+@container (max-width: 800px) {
+    :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
+    :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
+    .summary-connection .settings-row { grid-template-columns: minmax(0, 1fr); }
+    .summary-connection .settings-row > :is(.form-input, .settings-model-row) {
+        grid-column: 1;
+        grid-row: auto;
+        width: 100%;
+    }
+    .sampler-card .settings-row { flex-wrap: wrap; }
+    .sampler-value-wrap { flex: 1 1 100%; }
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
