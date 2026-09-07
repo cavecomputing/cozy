@@ -200,6 +200,9 @@ None of this is needed to chat. Reach for it when a specific problem shows up.
   keywords appear in recent messages, which is how you give a setting more
   background than fits in a character card. Manage them under **Settings →
   Lorebooks**, and attach them from the memory button beside the chat input.
+  The dropdown shows each book’s source, embedded character card (if any),
+  and entry count. Use **New** or **Import** beside it, and **Export** or
+  **Delete** in the selected book’s header.
 
 - **Backups** — everything you have made lives in `data/`. Cozy changes often
   and downgrading is not supported, so copy that directory before updating. →

@@ -74,20 +74,36 @@ export function enhanceSelect(select) {
     const isOpen = () => !menu.hidden;
 
     // ── Render ─────────────────────────────────────────────────────────────
+    // Optional plain-text metadata keeps rich options and the selected value
+    // consistent, while native options retain their complete accessible text.
+    function renderLabel(target, opt) {
+        target.textContent = opt?.textContent || '';
+        target.removeAttribute('title');
+        if (!opt?.dataset.label) return;
+        target.textContent = '';
+        for (const part of ['label', 'badge', 'detail', 'count']) {
+            if (!opt.dataset[part]) continue;
+            const span = document.createElement('span');
+            span.className = `cozy-select-${part}`;
+            span.textContent = opt.dataset[part];
+            target.appendChild(span);
+        }
+        target.title = opt.textContent;
+    }
+
     function render() {
         const opts = Array.from(select.options);
         menu.innerHTML = '';
         items = [];
-        let selectedText = '';
         opts.forEach(opt => {
-            if (opt.selected) selectedText = opt.textContent;
             if (opt.hidden) return;  // e.g. the api-preset placeholder once presets load
             const li = document.createElement('li');
             li.id = `${uid}-opt-${menu.children.length}`;
             li.className = 'cozy-select-option';
             li.setAttribute('role', 'option');
+            li.setAttribute('aria-label', opt.textContent);
             li.dataset.value = opt.value;
-            li.textContent = opt.textContent;
+            renderLabel(li, opt);
             li.setAttribute('aria-selected', String(opt.selected));
             if (opt.selected) li.classList.add('selected');
             if (opt.disabled) {
@@ -98,10 +114,7 @@ export function enhanceSelect(select) {
             }
             menu.appendChild(li);
         });
-        if (!selectedText && select.selectedIndex >= 0) {
-            selectedText = opts[select.selectedIndex]?.textContent || '';
-        }
-        valueSpan.textContent = selectedText;
+        renderLabel(valueSpan, opts[select.selectedIndex]);
         if (isOpen()) {
             const clamped = Math.max(0, Math.min(activeIndex, items.length - 1));
             setActive(items.length ? clamped : -1, false);

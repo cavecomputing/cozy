@@ -5266,136 +5266,6 @@ input[type="checkbox"]:disabled {
 }
 /* List pane owns the bordered panel; the footer buttons sit inside it so
    New / Import read as part of the list rather than floating above it. */
-.lorebook-list-pane {
-    grid-column: 1;
-    grid-row: 2 / 5;
-    display: flex;
-    flex-direction: column;
-    min-height: 360px;
-    min-width: 0;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    background-color: var(--bg-color);
-    overflow: hidden;
-}
-.lorebook-list {
-    flex: 1;
-    min-height: 0;
-    list-style: none;
-    margin: 0;
-    padding: 0.35rem;
-    overflow-y: auto;
-}
-.lorebook-list-footer {
-    display: flex;
-    gap: 0.4rem;
-    padding: 0.5rem;
-    border-top: 1px solid var(--border-color);
-}
-.lorebook-list-new {
-    flex: 1;
-    justify-content: center;
-}
-.lorebook-list-empty {
-    padding: 1rem 0.75rem;
-    color: var(--text-secondary);
-    font-size: var(--text-md);
-    text-align: center;
-    line-height: 1.5;
-}
-.lorebook-list-item {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.55rem 0.5rem 0.55rem 0.65rem;
-    margin-bottom: 2px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background-color var(--motion-base) ease;
-}
-.lorebook-list-item:hover { background-color: var(--hover-bg); }
-.lorebook-list-item.active {
-    background-color: var(--active-bg);
-    color: var(--accent-color);
-}
-.lorebook-list-text {
-    flex: 1;
-    min-width: 0;
-}
-.lorebook-list-title {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-width: 0;
-}
-.lorebook-list-name {
-    flex: 1;
-    min-width: 0;
-    font-size: var(--text-xl);
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.lorebook-source-badge {
-    flex: 0 0 auto;
-    max-width: 5.5rem;
-    padding: 0.08rem 0.35rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    background-color: var(--input-bg);
-    font-size: var(--text-2xs);
-    font-weight: 600;
-    line-height: 1.35;
-    text-transform: uppercase;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.lorebook-source-badge--embedded {
-    border-color: color-mix(in srgb, var(--accent-color) 32%, var(--border-color));
-    color: var(--accent-color);
-    background-color: var(--active-bg);
-}
-.lorebook-list-sub  {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    margin-top: 3px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.lorebook-list-actions {
-    display: flex;
-    align-items: center;
-    gap: 1px;
-    flex-shrink: 0;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--motion-fast) ease;
-}
-.lorebook-list-item:hover .lorebook-list-actions,
-.lorebook-list-item:focus-within .lorebook-list-actions {
-    opacity: 1;
-    pointer-events: auto;
-}
-.lorebook-list-actions .icon-btn {
-    width: 22px;
-    height: 22px;
-    padding: 3px;
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-}
-.lorebook-list-actions .icon-btn:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
-}
-.lorebook-list-actions .lorebook-list-delete-btn:hover {
-    color: var(--danger-color);
-    background-color: var(--danger-bg-hover);
-}
-
 .lorebook-meta {
     grid-column: 2;
     grid-row: 2;
@@ -5568,35 +5438,12 @@ input[type="checkbox"]:disabled {
     /* DOM order is [3 headers][pane][meta][entries]; rethread with `order`
        so it reads header → list → header → meta → header → entries top-to-bottom. */
     .lorebook-workspace-grid > .lorebook-col-header:nth-of-type(1) { order: 1; }
-    .lorebook-workspace-grid > .lorebook-list-pane                 { order: 2; }
     .lorebook-workspace-grid > .lorebook-col-header:nth-of-type(2) { order: 3; }
     .lorebook-workspace-grid > #settings-lorebook-empty-meta       { order: 4; }
     .lorebook-workspace-grid > #settings-lorebook-meta             { order: 4; }
     .lorebook-workspace-grid > .lorebook-col-header:nth-of-type(3) { order: 5; }
     .lorebook-workspace-grid > #settings-lorebook-empty-entries    { order: 6; }
     .lorebook-workspace-grid > #settings-lorebook-entries          { order: 6; }
-
-    /* The pane filled grid rows on desktop; cap it on mobile so it doesn't sprawl. */
-    .lorebook-list-pane {
-        min-height: 0;
-        max-height: 260px;
-    }
-
-    .lorebook-list-item {
-        min-height: 52px;
-        padding: 0.65rem 0.55rem 0.65rem 0.7rem;
-    }
-
-    .lorebook-list-actions .icon-btn {
-        width: var(--mobile-tap-target);
-        height: var(--mobile-tap-target);
-    }
-
-    /* Touch has no hover — keep row actions visible */
-    .lorebook-list-actions {
-        opacity: 1;
-        pointer-events: auto;
-    }
 
     /* Entry editor: stack the two-column rows on narrow screens */
     .lorebook-entry-row {
@@ -6008,15 +5855,9 @@ input[type="checkbox"]:disabled {
 #settings-flyout .lorebook-region { min-width: 0; padding: 16px; border: 1px solid var(--settings-line); border-radius: var(--settings-radius); background: var(--settings-surface); }
 #settings-flyout .lorebook-col-header { padding-bottom: 12px; margin-bottom: 12px; min-height: 44px; border-bottom: 1px solid var(--settings-line); flex-wrap: wrap; }
 #settings-flyout .lorebook-card-title { font-size: 15px; color: var(--settings-cool); text-transform: none; letter-spacing: 0; }
-#settings-flyout :is(.lorebook-list-pane, .lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
+#settings-flyout :is(.lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
 #settings-flyout .lorebook-empty-panel { padding: 20px 0; }
 #settings-flyout #settings-lorebook-empty-entries { min-height: 0; }
-#settings-flyout .lorebook-list { padding: 0; overflow: visible; }
-#settings-flyout .lorebook-list-footer { padding: 12px 0 0; margin-top: 12px; flex-wrap: wrap; }
-#settings-flyout .lorebook-list-actions { opacity: 1; pointer-events: auto; }
-#settings-flyout .lorebook-list-item { min-height: 52px; border-left: 3px solid transparent; padding: 8px; flex-wrap: wrap; }
-#settings-flyout .lorebook-list-text { flex-basis: 100px; }
-#settings-flyout .lorebook-list-item.active { border-left-color: var(--settings-warm); background: color-mix(in srgb, var(--settings-warm) 10%, var(--settings-surface)); color: var(--text-color); }
 #settings-flyout .lorebook-meta-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 #settings-flyout .lorebook-entry-field--wide { grid-column: 1 / -1; }
 #settings-flyout .lorebook-entry-field { min-width: 0; }
@@ -6027,13 +5868,6 @@ input[type="checkbox"]:disabled {
 #settings-flyout .lorebook-entry-header { flex-wrap: wrap; }
 #settings-flyout .lorebook-entry-keys-wrap { min-width: 0; flex: 1 1 100%; }
 #settings-flyout .lorebook-entry-meta { flex-wrap: wrap; }
-@media (min-width: 769px) {
-    /* Four visible rows; additional books scroll without moving the actions. */
-    #settings-flyout .lorebook-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 96px; gap: 6px; max-height: 402px; overflow-y: auto; overscroll-behavior: contain; }
-    #settings-flyout .lorebook-list-item { min-width: 0; margin: 0; flex-wrap: nowrap; }
-    #settings-flyout .lorebook-list .lorebook-list-name { white-space: nowrap; }
-    #settings-flyout .lorebook-list-empty { grid-column: 1 / -1; }
-}
 @media (max-width: 768px) {
     #settings-flyout .lorebook-entry-field-narrow { flex-basis: auto; }
     #settings-flyout .lorebook-entry-toggle { min-height: 44px; white-space: normal; }
@@ -6110,12 +5944,32 @@ input[type="checkbox"]:disabled {
     #settings-flyout .model-picker-item { min-height: 44px; }
     #settings-flyout .prompt-basic-hint-link { min-height: 44px; padding: 8px; }
 }
-#settings-flyout .lorebook-list-title { display: block; }
-#settings-flyout .lorebook-list-name { display: block; white-space: normal; overflow-wrap: anywhere; }
-#settings-flyout .lorebook-source-badge { display: inline-block; margin-top: 4px; }
 
 /* In the two-column workspace the reference sets the row height; both editors
    fill that same row, so changing tabs never changes the panel's height. */
 @media (min-width: 769px) {
     #settings-flyout .prompt-section-right .form-textarea { resize: none; }
+}
+
+/* Lorebook picker: reuse preset controls, with source details on each option. */
+#settings-flyout .lorebook-picker { margin: 0; }
+#settings-flyout .lorebook-picker > .cozy-select { min-width: 0; flex: 1; }
+#settings-flyout .lorebook-picker :is(.cozy-select-value, .cozy-select-option) { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; white-space: normal; }
+#settings-flyout .lorebook-picker .cozy-select-label { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+#settings-flyout .lorebook-picker .cozy-select-badge { flex: none; padding: 2px 6px; border: 1px solid var(--settings-line); border-radius: 5px; color: var(--settings-cool); background: var(--settings-surface-strong); font-size: 11px; font-weight: 600; }
+#settings-flyout .lorebook-picker .cozy-select-detail { flex: 0 1 auto; max-width: 40%; overflow-wrap: anywhere; }
+#settings-flyout .lorebook-picker :is(.cozy-select-detail, .cozy-select-count) { color: var(--text-secondary); font-size: 12px; font-weight: 400; }
+#settings-flyout .lorebook-picker .cozy-select-count { white-space: nowrap; margin-left: auto; }
+#settings-flyout .lorebook-picker .cozy-select-menu { max-height: min(320px, 45dvh); overscroll-behavior: contain; }
+#settings-flyout .lorebook-picker .cozy-select-option { min-height: 44px; padding: 10px; }
+#settings-flyout .lorebook-editor-actions { display: flex; gap: 8px; margin-left: auto; }
+@container (max-width: 700px) {
+    #settings-flyout .lorebook-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    #settings-flyout .lorebook-picker > .cozy-select { grid-column: 1 / -1; }
+    #settings-flyout .lorebook-picker > .icon-btn { width: 100%; border: 1px solid var(--settings-line); border-radius: 8px; }
+}
+@media (max-width: 768px) {
+    #settings-flyout .lorebook-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #settings-flyout .lorebook-picker .cozy-select-label { flex-basis: 100%; }
+    #settings-flyout .lorebook-picker .cozy-select-detail { max-width: 100%; flex: 1 1 110px; }
 }

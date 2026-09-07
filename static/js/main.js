@@ -857,21 +857,13 @@ function bindMemoryHandlers() {
     // Inline notice — dismiss
     el.lorebookNoticeDismiss?.addEventListener('click', dismissLorebookNotice);
 
-    // Lorebook list (settings panel) — select / export / delete per row
-    el.lorebookList?.addEventListener('click', e => {
-        const item = e.target.closest('.lorebook-list-item');
-        if (!item) return;
-        e.stopPropagation();
-        const kind = item.dataset.kind;
-        const id = parseInt(item.dataset.id, 10);
-        if (e.target.closest('.lorebook-list-export-btn')) {
-            exportLorebook(kind, id);
-        } else if (e.target.closest('.lorebook-list-delete-btn')) {
-            deleteLorebook(kind, id);
-        } else {
-            selectLorebook(kind, id);
-        }
+    // The picker shares the preset dropdown's keyboard and touch behavior.
+    el.lorebookList?.addEventListener('change', () => {
+        const [kind, id] = el.lorebookList.value.split(':');
+        if (kind && id) selectLorebook(kind, Number(id));
     });
+    document.getElementById('settings-lorebook-export').addEventListener('click', () => exportLorebook());
+    document.getElementById('settings-lorebook-delete').addEventListener('click', () => deleteLorebook());
     el.lorebookNew?.addEventListener('click', newLorebook);
     el.lorebookSave?.addEventListener('click', saveLorebook);
     el.lorebookAddEntry?.addEventListener('click', addEntry);

@@ -39,8 +39,9 @@ function listEntries() {
             kind: 'standalone',
             id: lb.id,
             name: lb.name || '(unnamed)',
-            badge: 'Global',
-            sub: `${lb.entry_count ?? entries.length} entries`,
+            badge: 'Standalone',
+            count: lb.entry_count ?? entries.length,
+            card: '',
         });
     }
     for (const c of state.characters) {
@@ -52,7 +53,8 @@ function listEntries() {
                 id: c.id,
                 name: book.name || c.name,
                 badge: 'Embedded',
-                sub: `${c.name} character card · ${entries.length} entries`,
+                card: c.name,
+                count: entries.length,
             });
         }
     }
@@ -63,47 +65,22 @@ export function renderLorebookList() {
     if (!el.lorebookList) return;
     el.lorebookList.innerHTML = '';
     const entries = listEntries();
-    if (entries.length === 0) {
-        const li = document.createElement('li');
-        li.className = 'lorebook-list-empty';
-        li.textContent = 'No lorebooks yet — create one to get started.';
-        el.lorebookList.appendChild(li);
-        return;
-    }
+    const placeholder = new Option(entries.length ? 'Choose a lorebook…' : 'No lorebooks yet — create or import one', '');
+    placeholder.disabled = true;
+    placeholder.hidden = entries.length > 0;
+    el.lorebookList.appendChild(placeholder);
     for (const e of entries) {
-        const li = document.createElement('li');
-        li.className = 'lorebook-list-item';
-        li.dataset.kind = e.kind;
-        li.dataset.id = String(e.id);
-        if (editing && editing.kind === e.kind && editing.id === e.id) {
-            li.classList.add('active');
-        }
-        const text = document.createElement('div');
-        text.className = 'lorebook-list-text';
-        const title = document.createElement('div');
-        title.className = 'lorebook-list-title';
-        const name = document.createElement('div');
-        name.className = 'lorebook-list-name';
-        name.textContent = e.name;
-        const badge = document.createElement('span');
-        badge.className = `lorebook-source-badge lorebook-source-badge--${e.kind}`;
-        badge.textContent = e.badge;
-        title.append(name, badge);
-        const sub = document.createElement('div');
-        sub.className = 'lorebook-list-sub';
-        sub.textContent = e.sub;
-        text.append(title, sub);
-
-        const actions = document.createElement('div');
-        actions.className = 'lorebook-list-actions';
-        actions.innerHTML = `
-            <button class="icon-btn lorebook-list-export-btn" title="Export lorebook" aria-label="Export lorebook">${icons.DOWNLOAD}</button>
-            <button class="icon-btn lorebook-list-delete-btn" title="Delete lorebook" aria-label="Delete lorebook">${icons.TRASH}</button>
-        `;
-
-        li.append(text, actions);
-        el.lorebookList.appendChild(li);
+        const count = `${e.count} ${e.count === 1 ? 'entry' : 'entries'}`;
+        const option = new Option([e.name, e.badge, e.card, count].filter(Boolean).join(' · '), `${e.kind}:${e.id}`);
+        option.dataset.label = e.name;
+        option.dataset.badge = e.badge;
+        option.dataset.detail = e.card ? `${e.card} card` : '';
+        option.dataset.count = count;
+        el.lorebookList.appendChild(option);
     }
+    el.lorebookList.value = editing ? `${editing.kind}:${editing.id}` : '';
+    document.getElementById('settings-lorebook-export').disabled = !editing;
+    document.getElementById('settings-lorebook-delete').disabled = !editing;
 }
 
 // ── Editor ─────────────────────────────────────────────────────────────────
@@ -275,7 +252,7 @@ export async function selectLorebook(kind, id) {
             showToast('Failed to load lorebook: ' + err.message);
             return null;
         });
-        if (!full) return;
+        if (!full) { renderLorebookList(); return; }
         editing = { kind: 'standalone', id, original: full.book };
         loadIntoEditor(full.book || empty());
     } else {
@@ -388,8 +365,7 @@ export async function saveLorebook() {
 }
 
 export async function deleteLorebook(kind, id) {
-    // Default to the currently-edited book; explicit args let row buttons
-    // act on any list item without selecting it first.
+    // Default to the currently-edited book.
     if (kind == null || id == null) {
         if (!editing) return;
         kind = editing.kind;
