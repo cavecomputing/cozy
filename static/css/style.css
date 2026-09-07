@@ -5726,12 +5726,12 @@ input[type="checkbox"]:disabled {
 #settings-flyout .settings-modal { container-type: inline-size; }
 #settings-flyout .modal-header { min-height: 48px; padding-inline: 20px; flex-shrink: 0; }
 #settings-flyout .settings-body { flex: 1; min-height: 0; overflow: hidden; padding: 0; }
-#settings-flyout .settings-nav { width: clamp(170px, 16vw, 220px); padding: 10px 8px; gap: 3px; }
-#settings-flyout .settings-nav-item { min-height: 44px; padding: 8px 10px; gap: 10px; border-left: 3px solid transparent; border-radius: 10px; }
+/* Floor stays above the widest row ("Regex" plus its ADV badge, ~156px). */
+#settings-flyout .settings-nav { width: clamp(160px, 14vw, 200px); padding: 10px 8px; gap: 3px; }
+#settings-flyout .settings-nav-item { min-height: 44px; padding: 8px 10px; gap: 10px; border-radius: 10px; }
 #settings-flyout .settings-nav-item svg { width: 18px; height: 18px; }
 #settings-flyout .settings-nav-item.active {
     background: color-mix(in srgb, var(--settings-warm) 10%, var(--settings-surface));
-    border-left-color: var(--settings-warm);
     color: var(--text-color);
 }
 #settings-flyout .settings-nav-item.active svg { color: var(--settings-warm); }
@@ -5769,7 +5769,6 @@ input[type="checkbox"]:disabled {
     #settings-flyout .modal-header { padding: calc(env(safe-area-inset-top, 0px) + 6px) max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); }
     #settings-flyout .settings-nav { width: 100%; padding: 12px 16px; }
     #settings-flyout .settings-nav-item { min-height: 52px; }
-    #settings-flyout .settings-shell:not(.in-detail) .settings-nav-item.active { border-left-color: transparent; }
     #settings-flyout:has(.in-detail) #settings-close-btn { display: none; }
     #settings-flyout:has(.in-detail) #settings-title { font: 500 22px/1.2 ui-serif, Georgia, Cambria, "Times New Roman", serif; text-transform: none; letter-spacing: 0; text-align: center; padding-right: 44px; }
     #settings-flyout .settings-page-header { position: static; padding: 8px var(--settings-gutter); }
