@@ -199,9 +199,11 @@ body {
     transition: background var(--motion-base), color var(--motion-base), transform var(--motion-fast);
 }
 
-.icon-btn:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
+@media (hover: hover) {
+    .icon-btn:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
 }
 
 .icon-btn:active {
@@ -213,10 +215,12 @@ body {
     transform: none;   /* cancel the :active press */
 }
 
-.icon-btn:disabled:hover,
-#send-btn:disabled:hover {
-    background: none;
-    color: var(--text-secondary);
+@media (hover: hover) {
+    .icon-btn:disabled:hover,
+    #send-btn:disabled:hover {
+        background: none;
+        color: var(--text-secondary);
+    }
 }
 
 /* One focus ring for everything that takes focus, in place of the nine-selector
@@ -341,9 +345,11 @@ select.settings-select:focus-visible {
     min-width: 0;
 }
 
-.char-item:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
+@media (hover: hover) {
+    .char-item:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
 }
 
 .char-item.active {
@@ -477,9 +483,11 @@ select.settings-select:focus-visible {
     min-width: 0;
 }
 
-.chat-item:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
+@media (hover: hover) {
+    .chat-item:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
 }
 
 .chat-item.active {
@@ -569,15 +577,19 @@ select.settings-select:focus-visible {
     color: var(--text-secondary);
 }
 
-.chat-item-actions .icon-btn:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
+@media (hover: hover) {
+    .chat-item-actions .icon-btn:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
 }
 
-.chat-item-actions .chat-delete-btn:hover,
-.char-item-actions .char-delete-btn:hover {
-    color: var(--danger-color);
-    background-color: var(--danger-bg-hover);
+@media (hover: hover) {
+    .chat-item-actions .chat-delete-btn:hover,
+    .char-item-actions .char-delete-btn:hover {
+        color: var(--danger-color);
+        background-color: var(--danger-bg-hover);
+    }
 }
 
 .avatar {
@@ -631,8 +643,10 @@ select.settings-select:focus-visible {
     transition: background var(--motion-base);
 }
 
-#user-profile:hover {
-    background-color: var(--hover-bg);
+@media (hover: hover) {
+    #user-profile:hover {
+        background-color: var(--hover-bg);
+    }
 }
 
 .user-info {
@@ -669,9 +683,11 @@ select.settings-select:focus-visible {
     transition: background var(--motion-base), color var(--motion-base);
 }
 
-.profile-settings-btn:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
+@media (hover: hover) {
+    .profile-settings-btn:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
 }
 
 .profile-settings-btn svg {
@@ -796,8 +812,10 @@ select.settings-select:focus-visible {
     transition: background var(--motion-base);
 }
 
-.persona-option:hover {
-    background-color: var(--hover-bg);
+@media (hover: hover) {
+    .persona-option:hover {
+        background-color: var(--hover-bg);
+    }
 }
 
 /* Action buttons in the dropup (dark mode, settings) */
@@ -1035,10 +1053,12 @@ select.settings-select:focus-visible {
     pointer-events: auto;
 }
 
-.scroll-to-bottom-btn:hover {
-    background-color: var(--scroll-bottom-hover-bg, var(--scroll-bottom-bg, var(--accent-color)));
-    color: var(--scroll-bottom-hover-color, var(--scroll-bottom-color, #fff));
-    transform: translateY(-1px);
+@media (hover: hover) {
+    .scroll-to-bottom-btn:hover {
+        background-color: var(--scroll-bottom-hover-bg, var(--scroll-bottom-bg, var(--accent-color)));
+        color: var(--scroll-bottom-hover-color, var(--scroll-bottom-color, #fff));
+        transform: translateY(-1px);
+    }
 }
 
 #chat-scroll {
@@ -1415,13 +1435,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     line-height: 1;
 }
 
-.msg-action-btn:hover                { background-color: var(--hover-bg); color: var(--text-color); }
+@media (hover: hover) { .msg-action-btn:hover                { background-color: var(--hover-bg); color: var(--text-color); } }
 .msg-action-btn.delete-msg-btn:hover { color: var(--danger-color); }
 .msg-action-btn.save-msg-btn:hover   { color: var(--success-color); }
 .msg-action-btn.fork-msg-btn:hover    { color: var(--accent-color); }
 
 .message.user .msg-action-btn        { color: var(--user-action-color, rgba(255, 255, 255, 0.5)); }
-.message.user .msg-action-btn:hover  { background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15)); color: var(--user-action-hover-color, white); }
+@media (hover: hover) { .message.user .msg-action-btn:hover  { background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15)); color: var(--user-action-hover-color, white); } }
 
 /* ── Swipe navigation ──────────────────────────────────────────────────── */
 .swipe-nav {
@@ -1445,9 +1465,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     line-height: 1;
 }
 
-.swipe-btn:hover:not(:disabled) {
-    background-color: var(--hover-bg);
-    color: var(--accent-color);
+@media (hover: hover) {
+    .swipe-btn:hover:not(:disabled) {
+        background-color: var(--hover-bg);
+        color: var(--accent-color);
+    }
 }
 
 .swipe-counter {
@@ -1552,16 +1574,27 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-secondary);
 }
 
-.composer-context-btn:hover,
+/* Split from the hover rule below: an open flyout keeps its lit button on
+   touch, where there is no hover to light it. */
 .composer-context-btn[aria-expanded="true"] {
     border-color: var(--border-color);
     background-color: var(--hover-bg);
     color: var(--text-color);
 }
 
-.composer-context-btn:disabled:hover {
-    border-color: transparent;
-    background-color: color-mix(in srgb, var(--hover-bg) 62%, transparent);
+@media (hover: hover) {
+    .composer-context-btn:hover {
+        border-color: var(--border-color);
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
+}
+
+@media (hover: hover) {
+    .composer-context-btn:disabled:hover {
+        border-color: transparent;
+        background-color: color-mix(in srgb, var(--hover-bg) 62%, transparent);
+    }
 }
 
 #input-wrapper {
@@ -1630,9 +1663,15 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     font-size: var(--text-lg);
 }
 
-.slash-command-item:hover,
+/* .active is the keyboard-selected item, so it must stay lit on touch. */
 .slash-command-item.active {
     background-color: var(--hover-bg);
+}
+
+@media (hover: hover) {
+    .slash-command-item:hover {
+        background-color: var(--hover-bg);
+    }
 }
 
 .slash-command-name {
@@ -1798,9 +1837,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--danger-color);
 }
 
-#send-btn.stop-mode:hover {
-    color: var(--danger-color);
-    background-color: var(--danger-bg-hover);
+@media (hover: hover) {
+    #send-btn.stop-mode:hover {
+        color: var(--danger-color);
+        background-color: var(--danger-bg-hover);
+    }
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
@@ -1887,8 +1928,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--btn-primary-color, white);
 }
 
-.btn-primary:hover:not(:disabled) {
-    background-color: var(--accent-hover);
+@media (hover: hover) {
+    .btn-primary:hover:not(:disabled) {
+        background-color: var(--accent-hover);
+    }
 }
 
 .btn-secondary {
@@ -1897,8 +1940,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border: 1px solid var(--border-color);
 }
 
-.btn-secondary:hover:not(:disabled) {
-    background-color: var(--hover-bg);
+@media (hover: hover) {
+    .btn-secondary:hover:not(:disabled) {
+        background-color: var(--hover-bg);
+    }
 }
 
 .btn-sm {
@@ -2087,8 +2132,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex-shrink: 0;
 }
 
-.settings-nav-item:hover {
-    background-color: var(--hover-bg);
+@media (hover: hover) {
+    .settings-nav-item:hover {
+        background-color: var(--hover-bg);
+    }
 }
 
 .settings-nav-item.active {
@@ -2970,10 +3017,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     transition: background-color var(--motion-base) ease, border-color var(--motion-base) ease;
 }
 
-.settings-section[data-section="about"] a.about-link:hover {
-    background-color: var(--hover-bg);
-    border-color: var(--accent-border-light, var(--accent-color));
-    text-decoration: none;
+@media (hover: hover) {
+    .settings-section[data-section="about"] a.about-link:hover {
+        background-color: var(--hover-bg);
+        border-color: var(--accent-border-light, var(--accent-color));
+        text-decoration: none;
+    }
 }
 
 .about-link-icon {
@@ -3432,8 +3481,10 @@ input[type="checkbox"]:checked::after {
     cursor: pointer;
 }
 
-.model-picker-item:hover {
-    background-color: var(--hover-bg);
+@media (hover: hover) {
+    .model-picker-item:hover {
+        background-color: var(--hover-bg);
+    }
 }
 
 .model-picker-item.active {
@@ -3681,8 +3732,10 @@ input[type="checkbox"]:checked::after {
     white-space: nowrap;
 }
 
-.export-menu button:hover {
-    background-color: var(--hover-bg);
+@media (hover: hover) {
+    .export-menu button:hover {
+        background-color: var(--hover-bg);
+    }
 }
 
 .export-menu-label {
@@ -4050,8 +4103,10 @@ input[type="checkbox"]:checked::after {
     cursor: pointer;
     user-select: none;
 }
-.sampler-popover-row:hover {
-    background-color: var(--hover-bg);
+@media (hover: hover) {
+    .sampler-popover-row:hover {
+        background-color: var(--hover-bg);
+    }
 }
 .sampler-popover-row input[type="checkbox"] {
     margin: 0;
@@ -4073,9 +4128,11 @@ input[type="checkbox"]:checked::after {
     padding: 0.35rem 0.45rem;
     text-align: left;
 }
-.sampler-reset-btn:hover {
-    background-color: var(--hover-bg);
-    color: var(--accent-color);
+@media (hover: hover) {
+    .sampler-reset-btn:hover {
+        background-color: var(--hover-bg);
+        color: var(--accent-color);
+    }
 }
 .sampler-help-section {
     border: 1px solid var(--border-color);
@@ -4203,9 +4260,11 @@ input[type="checkbox"]:checked::after {
     border: 1px solid var(--danger-color);
 }
 
-.btn-danger:hover:not(:disabled) {
-    background-color: var(--danger-color);
-    color: var(--btn-danger-hover-color, white);
+@media (hover: hover) {
+    .btn-danger:hover:not(:disabled) {
+        background-color: var(--danger-color);
+        color: var(--btn-danger-hover-color, white);
+    }
 }
 
 /* ── Confirm dialog (styled window.confirm replacement) ──────────────────── */
@@ -4299,7 +4358,7 @@ input[type="checkbox"]:checked::after {
     padding: 0.15rem 0.55rem;
     cursor: pointer;
 }
-.toast-action:hover { background: rgba(255, 255, 255, 0.15); }
+@media (hover: hover) { .toast-action:hover { background: rgba(255, 255, 255, 0.15); } }
 
 @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
@@ -4348,7 +4407,7 @@ input[type="checkbox"]:checked::after {
     transition: background var(--motion-base);
 }
 
-.thinking-toggle:hover { background-color: var(--hover-bg); }
+@media (hover: hover) { .thinking-toggle:hover { background-color: var(--hover-bg); } }
 
 .thinking-toggle .chevron {
     transition: transform var(--motion-base);
@@ -4639,8 +4698,10 @@ input[type="checkbox"]:checked::after {
         background-color: transparent;
         color: var(--text-color);
     }
-    .settings-shell:not(.in-detail) .settings-nav-item.active:hover {
-        background-color: var(--hover-bg);
+    @media (hover: hover) {
+        .settings-shell:not(.in-detail) .settings-nav-item.active:hover {
+            background-color: var(--hover-bg);
+        }
     }
 
     /* ── Main content: full width ──────────────────────────────────── */
@@ -4793,9 +4854,14 @@ input[type="checkbox"]:checked::after {
         background: none;
     }
 
-    .composer-context-btn:hover,
     .composer-context-btn[aria-expanded="true"] {
         border-color: transparent;
+    }
+
+    @media (hover: hover) {
+        .composer-context-btn:hover {
+            border-color: transparent;
+        }
     }
 
     #user-input {
@@ -5044,7 +5110,7 @@ input[type="checkbox"]:checked::after {
     transition: background-color var(--motion-base) ease;
 }
 .lorebook-flyout-manage svg { width: 15px; height: 15px; }
-.lorebook-flyout-manage:hover { background-color: var(--hover-bg); }
+@media (hover: hover) { .lorebook-flyout-manage:hover { background-color: var(--hover-bg); } }
 
 #memory-flyout-btn { flex-shrink: 0; }
 
@@ -5918,7 +5984,7 @@ input[type="checkbox"]:checked::after {
 #settings-flyout .about-storage-cache { border: 0; background: transparent; padding-block: 16px; }
 #settings-flyout .about-link { min-height: 58px; border: 1px solid var(--settings-line); border-radius: var(--radius); background: var(--bg-color); }
 #settings-flyout .about-link-title { color: var(--accent-color); text-decoration: underline; text-underline-offset: 3px; }
-#settings-flyout .about-link:hover { background: var(--hover-bg); border-color: var(--accent-color); }
+@media (hover: hover) { #settings-flyout .about-link:hover { background: var(--hover-bg); border-color: var(--accent-color); } }
 #settings-flyout .about-storage-summary { padding-top: 16px; flex-wrap: wrap; }
 @media (max-width: 768px) {
     #settings-flyout .regex-filter-header { flex-wrap: wrap; }
