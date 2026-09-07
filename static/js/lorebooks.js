@@ -89,6 +89,7 @@ function setEditorVisible(visible) {
     if (el.lorebookMeta)     el.lorebookMeta.hidden = !visible;
     if (el.lorebookEntries)  el.lorebookEntries.hidden = !visible;
     if (el.lorebookAddEntry) el.lorebookAddEntry.hidden = !visible;
+    if (el.lorebookEntrySearch) el.lorebookEntrySearch.hidden = !visible;
     if (el.lorebookEmptyMeta) el.lorebookEmptyMeta.hidden = visible;
     if (el.lorebookEmptyEntries) el.lorebookEmptyEntries.hidden = visible;
 }
@@ -206,14 +207,40 @@ function renderEntries(entries) {
         empty.textContent = 'No entries yet. Use Add entry to create the first trigger and lore text.';
         el.lorebookEntries.appendChild(empty);
     }
+    if (el.lorebookEntrySearch) el.lorebookEntrySearch.value = '';  // a new book starts unfiltered
+    filterEntries();
+}
+
+/** Show only the rows matching the search box. Non-matches are hidden, never
+ *  removed — `readEditor()` saves whatever rows are in the DOM, so dropping
+ *  them would delete the entries the user filtered past. */
+export function filterEntries() {
+    const query = el.lorebookEntrySearch?.value.trim().toLowerCase() || '';
+    const rows = el.lorebookEntries.querySelectorAll('.lorebook-entry');
+    // Triggers and notes only — lore text is long and prose-like, so including
+    // it matched half the book on common words. Match against the live inputs
+    // rather than the loaded book, so unsaved edits are searchable at once.
+    rows.forEach(row => {
+        row.hidden = !!query && !['keys', 'secondary_keys', 'comment'].some(
+            field => row.querySelector(`[data-field="${field}"]`).value.toLowerCase().includes(query));
+    });
+    el.lorebookEntries.classList.toggle('is-filtering', !!query);
+    el.lorebookEntries.querySelector('.lorebook-entry-nomatch')?.remove();
+    if (query && rows.length && !el.lorebookEntries.querySelector('.lorebook-entry:not([hidden])')) {
+        const none = document.createElement('div');
+        none.className = 'lorebook-entry-empty lorebook-entry-nomatch';
+        none.textContent = 'No entries match that search.';
+        el.lorebookEntries.appendChild(none);
+    }
     refreshEntriesCount();
 }
 
 function refreshEntriesCount() {
     if (!el.lorebookEntriesCount) return;
     if (!editing) { el.lorebookEntriesCount.textContent = ''; return; }
-    const n = el.lorebookEntries?.querySelectorAll('.lorebook-entry').length || 0;
-    el.lorebookEntriesCount.textContent = `(${n})`;
+    const rows = el.lorebookEntries?.querySelectorAll('.lorebook-entry') || [];
+    const shown = el.lorebookEntries?.querySelectorAll('.lorebook-entry:not([hidden])').length ?? 0;
+    el.lorebookEntriesCount.textContent = shown === rows.length ? `(${rows.length})` : `(${shown} of ${rows.length})`;
 }
 
 function fillDestinationOptions() {
@@ -454,7 +481,10 @@ export function addEntry() {
         keys: [], content: '', enabled: true, constant: false, insertion_order: 100,
         extensions: {},
     }, idx, -1));
-    refreshEntriesCount();
+    // A blank row matches no search, so drop the filter rather than append
+    // the new entry out of sight.
+    if (el.lorebookEntrySearch) el.lorebookEntrySearch.value = '';
+    filterEntries();
 }
 
 // ── Import / export ───────────────────────────────────────────────────────

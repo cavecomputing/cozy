@@ -5363,6 +5363,17 @@ input[type="checkbox"]:disabled {
     line-height: 1.45;
     text-align: center;
 }
+/* Search sits between the Entries count and Add entry, taking the slack. */
+.lorebook-entry-search {
+    flex: 0 1 18rem;   /* shrinks on narrow headers, never grows to fill them */
+    min-width: 0;
+    padding: 0 0.5rem;
+    font-size: var(--text-md);
+}
+/* .lorebook-entry sets `display: flex`, which would beat the UA [hidden] rule. */
+.lorebook-entry[hidden] { display: none; }
+/* Reordering a filtered list would swap rows with invisible neighbours. */
+.lorebook-entries.is-filtering :is(.lorebook-entry-up, .lorebook-entry-down) { display: none; }
 .lorebook-entry {
     border: 1px solid var(--border-color);
     border-left: 3px solid var(--accent-color);
@@ -5904,6 +5915,8 @@ input[type="checkbox"]:disabled {
     #settings-flyout input[type="checkbox"]::after { width: 18px; height: 18px; margin-top: -9px; }
     #settings-flyout input[type="checkbox"]:checked::after { transform: translateX(18px); }
     #settings-flyout .cozy-select-option { min-height: 44px; padding-block: 12px; white-space: normal; overflow-wrap: anywhere; }
+    /* The header wraps to its own row here, so the search takes the full width. */
+    #settings-flyout .lorebook-entry-search { flex: 1 1 100%; }
 }
 @container (max-width: 800px) {
     #settings-flyout :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }

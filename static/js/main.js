@@ -30,7 +30,7 @@ import {
     exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, initPromptVarsPanel,
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
-import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
+import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
 import {
     loadRegexPresets, selectRegexPreset, createRegexPreset, deleteRegexPreset,
     addFilter, handleFilterListClick, handleFilterListInput,
@@ -870,6 +870,7 @@ function bindMemoryHandlers() {
     el.lorebookImport?.addEventListener('click', importLorebook);
     el.lorebookImportFile?.addEventListener('change', handleImportFile);
     el.lorebookEntries?.addEventListener('click', handleEntriesClick);
+    el.lorebookEntrySearch?.addEventListener('input', filterEntries);
 
     // Scan-depth override — debounced save (mirrors sampler/context fields)
     el.lorebookScanOverride?.addEventListener('change', () => {

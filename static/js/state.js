@@ -219,6 +219,7 @@ export function initElements() {
         lorebookEntries:     document.getElementById('settings-lorebook-entries'),
         lorebookEmptyEntries: document.getElementById('settings-lorebook-empty-entries'),
         lorebookEntriesCount: document.getElementById('settings-lorebook-entries-count'),
+        lorebookEntrySearch: document.getElementById('settings-lorebook-entry-search'),
         lorebookAddEntry:    document.getElementById('settings-lorebook-add-entry'),
         lorebookSave:        document.getElementById('settings-lorebook-save'),
         lorebookDestination: document.getElementById('settings-lorebook-destination'),
