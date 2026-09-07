@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, AVATAR, showToast, Flyouts, updateComposerState, markUnusedVar } from './utils.js';
+import { applyAvatar, AVATAR, showToast, Flyouts, updateComposerState, markUnusedVar, withBusy } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
@@ -243,25 +243,21 @@ async function save() {
         showToast('An image is required for new characters', 'error');
         return;
     }
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving\u2026';
     try {
-        let char;
-        if (editingCharId) {
-            char = await API.updateCharacter(editingCharId, data);
-            if (pendingAvatarFile) char = await API.uploadAvatar(char.id, pendingAvatarFile);
-        } else {
-            char = await API.createCharacter(data, pendingAvatarFile);
-        }
-
-        await applyCharUpdate(char, !isEditing);
+        await withBusy(saveBtn, 'Saving\u2026', async () => {
+            let char;
+            if (editingCharId) {
+                char = await API.updateCharacter(editingCharId, data);
+                if (pendingAvatarFile) char = await API.uploadAvatar(char.id, pendingAvatarFile);
+            } else {
+                char = await API.createCharacter(data, pendingAvatarFile);
+            }
+            await applyCharUpdate(char, !isEditing);
+        });
         close();
         showToast(isEditing ? 'Character saved' : 'Character created', 'success');
     } catch (err) {
         showToast('Could not save character: ' + err.message, 'error');
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Character';
     }
 }
 
@@ -286,20 +282,17 @@ importInput.addEventListener('change', async () => {
         if (!ok) return;
     }
 
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Importing\u2026';
     try {
-        const char = replacingId
-            ? await API.importOverCard(replacingId, file)
-            : await API.importCard(file);
-        await applyCharUpdate(char, !replacingId);
+        await withBusy(saveBtn, 'Importing\u2026', async () => {
+            const char = replacingId
+                ? await API.importOverCard(replacingId, file)
+                : await API.importCard(file);
+            await applyCharUpdate(char, !replacingId);
+        });
         close();
         showToast(replacingId ? 'Character replaced' : 'Character imported', 'success');
     } catch (err) {
         showToast('Import failed: ' + err.message, 'error');
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Character';
     }
 });
 

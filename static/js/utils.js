@@ -171,6 +171,45 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
 
 // Error toast when a send is attempted without a model configured. The
 // action deep-links to the API settings section, like the old inline notice.
+/**
+ * Run `work` with `btn` showing that it is busy, and put the button back
+ * afterwards whether the work succeeded or threw.
+ *
+ * Three shapes of button, one call: a text button swaps its own label for
+ * `busyLabel`, an icon button with a `.settings-action-label` swaps that
+ * instead, and an icon-only button spins its glyph. Every one of them is
+ * disabled and marked `aria-busy` for the duration, so a screen reader is
+ * told the same thing the spinner says.
+ *
+ * The button's prior disabled state is restored rather than assumed false —
+ * some buttons are disabled by their own state machine and must stay that way.
+ */
+export async function withBusy(btn, busyLabel, work) {
+    if (!btn) return work();
+    // Every touch of the button is optional. The indicator is cosmetic, so it
+    // must never be the reason the work it wraps fails — a button missing a
+    // label span, or a partial element, degrades to a quieter state instead.
+    const label = btn.querySelector?.('.settings-action-label')
+        || (btn.children?.length === 0 ? btn : null);
+    const original = label ? label.textContent : null;
+    const wasDisabled = btn.disabled;
+    const swapsLabel = Boolean(label && busyLabel);
+
+    btn.disabled = true;
+    btn.setAttribute?.('aria-busy', 'true');
+    if (swapsLabel) label.textContent = busyLabel;
+    else btn.classList?.add('spinning');
+
+    try {
+        return await work();
+    } finally {
+        btn.disabled = wasDisabled;
+        btn.removeAttribute?.('aria-busy');
+        if (swapsLabel) label.textContent = original;
+        else btn.classList?.remove('spinning');
+    }
+}
+
 export function showApiNotice() {
     showToast(
         'No API configured — connect an endpoint and choose a model to start chatting.',

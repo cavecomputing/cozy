@@ -895,6 +895,11 @@ export function renderMemorySummaryCard() {
     const busy = chat?.summary_status === 'running';
     if (el.summaryRebuildBtn) {
         el.summaryRebuildBtn.disabled = !enabled || busy;
+        // Rebuild is icon-only, so busy reads as a spinning glyph. Optional
+        // calls to match setAttribute?. below: the tests stub these buttons as
+        // bare objects carrying only the properties they assert on.
+        el.summaryRebuildBtn.classList?.toggle('spinning', busy);
+        el.summaryRebuildBtn.toggleAttribute?.('aria-busy', busy);
         // The same button continues an interrupted run or starts over, and which one it
         // will do is not guessable from the icon — say so.
         const resuming = enabled && !busy && shouldResumeInsteadOfRebuild(chat);

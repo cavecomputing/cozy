@@ -3535,7 +3535,8 @@ input[type="checkbox"]:checked::after {
     cursor: default;
 }
 
-.settings-model-row .icon-btn.spinning svg {
+/* Any icon-only button can show work in flight; see withBusy() in utils.js. */
+.icon-btn.spinning svg {
     animation: spin 0.8s linear infinite;
 }
 

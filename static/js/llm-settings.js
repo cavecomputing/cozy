@@ -1,7 +1,7 @@
 import { state, el } from './state.js';
 import { loadSamplerSettings, updateContextSizeWarning, SAMPLER_FIELDS } from './sampler.js';
 import { API } from './api.js';
-import { showToast } from './utils.js';
+import { showToast, withBusy } from './utils.js';
 import { confirmDialog } from './confirm.js';
 
 const MODEL_SEARCH_DEBOUNCE_MS = 250;
@@ -319,16 +319,15 @@ export const clearSummaryModelListCache = () => clearPickerCache('summary');
 
 export async function testLLMConnection() {
     if (!el.testApi) return;
-    el.testApi.disabled = true;
     try {
-        await flushLLMSettingsSave({ strict: true });
-        const body = await API.testLLM();
-        const reply = String(body.reply ?? '');
-        showToast(reply.length > 120 ? `Connected · ${reply.slice(0, 120)}…` : `Connected · ${reply}`, 'success');
+        await withBusy(el.testApi, 'Testing…', async () => {
+            await flushLLMSettingsSave({ strict: true });
+            const body = await API.testLLM();
+            const reply = String(body.reply ?? '');
+            showToast(reply.length > 120 ? `Connected · ${reply.slice(0, 120)}…` : `Connected · ${reply}`, 'success');
+        });
     } catch (e) {
         showToast(e.message || 'Failed', 'error');
-    } finally {
-        el.testApi.disabled = false;
     }
 }
 

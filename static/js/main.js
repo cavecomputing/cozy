@@ -6,6 +6,7 @@ import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
+    withBusy,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
@@ -863,7 +864,9 @@ function bindMemoryHandlers() {
     document.getElementById('settings-lorebook-export').addEventListener('click', () => exportLorebook());
     document.getElementById('settings-lorebook-delete').addEventListener('click', () => deleteLorebook());
     el.lorebookNew?.addEventListener('click', newLorebook);
-    el.lorebookSave?.addEventListener('click', saveLorebook);
+    // saveLorebook handles its own errors, so withBusy's restore always runs.
+    el.lorebookSave?.addEventListener('click',
+        () => withBusy(el.lorebookSave, 'Saving\u2026', saveLorebook));
     el.lorebookAddEntry?.addEventListener('click', addEntry);
     el.lorebookImport?.addEventListener('click', importLorebook);
     el.lorebookImportFile?.addEventListener('change', handleImportFile);
