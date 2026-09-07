@@ -2966,6 +2966,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-secondary);
 }
 
+/* First child of its card, and the only one that is a bordered box — without
+   this its border would sit on the header's separator. Matches the gap
+   `.about-link-grid` already leaves below it. */
+.about-link--primary {
+    margin-top: 0.4rem;
+}
+
 .about-link--primary .about-link-icon {
     width: 34px;
     height: 34px;
