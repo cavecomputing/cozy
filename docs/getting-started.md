@@ -200,9 +200,9 @@ None of this is needed to chat. Reach for it when a specific problem shows up.
   keywords appear in recent messages, which is how you give a setting more
   background than fits in a character card. Manage them under **Settings →
   Lorebooks**, and attach them from the memory button beside the chat input.
-  The dropdown shows each book’s source, embedded character card (if any),
-  and entry count. Use **New** or **Import** beside it, and **Export** or
-  **Delete** in the selected book’s header. The search box in the Entries
+  The picker at the top of the page shows each book’s source, embedded
+  character card (if any), and entry count, with **New**, **Import**,
+  **Export** and **Delete** beside it. The search box in the Entries
   header narrows a long book to the entries whose keys, secondary keys or
   comment match — the lore text itself is not searched, since it is long
   enough that common words match nearly everything. Hidden entries are still

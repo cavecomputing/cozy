@@ -5964,9 +5964,8 @@ input[type="checkbox"]:disabled {
     #settings-flyout .prompt-section-right .form-textarea { resize: none; }
 }
 
-/* Lorebook picker: reuse preset controls, with source details on each option. */
-#settings-flyout .lorebook-picker { margin: 0; }
-#settings-flyout .lorebook-picker > .cozy-select { min-width: 0; flex: 1; }
+/* Lorebook picker: the shared preset row lays it out; these rules only style
+   the source, character and entry-count detail carried on each option. */
 #settings-flyout .lorebook-picker :is(.cozy-select-value, .cozy-select-option) { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; white-space: normal; }
 #settings-flyout .lorebook-picker .cozy-select-label { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 #settings-flyout .lorebook-picker .cozy-select-badge { flex: none; padding: 2px 6px; border: 1px solid var(--settings-line); border-radius: 5px; color: var(--settings-cool); background: var(--settings-surface-strong); font-size: 11px; font-weight: 600; }
@@ -5975,14 +5974,7 @@ input[type="checkbox"]:disabled {
 #settings-flyout .lorebook-picker .cozy-select-count { white-space: nowrap; margin-left: auto; }
 #settings-flyout .lorebook-picker .cozy-select-menu { max-height: min(320px, 45dvh); overscroll-behavior: contain; }
 #settings-flyout .lorebook-picker .cozy-select-option { min-height: 44px; padding: 10px; }
-#settings-flyout .lorebook-editor-actions { display: flex; gap: 8px; margin-left: auto; }
-@container (max-width: 700px) {
-    #settings-flyout .lorebook-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    #settings-flyout .lorebook-picker > .cozy-select { grid-column: 1 / -1; }
-    #settings-flyout .lorebook-picker > .icon-btn { width: 100%; border: 1px solid var(--settings-line); border-radius: 8px; }
-}
 @media (max-width: 768px) {
-    #settings-flyout .lorebook-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #settings-flyout .lorebook-picker .cozy-select-label { flex-basis: 100%; }
     #settings-flyout .lorebook-picker .cozy-select-detail { max-width: 100%; flex: 1 1 110px; }
 }
