@@ -16,10 +16,11 @@
     --motion-fast: 0.12s;
     --motion-base: 0.18s;
     --motion-slow: 0.3s;
-    /* Eight steps, in place of the twenty-five sizes that had accumulated
+    /* Nine steps, in place of the twenty-five sizes that had accumulated
        between 0.6rem and 1.1rem — 0.72 beside 0.73 beside 0.74, differences
-       that read as drift rather than hierarchy. Message prose is --text-2xl;
-       the display sizes above this range (the storage total, the empty-state
+       that read as drift rather than hierarchy. Message prose is --text-2xl.
+       --text-4xl is the one step above the reading range: a page or panel
+       title is still text and needs a token. Sizes above *it* (the empty-state
        glyph) stay one-offs, because they are pictures rather than text. */
     --text-2xs: 0.65rem;
     --text-xs:  0.7rem;
@@ -29,9 +30,57 @@
     --text-xl:  0.9rem;
     --text-2xl: 0.95rem;
     --text-3xl: 1rem;
+    --text-4xl: 1.375rem;
+
+    /* Six steps, in place of the forty-seven raw lengths that had accumulated
+       with no token at all — 0.3 beside 0.35 beside 0.4, the same drift the
+       type scale above was consolidated to remove. The values sit on the
+       existing centres of mass, so adopting one moves a call site by a pixel
+       or two rather than by a step. */
+    --space-1: 0.25rem;    /*  4px — hairline: icon rows, chip gaps, badge padding */
+    --space-2: 0.375rem;   /*  6px — within a control: label to field, flag to gloss */
+    --space-3: 0.5rem;     /*  8px — between controls in a row, rows in a group */
+    --space-4: 0.75rem;    /* 12px — padding inside a card, panel or flyout */
+    --space-5: 1rem;       /* 16px — between cards; page gutter on mobile */
+    --space-6: 1.5rem;     /* 24px — page gutter on desktop; major group break */
+    /* The app-shell inset — sidebar, chat column and composer share it so their
+       edges line up. Off the scale on purpose: it is one measurement, not a step. */
+    --shell-gap: 0.625rem;
+
+    /* One radius, because all eight bundled themes set sm, md and lg to the
+       same 8px. The indirection is what keeps a user theme in $DATA_DIR that
+       declares only --radius-md working after the bundled ones drop it. */
+    --radius: var(--radius-md, 8px);
+    --radius-pill: 999px;   /* circles stay 50%: that is geometry, not a token */
+
     --mobile-inline-padding: 0.75rem;
     --mobile-header-height: 52px;
     --mobile-tap-target: 44px;
+
+    /* Semantic roles over the palette each theme already declares, so themes
+       need no edit and a user theme keeps working. Components name the job
+       (a sunken surface, a quiet line) rather than the palette entry. */
+    --surface-page:     var(--app-bg);
+    --surface-panel:    var(--bg-color);
+    --surface-raised:   var(--char-msg-bg);
+    --surface-sunken:   var(--input-bg);
+    --surface-quiet:    var(--hover-bg);      /* doubles as the hover fill */
+    --surface-selected: var(--active-bg);
+
+    --line:      var(--border-color);
+    --line-soft: color-mix(in srgb, var(--border-color) 72%, transparent);
+
+    --fg:         var(--text-color);
+    --fg-quiet:   var(--text-secondary);
+    --fg-accent:  var(--accent-color);
+    --fg-heading: var(--rp-emphasis-color, var(--text-color));
+
+    /* Every theme declares --rp-emphasis-color, which is what makes the warning
+       role theme-aware. --warning-color, which this replaces, was declared by
+       none of them and always fell back to a hardcoded ochre. */
+    --status-danger:  var(--danger-color);
+    --status-warning: var(--rp-emphasis-color, var(--accent-color));
+    --status-success: var(--success-color);
 }
 
 * {
