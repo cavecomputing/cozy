@@ -231,7 +231,10 @@ def init_db():
     fresh_install = not os.path.exists(shared.DATABASE)
 
     with get_db() as conn:
-        # WAL and synchronous are file-level settings that persist once set.
+        # journal_mode lives in the database header, so setting it once here
+        # covers every later connection. synchronous does not: it is
+        # per-connection, so this line governs init_db's own writes only —
+        # get_db() leaves request connections at SQLite's default of FULL.
         conn.execute('PRAGMA journal_mode=WAL')
         conn.execute('PRAGMA synchronous=NORMAL')
 
