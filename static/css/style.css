@@ -1992,6 +1992,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     }
 }
 
+/* The editor opens flush with the sidebar's top edge, so its header keeps the
+   sidebar's 44px height rather than the 48px the settings block gives every
+   .modal-header — that is what puts the two dividers on one line. */
+#char-modal .modal-header {
+    min-height: 44px;
+}
+
 /* Preview / Help stack above the settings flyout they were opened from — each
    takes half the flyout's width so the pair reads as one split pane. The
    z-index is what puts them in *front* of the flyout rather than behind it,
@@ -3796,26 +3803,29 @@ input[type="checkbox"]:checked::after {
 /* ── Avatar + Name bar ───────────────────────────────────────────────────── */
 .modal-identity {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem 0;
     flex-shrink: 0;
 }
 
-/* The avatar is sized explicitly rather than stretched to the name column.
-   Deriving its width from `height: 100%` + `aspect-ratio` is circular inside a
-   flex row — the row's width pass runs before the stretch height is known, so
-   some engines resolve the wrap to the "?" glyph's width and the square then
-   overflows on top of the name field. A fixed square can't do that. */
+/* The avatar spans the name column exactly — its top on the "Name" label, its
+   bottom on the input — by stretching to the row and taking its width from that
+   height. The wrap must carry `align-self` and the square must be the wrap's
+   child: sizing a flex *item* this way is circular (the row's width pass runs
+   before the stretch height is known), which once left the "?" placeholder
+   resolved to the glyph's width with the square overflowing the name field. */
 .modal-avatar-wrap {
     position: relative;
     flex: 0 0 auto;
+    align-self: stretch;
     display: flex;
 }
 
 .modal-avatar {
-    width: 3.25rem;
-    height: 3.25rem;
+    height: 100%;
+    width: auto;
+    aspect-ratio: 1;
     font-size: var(--text-3xl);
     border-radius: var(--radius);
     cursor: pointer;
@@ -5039,11 +5049,6 @@ input[type="checkbox"]:checked::after {
     .persona-edit-btn,
     .persona-delete-btn {
         opacity: 1;
-    }
-
-    .modal-avatar {
-        width: 3rem;
-        height: 3rem;
     }
 
     .form-input,
