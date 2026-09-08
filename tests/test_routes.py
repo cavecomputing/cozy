@@ -10,6 +10,8 @@ import cozy.routes.llm as llm_module
 from cozy.routes import settings as settings_module
 from cozy.png_utils import make_minimal_png
 
+from .helpers import bundled_prompt_titles
+
 
 class TestSettings:
     def test_read_default_settings(self, client):
@@ -106,8 +108,7 @@ class TestSystemPrompts:
         assert r.status_code == 200
         prompts = r.get_json()
         names = {p['name'] for p in prompts}
-        assert 'NanoBear v2.1' in names
-        assert 'BigBear - General' in names
+        assert set(bundled_prompt_titles()) <= names
 
         house = next(p for p in prompts if p['name'] == 'NanoBear v2.1')
         # The Prompt Builder variables the character editor checks against.

@@ -1,7 +1,36 @@
+import json
+import os
 import shutil
 import subprocess
 
 import pytest
+
+from cozy import shared
+
+
+def bundled_prompt_filenames():
+    """Every bundled prompt preset file, the way the seeder sees them.
+
+    Tests read the directory rather than naming presets, because the directory
+    is the source of truth: a preset is added by dropping a file in and removed
+    by deleting one, so any test naming a title breaks the next time the house
+    presets change.
+    """
+    return sorted(
+        f for f in os.listdir(shared.BUNDLED_PROMPTS_DIR)
+        if f.lower().endswith('.json') and not f.startswith('.')
+    )
+
+
+def bundled_prompt_titles():
+    """Bundled preset titles — the filename minus .json, as the seeder names them."""
+    return sorted(f[:-len('.json')] for f in bundled_prompt_filenames())
+
+
+def read_bundled_prompt(filename):
+    path = os.path.join(shared.BUNDLED_PROMPTS_DIR, filename)
+    with open(path, encoding='utf-8') as handle:
+        return json.load(handle)
 
 
 def run_node_module(code):

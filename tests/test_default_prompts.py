@@ -29,21 +29,11 @@ def _prompt_names():
         )
 
 
-def _bundled_filenames():
-    return sorted(
-        f for f in os.listdir(shared.BUNDLED_PROMPTS_DIR)
-        if f.lower().endswith('.json') and not f.startswith('.')
-    )
-
-
-def _bundled_titles():
-    return sorted(f[:-len('.json')] for f in _bundled_filenames())
-
-
-def _read_preset(filename):
-    path = os.path.join(shared.BUNDLED_PROMPTS_DIR, filename)
-    with open(path, encoding='utf-8') as handle:
-        return json.load(handle)
+from .helpers import (                                        # noqa: E402
+    bundled_prompt_filenames as _bundled_filenames,
+    bundled_prompt_titles as _bundled_titles,
+    read_bundled_prompt as _read_preset,
+)
 
 
 def _seed_custom_bundle(tmp_path, files):
@@ -144,9 +134,13 @@ class TestSeeding:
             preset = _read_preset(filename)
             assert rows[preset['name']] == preset.get('description', ''), filename
 
-    def test_nanobear_presets_carry_a_description(self):
-        for title in ('NanoBear v2.1', 'NanoBear Author v1'):
-            assert _read_preset(title + '.json')['description'].strip(), title
+    def test_every_bundled_preset_carries_a_description(self):
+        # The description is what the Prompt page shows under the picker, so a
+        # bundled preset without one ships a blank line there.
+        filenames = _bundled_filenames()
+        assert filenames, 'no bundled presets found to check'
+        for filename in filenames:
+            assert _read_preset(filename).get('description', '').strip(), filename
 
     def test_fresh_install_starts_on_the_greatest_standard_nanobear(self):
         defaults.seed_default_prompts()
@@ -232,23 +226,25 @@ class TestSeeding:
     def test_a_deleted_preset_comes_back_on_the_next_start(self):
         # The directory is the source of truth: removing a preset for good
         # means deleting its file, not deleting the row.
+        title = _bundled_titles()[0]
         defaults.seed_default_prompts()
         with shared.get_db() as conn:
-            conn.execute("DELETE FROM system_prompts WHERE name='BigBear - General'")
-        assert 'BigBear - General' not in _prompt_names()
+            conn.execute('DELETE FROM system_prompts WHERE name=?', (title,))
+        assert title not in _prompt_names()
 
         defaults.seed_default_prompts()
-        assert 'BigBear - General' in _prompt_names()
+        assert title in _prompt_names()
 
     def test_a_preset_whose_file_is_gone_stays_deleted(self, tmp_path):
+        gone = _bundled_titles()[0]
         defaults.seed_default_prompts()
         with shared.get_db() as conn:
-            conn.execute("DELETE FROM system_prompts WHERE name='BigBear - General'")
+            conn.execute('DELETE FROM system_prompts WHERE name=?', (gone,))
 
         kept = tmp_path / 'default_prompts'
         kept.mkdir()
         for filename in _bundled_filenames():
-            if filename == 'BigBear - General.json':
+            if filename == gone + '.json':
                 continue
             (kept / filename).write_text(
                 json.dumps(_read_preset(filename)), encoding='utf-8'
@@ -261,7 +257,7 @@ class TestSeeding:
         finally:
             shared.BUNDLED_PROMPTS_DIR = original_dir
 
-        assert 'BigBear - General' not in _prompt_names()
+        assert gone not in _prompt_names()
 
     def test_an_edited_preset_is_never_overwritten(self):
         # Editing a bundled preset in place has to survive a restart, or the

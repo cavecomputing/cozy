@@ -541,8 +541,16 @@ class TestSchemaMigrationLedger:
                 r['name']: r['description'] for r in
                 conn.execute('SELECT name, description FROM system_prompts').fetchall()
             }
+        # Migration 12 is a one-time backfill scoped to the two titles that
+        # existed when it shipped, and a shipped migration is never rewritten.
+        # It is deliberately not derived from the bundled directory: a preset
+        # added later is seeded with its description already set, so it has
+        # nothing for this to fill.
         assert rows['NanoBear v2.1'].strip()
-        assert rows['NanoBear Author v1'].strip()
+        # 'NanoBear Author v1' no longer ships, which exercises the branch the
+        # docstring promises: a missing file is skipped, not a startup failure.
+        assert rows['NanoBear Author v1'] == ''
+        # A row that was never a stock preset is left alone either way.
         assert rows['Custom'] == ''
 
         # A description the user set themselves survives a re-run.

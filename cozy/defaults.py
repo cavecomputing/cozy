@@ -257,8 +257,8 @@ def seed_default_prompts():
                 nanobear_id = cursor.lastrowid
 
         # Left to itself the picker falls back to whichever prompt sorts
-        # *first*, which is a BigBear. An existing install already has a
-        # selection, and gaining presets must not move it.
+        # *first*, which is not necessarily a NanoBear. An existing install
+        # already has a selection, and gaining presets must not move it.
         default_id = nanobear_id or default_id
         if fresh_install and default_id is not None:
             conn.execute(
