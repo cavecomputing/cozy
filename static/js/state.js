@@ -117,6 +117,7 @@ export function initElements() {
         syspromptDescriptionText: document.getElementById('settings-sysprompt-description-text'),
         syspromptContent:  document.getElementById('settings-sysprompt-content'),
         syspromptNew:      document.getElementById('settings-sysprompt-new'),
+        syspromptRename:   document.getElementById('settings-sysprompt-rename'),
         syspromptDelete:   document.getElementById('settings-sysprompt-delete'),
         syspromptPreview:  document.getElementById('settings-sysprompt-preview'),
         syspromptIoDropdown: document.getElementById('sysprompt-io-dropdown'),

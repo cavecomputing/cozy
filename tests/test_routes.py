@@ -158,6 +158,23 @@ class TestSystemPrompts:
         r = client.post('/api/system-prompts', json={'content': 'No name'})
         assert r.status_code == 400
 
+    def test_create_prompt_duplicate_name(self, client):
+        client.post('/api/system-prompts', json={'name': 'Twice'})
+        r = client.post('/api/system-prompts', json={'name': 'Twice'})
+        assert r.status_code == 409
+        assert 'already exists' in r.get_json()['error']
+
+    def test_rename_prompt_onto_existing_name(self, client):
+        client.post('/api/system-prompts', json={'name': 'Taken'})
+        other = client.post('/api/system-prompts', json={'name': 'Free'}).get_json()
+        r = client.put(f'/api/system-prompts/{other["id"]}', json={'name': 'Taken'})
+        assert r.status_code == 409
+        # Saving a prompt without changing its name is not a clash with itself.
+        same = client.put(f'/api/system-prompts/{other["id"]}',
+                          json={'name': 'Free', 'content': 'edited'})
+        assert same.status_code == 200
+        assert same.get_json()['content'] == 'edited'
+
     def test_export_prompt_round_trips_through_import(self, client):
         created = client.post('/api/system-prompts', json={
             'name': 'Roundtrip',

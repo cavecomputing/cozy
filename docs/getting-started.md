@@ -167,7 +167,12 @@ Select the character in the sidebar to start chatting.
   message.
 - **System prompt** — **Settings → Prompt** holds the template that assembles
   character, persona, lorebook and chat context. Several presets ship with Cozy;
-  the eye icon on **Settings → API** previews exactly what will be sent.
+  the eye icon on **Settings → API** previews exactly what will be sent. **+**
+  creates a new prompt as a copy of the selected one, so a bundled template can
+  be forked and edited without touching the original, and **Rename** renames the
+  selected prompt. Renaming a bundled prompt makes Cozy restore the original
+  under its old name on the next start — the files in `default_prompts/` are the
+  source of truth for those.
 - **Theme** — **Settings → General → Appearance** switches between the built-in
   themes. The choice is per-browser. You can also drop your own CSS file into
   `data/themes/`; see [User themes](themes.md).

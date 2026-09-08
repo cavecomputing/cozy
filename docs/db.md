@@ -110,7 +110,9 @@ Ledger of one-time database migrations applied during startup.
 
 ### system_prompts
 
-Saved system prompt templates.
+Saved system prompt templates. Names are kept unique by the create and update
+routes, which reject a clash with 409 — the column itself carries no constraint,
+so a database that already held duplicates keeps them.
 
 | Column     | Type     | Description                     |
 |------------|----------|---------------------------------|

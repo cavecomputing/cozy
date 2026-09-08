@@ -25,7 +25,8 @@ import {
     searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache,
 } from './llm-settings.js';
 import {
-    loadSystemPrompts, selectSystemPrompt, createSystemPrompt, deleteSystemPrompt,
+    loadSystemPrompts, selectSystemPrompt, createSystemPrompt, renameSystemPrompt,
+    deleteSystemPrompt,
     updateSystemPromptContent, syncActivePromptFromEditors,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, initPromptVarsPanel,
@@ -520,6 +521,7 @@ function bindSettingsHandlers() {
     el.postHistoryContent?.addEventListener('input', handleSystemPromptInput);
     el.postHistoryContent?.addEventListener('blur', persistSystemPrompt);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
+    el.syspromptRename?.addEventListener('click', renameSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);
     el.promptEnableAdvanced?.addEventListener('click', () => {
         setAdvancedConfigurationVisible(true);

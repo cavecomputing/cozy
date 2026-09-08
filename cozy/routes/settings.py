@@ -226,6 +226,8 @@ def create_system_prompt():
     if not isinstance(description, str):
         return jsonify({'error': '"description" must be a string'}), 400
     with get_db() as conn:
+        if conn.execute('SELECT 1 FROM system_prompts WHERE name = ?', (name,)).fetchone():
+            return jsonify({'error': f'A prompt named "{name}" already exists'}), 409
         cur = conn.execute(
             'INSERT INTO system_prompts (name, description, content, post_history_content) VALUES (?, ?, ?, ?)',
             (name, description, content, post_history_content)
@@ -242,6 +244,10 @@ def update_system_prompt(prompt_id):
         if not row:
             return not_found('System prompt')
         name = (data.get('name') or '').strip() or row['name']
+        if name != row['name'] and conn.execute(
+            'SELECT 1 FROM system_prompts WHERE name = ? AND id != ?', (name, prompt_id)
+        ).fetchone():
+            return jsonify({'error': f'A prompt named "{name}" already exists'}), 409
         description = data.get('description', row['description'])
         content = data.get('content', row['content'])
         post_history_content = data.get('post_history_content', row['post_history_content'])

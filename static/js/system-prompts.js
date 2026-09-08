@@ -114,8 +114,18 @@ export async function selectSystemPrompt(id) {
 export async function createSystemPrompt() {
     const name = prompt('New prompt name:');
     if (!name || !name.trim()) return;
+    // A new prompt starts as a copy of the selected one, editors included, so
+    // a template you have been working on can be forked without retyping it.
+    const source = syncActivePromptFromEditors();
     try {
-        const created = await API.createSystemPrompt({ name: name.trim() });
+        const created = await API.createSystemPrompt({
+            name: name.trim(),
+            ...(source ? {
+                description: source.description || '',
+                content: source.content || '',
+                post_history_content: source.post_history_content || '',
+            } : {}),
+        });
         await loadSystemPrompts();
         selectSystemPrompt(created.id);
         if (el.syspromptSelect) el.syspromptSelect.value = created.id;
@@ -123,6 +133,21 @@ export async function createSystemPrompt() {
     } catch (e) {
         showToast('Failed to create prompt: ' + e.message);
         console.warn('Failed to create system prompt:', e);
+    }
+}
+
+export async function renameSystemPrompt() {
+    if (!state.activeSystemPromptId) return;
+    const active = activePrompt();
+    const name = prompt('Prompt name:', active?.name || '');
+    if (!name || !name.trim() || name.trim() === active?.name) return;
+    try {
+        await API.updateSystemPrompt(state.activeSystemPromptId, { name: name.trim() });
+        await loadSystemPrompts();
+        showToast('Prompt renamed', 'success');
+    } catch (e) {
+        showToast('Failed to rename prompt: ' + e.message);
+        console.warn('Failed to rename system prompt:', e);
     }
 }
 
