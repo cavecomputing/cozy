@@ -447,7 +447,7 @@ def init_db():
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:
             conn.execute(
                 "INSERT INTO personas (name, tagline, description, is_default) VALUES (?, ?, ?, 1)",
-                ('Default Persona', 'The brave adventurer', '')
+                ('Default Persona', 'Change me!', '')
             )
 
         # Bundled prompts have no flag of their own — seed_default_prompts()
