@@ -90,6 +90,19 @@ async function sendOnce(text) {
     let streamed = '';
     let reply = null;
     let failed = false;
+    // Draw at most once per frame. A fast endpoint delivers several tokens per
+    // frame, and every draw re-parses the whole reply and then reads
+    // scrollHeight to scroll — a forced layout — so drawing per token costs
+    // time quadratic in the reply length. `streamed` is still assigned on every
+    // token: a Stop salvages that, not whatever happens to be on screen.
+    let frame = 0;
+    const drawStreamed = () => {
+        frame = 0;
+        const parsed = parseThinkingContent(streamed);
+        renderThinkingBlock(msgBody, parsed);
+        renderMarkdown(contentEl, parsed.response, true);
+        maybeScrollToBottom();
+    };
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
     let source = 'Auto Summaries API';
@@ -102,10 +115,7 @@ async function sendOnce(text) {
         source = 'Chat API';
         reply = await generateResponse(0, (accumulated) => {
             streamed = accumulated;
-            const parsed = parseThinkingContent(accumulated);
-            renderThinkingBlock(msgBody, parsed);
-            renderMarkdown(contentEl, parsed.response, true);
-            maybeScrollToBottom();
+            if (!frame) frame = requestAnimationFrame(drawStreamed);
         }, signal);
 
     } catch (err) {
@@ -121,6 +131,10 @@ async function sendOnce(text) {
             // blank bubble that never reaches the model again.
             if (hasVisibleResponse(streamed)) reply = closeIncompleteThinking(streamed);
         }
+    } finally {
+        // Drop any draw still queued, so it can't repaint the bubble after the
+        // filtered reply has taken its place.
+        cancelAnimationFrame(frame);
     }
 
     loadingContainer.remove();

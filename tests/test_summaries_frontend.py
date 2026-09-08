@@ -1213,6 +1213,10 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
                 };
             },
         };
+        // messages.js coalesces its stream redraws onto an animation frame; node
+        // has no rAF, so a timer stands in for one.
+        globalThis.requestAnimationFrame = fn => setTimeout(fn, 0);
+        globalThis.cancelAnimationFrame = id => clearTimeout(id);
 
         Object.assign(el, {
             apiEndpoint: { value: 'http://main.example/v1' },

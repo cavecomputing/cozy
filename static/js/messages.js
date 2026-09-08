@@ -113,6 +113,17 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     let newContent;
     // Kept in step with the stream so a Stop can still salvage it.
     let streamed = '';
+    // Draw at most once per frame — see the same guard in send.js. Here the
+    // bubble survives the stream, so a queued draw must also be cancelled: it
+    // would otherwise repaint the unfiltered stream over the saved swipe.
+    let frame = 0;
+    const drawStreamed = () => {
+        frame = 0;
+        const parsed = parseThinkingContent(streamed);
+        renderThinkingBlock(msgBody, parsed);
+        renderMarkdown(contentEl, parsed.response, true);
+        maybeScrollToBottom();
+    };
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
     let source = 'Settings could not be saved';
@@ -123,10 +134,7 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
         source = 'Chat API';
         newContent = await generateResponse(1, (accumulated) => {
             streamed = accumulated;
-            const parsed = parseThinkingContent(accumulated);
-            renderThinkingBlock(msgBody, parsed);
-            renderMarkdown(contentEl, parsed.response, true);
-            maybeScrollToBottom();
+            if (!frame) frame = requestAnimationFrame(drawStreamed);
         }, regenSignal);
     } catch (err) {
         if (err.name !== 'AbortError') {
@@ -145,6 +153,8 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
             return null;
         }
         newContent = kept;
+    } finally {
+        cancelAnimationFrame(frame);
     }
 
     // Filter before rendering so the swipe on screen matches the one stored.

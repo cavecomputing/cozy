@@ -115,6 +115,11 @@ SWIPE_SETUP = r"""
         createElement: stubEl,
         getElementById: stubEl,
     };
+    // messages.js coalesces its stream redraws onto an animation frame. A timer
+    // stands in for one: node has no rAF, and the draws still have to run so
+    // this exercises the render path the way a browser would.
+    globalThis.requestAnimationFrame = fn => setTimeout(fn, 0);
+    globalThis.cancelAnimationFrame = id => clearTimeout(id);
 
     Object.assign(el, {
         apiEndpoint: { value: 'http://main.example/v1' },
