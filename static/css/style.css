@@ -2263,15 +2263,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     min-width: 0;
 }
 /* Ruled zone headers: each panel gets a labeled rule above its rows. */
+/* A labelled rule above a zone's rows. Type comes from the shared card-title
+   rule below; this only draws the rule. */
 .preset-subhead {
-    margin: 0 0 0.45rem;
-    padding-bottom: 0.35rem;
-    border-bottom: 1px solid var(--border-color);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--line-soft);
 }
 /* The Active-samplers gear is taller than the small-caps text — collapse its
    share of the row height (click target unchanged) so the Core header matches
@@ -2330,13 +2326,26 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border-bottom: 1px solid var(--border-color);
 }
 
-.settings-card-header h4 {
+/* ── Card titles ─────────────────────────────────────────────────────────
+   One rank for every box title: a settings card, a zone inside the API preset,
+   a sampler group, a lorebook panel, the prompt reference panel. Sentence case
+   in the heading hue. Uppercase small-caps is a different job entirely — it
+   belongs to .section-label, which names app chrome, not content. */
+.settings-card-header h4,
+.preset-subhead,
+.lorebook-card-title,
+.sampler-group-header,
+.prompt-vars-title {
     display: flex;
     align-items: center;
+    gap: var(--space-2);
     margin: 0;
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--text-color);
+    line-height: 1.3;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--fg-heading);
 }
 
 .settings-card-header p {
@@ -2454,15 +2463,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     padding: 0.5rem 0.6rem;
     background: var(--input-bg);
 }
+/* The one card title in the cool hue: this panel is reference material beside
+   the editor, not a setting you change. */
 .prompt-vars-title {
-    display: flex;
-    align-items: center;
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.4rem;
-    font-weight: 600;
+    margin-bottom: var(--space-2);
+    color: var(--fg-cool);
 }
 .prompt-vars-title--sub {
     margin-top: 0.9rem;
@@ -3250,13 +3255,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .sampler-group[hidden] { display: none; }
 
 .sampler-group-header {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary);
-    padding: 0.3rem 0.55rem;
-    background-color: var(--hover-bg);
+    padding: var(--space-4) 0 var(--space-1);
 }
 
 /* Grouped rows indent past the group's own border so their labels line up with
@@ -3879,14 +3878,14 @@ input[type="checkbox"]:checked::after {
     margin-bottom: 0.5rem;
 }
 
+/* Matches .settings-row-label: a field label reads as a label by position and
+   weight, not by being shouted. */
 .form-label {
     display: block;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
-    margin-bottom: 0.2rem;
+    font-size: var(--text-lg);
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: var(--space-1);
 }
 
 .form-label .required {
@@ -5296,14 +5295,7 @@ input[type="checkbox"]:checked::after {
     margin: 0 0.6rem;
 }
 
-.lorebook-card-title {
-    margin: 0;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
+
 
 .lorebook-entries-count {
     color: var(--text-secondary);
@@ -5860,7 +5852,6 @@ input[type="checkbox"]:checked::after {
 .settings-card-header { margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0; padding: var(--space-3) var(--space-4); border-color: var(--line-soft); }
 /* Section headers all read the same rank: warm, 15px. `.preset-subhead` (API)
    and `.lorebook-card-title` match these values in their own rules below. */
-.settings-card-header h4 { font-size: var(--text-xl); color: var(--fg-heading); gap: var(--space-2); }
 .settings-card-header p { line-height: 1.4; margin-top: var(--space-1); }
 .settings-row { min-height: 52px; padding: var(--space-2) 0; margin-inline: 0; gap: var(--space-3); border-color: var(--line-soft); }
 .settings-hint { padding: var(--space-1) 0 var(--space-2); margin-inline: 0; max-width: 68ch; line-height: 1.45; }
@@ -5906,10 +5897,6 @@ input[type="checkbox"]:checked::after {
     background: var(--surface-card); border: 1px solid var(--line-soft);
     border-radius: var(--radius); padding: var(--space-4); margin: 0; max-width: none;
 }
-.preset-subhead {
-    font-size: var(--text-xl); text-transform: none; letter-spacing: 0; color: var(--fg-heading);
-    padding: 0 0 var(--space-3); margin: 0; border-color: var(--line-soft);
-}
 .preset-subhead .sampler-toolbar { margin: 0; }
 .preset-subhead .icon-btn { margin: calc(-1 * var(--space-2)) 0; }
 .preset-connection .settings-row + .settings-row { border-top: 1px solid var(--line-soft); }
@@ -5918,7 +5905,6 @@ input[type="checkbox"]:checked::after {
 .sampler-slider { min-height: 32px; }
 .sampler-subsection-header--advanced { margin-top: var(--space-5); }
 .sampler-group { margin: 0; border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; }
-.sampler-group-header { background: transparent; padding: var(--space-4) 0 var(--space-1); }
 .sampler-group .settings-row { padding-left: var(--space-4); }
 .sampler-popover { max-width: min(320px, calc(100vw - 66px)); }
 @media (max-width: 768px) {
@@ -5945,7 +5931,6 @@ input[type="checkbox"]:checked::after {
 .prompt-builder-bar { gap: var(--space-1); }
 .prompt-rendered-btn { width: auto; display: flex; gap: var(--space-2); padding: var(--space-3); color: var(--fg-cool); }
 .prompt-vars-panel { grid-column: 2; grid-row: 2; overflow: visible; max-height: none; background: transparent; }
-.prompt-vars-title { color: var(--fg-cool); font-size: var(--text-lg); text-transform: none; letter-spacing: 0; }
 .prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) { font-size: var(--text-xs); overflow-wrap: anywhere; }
 .prompt-vars-panel dt { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
 .prompt-vars-toggle { display: none; }
@@ -5979,7 +5964,6 @@ input[type="checkbox"]:checked::after {
 .lorebook-workspace-grid { display: flex; flex-direction: column; gap: var(--space-5); align-items: stretch; }
 .lorebook-region { min-width: 0; padding: var(--space-5); border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--surface-card); }
 .lorebook-col-header { padding-bottom: var(--space-4); margin-bottom: var(--space-4); min-height: 44px; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
-.lorebook-card-title { font-size: var(--text-xl); color: var(--fg-heading); text-transform: none; letter-spacing: 0; }
 :is(.lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
 .lorebook-empty-panel { padding: var(--space-5) 0; }
 #settings-lorebook-empty-entries { min-height: 0; }

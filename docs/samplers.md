@@ -22,7 +22,7 @@ Samplers → Active samplers**.
 | Top-K | 0 | no | Limits choices to the K most likely tokens. `0` usually disables it. |
 | Repetition penalty | 1.0 | no | Reduces repeated tokens. `1.0` disables the penalty. |
 | Last N tokens | 64 | no | Controls how far back repetition detection looks. |
-| Max response tokens | 512 | yes | Maximum tokens the server may generate for one reply. Lives under **Context & Generation**, not the sampler list. |
+| Max response tokens | 512 | yes | Maximum tokens the server may generate for one reply. Lives under **Context & generation**, not the sampler list. |
 
 Every shown setting pairs a slider with the number box. They are two views of
 the same value — drag or type, whichever is quicker.
@@ -34,7 +34,7 @@ Active samplers** to enable them.
 
 | Setting | Disabled value | Purpose |
 |---|---:|---|
-| Dynamic Temperature | Range `0` | Adjusts temperature during generation. |
+| Dynamic temperature | Range `0` | Adjusts temperature during generation. |
 | Typical-P | `1.0` | Keeps tokens with locally typical probability. |
 | Top-N Sigma | `-1` | Filters low-scoring tokens using a sigma threshold. |
 | Presence penalty | `0` | Discourages tokens that appeared at least once. |

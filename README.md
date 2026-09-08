@@ -65,7 +65,7 @@ Open <http://localhost:5001>.
 4. Click `+` to name and create a preset.
 5. Under `Connection` enter the base `Endpoint` URL for your LLM server, such as
    `https://openrouter.ai/api/v1`.
-6. Under `Connection` enter an `API Key` if your server requires one.
+6. Under `Connection` enter an `API key` if your server requires one.
 7. Under `Connection` select or search for the `Model` identifier and test the connection.
 8. Set the `Context & generation` settings you would like to use.
 9. Under `Samplers` and in the `Core samplers` box click the gear icon to enable the reccomended samplers for the model you are using.

@@ -241,7 +241,7 @@
                                             <input type="text" id="settings-api-endpoint" class="form-input mono-input" placeholder="OpenAI-compatible endpoint, e.g. https://api.openai.com/v1" spellcheck="false">
                                         </div>
                                         <div class="settings-row settings-row--inline">
-                                            <label class="settings-row-label" for="settings-api-key">API Key</label>
+                                            <label class="settings-row-label" for="settings-api-key">API key</label>
                                             <input type="password" id="settings-api-key" class="form-input mono-input" placeholder="sk-...">
                                         </div>
                                         <div class="settings-row settings-row--inline">
@@ -258,13 +258,13 @@
                                     <div class="preset-context">
                                         <h5 class="preset-subhead">Context &amp; generation</h5>
                                         <div class="settings-row settings-row--inline">
-                                            <label class="settings-row-label" for="settings-context-tokens">Max Context Tokens</label>
+                                            <label class="settings-row-label" for="settings-context-tokens">Max context tokens</label>
                                             <input type="number" id="settings-context-tokens" class="form-input"
                                                    min="0" step="256" value="32768" placeholder="0 = no cap">
                                         </div>
                                         <span id="context-size-warning" class="settings-warning" hidden></span>
                                         <div class="settings-row settings-row--inline">
-                                            <label class="settings-row-label" for="settings-sampler-max-tokens">Max Response Tokens</label>
+                                            <label class="settings-row-label" for="settings-sampler-max-tokens">Max response tokens</label>
                                             <input type="number" id="settings-sampler-max-tokens" class="form-input"
                                                    step="1" min="1" max="32768" value="512">
                                         </div>
@@ -289,7 +289,7 @@
                                     </div>
                                     <!-- Dynamic Temperature -->
                                     <div class="sampler-group" data-sampler="dynatemp">
-                                        <div class="sampler-group-header">Dynamic Temperature</div>
+                                        <div class="sampler-group-header">Dynamic temperature</div>
                                         <div class="settings-row">
                                             <label class="settings-row-label" for="settings-sampler-dynatemp-range">Range</label>
                                             <input type="number" id="settings-sampler-dynatemp-range" class="form-input" step="0.01" min="0" max="5" value="0">
@@ -316,13 +316,13 @@
                                     </div>
                                     <!-- Repetition Penalty -->
                                     <div class="sampler-group" data-sampler="repetition_penalty">
-                                        <div class="sampler-group-header">Repetition Penalty</div>
+                                        <div class="sampler-group-header">Repetition penalty</div>
                                         <div class="settings-row">
                                             <label class="settings-row-label" for="settings-sampler-rep-penalty">Penalty</label>
                                             <input type="number" id="settings-sampler-rep-penalty" class="form-input" step="0.01" min="0" max="3" value="1.0">
                                         </div>
                                         <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-sampler-repeat-last-n">Last N Tokens</label>
+                                            <label class="settings-row-label" for="settings-sampler-repeat-last-n">Last N tokens</label>
                                             <input type="number" id="settings-sampler-repeat-last-n" class="form-input" step="1" min="-1" max="4096" value="64">
                                         </div>
                                     </div>
@@ -344,12 +344,12 @@
                                     </div>
                                     <!-- Presence Penalty -->
                                     <div class="settings-row" data-sampler="presence_penalty">
-                                        <label class="settings-row-label" for="settings-sampler-presence-penalty">Presence Penalty</label>
+                                        <label class="settings-row-label" for="settings-sampler-presence-penalty">Presence penalty</label>
                                         <input type="number" id="settings-sampler-presence-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
                                     </div>
                                     <!-- Frequency Penalty -->
                                     <div class="settings-row" data-sampler="frequency_penalty">
-                                        <label class="settings-row-label" for="settings-sampler-frequency-penalty">Frequency Penalty</label>
+                                        <label class="settings-row-label" for="settings-sampler-frequency-penalty">Frequency penalty</label>
                                         <input type="number" id="settings-sampler-frequency-penalty" class="form-input" step="0.01" min="-2" max="2" value="0">
                                     </div>
                                     <!-- DRY -->
@@ -364,11 +364,11 @@
                                             <input type="number" id="settings-sampler-dry-base" class="form-input" step="0.01" min="0" max="5" value="1.75">
                                         </div>
                                         <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-sampler-dry-allowed-length">Allowed Length</label>
+                                            <label class="settings-row-label" for="settings-sampler-dry-allowed-length">Allowed length</label>
                                             <input type="number" id="settings-sampler-dry-allowed-length" class="form-input" step="1" min="0" max="100" value="2">
                                         </div>
                                         <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-sampler-dry-penalty-last-n">Penalty Last N</label>
+                                            <label class="settings-row-label" for="settings-sampler-dry-penalty-last-n">Penalty last N</label>
                                             <input type="number" id="settings-sampler-dry-penalty-last-n" class="form-input" step="1" min="-1" max="4096" value="-1">
                                         </div>
                                     </div>
@@ -655,7 +655,7 @@
                                     <input type="text" id="settings-summary-endpoint" aria-describedby="summary-endpoint-hint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
                                 </div>
                                 <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-summary-key">API Key</label>
+                                    <label class="settings-row-label" for="settings-summary-key">API key</label>
                                     <input type="password" id="settings-summary-key" class="form-input mono-input" placeholder="sk-...">
                                 </div>
                                 <div class="settings-row">
@@ -929,11 +929,11 @@
                     </div>
                     <div class="tab-panel" id="tab-messages" role="tabpanel" hidden>
                         <div class="form-group">
-                            <label class="form-label" for="cf-first-mes">First Message (Greeting)</label>
+                            <label class="form-label" for="cf-first-mes">First message (greeting)</label>
                             <textarea id="cf-first-mes" class="form-textarea" rows="5" placeholder="The character's opening message when a new chat starts…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Alternate Greetings</label>
+                            <label class="form-label">Alternate greetings</label>
                             <div id="alt-greetings-list" class="alt-greetings-list"></div>
                             <button type="button" id="add-greeting-btn" class="btn btn-secondary btn-sm add-btn">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -941,21 +941,21 @@
                             </button>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-mes-example">Example Messages<span id="cf-mes-example-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{mesExamples}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
+                            <label class="form-label" for="cf-mes-example">Example messages<span id="cf-mes-example-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{mesExamples}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-mes-example" class="form-textarea" rows="6" placeholder="{% raw %}&lt;START&gt;&#10;{{user}}: &quot;Tell me about yourself.&quot;&#10;{{char}}: *smiles warmly* &quot;Not much to tell, really.&quot;&#10;&lt;START&gt;&#10;{{user}}: &quot;What do you like to do?&quot;&#10;{{char}}: &quot;Reading, mostly. The quiet kind of evening you can lose yourself in.&quot;{% endraw %}"></textarea>
                         </div>
                     </div>
                     <div class="tab-panel" id="tab-advanced" role="tabpanel" hidden>
                         <div class="form-group">
-                            <label class="form-label" for="cf-system-prompt">System Prompt<span id="cf-system-prompt-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{system_prompt}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
+                            <label class="form-label" for="cf-system-prompt">System prompt<span id="cf-system-prompt-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{system_prompt}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-system-prompt" class="form-textarea" rows="4" placeholder="Overrides the global system prompt when this character is active…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-post-history">Post History Instructions<span id="cf-post-history-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{post_history_instructions}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
+                            <label class="form-label" for="cf-post-history">Post history instructions<span id="cf-post-history-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="This field has content, but your active prompt template doesn't include {% raw %}{{post_history_instructions}}{% endraw %} — so it won't be sent. (This may be intentional.)">⊘</span></label>
                             <textarea id="cf-post-history" class="form-textarea" rows="3" placeholder="Instructions injected after the chat history…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-creator-notes">Creator Notes</label>
+                            <label class="form-label" for="cf-creator-notes">Creator notes</label>
                             <textarea id="cf-creator-notes" class="form-textarea" rows="3" placeholder="Notes for people using this character card…"></textarea>
                         </div>
                     </div>
@@ -1319,7 +1319,7 @@ Flags    g</pre>
                     <h3>Connection</h3>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Endpoint</dt><dd>The server's base URL, which normally ends in <code>/v1</code>. Cozy appends <code>/models</code> to list models and <code>/chat/completions</code> to chat — the chat endpoint must support streaming.</dd></div>
-                        <div class="sampler-help-row"><dt>API Key</dt><dd>Sent as an auth header with each request. Keys live in your data directory and are masked in API responses. Leave it blank if your server needs none.</dd></div>
+                        <div class="sampler-help-row"><dt>API key</dt><dd>Sent as an auth header with each request. Keys live in your data directory and are masked in API responses. Leave it blank if your server needs none.</dd></div>
                         <div class="sampler-help-row"><dt>Model</dt><dd>The model identifier to send with each request. Type it, or use the chevron to browse what the server reports via <code>/models</code>. If the list comes up empty, type the identifier by hand.</dd></div>
                         <div class="sampler-help-row"><dt>Test Connection</dt><dd>Sends a short "say hello" request capped at 10 tokens and shows the reply. A failure usually names the cause — check the endpoint, key, and model name first.</dd></div>
                     </dl>
@@ -1338,8 +1338,8 @@ Flags    g</pre>
                 <div class="sampler-help-section">
                     <h3>Context and response size</h3>
                     <dl class="sampler-help-list">
-                        <div class="sampler-help-row"><dt>Max Context Tokens</dt><dd>The total budget for one request: the prompt plus reserved reply space. Set it to the model's real context window (default 32768). Old messages are left out so the prompt fits inside it. <code>0</code> means no cap — Cozy never trims.</dd></div>
-                        <div class="sampler-help-row"><dt>Max Response Tokens</dt><dd>How long a single reply may run (default 512). It is also the allowance reused for summary runs. Reasoning models spend their thinking tokens from this same allowance before writing a word, so a low value cuts replies and summaries off mid-write — raise it if runs keep failing with <em>cut off by its completion token limit</em>.</dd></div>
+                        <div class="sampler-help-row"><dt>Max context tokens</dt><dd>The total budget for one request: the prompt plus reserved reply space. Set it to the model's real context window (default 32768). Old messages are left out so the prompt fits inside it. <code>0</code> means no cap — Cozy never trims.</dd></div>
+                        <div class="sampler-help-row"><dt>Max response tokens</dt><dd>How long a single reply may run (default 512). It is also the allowance reused for summary runs. Reasoning models spend their thinking tokens from this same allowance before writing a word, so a low value cuts replies and summaries off mid-write — raise it if runs keep failing with <em>cut off by its completion token limit</em>.</dd></div>
                     </dl>
                 </div>
 
@@ -1347,7 +1347,7 @@ Flags    g</pre>
                     <h3>Presets, context, preview</h3>
                     <ul class="prompt-help-tips">
                         <li>Use <strong>+</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</li>
-                        <li><strong>Max Context Tokens</strong> should match your server's context window; <strong>Max Response Tokens</strong> caps how long a single reply may run.</li>
+                        <li><strong>Max context tokens</strong> should match your server's context window; <strong>Max response tokens</strong> caps how long a single reply may run.</li>
                         <li>The <strong>eye</strong> icon previews the exact assembled request for the active character and persona.</li>
                     </ul>
                 </div>
@@ -1396,11 +1396,11 @@ Flags    g</pre>
                             <dd>Filters tokens by their distance from the mean (in standard deviations) of the model's logit scores. -1 = off. Newer alternative to Top-P/Min-P.</dd>
                         </div>
                         <div class="sampler-help-row">
-                            <dt>Presence Penalty</dt>
+                            <dt>Presence penalty</dt>
                             <dd>Flat penalty applied once a token has appeared at all. Pushes the model toward new vocabulary. 0 = off.</dd>
                         </div>
                         <div class="sampler-help-row">
-                            <dt>Frequency Penalty</dt>
+                            <dt>Frequency penalty</dt>
                             <dd>Penalty that grows with how often a token has appeared. Stronger anti-repetition than Presence. 0 = off.</dd>
                         </div>
                         <div class="sampler-help-row">

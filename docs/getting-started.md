@@ -47,7 +47,7 @@ local such as llama.cpp, Ollama or KoboldCpp.
    http://localhost:8080/v1
    ```
 
-5. Enter an **API Key** if the server requires one. Keys are stored in your data
+5. Enter an **API key** if the server requires one. Keys are stored in your data
    directory and masked in API responses.
 6. Set the **Model**. Type the identifier, or use the chevron button to browse
    and search what the server reports.
@@ -57,8 +57,8 @@ Cozy appends `/models` and `/chat/completions` to the endpoint. The chat
 endpoint must support streaming. Model listing varies by server — if the browse
 list comes up empty, type the model identifier by hand.
 
-Under **Context & Generation**, set **Max Context Tokens** to match your server's
-context window and **Max Response Tokens** to how long a single reply may run.
+Under **Context & generation**, set **Max context tokens** to match your server's
+context window and **Max response tokens** to how long a single reply may run.
 
 If the connection test fails or replies never arrive, see
 [Troubleshooting](troubleshooting.md).
@@ -131,19 +131,19 @@ name and an avatar image are required; everything else is optional.
 
 **Messages**
 
-- **First Message (Greeting)** — the character's opening line, shown when a new
+- **First message (greeting)** — the character's opening line, shown when a new
   chat starts.
-- **Alternate Greetings** — extra openers you can swipe between.
-- **Example Messages** — sample exchanges that demonstrate voice and formatting.
+- **Alternate greetings** — extra openers you can swipe between.
+- **Example messages** — sample exchanges that demonstrate voice and formatting.
 
 **Advanced**
 
-- **System Prompt** and **Post History Instructions** — per-character
+- **System prompt** and **Post history instructions** — per-character
   instructions that slot into the prompt template.
 
 **Metadata**
 
-- **Creator Notes**, **Tags**, **Creator**, **Version** — travel with the card
+- **Creator notes**, **Tags**, **Creator**, **Version** — travel with the card
   when it is exported.
 
 In any of these fields, `{{char}}` is replaced with the character's name and

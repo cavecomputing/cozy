@@ -65,7 +65,7 @@ See [Sampler settings](samplers.md#backend-compatibility).
 
 ## Replies stop early
 
-Check **Max Response Tokens** first. If the reply is not reaching that limit,
+Check **Max response tokens** first. If the reply is not reaching that limit,
 inspect both the Cozy logs and the LLM server logs. A proxy between Cozy and the
 LLM server may be buffering or closing the streaming response.
 
@@ -89,7 +89,7 @@ If the status line shows *"cut off by its completion token limit"*, the
 summarizer's reply ran out of room. The usual cause is a reasoning model: its
 thinking is billed against the same token allowance as the summary itself.
 
-1. Raise **Max Response Tokens** in **Settings → API → Context & Generation** —
+1. Raise **Max response tokens** in **Settings → API → Context & generation** —
    the summarizer borrows that allowance.
 2. Or set a non-reasoning **Auto Summaries** model. The summarizer only writes a
    few bullets, so a small fast model suits it.
