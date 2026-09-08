@@ -10,6 +10,9 @@ import { updateContextMeter, updateContextBoundary } from './context-meter.js';
 
 export function renderPersonaList() {
     if (!el.personaList) return;
+    // The open form may be seated among the rows about to be discarded, so park
+    // it before the wipe and seat it again once the rows it belongs to exist.
+    parkPersonaForm();
     el.personaList.innerHTML = '';
 
     state.personas.forEach(p => {
@@ -103,6 +106,7 @@ export function renderPersonaList() {
 
         el.personaList.appendChild(opt);
     });
+    seatPersonaForm();
 }
 
 export function updateUserProfile() {
@@ -122,6 +126,31 @@ export function updateUserProfile() {
 // write the same name/tagline/description to *both* personas.
 let activePersonaFormCleanup = null;
 
+// Which persona the open form is editing, so it can be put back beside that row
+// after a re-render. Null while creating, when the form belongs at the foot of
+// the menu under the button that opened it.
+let editingPersonaId = null;
+
+/** Send the form back to the foot of the menu, out of the rows' way. */
+function parkPersonaForm() {
+    if (el.personaForm && el.personaForm.parentElement !== el.personaDropup) {
+        el.personaDropup.appendChild(el.personaForm);
+    }
+}
+
+/**
+ * Put the form where the persona it edits is, replacing that row — the fields
+ * then sit under the pointer rather than at the foot of a menu that jumped.
+ * Falls back to the parked position if the row is gone (deleted elsewhere).
+ */
+function seatPersonaForm() {
+    if (editingPersonaId === null) return;
+    const row = el.personaList?.querySelector(`[data-persona-id="${editingPersonaId}"]`);
+    if (!row) return;
+    row.hidden = true;
+    row.after(el.personaForm);
+}
+
 /** Tear down the inline persona form if it is open. Safe to call anytime. */
 export function closePersonaForm() {
     activePersonaFormCleanup?.();
@@ -131,7 +160,9 @@ export function showPersonaForm(editPersona = null) {
     if (!el.personaForm) return;
     // Discard any form still open for another persona before rebinding.
     closePersonaForm();
+    editingPersonaId = editPersona?.id ?? null;
     el.personaForm.hidden = false;
+    seatPersonaForm();
     const nameInput = el.personaForm.querySelector('#pf-name');
     const taglineInput = el.personaForm.querySelector('#pf-tagline');
     const descInput = el.personaForm.querySelector('#pf-description');
@@ -173,6 +204,9 @@ export function showPersonaForm(editPersona = null) {
         if (activePersonaFormCleanup === cleanup) {
             activePersonaFormCleanup = null;
             el.personaForm.hidden = true;
+            el.personaList?.querySelector(`[data-persona-id="${editingPersonaId}"]`)?.removeAttribute('hidden');
+            editingPersonaId = null;
+            parkPersonaForm();
         }
         if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
         fileInput.removeEventListener('change', onFileChange);
@@ -222,7 +256,13 @@ export function showPersonaForm(editPersona = null) {
         cleanup();
     });
 
-    nameInput.focus();
+    // preventScroll: the form sits inside the menu's own scroller, and letting
+    // the browser scroll the focused field into view drags the page instead —
+    // the jump that made this form hard to type into on a phone. The form is
+    // already where the user just tapped; scroll only if seating it left an
+    // edge off-screen.
+    el.personaForm.scrollIntoView({ block: 'nearest' });
+    nameInput.focus({ preventScroll: true });
 }
 
 export async function loadPersonas() {
