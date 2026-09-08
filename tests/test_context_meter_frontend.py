@@ -106,7 +106,7 @@ def test_message_history_tooltip_advertises_the_jump_only_with_a_limit():
 
 def test_response_reserve_follows_a_max_tokens_in_extra_request_params():
     """buildChatPayload merges extra_request_params over the samplers, so a
-    max_tokens there — not the Max Response Tokens field — is what the model
+    max_tokens there — not the Max response tokens field — is what the model
     gets, and the reserve has to hold back that much instead."""
     run_node_module(r"""
         import assert from 'node:assert/strict';

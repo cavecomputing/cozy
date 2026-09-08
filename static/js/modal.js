@@ -7,6 +7,7 @@ import { renderMessages } from './messages.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
 import { confirmDialog } from './confirm.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
+import { validateCharacter } from './validate.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CHARACTER MODAL
@@ -27,6 +28,7 @@ const exportItems   = exportMenu.querySelectorAll('[data-export-item]');
 const avatarPreview = document.getElementById('modal-avatar-preview');
 const avatarInput   = document.getElementById('avatar-file-input');
 const avatarRequired = document.getElementById('modal-avatar-required');
+const identityRow   = overlay.querySelector('.modal-identity');
 const importInput   = document.getElementById('import-file-input');
 
 const tabBtns   = overlay.querySelectorAll('.tab-btn');
@@ -154,6 +156,64 @@ function clearForm() {
     avatarPreview.textContent = '?';
 }
 
+/** Drop every error message and invalid mark left by an earlier attempt. */
+function clearFieldErrors() {
+    overlay.querySelectorAll('.field-error').forEach(n => n.remove());
+    overlay.querySelectorAll('[aria-invalid]').forEach(n => {
+        n.removeAttribute('aria-invalid');
+        n.removeAttribute('aria-describedby');
+    });
+    avatarPreview.classList.remove('is-required');
+    if (avatarRequired) avatarRequired.hidden = true;
+}
+
+/**
+ * Put each message beside the control it belongs to and focus the first one.
+ * The message stays until the field is fixed — an error that erases itself on
+ * a timer is gone before a slow reader reaches it.
+ */
+function showFieldErrors(errors) {
+    clearFieldErrors();
+    let first = null;
+
+    for (const { field, message } of errors) {
+        if (field === 'avatar') {
+            // The image well is not a text field: it carries the mark on the
+            // well itself, and its message goes under the whole identity row
+            // rather than inside the flex row beside the name.
+            avatarPreview.classList.add('is-required');
+            if (avatarRequired) avatarRequired.hidden = false;
+            const note = document.createElement('p');
+            note.className = 'field-error field-error--identity';
+            note.id = 'cf-avatar-error';
+            note.textContent = message;
+            identityRow.insertAdjacentElement('afterend', note);
+            avatarInput.setAttribute('aria-invalid', 'true');
+            avatarInput.setAttribute('aria-describedby', note.id);
+            first = first || avatarPreview;
+            continue;
+        }
+        const input = fields[field];
+        if (!input) continue;
+
+        const note = document.createElement('p');
+        note.className = 'field-error';
+        note.id = `${input.id}-error`;
+        note.textContent = message;
+        input.insertAdjacentElement('afterend', note);
+
+        input.setAttribute('aria-invalid', 'true');
+        input.setAttribute('aria-describedby', note.id);
+        first = first || input;
+    }
+
+    // Switch to the tab holding the first problem before focusing it, or the
+    // focus lands on a control the user cannot see.
+    const panel = first?.closest('.tab-panel');
+    if (panel) overlay.querySelector(`.tab-btn[data-tab="${panel.id.replace('tab-', '')}"]`)?.click();
+    first?.focus?.();
+}
+
 function collect() {
     return {
         name:                      fields.name.value.trim(),
@@ -174,6 +234,7 @@ function collect() {
 
 function open(char = null) {
     Flyouts.closeAllExcept('modal');
+    clearFieldErrors();
     editingCharId = char ? char.id : null;
     pendingAvatarFile = null;
     avatarInput.value = '';
@@ -230,19 +291,16 @@ async function applyCharUpdate(char, isNew) {
 async function save() {
     const data = collect();
     const isEditing = !!editingCharId;
-    if (!data.name) {
-        fields.name.focus();
-        fields.name.style.borderColor = 'var(--danger-color)';
-        setTimeout(() => { fields.name.style.borderColor = ''; }, 2000);
+    const errors = validateCharacter({
+        name: data.name,
+        isNew: !editingCharId,
+        hasImage: !!pendingAvatarFile,
+    });
+    if (errors.length) {
+        showFieldErrors(errors);
         return;
     }
-    // New characters require an image
-    if (!editingCharId && !pendingAvatarFile) {
-        avatarPreview.classList.add('is-required');
-        if (avatarRequired) avatarRequired.hidden = false;
-        showToast('An image is required for new characters', 'error');
-        return;
-    }
+    clearFieldErrors();
     try {
         await withBusy(saveBtn, 'Saving\u2026', async () => {
             let char;
@@ -335,6 +393,16 @@ cancelBtn.addEventListener('click', close);
 saveBtn.addEventListener('click',   save);
 overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+// An error clears as soon as the field it is about is touched, rather than
+// waiting for another save attempt to tell the user they have fixed it.
+overlay.addEventListener('input', e => {
+    const input = e.target.closest('[aria-invalid]');
+    if (!input) return;
+    document.getElementById(input.getAttribute('aria-describedby'))?.remove();
+    input.removeAttribute('aria-invalid');
+    input.removeAttribute('aria-describedby');
+});
 
 export const Modal = { open, close };
 

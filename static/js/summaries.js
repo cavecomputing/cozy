@@ -121,9 +121,9 @@ const UNTRUSTED_WINDOW_TOAST = 'Memory update skipped: the context measurement '
 
 // Naming the setting matters: the cause is a value the user typed, not a measurement
 // fault, and the generic toast above would send them looking for the wrong thing.
-const UNSATISFIABLE_BUDGET_TOAST = 'Memory update skipped: Max Response Tokens is at or '
-    + 'above Max Context Tokens, so no chat history can fit. Lower it in Settings → API → '
-    + 'Context & Generation. Chat history was not touched.';
+const UNSATISFIABLE_BUDGET_TOAST = 'Memory update skipped: Max response tokens is at or '
+    + 'above Max context tokens, so no chat history can fit. Lower it in Settings → API → '
+    + 'Context & generation. Chat history was not touched.';
 
 /**
  * True when the reply reserve alone consumes the whole context window.
@@ -145,8 +145,8 @@ export function untrustedContextAssessment({ candidates, agedOut, analysis }, la
     if (!analysis || agedOut.length === 0 || analysis.maxTokens <= 0) return false;
     if (budgetUnsatisfiable(analysis)) {
         console.warn(
-            `Cozy: ${label} refused — Max Response Tokens (${analysis.responseTokens}) is at or `
-            + `above Max Context Tokens (${analysis.maxTokens}), so the reply reserve alone fills `
+            `Cozy: ${label} refused — Max response tokens (${analysis.responseTokens}) is at or `
+            + `above Max context tokens (${analysis.maxTokens}), so the reply reserve alone fills `
             + `the window and all ${candidates.length} messages measure as aged out. Retiring `
             + 'history cannot make a request of this shape fit.',
             { maxTokens: analysis.maxTokens, responseTokens: analysis.responseTokens },
@@ -899,7 +899,10 @@ export function renderMemorySummaryCard() {
         // calls to match setAttribute?. below: the tests stub these buttons as
         // bare objects carrying only the properties they assert on.
         el.summaryRebuildBtn.classList?.toggle('spinning', busy);
-        el.summaryRebuildBtn.toggleAttribute?.('aria-busy', busy);
+        // aria-busy must be the string "true"; toggleAttribute writes "",
+        // which reads as absent.
+        if (busy) el.summaryRebuildBtn.setAttribute?.('aria-busy', 'true');
+        else el.summaryRebuildBtn.removeAttribute?.('aria-busy');
         // The same button continues an interrupted run or starts over, and which one it
         // will do is not guessable from the icon — say so.
         const resuming = enabled && !busy && shouldResumeInsteadOfRebuild(chat);

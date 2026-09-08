@@ -195,9 +195,9 @@
                                 </div>
                                 <div class="settings-row">
                                     <label class="settings-row-label" for="settings-show-advanced-toggle">Show advanced configuration</label>
-                                    <input type="checkbox" id="settings-show-advanced-toggle">
+                                    <input type="checkbox" id="settings-show-advanced-toggle" aria-describedby="show-advanced-hint">
                                 </div>
-                                <p class="settings-hint">Reveals the Regex tab, the prompt template editor, summary behavior settings, extra request parameters, and lorebook overrides.</p>
+                                <p id="show-advanced-hint" class="settings-hint">Reveals the Regex tab, the prompt template editor, summary behavior settings, extra request parameters, and lorebook overrides.</p>
                             </section>
                         </div>
                     </div>
@@ -260,8 +260,10 @@
                                         <div class="settings-row settings-row--inline">
                                             <label class="settings-row-label" for="settings-context-tokens">Max context tokens</label>
                                             <input type="number" id="settings-context-tokens" class="form-input"
-                                                   min="0" step="256" value="32768" placeholder="0 = no cap">
+                                                   min="0" step="256" value="32768"
+                                                   aria-describedby="context-tokens-hint">
                                         </div>
+                                        <p id="context-tokens-hint" class="settings-hint">Match this to the model's own context window. <code>0</code> means no cap, and Cozy never trims.</p>
                                         <span id="context-size-warning" class="settings-warning" hidden></span>
                                         <div class="settings-row settings-row--inline">
                                             <label class="settings-row-label" for="settings-sampler-max-tokens">Max response tokens</label>
@@ -677,14 +679,14 @@
                                 </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-summary-cap-pct">Size cap (% of context)</label>
-                                    <input type="number" id="settings-summary-cap-pct" class="form-input" min="1" max="90" step="1" value="10">
+                                    <input type="number" id="settings-summary-cap-pct" class="form-input" min="1" max="90" step="1" value="10" aria-describedby="summary-cap-hint">
                                 </div>
-                                <p class="settings-hint">The summary is capped at this percentage of the Max Context Tokens budget. Once it is full, the oldest entries roll off to make room for new ones. Counts are estimates marked with <code>&#8776;</code>.</p>
+                                <p id="summary-cap-hint" class="settings-hint">The summary is capped at this percentage of the Max context tokens budget. Once it is full, the oldest entries roll off to make room for new ones. Counts are estimates marked with <code>&#8776;</code>.</p>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-summary-interval">Batch size (messages)</label>
-                                    <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="10">
+                                    <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="10" aria-describedby="summary-interval-hint">
                                 </div>
-                                <p class="settings-hint">When history first falls outside the context window, Cozy folds this many messages at a time. User and character messages each count as one. Each batch becomes exactly <strong>one compact</strong> summary entry. Catching up several batches is shown as one run with overall progress, such as batch 1/12.</p>
+                                <p id="summary-interval-hint" class="settings-hint">When history first falls outside the context window, Cozy folds this many messages at a time. User and character messages each count as one. Each batch becomes exactly <strong>one compact</strong> summary entry. Catching up several batches is shown as one run with overall progress, such as batch 1/12.</p>
                             </section>
                         </div>
                     </div>
@@ -1533,7 +1535,7 @@ Flags    g</pre>
 
                 <div class="sampler-help-section">
                     <h3>Batch and size settings</h3>
-                    <p>The <strong>Behavior</strong> card below — <strong>Batch size</strong> and <strong>Size cap</strong> — only appears when <strong>Show advanced configuration</strong> is turned on in <strong>Settings &#8594; General</strong>. The cap is a percentage of the Max Context Tokens budget. Once the summary is full, the oldest entries roll off.</p>
+                    <p>The <strong>Behavior</strong> card below — <strong>Batch size</strong> and <strong>Size cap</strong> — only appears when <strong>Show advanced configuration</strong> is turned on in <strong>Settings &#8594; General</strong>. The cap is a percentage of the Max context tokens budget. Once the summary is full, the oldest entries roll off.</p>
                 </div>
             </div>
         </div>

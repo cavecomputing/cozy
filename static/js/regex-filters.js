@@ -132,6 +132,21 @@ function refreshRowErrors(filters) {
         if (errEl) {
             errEl.textContent = message;
             errEl.hidden = !message;
+            // The pattern is what failed to compile, so the message is announced
+            // with the Find box rather than only shown beside it.
+            errEl.id = errEl.id || `regex-filter-${i}-error`;
+            const find = row.querySelector('[data-field="find"]');
+            if (find) {
+                // Not toggleAttribute: that writes aria-invalid="", and an
+                // empty value is read as "false" rather than as present.
+                if (message) {
+                    find.setAttribute('aria-invalid', 'true');
+                    find.setAttribute('aria-describedby', errEl.id);
+                } else {
+                    find.removeAttribute('aria-invalid');
+                    find.removeAttribute('aria-describedby');
+                }
+            }
         }
     });
 }

@@ -372,7 +372,7 @@ def test_untrusted_assessment_matrix():
 
 
 def test_unsatisfiable_reserve_never_retires_history():
-    """Max Response Tokens >= Max Context Tokens must not summarize the chat away.
+    """Max response tokens >= Max context tokens must not summarize the chat away.
 
     The reserve alone fills the window, so every message measures as aged out while
     unusedTokens sits at exactly 0 — invisible to the self-contradiction guard. Without
@@ -406,7 +406,7 @@ def test_unsatisfiable_reserve_never_retires_history():
         await maybeTriggerSummary();
         assert.equal(runs, 0, 'no history may be retired on an unsatisfiable budget');
         assert.ok(
-            warnings.some(w => w.includes('Max Response Tokens')),
+            warnings.some(w => w.includes('Max response tokens')),
             'the refusal must name the setting that caused it',
         );
 

@@ -11,7 +11,7 @@ export function getContextTokenBudget() {
 /**
  * A `max_tokens` in extra_request_params, or null when there isn't a usable
  * one. buildChatPayload merges those params *over* the samplers, so whatever
- * is here — not the Max Response Tokens field — is what the model gets.
+ * is here — not the Max response tokens field — is what the model gets.
  */
 function extraParamsResponseTokens() {
     try {

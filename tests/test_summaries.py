@@ -1607,7 +1607,7 @@ def test_completion_budget_uses_the_main_connections_response_reserve():
 
 
 def test_completion_budget_keeps_the_cap_derived_floor():
-    # A small Max Response Tokens must not starve a large configured summary.
+    # A small Max response tokens must not starve a large configured summary.
     assert summaries._completion_budget({'sampler_max_tokens': '512'}, 3276) == 4095
 
 

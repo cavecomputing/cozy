@@ -127,7 +127,7 @@ def _cap_tokens(settings):
 def _response_token_reserve(settings):
     """The main connection's response allowance, mirroring ``getResponseTokenReserve``
     in static/js/context-budget.js: a ``max_tokens`` in ``extra_request_params`` wins
-    over the Max Response Tokens field, because the frontend merges those params *over*
+    over the Max response tokens field, because the frontend merges those params *over*
     the samplers. Returns 0 when the configured value is unusable or absent.
     """
     raw = settings.get('extra_request_params')

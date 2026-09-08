@@ -2599,15 +2599,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--text-secondary);
     font-weight: 600;
 }
-.prompt-rendered-empty {
-    margin: 0;
-    font-size: var(--text-sm);
-    line-height: 1.5;
-    color: var(--text-secondary);
-    padding: 0.6rem 0.75rem;
-    border: 1px dashed var(--border-color);
-    border-radius: var(--radius);
-}
 .prompt-section-right .prompt-builder-bar {
     flex: none;
 }
@@ -3213,12 +3204,36 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin: 0;
 }
 
+/* A caution about a value that is allowed but probably not what you meant. */
 .settings-warning {
     display: block;
     font-size: var(--text-xs);
     color: var(--status-warning);
     margin: 0;
-    padding: 0 0.6rem 0.3rem;
+    padding: 0 var(--space-3) var(--space-1);
+}
+
+/* ── Field error ─────────────────────────────────────────────────────────
+   A value that cannot be saved, said beside the control that holds it. This
+   is the shape the regex filters already used — a coloured edge on the field
+   and the reason directly beneath it — generalised to every field. It stays
+   until the field changes: an error that clears itself on a timer is gone
+   before a slow reader reaches it. */
+.field-error {
+    margin: var(--space-1) 0 0;
+    color: var(--status-danger);
+    font-size: var(--text-md);
+    line-height: 1.4;
+}
+
+/* The image well's message: the identity row is avatar-beside-name, so this
+   sits under the pair rather than inside the row. */
+.field-error--identity {
+    padding: 0 var(--space-4);
+}
+
+:is(.form-input, .form-textarea, .tags-input-wrap)[aria-invalid="true"] {
+    border-color: var(--status-danger);
 }
 
 .settings-section-body {
@@ -3238,10 +3253,9 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .settings-row[hidden] { display: none; }
 
 .settings-row-hint {
-    font-style: italic;
     font-size: var(--text-xs);
-    color: var(--text-secondary);
-    margin: -0.15rem 0 0;
+    color: var(--fg-quiet);
+    margin: calc(-1 * var(--space-1)) 0 0;
 }
 
 /* Bleeds to the same -0.25rem as the row dividers so the group border starts
@@ -3635,15 +3649,39 @@ input[type="checkbox"]:checked::after {
     margin-top: 1.25rem;
 }
 
-.sampler-empty-state {
-    margin: 0 -0.25rem;
-    padding: 0.65rem 0.55rem;
-    border: 1px dashed var(--border-color);
+/* ── Empty state ─────────────────────────────────────────────────────────
+   One dashed box for "there is nothing here yet", wherever that happens: no
+   samplers active, no filters, no lorebook chosen, no entry selected, nothing
+   for the preview to render. A dashed edge says the container is real and its
+   contents are not, which is the whole message.
+
+   .empty-state, the full-bleed one with the glyph, is a different thing: a
+   page with no character chosen, rather than a container with nothing in it. */
+.sampler-empty-state,
+.regex-filter-empty,
+.lorebook-empty-panel,
+.lorebook-entry-empty,
+.prompt-rendered-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    margin: 0;
+    padding: var(--space-5);
+    border: 1px dashed var(--line-soft);
     border-radius: var(--radius);
-    color: var(--text-secondary);
-    background-color: var(--bg-color);
+    background-color: var(--surface-panel);
+    color: var(--fg-quiet);
     font-size: var(--text-md);
     line-height: 1.45;
+    text-align: center;
+}
+
+/* The lead line of an empty state, where it has one. */
+.lorebook-empty-panel strong {
+    color: var(--fg);
+    font-size: var(--text-lg);
 }
 
 .sampler-empty-state[hidden] {
@@ -5377,31 +5415,16 @@ input[type="checkbox"]:checked::after {
     min-height: 0;
     height: 3.6rem;
 }
+/* Fills the pane it stands in, so an unchosen lorebook does not look like a
+   stray note above a void. */
 .lorebook-empty-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
     min-height: 9rem;
-    padding: 1rem;
-    border: 1px dashed var(--border-color);
-    border-radius: var(--radius);
-    background-color: var(--bg-color);
-    color: var(--text-secondary);
-    text-align: center;
 }
 .lorebook-empty-panel[hidden] {
     display: none;
 }
-.lorebook-empty-panel strong {
-    color: var(--text-color);
-    font-size: var(--text-lg);
-}
 .lorebook-empty-panel span {
     max-width: 28rem;
-    font-size: var(--text-md);
-    line-height: 1.45;
 }
 #settings-lorebook-empty-meta {
     grid-column: 2;
@@ -5439,14 +5462,6 @@ input[type="checkbox"]:checked::after {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     background-color: var(--app-bg);
-}
-.lorebook-entry-empty {
-    margin: auto;
-    max-width: 24rem;
-    color: var(--text-secondary);
-    font-size: var(--text-md);
-    line-height: 1.45;
-    text-align: center;
 }
 /* Search sits between the Entries count and Add entry, taking the slack. */
 .lorebook-entry-search {
@@ -5595,15 +5610,6 @@ input[type="checkbox"]:checked::after {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-}
-
-.regex-filter-empty {
-    padding: 1rem 0.85rem;
-    border: 1px dashed var(--border-color);
-    border-radius: var(--radius);
-    color: var(--text-secondary);
-    font-size: var(--text-md);
-    text-align: center;
 }
 
 .regex-filter {
@@ -5964,6 +5970,9 @@ input[type="checkbox"]:checked::after {
 .lorebook-workspace-grid { display: flex; flex-direction: column; gap: var(--space-5); align-items: stretch; }
 .lorebook-region { min-width: 0; padding: var(--space-5); border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--surface-card); }
 .lorebook-col-header { padding-bottom: var(--space-4); margin-bottom: var(--space-4); min-height: 44px; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
+/* The lorebook workspace draws its own bordered regions, so the list and its
+   empty state drop the box the shared empty-state rule gives them — a box
+   inside a box reads as two objects where there is one. */
 :is(.lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
 .lorebook-empty-panel { padding: var(--space-5) 0; }
 #settings-lorebook-empty-entries { min-height: 0; }
