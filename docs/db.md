@@ -2,6 +2,11 @@
 
 Cozy uses SQLite (`data/cozy_chat.db`) for chat history, user personas, settings, and a lightweight character index. Character card data itself is stored in PNG files on disk — see the `characters` table below.
 
+[db.html](db.html) is the same schema as a page to browse — every table with its
+real `CREATE TABLE`, a map of the three cascading foreign keys, the migration
+ledger, and the seeded settings. Open it in a browser. It is hand-maintained
+like this file, so a schema change belongs in both.
+
 ## Tables
 
 ### characters

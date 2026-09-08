@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Generated companion to db.md: the same schema, laid out for reading.
+  Both are hand-maintained — a schema change belongs in both files.
+-->
+
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>Cozy Database Schema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --ground: #f4f3fa;
+    --surface: #ffffff;
+    --surface-sunk: #efedf7;
+    --ink: #1b1930;
+    --ink-soft: #4a4666;
+    --muted: #6d688a;
+    --line: #ddd9ec;
+    --line-strong: #c7c1e0;
+    --accent: #5647c4;
+    --accent-soft: #ebe8fb;
+    --gold: #8a6512;
+    --gold-soft: #f6eed9;
+    --teal: #10665f;
+    --teal-soft: #dcf0ed;
+    --shadow: 0 1px 2px rgba(27, 25, 48, .06);
+
+    --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --body: "Karla", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #141327;
+      --surface: #1d1b35;
+      --surface-sunk: #191830;
+      --ink: #eae7f8;
+      --ink-soft: #c6c1e2;
+      --muted: #9b95bd;
+      --line: #2e2b4d;
+      --line-strong: #413c66;
+      --accent: #a89aff;
+      --accent-soft: #262247;
+      --gold: #e3b666;
+      --gold-soft: #33290f;
+      --teal: #5fcbbe;
+      --teal-soft: #10312f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #141327;
+    --surface: #1d1b35;
+    --surface-sunk: #191830;
+    --ink: #eae7f8;
+    --ink-soft: #c6c1e2;
+    --muted: #9b95bd;
+    --line: #2e2b4d;
+    --line-strong: #413c66;
+    --accent: #a89aff;
+    --accent-soft: #262247;
+    --gold: #e3b666;
+    --gold-soft: #33290f;
+    --teal: #5fcbbe;
+    --teal-soft: #10312f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 2.5rem;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 2.25rem 1.5rem 5rem;
+    align-items: start;
+  }
+
+  /* ── Rail ─────────────────────────────────────────────────────────── */
+  .rail { position: sticky; top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  .rail-mark {
+    font-family: var(--display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    line-height: 1.15;
+  }
+  .rail-mark span { display: block; font-family: var(--mono); font-size: .68rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: .3rem; }
+
+  #filter {
+    width: 100%;
+    font-family: var(--mono);
+    font-size: .78rem;
+    padding: .5rem .6rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+  }
+  #filter::placeholder { color: var(--muted); }
+  #filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .rail-group { display: flex; flex-direction: column; gap: .1rem; }
+  .rail-label {
+    font-family: var(--mono);
+    font-size: .63rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: .55rem 0 .3rem;
+  }
+  .rail a {
+    font-family: var(--mono);
+    font-size: .8rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: .16rem 0 .16rem .55rem;
+    border-left: 2px solid var(--line);
+  }
+  .rail a:hover { color: var(--accent); border-left-color: var(--accent); }
+  .rail a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .rail a.dim { opacity: .28; }
+
+  /* ── Masthead ─────────────────────────────────────────────────────── */
+  .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 1.1rem; margin-bottom: 1.75rem; }
+  .masthead h1 {
+    font-family: var(--display);
+    font-size: clamp(2.1rem, 4.5vw, 3rem);
+    font-weight: 600;
+    line-height: 1.03;
+    letter-spacing: -.022em;
+    margin: 0 0 .5rem;
+    text-wrap: balance;
+  }
+  .masthead p { margin: 0; max-width: 62ch; color: var(--ink-soft); }
+  .masthead code, .prose code, td code, .note code { font-family: var(--mono); font-size: .86em; }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.6rem;
+    margin-top: 1rem;
+    font-family: var(--mono);
+    font-size: .74rem;
+    color: var(--muted);
+  }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  /* ── Sections ─────────────────────────────────────────────────────── */
+  section { margin-bottom: 2.6rem; scroll-margin-top: 1.5rem; }
+  section[hidden] { display: none; }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin: 0;
+    color: var(--ink);
+  }
+  .table-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .75rem; margin-bottom: .3rem; }
+  .purpose { margin: 0 0 .85rem; color: var(--ink-soft); max-width: 68ch; }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: .64rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .12rem .4rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip-pk { background: var(--gold-soft); color: var(--gold); }
+  .chip-fk { background: var(--teal-soft); color: var(--teal); }
+  .chip-soft { background: var(--accent-soft); color: var(--accent); }
+
+  /* ── Column tables ────────────────────────────────────────────────── */
+  .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: .84rem; }
+  thead th {
+    font-family: var(--mono);
+    font-size: .63rem;
+    font-weight: 500;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: .5rem .8rem;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody td { padding: .46rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr.match-off { display: none; }
+  .c-name { font-family: var(--mono); font-weight: 500; white-space: nowrap; }
+  .c-type { font-family: var(--mono); font-size: .76rem; color: var(--muted); white-space: nowrap; }
+  .c-def { font-family: var(--mono); font-size: .76rem; color: var(--ink-soft); white-space: nowrap; }
+  .c-note { color: var(--ink-soft); min-width: 22ch; }
+  .key { color: var(--gold); }
+  .ref { color: var(--teal); }
+
+  details { margin-top: .55rem; }
+  summary {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--muted);
+    cursor: pointer;
+    padding: .15rem 0;
+  }
+  summary:hover { color: var(--accent); }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  pre {
+    margin: .5rem 0 0;
+    padding: .8rem .9rem;
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: .74rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  /* ── Diagram ──────────────────────────────────────────────────────── */
+  .map { border: 1px solid var(--line); border-radius: 7px; background: var(--surface); padding: 1rem; box-shadow: var(--shadow); overflow-x: auto; }
+  .map svg { display: block; min-width: 620px; width: 100%; height: auto; }
+  .map text { font-family: var(--mono); }
+
+  /* ── Notes ────────────────────────────────────────────────────────── */
+  .note {
+    border-left: 2px solid var(--gold);
+    padding: .1rem 0 .1rem .9rem;
+    margin: 1rem 0 0;
+    color: var(--ink-soft);
+    max-width: 70ch;
+  }
+  .note b { color: var(--ink); font-weight: 700; }
+
+  .ledger { list-style: none; margin: 0; padding: 0; display: grid; gap: .1rem; }
+  .ledger li { display: grid; grid-template-columns: 2.1rem minmax(0, 15rem) minmax(0, 1fr); gap: .75rem; padding: .35rem 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .ledger li:last-child { border-bottom: 0; }
+  .ledger .v { font-family: var(--mono); font-size: .76rem; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .ledger .n { font-family: var(--mono); font-size: .76rem; color: var(--ink); word-break: break-word; }
+  .ledger .d { color: var(--ink-soft); font-size: .88rem; }
+
+  .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: .35rem .9rem; }
+  .kv div { display: flex; justify-content: space-between; gap: .6rem; border-bottom: 1px dotted var(--line-strong); padding: .28rem 0; font-family: var(--mono); font-size: .78rem; }
+  .kv span:first-child { color: var(--ink); }
+  .kv span:last-child { color: var(--gold); white-space: nowrap; }
+
+  .prose { max-width: 70ch; color: var(--ink-soft); }
+  .prose p { margin: 0 0 .7rem; }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { color: var(--ink); }
+
+  .empty { display: none; font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+  .empty.on { display: block; }
+
+  footer { border-top: 1px solid var(--line); margin-top: 3rem; padding-top: 1rem; font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding-top: 1.5rem; }
+    .rail { position: static; }
+    .rail-nav { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="rail-mark">Cozy<span>cozy_chat.db</span></div>
+    <label class="visually-hidden" for="filter" hidden>Filter tables and columns</label>
+    <input id="filter" type="search" placeholder="filter columns…" autocomplete="off" spellcheck="false">
+    <nav class="rail-nav">
+      <div class="rail-group">
+        <div class="rail-label">Story</div>
+        <a href="#characters">characters</a>
+        <a href="#chats">chats</a>
+        <a href="#messages">messages</a>
+        <a href="#message_swipes">message_swipes</a>
+        <a href="#personas">personas</a>
+        <a href="#lorebooks">lorebooks</a>
+      </div>
+      <div class="rail-group">
+        <div class="rail-label">Configuration</div>
+        <a href="#settings">settings</a>
+        <a href="#api_presets">api_presets</a>
+        <a href="#system_prompts">system_prompts</a>
+        <a href="#regex_presets">regex_presets</a>
+      </div>
+      <div class="rail-group">
+        <div class="rail-label">Bookkeeping</div>
+        <a href="#schema_migrations">schema_migrations</a>
+        <a href="#indexes">indexes</a>
+        <a href="#ledger">migration ledger</a>
+        <a href="#seeded">seeded settings</a>
+        <a href="#version">database version</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="masthead">
+      <h1>Cozy Database Schema</h1>
+      <p>Every table SQLite actually holds after <code>init_db()</code>, read out of a freshly created
+        <code>cozy_chat.db</code> rather than transcribed. Character cards are not in here — they live on disk
+        as PNGs, and this database only indexes them.</p>
+      <div class="facts">
+        <span><b>11</b> tables</span>
+        <span><b>3</b> indexes</span>
+        <span><b>12</b> migrations applied</span>
+        <span><b>WAL</b> journal mode</span>
+        <span><b>synchronous</b> = NORMAL</span>
+        <span><b>foreign_keys</b> = ON per connection</span>
+      </div>
+    </header>
+
+    <section id="map">
+      <div class="table-head"><h2>How the rows hang together</h2></div>
+      <p class="purpose">Only three foreign keys are declared, and all three cascade. Everything drawn with a
+        dashed line is a reference the application maintains itself — SQLite will not clean it up for you.</p>
+      <div class="map">
+        <svg viewBox="0 0 660 250" role="img" aria-label="characters cascades to chats, chats cascades to messages, messages cascades to message_swipes; personas and lorebooks are referenced by chats and messages without declared foreign keys.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--teal)"></path>
+            </marker>
+            <marker id="arrow-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted)"></path>
+            </marker>
+          </defs>
+
+          <!-- cascade chain -->
+          <g>
+            <rect x="12" y="96" width="132" height="42" rx="6" fill="var(--surface-sunk)" stroke="var(--line-strong)"></rect>
+            <text x="78" y="122" text-anchor="middle" font-size="13" fill="var(--ink)">characters</text>
+
+            <rect x="184" y="96" width="132" height="42" rx="6" fill="var(--surface-sunk)" stroke="var(--line-strong)"></rect>
+            <text x="250" y="122" text-anchor="middle" font-size="13" fill="var(--ink)">chats</text>
+
+            <rect x="356" y="96" width="132" height="42" rx="6" fill="var(--surface-sunk)" stroke="var(--line-strong)"></rect>
+            <text x="422" y="122" text-anchor="middle" font-size="13" fill="var(--ink)">messages</text>
+
+            <rect x="516" y="96" width="132" height="42" rx="6" fill="var(--surface-sunk)" stroke="var(--line-strong)"></rect>
+            <text x="582" y="122" text-anchor="middle" font-size="12" fill="var(--ink)">message_swipes</text>
+          </g>
+
+          <line x1="146" y1="117" x2="180" y2="117" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#arrow)"></line>
+          <line x1="318" y1="117" x2="352" y2="117" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#arrow)"></line>
+          <line x1="490" y1="117" x2="512" y2="117" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#arrow)"></line>
+          <text x="330" y="86" text-anchor="middle" font-size="10" fill="var(--teal)">ON DELETE CASCADE</text>
+
+          <!-- application-level references -->
+          <g>
+            <rect x="184" y="196" width="132" height="38" rx="6" fill="none" stroke="var(--line-strong)" stroke-dasharray="4 3"></rect>
+            <text x="250" y="220" text-anchor="middle" font-size="13" fill="var(--ink-soft)">lorebooks</text>
+
+            <rect x="356" y="196" width="132" height="38" rx="6" fill="none" stroke="var(--line-strong)" stroke-dasharray="4 3"></rect>
+            <text x="422" y="220" text-anchor="middle" font-size="13" fill="var(--ink-soft)">personas</text>
+          </g>
+
+          <path d="M 250 196 L 250 142" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-soft)"></path>
+          <path d="M 422 196 L 422 142" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-soft)"></path>
+          <path d="M 400 196 C 360 180, 300 168, 268 142" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 3" fill="none" marker-end="url(#arrow-soft)"></path>
+          <text x="196" y="176" font-size="10" fill="var(--muted)">active_lorebook_id</text>
+          <text x="438" y="176" font-size="10" fill="var(--muted)">persona_id</text>
+
+          <text x="12" y="36" font-size="11" fill="var(--gold)">solid = declared foreign key, deletes cascade</text>
+          <text x="12" y="54" font-size="11" fill="var(--muted)">dashed = id the app resolves and clears by hand</text>
+        </svg>
+      </div>
+      <p class="note"><b>Deleting a lorebook</b> clears matching <code>chats.active_lorebook_id</code> in application
+        code, because nothing in the schema will. A deleted persona leaves <code>persona_id</code> pointing nowhere
+        by design — old messages keep the name they were written under.</p>
+    </section>
+
+    <p class="empty" id="empty">No column matches that.</p>
+
+    <section id="characters">
+      <div class="table-head"><h2>characters</h2><span class="chip chip-soft">index of PNG files</span></div>
+      <p class="purpose">An index, not the card. The card itself is base64 V2 JSON inside a <code>chara</code> tEXt
+        chunk in <code>data/characters/*.png</code>, read back through <code>card_store</code> at request time.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">filename</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">PNG filename under <code>data/characters/</code>. NOT NULL, UNIQUE.</td></tr>
+          <tr><td class="c-name">crc</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">CRC32 hex of the file, so a rename on disk is recognised as the same card.</td></tr>
+          <tr><td class="c-name">missing</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> once the file is gone from disk.</td></tr>
+          <tr><td class="c-name">pinned_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">Pin time; newest pinned sort first.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">First registration.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE characters (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename   TEXT    NOT NULL UNIQUE,
+    crc        TEXT    NOT NULL,
+    missing    INTEGER DEFAULT 0,
+    pinned_at  DATETIME DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)</pre></details>
+    </section>
+
+    <section id="chats">
+      <div class="table-head"><h2>chats</h2><span class="chip chip-fk">character_id → characters.id</span></div>
+      <p class="purpose">One chat belongs to one character, and carries the per-chat memory state: Author's Note,
+        lorebook selection, and everything Auto Summaries needs to resume.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name ref">character_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>characters.id</code>, ON DELETE CASCADE.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Named for its local creation time, <code>YYYY-MM-DD:HH-MM-SS</code>, until renamed.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
+          <tr><td class="c-name">updated_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Last activity; drives sidebar ordering.</td></tr>
+          <tr><td class="c-name">active_lorebook_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Standalone lorebook chosen for this chat. No declared FK.</td></tr>
+          <tr><td class="c-name">active_lorebook_embedded</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> when the card's own embedded lorebook is the one in use.</td></tr>
+          <tr><td class="c-name">lorebook_notice_dismissed</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> once the embedded-lorebook notice has been dismissed.</td></tr>
+          <tr><td class="c-name">author_note</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Injected by the prompt builder for this chat only.</td></tr>
+          <tr><td class="c-name">summary_enabled</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note">Auto Summaries on for this chat.</td></tr>
+          <tr><td class="c-name">summary_json</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note"><code>{"lines": [{"section": "story"|"bonds", "text": …, "start_msg_id": …, "end_msg_id": …}]}</code> — one story entry per summarized batch.</td></tr>
+          <tr><td class="c-name">summary_up_to_msg_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Highest message id already folded in.</td></tr>
+          <tr><td class="c-name">summary_status</td><td class="c-type">TEXT</td><td class="c-def">'idle'</td><td class="c-note"><code>idle</code>, <code>running</code>, or <code>error</code>.</td></tr>
+          <tr><td class="c-name">summary_status_detail</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Progress or error text shown in the memory panel.</td></tr>
+          <tr><td class="c-name">persona_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Persona speaking this chat. No declared FK.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE chats (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id INTEGER NOT NULL,
+    name         TEXT    NOT NULL,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    active_lorebook_id INTEGER DEFAULT NULL,
+    active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
+    lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0,
+    author_note TEXT NOT NULL DEFAULT '',
+    summary_enabled INTEGER NOT NULL DEFAULT 0,
+    summary_json TEXT NOT NULL DEFAULT '',
+    summary_up_to_msg_id INTEGER DEFAULT NULL,
+    summary_status TEXT NOT NULL DEFAULT 'idle',
+    summary_status_detail TEXT NOT NULL DEFAULT '',
+    persona_id INTEGER DEFAULT NULL,
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+)</pre></details>
+    </section>
+
+    <section id="messages">
+      <div class="table-head"><h2>messages</h2><span class="chip chip-fk">chat_id → chats.id</span></div>
+      <p class="purpose">The transcript. <code>role</code> is constrained at the database level, so a typo cannot
+        invent a third speaker.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name ref">chat_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>chats.id</code>, ON DELETE CASCADE.</td></tr>
+          <tr><td class="c-name">role</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note"><code>CHECK(role IN ('user','character'))</code>.</td></tr>
+          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Stored text, after any save-point regex filters ran.</td></tr>
+          <tr><td class="c-name">persona_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Persona this line was spoken by. No declared FK.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id    INTEGER NOT NULL,
+    role       TEXT    NOT NULL CHECK(role IN ('user','character')),
+    content    TEXT    NOT NULL,
+    persona_id INTEGER DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+)</pre></details>
+    </section>
+
+    <section id="message_swipes">
+      <div class="table-head"><h2>message_swipes</h2><span class="chip chip-fk">message_id → messages.id</span></div>
+      <p class="purpose">Alternate takes on one message. Deleting the message takes its swipes with it.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name ref">message_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>messages.id</code>, ON DELETE CASCADE.</td></tr>
+          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">The variant's text.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation; also the swipe order.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE message_swipes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id INTEGER NOT NULL,
+    content    TEXT    NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
+)</pre></details>
+    </section>
+
+    <section id="personas">
+      <div class="table-head"><h2>personas</h2><span class="chip chip-soft">who you are</span></div>
+      <p class="purpose">The user's side of the story. Avatars are files in <code>data/personas/</code>; only the
+        path lives here.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. Substituted for <code>{{user}}</code>.</td></tr>
+          <tr><td class="c-name">tagline</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Short line under the name in the sidebar.</td></tr>
+          <tr><td class="c-name">description</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Sent with each request as the persona block.</td></tr>
+          <tr><td class="c-name">avatar_path</td><td class="c-type">TEXT</td><td class="c-def">NULL</td><td class="c-note">Filename under <code>data/personas/</code>.</td></tr>
+          <tr><td class="c-name">is_default</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> on the seeded "Default User".</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
+          <tr><td class="c-name">updated_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Last edit; also the avatar cache key.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE personas (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL,
+    tagline     TEXT    DEFAULT '',
+    description TEXT    DEFAULT '',
+    avatar_path TEXT    DEFAULT NULL,
+    is_default  INTEGER DEFAULT 0,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+)</pre></details>
+    </section>
+
+    <section id="lorebooks">
+      <div class="table-head"><h2>lorebooks</h2><span class="chip chip-soft">JSON blob</span></div>
+      <p class="purpose">A whole book — entries, keys and scan settings — serialized into one column, in the
+        format character cards embed theirs in.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. Shown in the picker.</td></tr>
+          <tr><td class="c-name">book</td><td class="c-type">TEXT</td><td class="c-def">'{}'</td><td class="c-note">The book itself as JSON: entries, keys, insertion order, scan depth.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
+          <tr><td class="c-name">updated_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Last edit.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE lorebooks (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL,
+    book        TEXT    NOT NULL DEFAULT '{}',
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+)</pre></details>
+    </section>
+
+    <section id="settings">
+      <div class="table-head"><h2>settings</h2><span class="chip chip-soft">key/value</span></div>
+      <p class="purpose">One row per setting, values always TEXT — <code>'1'</code> and <code>'0'</code> stand in
+        for booleans. The API key lives here in plain text and is masked on its way out of the routes.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">key</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Primary key.</td></tr>
+          <tr><td class="c-name">value</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. Everything is a string, including numbers and flags.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="api_presets">
+      <div class="table-head"><h2>api_presets</h2><span class="chip chip-pk">name UNIQUE</span></div>
+      <p class="purpose">A named connection plus the sampler state that goes with it. Activating one writes its
+        columns back into <code>settings</code>.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL, UNIQUE — a clash is a 409, not a second row.</td></tr>
+          <tr><td class="c-name">api_endpoint</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">OpenAI-compatible base URL, normally ending <code>/v1</code>.</td></tr>
+          <tr><td class="c-name">api_key</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Stored plain; masked in every response.</td></tr>
+          <tr><td class="c-name">api_model</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Model identifier sent with the request.</td></tr>
+          <tr><td class="c-name">context_max_tokens</td><td class="c-type">TEXT</td><td class="c-def">'32768'</td><td class="c-note">History budget for this preset.</td></tr>
+          <tr><td class="c-name">settings_json</td><td class="c-type">TEXT</td><td class="c-def">'{}'</td><td class="c-note">Every <code>sampler_*</code> value, the active-sampler selection, and extra request params.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation; also the dropdown order.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE api_presets (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    name                 TEXT NOT NULL UNIQUE,
+    api_endpoint         TEXT NOT NULL DEFAULT '',
+    api_key              TEXT NOT NULL DEFAULT '',
+    api_model            TEXT NOT NULL DEFAULT '',
+    context_max_tokens   TEXT NOT NULL DEFAULT '32768',
+    settings_json        TEXT NOT NULL DEFAULT '{}',
+    created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
+)</pre></details>
+    </section>
+
+    <section id="system_prompts">
+      <div class="table-head"><h2>system_prompts</h2><span class="chip chip-soft">paired templates</span></div>
+      <p class="purpose">Each prompt is a pair: <code>content</code> goes in front of the chat,
+        <code>post_history_content</code> after it. Bundled prompts are restored from
+        <code>default_prompts/</code> on every start, so a deleted one comes back and the filename is the title.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. No UNIQUE constraint — the routes reject a clash with 409 instead.</td></tr>
+          <tr><td class="c-name">description</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">One line under the selector.</td></tr>
+          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">The system template: <code>{{variable}}</code> plus <code>{{#var}}…{{/var}}</code> sections.</td></tr>
+          <tr><td class="c-name">post_history_content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Injected after the history; travels with its partner through import/export.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
+          <tr><td class="c-name">updated_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Last edit.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE system_prompts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    content    TEXT NOT NULL DEFAULT '',
+    post_history_content TEXT NOT NULL DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)</pre></details>
+    </section>
+
+    <section id="regex_presets">
+      <div class="table-head"><h2>regex_presets</h2><span class="chip chip-pk">name UNIQUE</span></div>
+      <p class="purpose">A named, ordered list of find/replace filters. Bundled presets ship inactive —
+        <code>active_regex_preset</code> is deliberately left alone so nothing silently rewrites a reply.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL, UNIQUE.</td></tr>
+          <tr><td class="c-name">scripts_json</td><td class="c-type">TEXT</td><td class="c-def">'[]'</td><td class="c-note">Ordered filters; each carries find, replace, flags and a <code>display</code> flag deciding whether it rewrites the stored reply or only the bubble.</td></tr>
+          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
+        </tbody>
+      </table></div>
+      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE regex_presets (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL UNIQUE,
+    scripts_json  TEXT NOT NULL DEFAULT '[]',
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+)</pre></details>
+    </section>
+
+    <section id="schema_migrations">
+      <div class="table-head"><h2>schema_migrations</h2><span class="chip chip-soft">the ledger</span></div>
+      <p class="purpose">What this database has already had done to it. A recorded version whose name no longer
+        matches the registry is a hard error at startup, not a warning.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name key">version</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key. Must be unique and increasing across the registry.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL, UNIQUE. Stable forever once shipped.</td></tr>
+          <tr><td class="c-name">applied_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">NOT NULL. Written after the migration succeeds.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="indexes">
+      <div class="table-head"><h2>Indexes</h2><span class="chip chip-soft">3 total</span></div>
+      <p class="purpose">All three are composite and all three exist for one screen: the sidebar's chat list and
+        the transcript it opens.</p>
+      <div class="scroller"><table>
+        <thead><tr><th>Index</th><th>On</th><th>Serves</th></tr></thead>
+        <tbody>
+          <tr><td class="c-name">idx_chats_character_created</td><td class="c-def">chats(character_id, created_at, id)</td><td class="c-note">Listing one character's chats in order.</td></tr>
+          <tr><td class="c-name">idx_messages_chat_id</td><td class="c-def">messages(chat_id, id)</td><td class="c-note">Reading a transcript, and finding its tail.</td></tr>
+          <tr><td class="c-name">idx_message_swipes_message</td><td class="c-def">message_swipes(message_id, id)</td><td class="c-note">Collecting one message's variants.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="ledger">
+      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–12</span></div>
+      <p class="purpose">Ordered, and the order is the point: each runs once, in a serialized transaction, and a
+        shipped entry is never renumbered, renamed or reordered.</p>
+      <ol class="ledger">
+        <li><span class="v">01</span><span class="n">retire_duplicate_greeting_cleanup</span><span class="d">Baseline: the old destructive greeting repair is retired, not re-run.</span></li>
+        <li><span class="v">02</span><span class="n">delete_legacy_context_max_messages</span><span class="d">Drop the retired message-count context limit.</span></li>
+        <li><span class="v">03</span><span class="n">add_summary_to_legacy_default_prompt</span><span class="d">Add summary memory to untouched copies of the old stock prompt.</span></li>
+        <li><span class="v">04</span><span class="n">add_narrative_preamble_to_default_prompt</span><span class="d">V2 → V3 preamble, untouched copies only.</span></li>
+        <li><span class="v">05</span><span class="n">upgrade_default_prompt_to_v4</span><span class="d">V3 → V4: prose guidance moves to the post-history template.</span></li>
+        <li><span class="v">06</span><span class="n">enforce_house_style_post_history</span><span class="d">V1 post-history → the enforced house-style V2.</span></li>
+        <li><span class="v">07</span><span class="n">rename_default_prompt_to_nanobear</span><span class="d">Rename "Default" to "NanoBear" — the one migration that matches on name, not content.</span></li>
+        <li><span class="v">08</span><span class="n">remove_character_gallery</span><span class="d">Retire gallery settings, collection tables, and the archive column.</span></li>
+        <li><span class="v">09</span><span class="n">backfill_chat_persona</span><span class="d">Seed <code>chats.persona_id</code> from each chat's own history.</span></li>
+        <li><span class="v">10</span><span class="n">delete_summary_compress_batch</span><span class="d">Drop the retired summary compression setting.</span></li>
+        <li><span class="v">11</span><span class="n">delete_default_prompts_seeded</span><span class="d">Drop the retired one-shot flag for prompt seeding.</span></li>
+        <li><span class="v">12</span><span class="n">backfill_stock_prompt_descriptions</span><span class="d">Fill blank descriptions on bundled NanoBear prompts; user-set text untouched.</span></li>
+      </ol>
+      <p class="note">Migrations 3–7 are the last of their kind. The house prompt now ships as a file and a
+        revision arrives as a <b>new file</b>, so no future release rewrites a prompt row.</p>
+    </section>
+
+    <section id="seeded">
+      <div class="table-head"><h2>Seeded settings</h2><span class="chip chip-soft">fresh install</span></div>
+      <p class="purpose">What a brand-new <code>cozy_chat.db</code> holds in <code>settings</code> before anyone
+        touches anything. Read straight out of one.</p>
+      <div class="kv">
+        <div><span>active_system_prompt</span><span>'2'</span></div>
+        <div><span>context_max_tokens</span><span>'32768'</span></div>
+        <div><span>show_context_token_meter</span><span>'1'</span></div>
+        <div><span>show_advanced_configuration</span><span>'0'</span></div>
+        <div><span>extra_request_params</span><span>''</span></div>
+        <div><span>summary_api_endpoint</span><span>''</span></div>
+        <div><span>summary_api_key</span><span>''</span></div>
+        <div><span>summary_api_model</span><span>''</span></div>
+        <div><span>summary_cap_pct</span><span>'10'</span></div>
+        <div><span>summary_trigger_interval</span><span>'10'</span></div>
+        <div><span>default_characters_seeded</span><span>'1'</span></div>
+        <div><span>default_regex_seeded</span><span>'1'</span></div>
+      </div>
+      <p class="note">The two <code>*_seeded</code> flags flip whether or not anything was inserted, and are
+        <b>never reset</b>. That is what makes a deleted bundled character or regex preset stay deleted.
+        <code>active_regex_preset</code> is missing on purpose — bundled filters ship inactive.</p>
+    </section>
+
+    <section id="version">
+      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 12</span></div>
+      <div class="prose">
+        <p>There is no separate version number. The highest entry in the migration registry <strong>is</strong> the
+          schema this build understands, and the highest row in a database's ledger is the schema that database is
+          at. <code>pyproject.toml</code>'s <code>0.0.0</code> is a packaging placeholder and the About page's build
+          string names a Git commit — neither is a schema version.</p>
+        <p>That number is what a backup carries. <code>GET /api/backup</code> zips the data directory with a
+          <code>cozy-backup.json</code> naming it; <code>POST /api/backup/restore</code> compares it against the
+          registry: <strong>lower</strong> restores and is migrated up by <code>init_db()</code>,
+          <strong>equal</strong> restores as-is, <strong>higher</strong> is refused with 409 — that archive knows
+          migrations this build does not.</p>
+      </div>
+      <p class="note">Data lives in two places, so a backup has to cover both: this database, and the
+        <b>PNG files</b> in <code>data/characters/</code> that carry the actual card data. The
+        <code>thumbs/</code> cache is keyed by image content and rebuilt on demand, so it is left out.</p>
+    </section>
+
+    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 12</footer>
+  </main>
+</div>
+
+<script>
+  const filter = document.getElementById('filter');
+  const sections = [...document.querySelectorAll('main section')];
+  const empty = document.getElementById('empty');
+  const links = [...document.querySelectorAll('.rail-nav a')];
+
+  filter.addEventListener('input', () => {
+    const q = filter.value.trim().toLowerCase();
+    let anyVisible = false;
+
+    for (const section of sections) {
+      const rows = [...section.querySelectorAll('tbody tr')];
+      const title = section.id.toLowerCase();
+      let hits = 0;
+
+      for (const row of rows) {
+        const hit = !q || row.textContent.toLowerCase().includes(q);
+        row.classList.toggle('match-off', !hit);
+        if (hit) hits++;
+      }
+
+      const keep = !q || hits > 0 || title.includes(q);
+      section.hidden = !keep;
+      if (keep) anyVisible = true;
+    }
+
+    for (const link of links) {
+      const target = document.getElementById(link.getAttribute('href').slice(1));
+      link.classList.toggle('dim', !!target && target.hidden);
+    }
+    empty.classList.toggle('on', !anyVisible);
+  });
+</script>
+</body>
+</html>

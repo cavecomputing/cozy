@@ -144,7 +144,7 @@ I run this thing privately behind tailscale and a reverse proxy and inside a con
 - [Sampler settings](docs/samplers.md)
 - [Regex output filters](docs/regex.md)
 - [User themes](docs/themes.md)
-- [Database structure](docs/db.md)
+- [Database structure](docs/db.md) — also as a [browsable page](docs/db.html)
 
 ## License
 

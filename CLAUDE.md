@@ -253,8 +253,11 @@ User themes in `$DATA_DIR/themes/` **take precedence** over the built-ins in
 - **[docs/](docs/)** is a hand-maintained user manual, so it goes stale silently.
   [docs/db.md](docs/db.md) enumerates every table, column, index, migration and seeded default — a
   schema change, a new migration or a new default setting is not finished until it is reflected
-  there. A user-visible feature also means checking the README feature list and the matching
-  `docs/` page.
+  there, **and in [docs/db.html](docs/db.html)**, which carries the same schema as a standalone
+  page (tables with their real `CREATE TABLE`, the foreign-key map, the migration ledger, the
+  seeded settings). The two are written by hand and neither generates the other, so a schema
+  change that lands in one and not the other leaves a doc quietly lying. A user-visible feature
+  also means checking the README feature list and the matching `docs/` page.
 
 The About page's build string comes from the current Git commit via
 [cozy/build_info.py](cozy/build_info.py) (checkouts read `.git`, Docker embeds `.cozy-commit`). The
