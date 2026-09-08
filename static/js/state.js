@@ -192,6 +192,7 @@ export function initElements() {
         contextTokenBar:     document.getElementById('context-token-bar'),
         apiPreset:           document.getElementById('settings-api-preset'),
         presetNew:           document.getElementById('settings-preset-new'),
+        presetRename:        document.getElementById('settings-preset-rename'),
         presetDelete:        document.getElementById('settings-preset-delete'),
         memoryFlyout:        document.getElementById('memory-flyout'),
         memoryFlyoutBtn:     document.getElementById('memory-flyout-btn'),

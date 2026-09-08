@@ -330,6 +330,7 @@ export async function testLLMConnection() {
 function updatePresetButtonStates() {
     const hasActive = !!el.apiPreset?.value;
     if (el.presetDelete) el.presetDelete.disabled = !hasActive;
+    if (el.presetRename) el.presetRename.disabled = !hasActive;
 }
 
 function renderPresetDropdown() {
@@ -497,6 +498,23 @@ export async function createNewPreset() {
         showToast('Preset created', 'success');
     } catch (e) {
         showToast(e?.message || 'Failed to create preset');
+        console.warn(e);
+    }
+}
+
+export async function renamePreset() {
+    const id = el.apiPreset?.value;
+    if (!id) return;
+    const preset = state.apiPresets.find(p => String(p.id) === id);
+    const name = prompt('Preset name:', preset?.name || '');
+    if (!name || !name.trim() || name.trim() === preset?.name) return;
+    try {
+        await flushLLMSettingsSave({ strict: true });
+        await API.updatePreset(id, { name: name.trim() });
+        await loadPresets();
+        showToast('Preset renamed', 'success');
+    } catch (e) {
+        showToast(e?.message || 'Failed to rename preset');
         console.warn(e);
     }
 }

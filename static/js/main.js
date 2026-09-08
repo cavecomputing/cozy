@@ -21,7 +21,7 @@ import {
     setAdvancedConfigurationVisible,
     browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
     selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
-    activatePreset, createNewPreset, deletePreset, searchModelsFromInput,
+    activatePreset, createNewPreset, renamePreset, deletePreset, searchModelsFromInput,
     searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache,
 } from './llm-settings.js';
 import {
@@ -481,6 +481,7 @@ function bindSettingsHandlers() {
         });
     });
     el.presetNew?.addEventListener('click', createNewPreset);
+    el.presetRename?.addEventListener('click', renamePreset);
     el.presetDelete?.addEventListener('click', deletePreset);
 
     // System prompt settings
