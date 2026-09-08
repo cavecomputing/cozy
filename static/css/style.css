@@ -3688,6 +3688,12 @@ input[type="checkbox"]:checked::after {
     display: none;
 }
 
+/* Both sampler empty states sit directly under a subsection header, whose
+   rule they otherwise touch. */
+.sampler-empty-state {
+    margin-top: var(--space-3);
+}
+
 /* ── Modal header (uses .panel-header) ───────────────────────────────── */
 /* modal-header now uses .panel-header; keep selector for action spacing */
 
