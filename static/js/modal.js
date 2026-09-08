@@ -93,33 +93,14 @@ let pendingAvatarFile = null;
 let loadedForm        = '';   // the form as opened, for the unsaved-edits check
 
 const tagEditor = createTagEditor({
-    onChange: () => updateTabMarkers(),
     chipList: tagsChipList,
     textInput: tagsTextInput,
     wrap: tagsWrap,
 });
 const greetingEditor = createGreetingEditor({
-    onChange: () => updateTabMarkers(),
     listEl: altGreetingsList,
     addBtn: addGreetingBtn,
 });
-
-/**
- * Dot the tabs that hold something. Four tabs deep, a card's shape is otherwise
- * invisible until you click through all of them. A tab whose content the active
- * prompt ignores carries the ⊘ colour instead, so the marker is visible from
- * the tab you are standing on.
- */
-function updateTabMarkers() {
-    tabBtns.forEach(btn => {
-        const panel = document.getElementById(`tab-${btn.dataset.tab}`);
-        const filled = [...panel.querySelectorAll('input, textarea')]
-            .some(f => f !== tagsTextInput && f.value.trim() !== '')
-            || (panel.contains(tagsChipList) && tagsChipList.children.length > 0);
-        btn.classList.toggle('has-content', filled);
-        btn.classList.toggle('has-unused', !!panel.querySelector('.field-unused-marker:not([hidden])'));
-    });
-}
 
 function switchTab(tabId) {
     tabBtns.forEach(b => {
@@ -272,7 +253,6 @@ function open(char = null) {
     if (char) populate(char);
     else      clearForm();
     updateFieldMarkers();
-    updateTabMarkers();
     loadedForm = JSON.stringify(collect());
     overlay.hidden = false;
     // Same rule as the composer: no autofocus on a touch device, where it
@@ -455,9 +435,6 @@ overlay.addEventListener('keydown', e => {
 // An error clears as soon as the field it is about is touched, rather than
 // waiting for another save attempt to tell the user they have fixed it.
 overlay.addEventListener('input', e => {
-    // Bubbles from every field, including the greeting rows the editor builds,
-    // so it is the one place that sees the whole form change.
-    updateTabMarkers();
     const input = e.target.closest('[aria-invalid]');
     if (!input) return;
     document.getElementById(input.getAttribute('aria-describedby'))?.remove();
