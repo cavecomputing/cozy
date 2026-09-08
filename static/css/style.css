@@ -876,12 +876,44 @@ select.settings-select:focus-visible {
 }
 
 .pf-avatar-wrap {
+    position: relative;
     cursor: pointer;
     flex-shrink: 0;
+    display: flex;
+}
+
+/* Bigger than .avatar.small's 28px, which was too small to read as a picture,
+   let alone a changeable one. An explicit square, not one stretched to the name
+   field: the wrap here resolves to the "?" glyph's width before the stretch
+   height is known, and the square then lands 28px on top of the name input —
+   the failure .modal-avatar-wrap's comment describes, reproduced. */
+.pf-avatar-wrap .avatar {
+    width: 40px;
+    height: 40px;
+    font-size: var(--text-lg);
 }
 
 .pf-avatar-wrap:hover .avatar {
     opacity: 0.7;
+}
+
+/* A chip saying the picture can be replaced. Always drawn, not revealed on
+   hover like the character editor's overlay: there is no hover on a phone, and
+   this avatar is small enough that a bare image reads as decoration. */
+.pf-avatar-badge {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: var(--avatar-text-color, white);
+    border: 1.5px solid var(--hover-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
 }
 
 /* Persona form inputs inherit from .form-input / .form-textarea */
