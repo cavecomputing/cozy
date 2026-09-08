@@ -8,6 +8,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link id="theme-stylesheet" rel="stylesheet" href="/themes/cozy.css">
+    <script>
+        // Point the theme stylesheet at the saved theme before the first paint.
+        // The choice is a localStorage preference, so the server cannot render
+        // it, and applyTheme() does not run until the module graph has loaded —
+        // long enough for cozy.css to paint over everything, the loading screen
+        // included, since #loading-screen is drawn in the theme's --app-bg.
+        // Inline and blocking on purpose: a module would be too late to help.
+        // With JS off, or nothing saved, the default above stands.
+        try {
+            var savedTheme = JSON.parse(localStorage.getItem('cozy/prefs') || '{}').theme;
+            if (savedTheme) {
+                document.getElementById('theme-stylesheet').href =
+                    '/themes/' + encodeURIComponent(savedTheme) + '.css';
+            }
+        } catch (e) { /* private mode, blocked storage, unparseable prefs */ }
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
