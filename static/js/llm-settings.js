@@ -1,7 +1,7 @@
 import { state, el } from './state.js';
 import { loadSamplerSettings, updateContextSizeWarning, SAMPLER_FIELDS } from './sampler.js';
 import { API } from './api.js';
-import { showToast, withBusy } from './utils.js';
+import { showToast, withBusy, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog } from './confirm.js';
 
 const MODEL_SEARCH_DEBOUNCE_MS = 250;
@@ -51,6 +51,9 @@ export async function loadLLMSettings() {
 export async function saveLLMSettings(fields) {
     try {
         await API.saveSettings(fields);
+        // The General and Lorebooks toggles all land here, so this is where
+        // those pages earn their tick.
+        flashSettingsSavedTick();
     } catch (e) {
         console.warn('Failed to save LLM settings:', e);
         showToast('Failed to save settings: ' + e.message);
@@ -103,17 +106,6 @@ async function drainLLMSettingsQueue() {
         }
     }
     return { ok: true, error: null, saved };
-}
-
-let savedTickTimer = null;
-
-/** Flash the "Saved" tick in the settings header after an autosave. */
-function flashSettingsSavedTick() {
-    if (!el.settingsSavedTick) return;
-    el.settingsSavedTick.textContent = 'Saved';
-    el.settingsSavedTick.classList.add('visible');
-    clearTimeout(savedTickTimer);
-    savedTickTimer = setTimeout(() => el.settingsSavedTick?.classList.remove('visible'), 1600);
 }
 
 /** Persist queued edits immediately, preserving their active-preset target. */

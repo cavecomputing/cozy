@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
-import { showToast } from './utils.js';
+import { showToast, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import {
     FLAG_LABELS, combineFilterFlags, escapeForInput, filterError, runFilters,
@@ -80,6 +80,7 @@ export async function flushRegexSave() {
     if (!preset) return;  // deleted while the timer was pending
     try {
         await API.updateRegexPreset(id, { filters: preset.filters });
+        flashSettingsSavedTick();
     } catch (e) {
         console.warn('Failed to autosave regex filters:', e);
         showToast('Failed to save filters: ' + e.message);

@@ -1,7 +1,7 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
-import { sanitize, showToast, copyText } from './utils.js';
+import { sanitize, showToast, copyText, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { previewChatPayload, previewRenderedTemplates } from './request-builder.js';
 
@@ -62,6 +62,7 @@ async function savePromptFields({ showSuccess = false } = {}) {
             content: p.content || '',
             post_history_content: p.post_history_content || '',
         });
+        flashSettingsSavedTick();
         if (showSuccess) showToast('Prompt saved', 'success');
     } catch (e) {
         if (showSuccess) showToast('Failed to save prompt');

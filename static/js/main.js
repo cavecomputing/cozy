@@ -6,7 +6,7 @@ import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
-    withBusy,
+    withBusy, flashSettingsSavedTick,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
@@ -392,6 +392,9 @@ function bindSettingsHandlers() {
     el.settingsThemeSelect?.addEventListener('change', () => {
         applyTheme(el.settingsThemeSelect.value);
         savePrefs();
+        // The only General control that persists to localStorage rather than
+        // the settings row, so it needs its own tick.
+        flashSettingsSavedTick();
     });
     el.settingsContextMeterToggle?.addEventListener('change', () => {
         setContextMeterVisible(el.settingsContextMeterToggle.checked);

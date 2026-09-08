@@ -169,6 +169,23 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
     setTimeout(() => { toast.remove(); }, duration);
 }
 
+let savedTickTimer = null;
+
+/**
+ * Flash the "Saved" tick in the settings header after an autosave.
+ *
+ * Every settings page saves silently as you edit, so the tick is the only
+ * confirmation any of them gives. It lives in the shared modal header, so one
+ * copy serves all of them; call it wherever a page's own autosave succeeds.
+ */
+export function flashSettingsSavedTick() {
+    if (!el.settingsSavedTick) return;
+    el.settingsSavedTick.textContent = 'Saved';
+    el.settingsSavedTick.classList.add('visible');
+    clearTimeout(savedTickTimer);
+    savedTickTimer = setTimeout(() => el.settingsSavedTick?.classList.remove('visible'), 1600);
+}
+
 // Error toast when a send is attempted without a model configured. The
 // action deep-links to the API settings section, like the old inline notice.
 /**
