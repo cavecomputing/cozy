@@ -356,6 +356,22 @@ function bindSidebarHandlers() {
     });
 }
 
+// The meter and the boundary separator each run the full context analysis —
+// template and lorebook resolution over the whole chat, once per call, with no
+// cache between them. Every input that moves the token budget refreshes them,
+// so the recompute is debounced: typing "32768" into Context tokens used to
+// re-analyse the conversation five times. Persistence behind those fields was
+// already debounced; this was the half that wasn't.
+//
+// The pair moves together so the separator never contradicts the meter's
+// tooltip. Two timers because the callers differ in what they refresh: a field
+// that cannot move the boundary has no business redrawing it.
+const updateContextViewsSoon = debounce(() => {
+    updateContextMeter();
+    updateContextBoundary();
+}, 150);
+const updateContextMeterSoon = debounce(updateContextMeter, 150);
+
 function bindSettingsHandlers() {
     const openSettings = async e => {
         e.stopPropagation();
@@ -482,7 +498,7 @@ function bindSettingsHandlers() {
         state.summaryCapPct = el.summaryCapInput.value || '10';
         queueLLMSettingsSave({ summary_cap_pct: state.summaryCapPct });
         renderMemorySummaryCard();
-        updateContextMeter();
+        updateContextMeterSoon();
     });
     el.summaryCapInput?.addEventListener('blur', flushLLMSettingsSave);
     el.summaryIntervalInput?.addEventListener('input', () => {
@@ -554,8 +570,7 @@ function bindSettingsHandlers() {
         // Context analysis reads the active prompt from state. Keep that draft
         // in sync immediately; persistence can remain debounced.
         syncActivePromptFromEditors();
-        updateContextMeter();
-        updateContextBoundary();
+        updateContextViewsSoon();
         saveSystemPromptDebounced();
     };
     el.syspromptContent?.addEventListener('input', handleSystemPromptInput);
@@ -673,8 +688,7 @@ function bindSettingsHandlers() {
         el[elName]?.addEventListener('input', () => {
             queueLLMSettingsSave({ [key]: el[elName].value });
             if (key === 'sampler_max_tokens') {
-                updateContextMeter();
-                updateContextBoundary();
+                updateContextViewsSoon();
             }
         });
         el[elName]?.addEventListener('blur', flushLLMSettingsSave);
@@ -685,8 +699,7 @@ function bindSettingsHandlers() {
     el.extraParams?.addEventListener('input', () => {
         state.extraRequestParams = el.extraParams.value;
         queueLLMSettingsSave({ extra_request_params: el.extraParams.value });
-        updateContextMeter();
-        updateContextBoundary();
+        updateContextViewsSoon();
     });
     el.extraParams?.addEventListener('blur', flushLLMSettingsSave);
 
@@ -695,8 +708,7 @@ function bindSettingsHandlers() {
         state.contextMaxTokens = el.settingsContextTokens.value || '0';
         queueLLMSettingsSave({ context_max_tokens: state.contextMaxTokens });
         updateContextSizeWarning();
-        updateContextMeter();
-        updateContextBoundary();
+        updateContextViewsSoon();
     };
     el.settingsContextTokens?.addEventListener('input', handleContextTokenInput);
     // Some embedded/mobile number controls only dispatch change on commit.
@@ -708,7 +720,7 @@ function bindSettingsHandlers() {
         state.apiModel = el.apiModel.value;
         state.modelContextLength = state.modelDetails[el.apiModel.value] ?? null;
         updateContextSizeWarning();
-        updateContextMeter();
+        updateContextMeterSoon();
         searchModelsFromInput();
         queueLLMSettingsSave({ api_model: el.apiModel.value });
         renderMemorySummaryCard();
@@ -1058,19 +1070,13 @@ function bindComposerHandlers() {
             handleSend();
         }
     });
-    // Both views run the full context analysis (template + lorebook
-    // resolution); per-keystroke that adds up on long chats and slower
-    // phones, and the draft segment does not need letter-level latency. They
-    // move together so the separator never contradicts the meter's tooltip.
-    const updateContextViewsAfterTyping = debounce(() => {
-        updateContextMeter();
-        updateContextBoundary();
-    }, 150);
+    // The draft counts toward the window, so typing moves both views. It does
+    // not need letter-level latency, hence the shared debounce.
     el.userInput.addEventListener('input', () => {
         autoResize(el.userInput);
         saveDraftDebounced();
         updateSlashCommands();
-        updateContextViewsAfterTyping();
+        updateContextViewsSoon();
     });
     autoResize(el.userInput);
 }
