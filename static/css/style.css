@@ -299,8 +299,11 @@ select.settings-select:focus-visible {
 .sidebar-header-side--right {
     justify-content: flex-end;
 }
+/* Uppercase text has no descenders, so a centred line box leaves it sitting
+   about a pixel high next to the "+" button's symmetric glyph. Nudge it back. */
 .sidebar-header .panel-title {
     flex: 0 0 auto;
+    transform: translateY(1px);
 }
 
 .panel-header--xs {
