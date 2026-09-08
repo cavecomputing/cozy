@@ -2,12 +2,19 @@
 
 import json
 import os
+import shutil
+import sqlite3
 import stat
+import tempfile
+import threading
+import zipfile
+from datetime import datetime, timezone
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 
 from cozy import shared
-from cozy.defaults import DEFAULT_POST_HISTORY_TEMPLATE
+from cozy.defaults import DEFAULT_POST_HISTORY_TEMPLATE, seed_default_prompts
+from cozy.schema import MIGRATIONS, init_db
 from cozy.shared import get_db, json_download, not_found, safe_download_name
 
 settings_bp = Blueprint('settings', __name__)
@@ -778,3 +785,201 @@ def export_regex_preset(preset_id):
 
     body = {'name': row['name'], 'filters': _unpack_scripts(row)}
     return json_download(body, f"{safe_download_name(row['name'], 'regex')}.json")
+
+
+# ── Backup and restore ─────────────────────────────────────────────────────
+#
+# A backup is a zip of the data directory plus a manifest naming the schema
+# version it was taken at. The thumbnail cache is left out — it is rebuilt on
+# demand — and the database travels as a snapshot taken through SQLite's backup
+# API, so a write in flight cannot tear it and the -wal/-shm sidecars have
+# nothing left to say.
+#
+# Restoring is destructive by design: the data directory is emptied and the
+# archive takes its place. init_db() then runs, so a backup from an older build
+# is migrated up exactly as a normal start would migrate it.
+
+BACKUP_MANIFEST = 'cozy-backup.json'
+
+# A backup is an archive of the user's own data directory, so it dwarfs the
+# app-wide upload cap, which is sized for one character card. Flask falls back
+# to that cap when a per-request limit is None, so this has to be a number
+# rather than "no limit": large enough that no real library meets it.
+RESTORE_MAX_BYTES = 64 * 1024 ** 3
+
+# One restore at a time. Two of them interleaved have one emptying the data
+# directory while the other is moving files into it, which fails halfway
+# through and leaves neither backup installed.
+_RESTORE_LOCK = threading.Lock()
+
+
+def _quiet_remove(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def _database_snapshot(path):
+    """Copy the live database to *path* through SQLite's backup API."""
+    with get_db() as conn:
+        destination = sqlite3.connect(path)
+        try:
+            conn.backup(destination)
+        finally:
+            destination.close()
+
+
+def _backup_payload_files():
+    """Yield (path, archive name) for every data file that travels.
+
+    The database and its sidecars are covered by the snapshot and the thumbnail
+    cache is rebuildable, so both are skipped here.
+    """
+    skipped = {
+        os.path.normcase(os.path.abspath(p))
+        for p in (shared.THUMBS_DIR, shared.DATABASE,
+                  f'{shared.DATABASE}-wal', f'{shared.DATABASE}-shm',
+                  f'{shared.DATABASE}-journal')
+    }
+    for directory, dirnames, filenames in os.walk(shared.DATA_DIR):
+        dirnames[:] = [
+            name for name in dirnames
+            if os.path.normcase(os.path.abspath(os.path.join(directory, name))) not in skipped
+        ]
+        for filename in filenames:
+            full = os.path.join(directory, filename)
+            if os.path.normcase(os.path.abspath(full)) in skipped:
+                continue
+            yield full, os.path.relpath(full, shared.DATA_DIR).replace(os.sep, '/')
+
+
+def _write_backup(zip_path):
+    with tempfile.TemporaryDirectory() as workspace:
+        snapshot = os.path.join(workspace, 'cozy_chat.db')
+        _database_snapshot(snapshot)
+        with get_db() as conn:
+            row = conn.execute('SELECT MAX(version) AS version FROM schema_migrations').fetchone()
+        manifest = {
+            'app': 'cozy',
+            'schema_version': row['version'] or 0,
+            'build': shared.BUILD_INFO.display,
+            'created_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        }
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr(BACKUP_MANIFEST, json.dumps(manifest, indent=2))
+            archive.write(snapshot, os.path.basename(shared.DATABASE))
+            for full, arcname in _backup_payload_files():
+                archive.write(full, arcname)
+
+
+@settings_bp.route('/api/backup', methods=['GET'])
+def download_backup():
+    """Download the whole data directory as a restorable zip."""
+    handle, zip_path = tempfile.mkstemp(suffix='.zip', prefix='cozy-backup-')
+    os.close(handle)
+    try:
+        _write_backup(zip_path)
+    except Exception:
+        _quiet_remove(zip_path)
+        raise
+    stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    response = send_file(
+        zip_path, mimetype='application/zip', as_attachment=True,
+        download_name=f'cozy-backup-{stamp}.zip',
+    )
+    response.call_on_close(lambda: _quiet_remove(zip_path))
+    return response
+
+
+def _usable_database(path):
+    """True when SQLite can open *path* and read its schema.
+
+    Checked while the archive is still staged, because the alternative is
+    finding out after the data directory has already been emptied.
+    """
+    try:
+        connection = sqlite3.connect(path)
+        try:
+            connection.execute('SELECT count(*) FROM sqlite_master')
+        finally:
+            connection.close()
+    except sqlite3.Error:
+        return False
+    return True
+
+
+def _stage_backup(archive, staged):
+    """Extract *archive* into *staged*, refusing any member that escapes it."""
+    root = os.path.abspath(staged)
+    for member in archive.infolist():
+        if member.is_dir() or member.filename == BACKUP_MANIFEST:
+            continue
+        target = os.path.abspath(os.path.join(root, member.filename))
+        if not target.startswith(root + os.sep):
+            raise ValueError(f'unsafe path {member.filename!r}')
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with archive.open(member) as source, open(target, 'wb') as out:
+            shutil.copyfileobj(source, out)
+
+
+def _replace_data_dir(staged):
+    """Empty the data directory and move the staged backup into its place."""
+    for entry in os.scandir(shared.DATA_DIR):
+        if entry.is_dir(follow_symlinks=False):
+            shutil.rmtree(entry.path, ignore_errors=True)
+        else:
+            _quiet_remove(entry.path)
+    # File by file rather than directory by directory: a directory the wipe
+    # could not remove (a file still open elsewhere) would otherwise collide
+    # with the one being moved in, and take the restore down with it.
+    for directory, _dirnames, filenames in os.walk(staged):
+        for filename in filenames:
+            source = os.path.join(directory, filename)
+            target = os.path.join(shared.DATA_DIR, os.path.relpath(source, staged))
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.move(source, target)
+    for directory in (shared.CHARACTERS_DIR, shared.PERSONAS_DIR,
+                      shared.THEMES_DIR, shared.THUMBS_DIR):
+        os.makedirs(directory, exist_ok=True)
+
+
+@settings_bp.route('/api/backup/restore', methods=['POST'])
+def restore_backup():
+    """Replace the data directory with the contents of an uploaded backup."""
+    # A backup is as large as the library it came from, so the app-wide upload
+    # cap — sized for a character card — does not apply to Cozy's own archive.
+    request.max_content_length = RESTORE_MAX_BYTES
+    upload = request.files.get('file')
+    if not upload:
+        return jsonify({'error': 'No file uploaded'}), 400
+    known_version = MIGRATIONS[-1][0]
+    with _RESTORE_LOCK, tempfile.TemporaryDirectory() as workspace:
+        staged = os.path.join(workspace, 'data')
+        os.makedirs(staged)
+        try:
+            with zipfile.ZipFile(upload.stream) as archive:
+                manifest = json.loads(archive.read(BACKUP_MANIFEST))
+                if not isinstance(manifest, dict) or manifest.get('app') != 'cozy':
+                    raise ValueError('no Cozy manifest')
+                version = manifest.get('schema_version')
+                if not isinstance(version, int):
+                    raise ValueError('manifest names no schema version')
+                if os.path.basename(shared.DATABASE) not in archive.namelist():
+                    raise ValueError('no database in the archive')
+                if version > known_version:
+                    return jsonify({'error':
+                        'This backup was made by a newer version of Cozy '
+                        f'(database version {version}, this build understands '
+                        f'{known_version}). Update Cozy, then restore it.'}), 409
+                _stage_backup(archive, staged)
+            if not _usable_database(os.path.join(staged, os.path.basename(shared.DATABASE))):
+                raise ValueError('the database in it is unreadable')
+        except (zipfile.BadZipFile, KeyError, ValueError, UnicodeDecodeError) as e:
+            return jsonify({'error': f'That file is not a Cozy backup ({e}).'}), 400
+        _replace_data_dir(staged)
+    # An older backup arrives at whatever schema it was taken at, so upgrade it
+    # and restore any bundled prompt it predates, the way a start would.
+    init_db()
+    seed_default_prompts()
+    return jsonify({'success': True, 'schema_version': version})

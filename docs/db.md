@@ -232,6 +232,28 @@ rewrites a prompt row. They remain for databases written before them.
 Migration 12 is the narrow exception: it fills only the new `description`
 column, only on rows still blank, so user-set text is never overwritten.
 
+### The database version
+
+The highest version in the migration registry is what "the database version"
+means for Cozy: it is the schema a build understands, and the highest version
+in a database's `schema_migrations` ledger is the schema that database is at.
+Nothing else numbers the database — `pyproject.toml` holds a packaging
+placeholder, and the About page's build string names a Git commit, not a
+schema.
+
+That number is what a backup carries. `GET /api/backup` writes a
+`cozy-backup.json` beside the data naming it, and `POST /api/backup/restore`
+compares it against the registry:
+
+- **Lower** — restored, then `init_db()` runs and migrates it up, the same way
+  starting Cozy on that database would.
+- **Equal** — restored as-is.
+- **Higher** — refused with 409. The archive was written by a build that knows
+  migrations this one does not, and nothing here can undo them.
+
+A restore also re-runs the prompt seeder, so bundled presets added after the
+backup was taken come back with it.
+
 ## Seeded data
 
 On first run, the database is seeded with:

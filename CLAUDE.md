@@ -170,6 +170,27 @@ A seeded prompt is a copy of a file that outranks it.
   that no longer matches. Migrations touching stock prompts check for user edits first and skip
   customized rows.
 
+### The database version, and backups
+
+The highest version in `MIGRATIONS` **is** the database version — there is no
+second scheme, and `pyproject.toml`'s `0.0.0` and the About build string are
+not it. A database's own version is the highest row in its `schema_migrations`
+ledger.
+
+`/api/backup` zips the data directory with a `cozy-backup.json` naming that
+number; `/api/backup/restore` refuses an archive numbered **higher** than this
+build's registry and migrates a lower one up by running `init_db()` after the
+swap. So appending a migration is also what makes older backups restorable —
+nothing else needs bumping, and nothing may renumber what shipped.
+
+Restore is destructive: it empties `$DATA_DIR` and unpacks the archive in its
+place. Two rules keep that from being a data-loss bug, and both have tests:
+the archive's database is opened and read **while still staged**, so a broken
+backup is refused before anything is deleted, and the route holds
+`_RESTORE_LOCK` so two restores can't interleave a wipe with a move. The
+per-request `max_content_length` has to be a **number** — Flask falls back to
+the app-wide 20 MB cap when it is `None`, which would 413 any real backup.
+
 ### Prompt templates
 
 Mustache-ish: `{{variable}}` plus `{{#var}}…{{/var}}` conditional sections — see

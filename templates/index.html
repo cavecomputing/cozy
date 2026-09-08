@@ -800,9 +800,23 @@
                                 </div>
                             </section>
                             <section class="settings-card about-storage-card" id="about-storage">
-                                <header class="settings-card-header">
-                                    <h4>Storage</h4>
-                                    <p>A snapshot of the space Cozy is using for your local data.</p>
+                                <header class="settings-card-header settings-card-header--with-action">
+                                    <div>
+                                        <h4>Storage</h4>
+                                        <p>A snapshot of the space Cozy is using for your local data.</p>
+                                    </div>
+                                    <div class="export-dropdown" id="about-backup-dropdown">
+                                        <button id="about-backup-btn" class="btn btn-secondary btn-sm export-trigger-btn" aria-haspopup="true" aria-expanded="false">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                            Backup
+                                            <svg class="export-trigger-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <ul class="export-menu" id="about-backup-menu" hidden role="menu">
+                                            <li><button id="about-backup-export" role="menuitem">Download backup&hellip;</button></li>
+                                            <li><button id="about-backup-restore" role="menuitem">Restore from backup&hellip;</button></li>
+                                        </ul>
+                                        <input type="file" id="about-backup-file" accept="application/zip,.zip" hidden>
+                                    </div>
                                 </header>
                                 <div id="about-storage-content" aria-live="polite" aria-busy="false">
                                     <div class="about-storage-status">

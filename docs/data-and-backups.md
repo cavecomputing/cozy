@@ -31,7 +31,31 @@ total.
 
 Docker mounts the same host `data/` directory at `/data` inside the container.
 
-## Back up
+## Back up from inside Cozy
+
+**Settings → About → Storage → Backup** does the whole thing without stopping
+Cozy:
+
+- **Download backup** writes a `.zip` of the data directory. The database goes
+  in as a snapshot taken through SQLite's own backup API, so it is consistent
+  even if a reply is being written while the download runs, and the rebuildable
+  thumbnail cache is left out. Alongside the data is a small
+  `cozy-backup.json` naming the database version the backup was taken at.
+- **Restore from backup** asks for confirmation, then **deletes everything in
+  the data directory** and unpacks the archive in its place — chats,
+  characters, personas, themes, settings and API keys all become the ones in
+  the backup. The page reloads when it finishes.
+
+A backup made by a newer version of Cozy is refused, since this build cannot
+know what changed in the database since. An older one restores fine: Cozy
+migrates it on the way in, exactly as it would at startup, and puts back any
+bundled prompt preset that postdates it.
+
+Restoring is not a sandbox. Cozy checks that the archive is one of its own and
+that its database opens before it deletes anything, but it does not police what
+is inside beyond that — restore archives you made, not ones you were sent.
+
+## Back up by hand
 
 Stop Cozy before copying its data.
 
@@ -51,7 +75,7 @@ Copy the entire `data/` directory to a safe location. Do not copy only
 `cozy_chat.db`; SQLite may also use `cozy_chat.db-wal` and
 `cozy_chat.db-shm`.
 
-## Restore
+## Restore by hand
 
 1. Stop Cozy.
 2. Move the current `data/` directory out of the way.

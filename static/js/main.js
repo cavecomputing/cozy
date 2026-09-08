@@ -131,6 +131,55 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     savePrefs();
 }
 
+// ── Backup and restore (About → Storage) ─────────────────────────────────
+// Download is a plain navigation so the browser streams the zip straight to
+// disk. Restore replaces the whole data directory, so it asks first and
+// reloads afterwards: every list on screen belongs to the database that just
+// went away.
+function bindBackupHandlers() {
+    const closeMenu = () => {
+        if (el.backupMenu) el.backupMenu.hidden = true;
+        el.backupDropdown?.classList.remove('open');
+        el.backupBtn?.setAttribute('aria-expanded', 'false');
+    };
+    el.backupBtn?.addEventListener('click', e => {
+        e.stopPropagation();
+        const willOpen = el.backupMenu?.hidden;
+        if (el.backupMenu) el.backupMenu.hidden = !willOpen;
+        el.backupDropdown?.classList.toggle('open', willOpen);
+        el.backupBtn?.setAttribute('aria-expanded', String(!!willOpen));
+    });
+    document.addEventListener('click', e => {
+        if (!el.backupMenu || el.backupMenu.hidden) return;
+        if (!e.target.closest('#about-backup-dropdown')) closeMenu();
+    });
+    el.backupExport?.addEventListener('click', () => {
+        closeMenu();
+        showToast('Preparing backup…', 'success', 2000);
+        window.location.href = '/api/backup';
+    });
+    el.backupRestore?.addEventListener('click', () => { closeMenu(); el.backupFile?.click(); });
+    el.backupFile?.addEventListener('change', async e => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        const ok = await confirmDialog({
+            title: 'Restore from this backup?',
+            message: `Everything Cozy has now — chats, characters, personas, settings — `
+                + `is deleted and replaced with the contents of ${file.name}. This cannot be undone.`,
+            confirmLabel: 'Replace everything',
+        });
+        if (!ok) return;
+        try {
+            await API.restoreBackup(file);
+            showToast('Backup restored — reloading…', 'success');
+            setTimeout(() => window.location.reload(), 900);
+        } catch (err) {
+            showToast(err.message || 'Restore failed', 'error', 6000);
+        }
+    });
+}
+
 function updateSettingsHeader() {
     const detail = isMobileSettings() && el.settingsShell.classList.contains('in-detail');
     document.getElementById('settings-title').textContent = detail
@@ -1141,6 +1190,7 @@ async function init() {
     bindSidebarHandlers();
     bindSettingsHandlers();
     initStorageStats();
+    bindBackupHandlers();
     bindCharacterHandlers();
     bindChatHandlers();
     bindMemoryHandlers();

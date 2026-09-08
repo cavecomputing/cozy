@@ -125,6 +125,10 @@ Cozy has no login screen or user authentication. Its default Python and Docker
 configurations listen only on the local computer. Do not expose Cozy directly
 to the public internet.
 
+Settings → About → Storage has a **Backup** menu that downloads the whole data
+directory as a zip and restores one on top of it, so a backup does not mean
+stopping Cozy and copying folders.
+
 See [Data and backups](docs/data-and-backups.md) and
 [Security](SECURITY.md) before changing the network configuration.
 

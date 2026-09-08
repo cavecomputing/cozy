@@ -271,6 +271,9 @@ export const API = {
     async getStorageStats() {
         return jsonRequest('/api/storage-stats', { fallback: 'Failed to load storage statistics' });
     },
+    async restoreBackup(file) {
+        return formRequest('/api/backup/restore', { file }, 'Restore failed');
+    },
 
     // System prompts
     async getSystemPrompts() {
