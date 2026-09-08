@@ -183,6 +183,14 @@ build's registry and migrates a lower one up by running `init_db()` after the
 swap. So appending a migration is also what makes older backups restorable —
 nothing else needs bumping, and nothing may renumber what shipped.
 
+`/api/backup` builds a **different archive on every request**, so its response
+must never look resumable — it streams with `Accept-Ranges: none` and no ETag.
+Chrome splits a download of more than a couple of megabytes across parallel
+range requests, and ranges served from separate archives stitch into a zip that
+fails its own CRCs. That is also why it streams from a temp copy the response
+owns and deletes: `send_file` plus a delete-on-close left a full copy of the
+data directory in the system temp directory after every backup.
+
 Restore is destructive: it empties `$DATA_DIR` and unpacks the archive in its
 place. Two rules keep that from being a data-loss bug, and both have tests:
 the archive's database is opened and read **while still staged**, so a broken

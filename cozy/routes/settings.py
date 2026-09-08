@@ -10,7 +10,7 @@ import threading
 import zipfile
 from datetime import datetime, timezone
 
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, Response
 
 from cozy import shared
 from cozy.defaults import DEFAULT_POST_HISTORY_TEMPLATE, seed_default_prompts
@@ -875,21 +875,39 @@ def _write_backup(zip_path):
 
 @settings_bp.route('/api/backup', methods=['GET'])
 def download_backup():
-    """Download the whole data directory as a restorable zip."""
-    handle, zip_path = tempfile.mkstemp(suffix='.zip', prefix='cozy-backup-')
-    os.close(handle)
+    """Download the whole data directory as a restorable zip.
+
+    Streamed from a temp copy that this response owns and deletes when it ends,
+    and deliberately **not** resumable. Every request builds a fresh archive, so
+    a client that fetches byte ranges — Chrome splits a download of a few
+    megabytes across parallel range requests — would stitch together pieces of
+    several different archives and save a corrupt zip. Advertising no ranges
+    keeps it to one stream of one archive.
+    """
+    workspace = tempfile.mkdtemp(prefix='cozy-backup-')
+    zip_path = os.path.join(workspace, 'backup.zip')
     try:
         _write_backup(zip_path)
+        size = os.path.getsize(zip_path)
     except Exception:
-        _quiet_remove(zip_path)
+        shutil.rmtree(workspace, ignore_errors=True)
         raise
+
+    def stream():
+        try:
+            with open(zip_path, 'rb') as handle:
+                while chunk := handle.read(256 * 1024):
+                    yield chunk
+        finally:
+            shutil.rmtree(workspace, ignore_errors=True)
+
     stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-    response = send_file(
-        zip_path, mimetype='application/zip', as_attachment=True,
-        download_name=f'cozy-backup-{stamp}.zip',
-    )
-    response.call_on_close(lambda: _quiet_remove(zip_path))
-    return response
+    return Response(stream(), mimetype='application/zip', headers={
+        'Content-Length': str(size),
+        'Content-Disposition': f'attachment; filename="cozy-backup-{stamp}.zip"',
+        'Accept-Ranges': 'none',
+        'Cache-Control': 'no-store',
+    })
 
 
 def _usable_database(path):

@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import tempfile
 import zipfile
 
 import app as app_module
@@ -60,6 +61,34 @@ class TestBackupDownload:
         assert database.startswith(b'SQLite format 3')
         assert 'themes/mine.css' in names
         assert any(name.startswith('characters/') for name in names)
+
+    def test_the_download_is_not_resumable(self, client):
+        """Every request builds a different archive, so a client must not be
+        invited to fetch it in pieces: Chrome splits a download of a few
+        megabytes across parallel range requests, and stitching two archives
+        together produces a zip that fails its own CRCs."""
+        r = client.get('/api/backup')
+        assert r.headers['Accept-Ranges'] == 'none'
+        assert 'ETag' not in r.headers
+        assert r.headers['Cache-Control'] == 'no-store'
+
+        ranged = client.get('/api/backup', headers={'Range': 'bytes=0-99'})
+        assert ranged.status_code == 200
+        assert 'Content-Range' not in ranged.headers
+        assert len(ranged.data) == int(ranged.headers['Content-Length'])
+
+    def test_the_temporary_archive_does_not_outlive_the_response(self, client):
+        """The zip is built on disk before it is streamed. If the copy is left
+        behind, every backup of a large library strands another one in the
+        system temp directory."""
+        temp_root = tempfile.gettempdir()
+        before = set(os.listdir(temp_root))
+        client.get('/api/backup')
+        leaked = [
+            name for name in set(os.listdir(temp_root)) - before
+            if name.startswith('cozy-backup-')
+        ]
+        assert leaked == []
 
     def test_thumbnail_cache_is_left_out(self, client):
         with open(os.path.join(shared.THUMBS_DIR, 'cached.webp'), 'wb') as handle:

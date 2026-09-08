@@ -36,7 +36,10 @@ Docker mounts the same host `data/` directory at `/data` inside the container.
 **Settings → About → Storage → Backup** does the whole thing without stopping
 Cozy:
 
-- **Download backup** writes a `.zip` of the data directory. The database goes
+- **Download backup** writes a `.zip` of the data directory. It arrives as one
+  stream and cannot be resumed or fetched in parts — each request builds a new
+  archive, so a download manager that asked for byte ranges would mix two of
+  them together. The database goes
   in as a snapshot taken through SQLite's own backup API, so it is consistent
   even if a reply is being written while the download runs, and the rebuildable
   thumbnail cache is left out. Alongside the data is a small
