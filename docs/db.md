@@ -263,7 +263,7 @@ backup was taken come back with it.
 
 On first run, the database is seeded with:
 
-- **Default persona**: "Default User" (tagline: "The brave adventurer", `is_default = 1`)
+- **Default persona**: "Default Persona" (tagline: "Change me!", `is_default = 1`)
 - **Default settings**: context token budget (`32768`), visible context meter,
   hidden advanced configuration (`show_advanced_configuration`), an
   empty extra-request-parameters value, blank summarizer endpoint/key/model
