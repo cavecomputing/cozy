@@ -35,7 +35,9 @@ local such as llama.cpp, Ollama or KoboldCpp.
 2. Go to **API**.
 3. Click **+** to create a preset and give it a name. Every connection setting
    below belongs to the selected preset, so you can keep one per server and
-   switch between them. **Rename** renames the selected preset.
+   switch between them. A new preset starts as a copy of whatever is on the
+   page, so filling the fields in first and making a preset afterwards loses
+   nothing. **Rename** renames the selected preset.
 4. Under **Connection**, enter the base **Endpoint** URL. It normally ends in
    `/v1`:
 
