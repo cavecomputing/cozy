@@ -158,6 +158,14 @@ flyout beside Author's Note, Active Lorebook or Auto Summary whenever the
 template leaves that variable out — whether or not you are using the feature
 yet.
 
+A dot on a tab means that tab holds something, so you can see the shape of a
+card without clicking through all four. The dot turns grey when the tab holds
+content the active template leaves out — the tab's version of ⊘.
+
+Closing the editor with unsaved edits asks before discarding them, whether you
+close it with **Cancel**, the **✕**, Escape, a click outside, or by opening
+another panel.
+
 Select the character in the sidebar to start chatting.
 
 ## 5. Make it yours

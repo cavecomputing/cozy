@@ -3923,6 +3923,31 @@ input[type="checkbox"]:checked::after {
     border-bottom-color: var(--accent-color);
 }
 
+/* A dot on the tabs holding something, so the card's shape reads without
+   clicking through all four. It rides in the padding rather than adding a
+   pseudo-element to the flow, which would shift the label when it appears. */
+.tab-btn.has-content {
+    position: relative;
+}
+
+.tab-btn.has-content::after {
+    content: '';
+    position: absolute;
+    top: 0.15rem;
+    right: 0.15rem;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+}
+
+/* Content the active prompt never sends: the same muted grey as the ⊘ field
+   markers, so the tab and the label read as one signal rather than two. */
+.tab-btn.has-unused::after {
+    background-color: var(--text-secondary);
+    opacity: 0.6;
+}
+
 /* ── Modal body ──────────────────────────────────────────────────────────── */
 .modal-body {
     flex: 1;

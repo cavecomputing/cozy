@@ -90,16 +90,36 @@ const tagsWrap         = document.getElementById('tags-input-wrap');
 
 let editingCharId     = null;
 let pendingAvatarFile = null;
+let loadedForm        = '';   // the form as opened, for the unsaved-edits check
 
 const tagEditor = createTagEditor({
+    onChange: () => updateTabMarkers(),
     chipList: tagsChipList,
     textInput: tagsTextInput,
     wrap: tagsWrap,
 });
 const greetingEditor = createGreetingEditor({
+    onChange: () => updateTabMarkers(),
     listEl: altGreetingsList,
     addBtn: addGreetingBtn,
 });
+
+/**
+ * Dot the tabs that hold something. Four tabs deep, a card's shape is otherwise
+ * invisible until you click through all of them. A tab whose content the active
+ * prompt ignores carries the ⊘ colour instead, so the marker is visible from
+ * the tab you are standing on.
+ */
+function updateTabMarkers() {
+    tabBtns.forEach(btn => {
+        const panel = document.getElementById(`tab-${btn.dataset.tab}`);
+        const filled = [...panel.querySelectorAll('input, textarea')]
+            .some(f => f !== tagsTextInput && f.value.trim() !== '')
+            || (panel.contains(tagsChipList) && tagsChipList.children.length > 0);
+        btn.classList.toggle('has-content', filled);
+        btn.classList.toggle('has-unused', !!panel.querySelector('.field-unused-marker:not([hidden])'));
+    });
+}
 
 function switchTab(tabId) {
     tabBtns.forEach(b => {
@@ -245,17 +265,45 @@ function open(char = null) {
     exportLabel.hidden = !char;
     exportSep.hidden = !char;
     exportItems.forEach(li => { li.hidden = !char; });
-    exportMenu.hidden = true;                       // always close dropdown on open
-    exportWrap.classList.remove('open');
-    exportTrigger.setAttribute('aria-expanded', 'false');
+    closeExportMenu();                              // always close dropdown on open
     deleteBtn.hidden = !char;                       // only show delete on edit, not create
     avatarPreview.classList.toggle('is-required', !char);
     if (avatarRequired) avatarRequired.hidden = !!char;
     if (char) populate(char);
     else      clearForm();
     updateFieldMarkers();
+    updateTabMarkers();
+    loadedForm = JSON.stringify(collect());
     overlay.hidden = false;
-    requestAnimationFrame(() => fields.name.focus());
+    // Same rule as the composer: no autofocus on a touch device, where it
+    // throws the keyboard over the sheet before the card has been read, and
+    // preventScroll so focusing inside the scrolling body doesn't jerk it.
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+        requestAnimationFrame(() => fields.name.focus({ preventScroll: true }));
+    }
+}
+
+/** True once the form has drifted from what was loaded. A picked-but-unsaved
+ *  avatar counts — it is not part of the form snapshot. */
+function isDirty() {
+    return !!pendingAvatarFile || JSON.stringify(collect()) !== loadedForm;
+}
+
+/**
+ * The exit every user-initiated dismissal takes — the ✕, Cancel, Escape, the
+ * backdrop, another flyout stealing the panel. `close()` itself stays blunt for
+ * the paths that have already dealt with the content (save, delete).
+ */
+async function closeUnlessDirty() {
+    if (isDirty()) {
+        const discard = await confirmDialog({
+            title: 'Discard changes?',
+            message: 'This character has unsaved edits. Closing the editor loses them.',
+            confirmLabel: 'Discard',
+        });
+        if (!discard) return;
+    }
+    close();
 }
 
 function close() {
@@ -354,6 +402,12 @@ importInput.addEventListener('change', async () => {
     }
 });
 
+function closeExportMenu() {
+    exportMenu.hidden = true;
+    exportWrap.classList.remove('open');
+    exportTrigger.setAttribute('aria-expanded', 'false');
+}
+
 // Import/Export dropdown — single trigger button toggles the menu
 exportTrigger.addEventListener('click', e => {
     e.stopPropagation();
@@ -371,16 +425,10 @@ exportMenu.addEventListener('click', e => {
     } else if (editingCharId) {
         API.exportCard(editingCharId, fields.name.value.trim(), btn.dataset.fmt);
     }
-    exportMenu.hidden = true;
-    exportWrap.classList.remove('open');
-    exportTrigger.setAttribute('aria-expanded', 'false');
+    closeExportMenu();
 });
 // Close menu when clicking anywhere outside
-document.addEventListener('click', () => {
-    exportMenu.hidden = true;
-    exportWrap.classList.remove('open');
-    exportTrigger.setAttribute('aria-expanded', 'false');
-});
+document.addEventListener('click', closeExportMenu);
 
 deleteBtn.addEventListener('click', async () => {
     if (!editingCharId) return;
@@ -388,15 +436,28 @@ deleteBtn.addEventListener('click', async () => {
     close();
     await deleteCharacter(editingCharId, name);
 });
-closeBtn.addEventListener('click',  close);
-cancelBtn.addEventListener('click', close);
+closeBtn.addEventListener('click',  closeUnlessDirty);
+cancelBtn.addEventListener('click', closeUnlessDirty);
 saveBtn.addEventListener('click',   save);
-overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+overlay.addEventListener('click', e => { if (e.target === overlay) closeUnlessDirty(); });
+// Escape peels one layer. Only the Import/Export menu is handled here, and it
+// stops the event: the document-level handler in main.js closes every flyout,
+// which would take the editor down with the menu. Escape on the editor itself
+// falls through to that handler and reaches close through the Flyouts hook.
+overlay.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || exportMenu.hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    closeExportMenu();
+    exportTrigger.focus();
+});
 
 // An error clears as soon as the field it is about is touched, rather than
 // waiting for another save attempt to tell the user they have fixed it.
 overlay.addEventListener('input', e => {
+    // Bubbles from every field, including the greeting rows the editor builds,
+    // so it is the one place that sees the whole form change.
+    updateTabMarkers();
     const input = e.target.closest('[aria-invalid]');
     if (!input) return;
     document.getElementById(input.getAttribute('aria-describedby'))?.remove();
@@ -406,4 +467,7 @@ overlay.addEventListener('input', e => {
 
 export const Modal = { open, close };
 
-Flyouts.register('modal', () => Modal.close());
+// Another flyout taking over asks the same question. It has already opened by
+// the time the answer comes back, but the editor sits above it, so cancelling
+// just leaves the user where they were.
+Flyouts.register('modal', () => { if (!overlay.hidden) closeUnlessDirty(); });
