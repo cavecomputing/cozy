@@ -1403,7 +1403,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     white-space: pre-wrap;
     background-color: var(--editable-bg);
     border-radius: var(--radius);
+    /* The tint needs breathing room, but padding alone pushed the text 4px
+       right and 2px down the moment Edit was pressed — a visible twitch on
+       text the user is looking straight at. Cancel it with an equal negative
+       margin so the box grows outward into the bubble's own padding and every
+       glyph stays where it was. */
     padding: 2px 4px;
+    margin: -2px -4px;
     min-height: 1.5em;
 }
 
