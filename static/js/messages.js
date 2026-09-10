@@ -508,6 +508,19 @@ export function startEditing(messageEl) {
     messageEl._editHandler = handler;
 }
 
+/**
+ * Commit any open edit before the view changes underneath it. Leaving a chat or
+ * a character removes the message element, which would strand state.currentEdit
+ * on a detached node and drop what was typed without a word.
+ */
+export function flushEdit() {
+    if (!state.currentEdit) return;
+    finishEditing(true);
+    // An emptied field has nothing to save, and finishEditing bails before
+    // tearing down — put the original text back instead of leaving it open.
+    if (state.currentEdit) finishEditing(false);
+}
+
 export function finishEditing(save) {
     if (!state.currentEdit) return;
     const { element: messageEl, contentDiv, actionsBar } = state.currentEdit;

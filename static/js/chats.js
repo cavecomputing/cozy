@@ -2,7 +2,7 @@ import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import { chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs } from './utils.js';
 import { confirmDialog } from './confirm.js';
-import { renderMessages, appendMessage } from './messages.js';
+import { renderMessages, appendMessage, flushEdit } from './messages.js';
 import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
 import { renderPersonaList, updateUserProfile } from './personas.js';
@@ -157,6 +157,7 @@ export async function loadChats(charId) {
 
 export async function selectChat(chat) {
     saveDraft();
+    flushEdit();
     // A bare abort, not stopGeneration(): leaving a chat discards the partial
     // reply. It belongs to the chat we're leaving, but persistence targets the
     // chat we're entering, so there is nowhere safe to put it.

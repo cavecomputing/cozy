@@ -3,7 +3,7 @@ import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
 import { applyAvatar, AVATAR, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
-import { renderMessages } from './messages.js';
+import { renderMessages, flushEdit } from './messages.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHARACTER LIST
@@ -103,6 +103,9 @@ export async function selectCharacter(charId) {
     const char = state.characters.find(c => c.id === charId);
     if (!char || char.missing) return;
 
+    // Before the message list is torn down below — selectChat's own flush comes
+    // too late for a character switch.
+    flushEdit();
     closeMobileSidebar();
 
     state.activeCharacter = char;
