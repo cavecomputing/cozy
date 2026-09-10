@@ -162,6 +162,9 @@ export function showPersonaForm(editPersona = null) {
     closePersonaForm();
     editingPersonaId = editPersona?.id ?? null;
     el.personaForm.hidden = false;
+    // "New Persona" does nothing useful while a form is open — creating discards
+    // the fields being typed, editing swaps them for a blank set with no warning.
+    if (el.personaCreateBtn) el.personaCreateBtn.hidden = true;
     seatPersonaForm();
     const nameInput = el.personaForm.querySelector('#pf-name');
     const taglineInput = el.personaForm.querySelector('#pf-tagline');
@@ -206,6 +209,7 @@ export function showPersonaForm(editPersona = null) {
             el.personaForm.hidden = true;
             el.personaList?.querySelector(`[data-persona-id="${editingPersonaId}"]`)?.removeAttribute('hidden');
             editingPersonaId = null;
+            if (el.personaCreateBtn) el.personaCreateBtn.hidden = false;
             parkPersonaForm();
         }
         if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }

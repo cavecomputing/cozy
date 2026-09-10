@@ -188,6 +188,7 @@ export function initElements() {
         samplerAdvancedEmpty:  document.getElementById('sampler-advanced-empty'),
         personaList:     document.getElementById('persona-list'),
         personaForm:     document.getElementById('persona-inline-form'),
+        personaCreateBtn: document.getElementById('persona-create-btn'),
         userName:        document.querySelector('#user-profile .user-name'),
         userTagline:     document.querySelector('#user-profile .user-tagline'),
         userAvatar:      document.querySelector('#user-profile .user-avatar'),
