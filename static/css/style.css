@@ -900,9 +900,9 @@ select.settings-select:focus-visible {
     opacity: 0.7;
 }
 
-/* A chip saying the picture can be replaced. Always drawn, not revealed on
-   hover like the character editor's overlay: there is no hover on a phone, and
-   this avatar is small enough that a bare image reads as decoration. */
+/* A chip saying the picture can be replaced. Always drawn, unlike the hover
+   overlay it sits beside in the character editor: there is no hover on a phone,
+   so the overlay alone leaves a bare image reading as decoration. */
 .pf-avatar-badge {
     position: absolute;
     right: -2px;
@@ -3886,6 +3886,16 @@ input[type="checkbox"]:checked::after {
 
 .modal-avatar-wrap:hover .avatar-change-label {
     opacity: 1;
+}
+
+/* Same chip on the bigger character avatar: a touch larger, and clear of the
+   "Required" pill in the opposite corner. It sits above the hover overlay so
+   the two read as one control. */
+.modal-avatar-badge {
+    width: 18px;
+    height: 18px;
+    border-color: var(--bg-color);
+    z-index: 2;
 }
 
 .modal-avatar-required {
