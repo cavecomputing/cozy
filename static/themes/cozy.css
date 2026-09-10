@@ -1,106 +1,111 @@
-/* Cozy — Signature Theme (matches logo: navy + warm cream toast) */
+/* Cozy — Signature Theme (flat material: tonal navy surfaces, one saturated
+   accent, elevation carried by surface lightness rather than glow) */
 :root {
-    /* Layout */
-    --app-bg:         #131b34;
-    --bg-color:       #1d2849;
-    --sidebar-bg:     #182142;
-    --char-msg-bg:    #28335a;
-    --hover-bg:       #2f3c66;
-    --active-bg:      rgba(240, 230, 208, 0.14);
-    --input-bg:       #151d3a;
-    --border-color:   #3a4773;
+    /* Corner radius. Material's larger container radius, applied through the
+       one --radius-md every bundled theme declares. */
+    --radius-md: 12px;
+
+    /* Layout — five tonal steps. Depth reads as a lighter surface, not a
+       shadow, so nothing here needs a glow to sit "above" the page. */
+    --app-bg:         #10141d;
+    --bg-color:       #161c27;
+    --sidebar-bg:     #131924;
+    --char-msg-bg:    #1e2532;
+    --hover-bg:       #29313f;
+    --active-bg:      rgba(255, 196, 77, 0.16);
+    --input-bg:       #1a2029;
+    --border-color:   #303845;
 
     /* Typography */
-    --text-color:     #f0e6d0;
-    --text-secondary: #9aa4c4;
+    --text-color:     #e6e9ef;
+    --text-secondary: #a3acbb;
 
-    /* Accent (toasted gold). Deliberately a step deeper than --text-color:
-       when the two match, every accent treatment in the app — active rows,
-       section headings, character names, focus rings — renders as plain body
-       text, which is what this theme did until now. */
-    --accent-color:   #d2b878;
-    --accent-hover:   #dfc994;
-    --danger-color:   #e08585;
-    --danger-bg-hover: rgba(224, 133, 133, 0.15);
-    --success-color:  #95c79e;
+    /* Accent (saturated amber). Flat and fully opaque — the theme's one
+       colour of emphasis, carrying active rows, headings and focus rings. */
+    --accent-color:   #ffc44d;
+    --accent-hover:   #ffd47a;
+    --danger-color:   #ef5350;
+    --danger-bg-hover: rgba(239, 83, 80, 0.16);
+    --success-color:  #66bb6a;
 
-    /* Shadows */
-    --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.5);
-    --accent-edit-bg:     rgba(240, 230, 208, 0.08);
-    --accent-border-light: rgba(240, 230, 208, 0.28);
-    --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.3);
-    --input-focus-shadow: 0 0 0 2px rgba(240, 230, 208, 0.22);
+    /* Elevation — a single tight material shadow for surfaces that genuinely
+       float (flyouts, modals, toasts). Everything else stays flat. */
+    --shadow-md:          0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.34);
+    --accent-edit-bg:     rgba(255, 196, 77, 0.10);
+    --accent-border-light: rgba(255, 196, 77, 0.36);
+    --input-shadow:       none;
+    --input-focus-shadow: 0 0 0 2px rgba(255, 196, 77, 0.32);
 
-    /* RP markdown accent colors */
-    --rp-dialogue-color:  #38bdf8;   /* sky blue — quoted dialogue */
+    /* RP markdown accent colors — flat hues, no text glow */
+    --rp-dialogue-color:  #4fc3f7;   /* light blue — quoted dialogue */
     --rp-dialogue-weight: 600;
-    --rp-dialogue-shadow: 0 0 8px rgba(56, 189, 248, 0.18);
-    --rp-action-color:    #b3a0c2;   /* dusty lavender — italics/actions */
-    --rp-emphasis-color:  #d2b878;   /* muted gold — bold/strong emphasis */
-    --rp-quote-color:     #88a8c0;   /* muted sky — blockquotes/narration */
-    --rp-quote-bg:        rgba(136, 168, 192, 0.08);
-    --rp-ooc-color:       #8c95b0;   /* muted blue-grey — code/OOC text */
-    --rp-intense-color:   #c8957a;   /* dusty amber — bold+italic intense actions */
-    --rp-intense-shadow:  0 0 6px rgba(200, 149, 122, 0.20);
+    --rp-dialogue-shadow: none;
+    --rp-action-color:    #b39ddb;   /* muted violet — italics/actions */
+    --rp-emphasis-color:  #ffc44d;   /* amber — bold/strong emphasis */
+    --rp-quote-color:     #90a4ae;   /* blue grey — blockquotes/narration */
+    --rp-quote-bg:        rgba(144, 164, 174, 0.10);
+    --rp-ooc-color:       #8d97a6;   /* grey — code/OOC text */
+    --rp-intense-color:   #ff8a65;   /* deep orange — bold+italic intense actions */
+    --rp-intense-shadow:  none;
     --rp-strike-opacity:  0.5;
     --rp-hr-opacity:      0.3;
     --img-max-width:      100%;
-    --code-bg:            rgba(58, 71, 115, 0.45);
-    --code-border:        rgba(58, 71, 115, 0.65);
-    --pre-bg:             rgba(19, 27, 52, 0.7);
-    --pre-border:         rgba(58, 71, 115, 0.45);
+    --code-bg:            rgba(48, 56, 69, 0.55);
+    --code-border:        rgba(48, 56, 69, 0.9);
+    --pre-bg:             #10141d;
+    --pre-border:         rgba(48, 56, 69, 0.9);
 
     /* Avatars */
-    --avatar-text-color:  #1d2849;
+    --avatar-text-color:  #10141d;
 
     /* Buttons */
-    --btn-primary-color:      #1d2849;
-    --btn-danger-hover-color: #1d2849;
-    --scroll-bottom-bg:       rgba(240, 230, 208, 0.9);
-    --scroll-bottom-color:    #1d2849;
-    --scroll-bottom-border:   rgba(240, 230, 208, 0.45);
-    --scroll-bottom-hover-bg: #f0e6d0;
-    --scroll-bottom-shadow:   0 6px 18px rgba(8, 12, 26, 0.34);
+    --btn-primary-color:      #10141d;
+    --btn-danger-hover-color: #10141d;
+    --scroll-bottom-bg:       #ffc44d;
+    --scroll-bottom-color:    #10141d;
+    --scroll-bottom-border:   #ffc44d;
+    --scroll-bottom-hover-bg: #ffd47a;
+    --scroll-bottom-shadow:   0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.34);
 
     /* Overlays & backdrops */
-    --overlay-bg:     rgba(8, 12, 26, 0.6);
-    --overlay-color:  #f0e6d0;
-    --backdrop-bg:    rgba(8, 12, 26, 0.5);
+    --overlay-bg:     rgba(6, 9, 14, 0.72);
+    --overlay-color:  #e6e9ef;
+    --backdrop-bg:    rgba(6, 9, 14, 0.6);
 
     /* Toasts */
-    --toast-color:    #1d2849;
+    --toast-color:    #10141d;
 
-    /* User-message bubble — bright distinct blue (pops against the navy char bubble) */
-    --user-msg-bg:              #3d5fa8;
-    --user-msg-color:           #f3eedb;
-    --user-msg-divider:         rgba(243, 238, 219, 0.22);
-    --user-msg-name-color:      rgba(243, 238, 219, 0.9);
-    --user-action-color:        rgba(243, 238, 219, 0.55);
-    --user-action-hover-bg:     rgba(243, 238, 219, 0.15);
-    --user-action-hover-color:  #f3eedb;
+    /* User-message bubble — flat saturated indigo against the tonal greys */
+    --user-msg-bg:              #3b5bdb;
+    --user-msg-color:           #eef1fb;
+    --user-msg-divider:         rgba(238, 241, 251, 0.24);
+    --user-msg-name-color:      rgba(238, 241, 251, 0.92);
+    --user-action-color:        rgba(238, 241, 251, 0.6);
+    --user-action-hover-bg:     rgba(238, 241, 251, 0.16);
+    --user-action-hover-color:  #eef1fb;
 
-    /* User-message RP overrides (on bright blue) */
-    --user-dialogue-color:      #bae6fd;
+    /* User-message RP overrides (on indigo) */
+    --user-dialogue-color:      #a5dcff;
     --user-dialogue-weight:     600;
-    --user-dialogue-shadow:     0 0 8px rgba(186, 230, 253, 0.16);
-    --user-em-color:            #d4c2e8;
-    --user-em-shadow:           0 0 6px rgba(212, 194, 232, 0.22);
-    --user-strong-color:        #f0d68a;
-    --user-intense-color:       #f5b88a;
-    --user-intense-shadow:      0 0 6px rgba(245, 184, 138, 0.25);
+    --user-dialogue-shadow:     none;
+    --user-em-color:            #d8caf5;
+    --user-em-shadow:           none;
+    --user-strong-color:        #ffd77a;
+    --user-intense-color:       #ffb191;
+    --user-intense-shadow:      none;
     --user-strike-opacity:      0.55;
-    --user-strike-color:        rgba(243, 238, 219, 0.55);
-    --user-blockquote-border:   rgba(243, 238, 219, 0.4);
-    --user-blockquote-bg:       rgba(243, 238, 219, 0.08);
-    --user-blockquote-color:    rgba(243, 238, 219, 0.9);
-    --user-code-bg:             rgba(243, 238, 219, 0.14);
-    --user-code-color:          rgba(243, 238, 219, 0.92);
-    --user-code-border:         rgba(243, 238, 219, 0.2);
-    --user-pre-bg:              rgba(19, 27, 52, 0.35);
-    --user-pre-border:          rgba(243, 238, 219, 0.18);
-    --user-heading-color:       #f3eedb;
-    --user-h1-border:           rgba(243, 238, 219, 0.3);
-    --user-hr-mid-color:        rgba(243, 238, 219, 0.4);
-    --user-editable-bg:         rgba(243, 238, 219, 0.12);
-    --editable-bg:              rgba(240, 230, 208, 0.06);
+    --user-strike-color:        rgba(238, 241, 251, 0.6);
+    --user-blockquote-border:   rgba(238, 241, 251, 0.42);
+    --user-blockquote-bg:       rgba(238, 241, 251, 0.10);
+    --user-blockquote-color:    rgba(238, 241, 251, 0.92);
+    --user-code-bg:             rgba(238, 241, 251, 0.16);
+    --user-code-color:          rgba(238, 241, 251, 0.94);
+    --user-code-border:         rgba(238, 241, 251, 0.24);
+    --user-pre-bg:              rgba(9, 14, 26, 0.4);
+    --user-pre-border:          rgba(238, 241, 251, 0.22);
+    --user-heading-color:       #eef1fb;
+    --user-h1-border:           rgba(238, 241, 251, 0.32);
+    --user-hr-mid-color:        rgba(238, 241, 251, 0.42);
+    --user-editable-bg:         rgba(238, 241, 251, 0.14);
+    --editable-bg:              rgba(255, 196, 77, 0.07);
 }
