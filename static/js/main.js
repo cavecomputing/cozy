@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ENTRY POINT — orchestrates all modules
 // ═══════════════════════════════════════════════════════════════════════════
-import { state, el, llm, initElements } from './state.js';
+import { state, el, llm, icons, initElements } from './state.js';
 import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
@@ -955,6 +955,21 @@ function bindMemoryHandlers() {
     });
 }
 
+/**
+ * Confirm a copy on the button itself. A toast in the far corner pulls the eye
+ * away from where the click happened, for something the user already expected
+ * to work — the tick answers in place, and only a failure is worth a toast.
+ */
+function flashCopied(btn) {
+    clearTimeout(btn._copiedTimer);
+    btn.innerHTML = icons.SAVE;
+    btn.classList.add('copied');
+    btn._copiedTimer = setTimeout(() => {
+        btn.innerHTML = icons.COPY;
+        btn.classList.remove('copied');
+    }, 1600);
+}
+
 function bindMessageHandlers() {
     el.chatHistory.addEventListener('click', async e => {
         const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
@@ -1030,9 +1045,10 @@ function bindMessageHandlers() {
                 msgEl.closest('.message-container').remove();
             }
         } else if (e.target.closest('.copy-msg-btn')) {
+            const copyBtn = e.target.closest('.copy-msg-btn');
             copyText(msgEl.dataset.rawText || '')
                 .then(ok => ok
-                    ? showToast('Copied message', 'success', 2000)
+                    ? flashCopied(copyBtn)
                     : showToast('Could not copy message'));
         } else if (e.target.closest('.fork-msg-btn')) {
             if (!state.activeChat || !msgEl.dataset.msgId) return;

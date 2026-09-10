@@ -1494,6 +1494,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .message.user .msg-action-btn        { color: var(--user-action-color, rgba(255, 255, 255, 0.5)); }
 @media (hover: hover) { .message.user .msg-action-btn:hover  { background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15)); color: var(--user-action-hover-color, white); } }
 
+/* The copied tick, in the same green Save uses. The pointer is still on the
+   button when it appears, so it has to outrank both hover rules — hence the
+   user-bubble pair below the shared one. */
+.msg-action-btn.copied,
+.message.user .msg-action-btn.copied,
+.message.user .msg-action-btn.copied:hover { color: var(--success-color); }
+
 /* ── Swipe navigation ──────────────────────────────────────────────────── */
 .swipe-nav {
     display: inline-flex;
