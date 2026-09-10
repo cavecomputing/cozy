@@ -5256,6 +5256,42 @@ input[type="checkbox"]:checked::after {
     font-size: var(--text-sm);
     letter-spacing: 0.06em;
 }
+/* Action buttons must not be what sets the row height, or the Chats and Auto
+   Summary headers stand 15px taller than the plain Author's Note one. The
+   negative block margin lets a 24px hit target sit inside the label's 18px row,
+   eating into the header's own padding instead of adding to it. */
+.memory-card-header .icon-btn {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    margin-block: -0.25rem;
+}
+.memory-card-header .icon-btn svg {
+    width: 14px;
+    height: 14px;
+}
+/* Align the trailing glyph with the header's leading one, not the button box
+   around it: a 14px icon centred in a 24px button sits 5px inside its own edge,
+   so a button flush against the padding still reads as indented. */
+.memory-card-header > .icon-btn:last-of-type {
+    margin-right: -5px;
+}
+/* A 24px box is under the touch minimum the mobile block gives every other
+   .icon-btn, and growing the button would put the header's height straight
+   back. Grow the hit area instead — the full row, which is free space the
+   padding was wasting. Vertical only: the buttons sit 2.4px apart in the Auto
+   Summary header, so widening them would have neighbours stealing each
+   other's taps. */
+@media (max-width: 768px) {
+    .memory-card-header .icon-btn { position: relative; }
+    .memory-card-header .icon-btn::after {
+        content: '';
+        position: absolute;
+        inset: -0.45rem 0;
+    }
+}
 /* The header is already a flex row with its own gap — drop the marker's
    label-hugging margin so it sits at the same spacing as the icon. */
 .memory-card-header .field-unused-marker {
@@ -5376,12 +5412,6 @@ input[type="checkbox"]:checked::after {
     gap: 0.15rem;
     margin-left: auto;
 }
-.summary-header-actions .icon-btn {
-    width: 26px;
-    height: 26px;
-    padding: 0;
-}
-.summary-header-actions .icon-btn svg { width: 14px; height: 14px; }
 .summary-reset-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 /* Live only mid-run, so it should read as the one actionable control while busy. */
 .summary-cancel-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
