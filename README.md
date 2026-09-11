@@ -97,11 +97,10 @@ Database migrations run automatically when Cozy starts.
 
 ## Mobile Use
 
-The interface is responsive and tested for mobile browsers.
+Care has been put into making sure mobile use is responsive and pleasant to use. 
 
-Cozy listens only on the local computer by default, so nothing else on your
-network can reach it until you say so. For the Python setup, bind to your
-network instead:
+Cozy listens only on localhost by default, so nothing else on your
+network can reach it until you say so. For the Python setup, bind to `0.0.0.0` or a specific network:
 
 ```bash
 uv run python app.py --host 0.0.0.0
@@ -110,7 +109,7 @@ uv run python app.py --host 0.0.0.0
 Under Docker, change the port mapping in `docker/docker-compose.yml` from
 `127.0.0.1:5001:5001` to `5001:5001`.
 
-Then open `http://<computer's LAN address>:5001` on the phone.
+Then open `http://<computer's LAN address>:5001` on a phone connected to the same LAN.
 
 Cozy has no login screen, so anything that can reach it can read your chats and
 use your API key. Only do this on a network you trust, or put it behind a VPN or
@@ -144,17 +143,6 @@ Redistributions and derivative works must preserve the attribution in
   [Sasha - Your new innocent warden](https://chub.ai/characters/Chunchunmaru/sasha-your-new-innocent-warden-756ba28f7556).
   She is an ordinary character card in Cozy like any other: edit or delete her and
   she stays gone.
-
-- **BigBear presets** — the bundled BigBear prompt presets are derived from the
-  **Writer's Block v5** SillyTavern preset by **Deiomo** on Reddit. The prose in
-  them is theirs; the configuration is not. SillyTavern lets a preset toggle
-  individual prompt fragments on and off, which Cozy has no equivalent for, so
-  each BigBear preset flattens one selection of those fragments into Cozy's
-  single system/post-history template pair. The narrative-mode and pacing
-  fragments were also rewritten to produce continuous prose rather than
-  turn-taking — behavior the original preset does not ship. Any complaint about
-  how BigBear behaves belongs here, not with Deiomo. Like Sasha, these are
-  ordinary rows once seeded: edit, rename, or delete them and they stay gone.
 
 - **Marinara** — [SpicyMarinara](https://github.com/SpicyMarinara) on GitHub helped me
   with the original LittleBear preset I wrote for SillyTavern a long time ago. None of
