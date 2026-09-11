@@ -47,8 +47,7 @@ Open <http://localhost:5001>.
 
 ### Python
 
-Requirements: Git, Python 3.12 or newer, and
-[uv](https://docs.astral.sh/uv/).
+Requirements: Git and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/cavecomputing/cozy.git
@@ -89,6 +88,7 @@ docker compose -f docker/docker-compose.yml up -d --build
 For a Python installation, replace the Docker command with:
 
 ```bash
+git pull
 uv sync
 uv run app.py
 ```
