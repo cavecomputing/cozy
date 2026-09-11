@@ -15,11 +15,8 @@ server, either hosted (OpenRouter and similar) or local (llama.cpp, Ollama,
 KoboldCpp, LM Studio).
 
 <p align="center">
-  <img src="assets/1.png" alt="Chat view on desktop" width="49%">
-  <img src="assets/2.png" alt="Character editor" width="49%">
-  <br>
-  <img src="assets/3.png" alt="Settings 1" width="49%">
-  <img src="assets/4.png" alt="Settings 2" width="49%">
+  <img src="assets/5.png" alt="Chat view on desktop" width="49%">
+  <img src="assets/6.png" alt="Character editor" width="49%">
 </p>
 
 > [!IMPORTANT]
