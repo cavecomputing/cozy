@@ -3,16 +3,21 @@
 </p>
 
 <p align="center">
-  A self-hosted, single-user app for roleplaying with LLM character cards. With a little Discord inspiration ✨
+  A cozy app for AI roleplay with a little Discord inspiration ✨
 </p>
 
-Cozy works with SillyTavern-compatible V2 character cards and OpenAI-style LLM
-servers. It includes personas, lorebooks, prompt presets, Auto Summaries, regex output filters, themes, and chat import/export. It also might inspire feelings of being cozy and safe as supported by 1 out of 10 non existant doctors.
 
-**Cozy does not include an LLM.** It is the chat interface only — it does not
-ship a model, download one, or run inference. You bring your own OpenAI-compatible
-server, either hosted (OpenRouter and similar) or local (llama.cpp, Ollama,
-KoboldCpp, LM Studio).
+Cozy is a chat app for AI roleplay. You talk to characters — ones you make, or
+ones you download from the usual character-sharing sites — and Cozy handles the
+rest: remembering who they are, keeping long chats from running out of room, and
+making the whole thing look nice while you do it.
+
+**Cozy is not the AI.** It's the app you chat *in* — it doesn't include an AI model,
+download one, or do any of the thinking itself. You point it at an AI service
+you already have: a paid one online (OpenRouter and similar), or one running on
+your own computer (llama.cpp, Ollama, KoboldCpp, LM Studio). Almost all of them
+work, because almost all of them speak the same "OpenAI-style" language Cozy
+expects.
 
 <p align="center">
   <img src="assets/5.png" alt="Chat view on desktop" width="49%">
@@ -177,6 +182,6 @@ Redistributions and derivative works must preserve the attribution in
 ---
 
 Howdy! This whole app is "vibe coded slop". If that bothers you...🤷   
-The code is going to see constant changes most of the time and I'm never going to call it stable. Though I'm currently trying to avoid breaking changes between version and ensuring there are proper migrations to keep things stableish. If you try to checkout an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take vibe coding but then it completely replaced SillyTavern for my use. Maybe other people will like it? I dunno but AI can be purty neat.
+The code is going to see constant changes most of the time and I'm never going to call it stable. Though I'm currently trying to avoid breaking changes between versions and ensuring there are proper migrations to keep things stableish. If you try to checkout an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take a coding harness but then it completely replaced SillyTavern for my use. Maybe other people will like it?
 
-As an aside, I personally put a lot of weight in *ideas* over someones written word or code. As such, I would super appreciate if you linked to this repo if you decide to fork this or use ideas from it. Other than that, go nuts and make cool things ❤️
+As an aside, I personally put a lot of weight in *ideas*. As such, I would super appreciate if you linked to this repo if you decide to fork this or use ideas from it. Other than that, go nuts and make cool things ❤️
