@@ -109,7 +109,7 @@ uv run python app.py --host 0.0.0.0 --port 8080
 
 `--host 0.0.0.0` accepts connections from other machines on the network. Cozy
 has no login screen, so only do this on a network you trust, or behind a reverse
-proxy that handles authentication. See [Security](../SECURITY.md).
+proxy that handles authentication. See [Security](SECURITY.md).
 
 These arguments apply to the Python setup only. Under Docker, change the port
 mapping instead — see [Use a different port](#use-a-different-port) above.

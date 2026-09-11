@@ -114,27 +114,8 @@ Then open `http://<computer's LAN address>:5001` on the phone.
 
 Cozy has no login screen, so anything that can reach it can read your chats and
 use your API key. Only do this on a network you trust, or put it behind a VPN or
-an authenticating reverse proxy. See [Security](SECURITY.md) and
+an authenticating reverse proxy. See [Security](docs/SECURITY.md) and
 [Running and updating Cozy](docs/run.md).
-
-## Data and security
-
-Cozy stores chats, settings, API keys, and other private data in `data/` (for either docker or uv).
-Character cards and avatar images are stored beside the database in that
-directory.
-
-Cozy has no login screen or user authentication. Its default Python and Docker
-configurations listen only on the local computer. Do not expose Cozy directly
-to the public internet.
-
-Settings → About → Storage has a **Backup** menu that downloads the whole data
-directory as a zip and restores one on top of it, so a backup does not mean
-stopping Cozy and copying folders.
-
-See [Data and backups](docs/data-and-backups.md) and
-[Security](SECURITY.md) before changing the network configuration.
-
-I run this thing privately behind tailscale and a reverse proxy and inside a container. I don't care about security past the network layer and I'm not concerned if my data inside this gets hosed. If that concerns you, do not use this software. Having said that, the only real concerning information that could be stolen are API keys for whatever OpenAI API endpoint you are using. I use OpenRouter and only top up about $10 at a time. So that isn't a concern for me. Consider if it is a concern for you.
 
 ## Documentation
 
@@ -147,6 +128,7 @@ I run this thing privately behind tailscale and a reverse proxy and inside a con
 - [Regex output filters](docs/regex.md)
 - [User themes](docs/themes.md)
 - [Database structure](docs/db.md) — also as a [browsable page](docs/db.html)
+- [Security](docs/SECURITY.md)
 
 ## License
 
