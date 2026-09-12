@@ -1,7 +1,7 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
-import { sanitize, showToast, copyText, flashSettingsSavedTick } from './utils.js';
+import { downloadUrl, sanitize, showToast, copyText, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { previewChatPayload, previewRenderedTemplates } from './request-builder.js';
 
@@ -216,12 +216,7 @@ export function exportPreviewPayload() {
     const shown = (el.promptPreviewContent?.textContent || '').trim();
     const text = shown || JSON.stringify(previewChatPayload(), null, 2);
     const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'request-preview.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    downloadUrl(url, 'request-preview.json');
     URL.revokeObjectURL(url);
 }
 

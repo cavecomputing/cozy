@@ -445,16 +445,19 @@ export async function deleteLorebook(kind, id) {
 
 // ── Entry-row event delegation ────────────────────────────────────────────
 
+function reindexEntryRows() {
+    el.lorebookEntries.querySelectorAll('.lorebook-entry').forEach((r, i) => {
+        r.dataset.index = String(i);
+    });
+}
+
 export function handleEntriesClick(e) {
     const row = e.target.closest('.lorebook-entry');
     if (!row) return;
     const idx = parseInt(row.dataset.index, 10);
     if (e.target.closest('.lorebook-entry-delete')) {
         row.remove();
-        // Re-index remaining rows
-        el.lorebookEntries.querySelectorAll('.lorebook-entry').forEach((r, i) => {
-            r.dataset.index = String(i);
-        });
+        reindexEntryRows();
         if (el.lorebookEntries.querySelectorAll('.lorebook-entry').length === 0) {
             renderEntries([]);
             return;
@@ -462,14 +465,10 @@ export function handleEntriesClick(e) {
         refreshEntriesCount();
     } else if (e.target.closest('.lorebook-entry-up') && idx > 0) {
         row.parentNode.insertBefore(row, row.previousElementSibling);
-        el.lorebookEntries.querySelectorAll('.lorebook-entry').forEach((r, i) => {
-            r.dataset.index = String(i);
-        });
+        reindexEntryRows();
     } else if (e.target.closest('.lorebook-entry-down') && row.nextElementSibling) {
         row.parentNode.insertBefore(row.nextElementSibling, row);
-        el.lorebookEntries.querySelectorAll('.lorebook-entry').forEach((r, i) => {
-            r.dataset.index = String(i);
-        });
+        reindexEntryRows();
     }
 }
 

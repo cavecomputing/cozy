@@ -186,8 +186,6 @@ export function flashSettingsSavedTick() {
     savedTickTimer = setTimeout(() => el.settingsSavedTick?.classList.remove('visible'), 1600);
 }
 
-// Error toast when a send is attempted without a model configured. The
-// action deep-links to the API settings section, like the old inline notice.
 /**
  * Run `work` with `btn` showing that it is busy, and put the button back
  * afterwards whether the work succeeded or threw.

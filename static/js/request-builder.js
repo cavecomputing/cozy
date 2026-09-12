@@ -1,19 +1,15 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
-import { summaryToText } from './summaries.js';
+import { activeSummaryText } from './summaries.js';
 import { analyzeContext } from './context-analysis.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Auto Summaries: inject the chat's running summary when enabled. The stored
-// summary is already held within its size cap server-side (enforce_cap), so
-// it's injected as-is.
-function activeSummaryText() {
-    return state.activeChat?.summary_enabled ? summaryToText(state.activeChat?.summary) : '';
-}
+// Auto Summaries: the stored summary is already held within its size cap
+// server-side (enforce_cap), so it's injected as-is.
 
 /**
  * Build an OpenAI-compatible chat completion payload from current state.

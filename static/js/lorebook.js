@@ -29,22 +29,19 @@ export function resolveLorebookEntries(book, messages, options = {}) {
         const matched = keywords.filter(entry => {
             if (!entry.keys || entry.keys.length === 0) return false;
             const flags = entry.case_sensitive ? '' : 'i';
-            const hitPrimary = entry.keys.some(k => {
+            // A key is a literal, so it is escaped into a word-boundary pattern.
+            // A key that still won't compile falls back to a substring test
+            // rather than dropping the entry.
+            const hits = k => {
                 try {
                     return new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', flags).test(scanText);
                 } catch {
                     return scanText.toLowerCase().includes(k.toLowerCase());
                 }
-            });
-            if (!hitPrimary) return false;
+            };
+            if (!entry.keys.some(hits)) return false;
             if (entry.selective && entry.secondary_keys?.length > 0) {
-                return entry.secondary_keys.some(k => {
-                    try {
-                        return new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', flags).test(scanText);
-                    } catch {
-                        return scanText.toLowerCase().includes(k.toLowerCase());
-                    }
-                });
+                return entry.secondary_keys.some(hits);
             }
             return true;
         });

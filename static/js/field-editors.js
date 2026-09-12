@@ -4,15 +4,14 @@ import { sanitize } from './utils.js';
 // ═══════════════════════════════════════════════════════════════════════════
 // SHARED FIELD EDITORS — tag chips + alternate greetings
 // ═══════════════════════════════════════════════════════════════════════════
-// Used by the character modal. `onChange` fires on every mutation when a
-// caller needs to observe edits; pass nothing for a plain form.
+// Used by the character modal.
 
 /**
  * Chip-style tag editor. Enter or comma commits the typed tag; Backspace on
  * an empty input pops the last one.
  * @returns {{ get(): string[], set(tags: string[]): void }}
  */
-export function createTagEditor({ chipList, textInput, wrap, onChange = null }) {
+export function createTagEditor({ chipList, textInput, wrap }) {
     let tags = [];
 
     function render() {
@@ -24,7 +23,6 @@ export function createTagEditor({ chipList, textInput, wrap, onChange = null }) 
             chip.querySelector('.tag-chip-remove').addEventListener('click', () => {
                 tags.splice(idx, 1);
                 render();
-                onChange?.();
             });
             chipList.appendChild(chip);
         });
@@ -37,13 +35,11 @@ export function createTagEditor({ chipList, textInput, wrap, onChange = null }) 
             if (val && !tags.includes(val)) {
                 tags.push(val);
                 render();
-                onChange?.();
             }
             textInput.value = '';
         } else if (e.key === 'Backspace' && textInput.value === '' && tags.length) {
             tags.pop();
             render();
-            onChange?.();
         }
     });
     wrap.addEventListener('click', () => textInput.focus());
@@ -62,7 +58,7 @@ export function createTagEditor({ chipList, textInput, wrap, onChange = null }) 
  * button; the add button appends an empty row and focuses it.
  * @returns {{ get(): string[], set(greetings: string[]): void }}
  */
-export function createGreetingEditor({ listEl, addBtn, onChange = null }) {
+export function createGreetingEditor({ listEl, addBtn }) {
     let greetings = [];
 
     function render() {
@@ -75,10 +71,7 @@ export function createGreetingEditor({ listEl, addBtn, onChange = null }) {
             ta.rows = 3;
             ta.value = text;
             ta.placeholder = 'Alternate greeting text…';
-            ta.addEventListener('input', () => {
-                greetings[idx] = ta.value;
-                onChange?.();
-            });
+            ta.addEventListener('input', () => { greetings[idx] = ta.value; });
             const rm = document.createElement('button');
             rm.type = 'button';
             rm.className = 'icon-btn remove-greeting-btn';
@@ -87,7 +80,6 @@ export function createGreetingEditor({ listEl, addBtn, onChange = null }) {
             rm.addEventListener('click', () => {
                 greetings.splice(idx, 1);
                 render();
-                onChange?.();
             });
             row.append(ta, rm);
             listEl.appendChild(row);
@@ -97,7 +89,6 @@ export function createGreetingEditor({ listEl, addBtn, onChange = null }) {
     addBtn.addEventListener('click', () => {
         greetings.push('');
         render();
-        onChange?.();
         const tas = listEl.querySelectorAll('textarea');
         if (tas.length) tas[tas.length - 1].focus();
     });

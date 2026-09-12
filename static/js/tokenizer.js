@@ -33,12 +33,10 @@ export function estimateMessagesTokens(messages, options = {}) {
 }
 
 export function selectContextMessages(messages, {
-    maxMessages = 0,
     maxTokens = 0,
     stripThinking = false,
 } = {}) {
-    let candidates = Array.isArray(messages) ? messages : [];
-    if (maxMessages > 0) candidates = candidates.slice(-maxMessages);
+    const candidates = Array.isArray(messages) ? messages : [];
     if (!maxTokens || maxTokens <= 0) return candidates;
 
     const selected = [];

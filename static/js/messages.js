@@ -570,7 +570,6 @@ export function finishEditing(save) {
     // Persist edit to backend
     if (save) {
         const id = messageEl.dataset.msgId;
-        const originalText = messageEl.dataset.originalText;
         const stateMsg = id
             ? state.messages.find(m => String(m.id) === String(id))
             : state.messages.find(m => m.text === originalText);

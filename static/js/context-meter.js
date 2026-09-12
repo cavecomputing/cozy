@@ -1,16 +1,10 @@
 import { state, el } from './state.js';
 import { scrollToBottom } from './utils.js';
-import { summaryToText } from './summaries.js';
+import { activeSummaryText } from './summaries.js';
 import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
 import { retargetTooltip } from './tooltips.js';
 import { saveLLMSettings } from './llm-settings.js';
-
-function activeSummaryText() {
-    return state.activeChat?.summary_enabled
-        ? summaryToText(state.activeChat.summary)
-        : '';
-}
 
 export function getCurrentContextAnalysis({ includeDraft = false } = {}) {
     return analyzeContext({

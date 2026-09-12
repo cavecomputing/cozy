@@ -40,6 +40,11 @@ function summariesActive(chat = state.activeChat) {
 // because it feeds the summary back to the summarizer and is matched by _norm_heading.
 const STORY_ORDER_NOTE = ' (in order, oldest first)';
 
+/** The active chat's summary as prompt text, or '' when summaries are off. */
+export function activeSummaryText() {
+    return summariesActive() ? summaryToText(state.activeChat?.summary) : '';
+}
+
 export function summaryToText(obj) {
     const lines = (obj && Array.isArray(obj.lines)) ? obj.lines : [];
     const story = lines.filter(l => (l.section || 'story') !== 'bonds');
@@ -90,7 +95,7 @@ function windowAssessment(excludeLastN = 0, {
         includeSummarized,
     });
     const summaryText = summaryTextOverride == null
-        ? (summariesActive() ? summaryToText(state.activeChat.summary) : '')
+        ? activeSummaryText()
         : summaryTextOverride;
     const analysis = analyzeContext({
         excludeLastN,

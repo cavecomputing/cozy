@@ -1115,10 +1115,7 @@ function bindPersonaHandlers() {
         }
     });
 
-    // (settings button listener registered above)
-
-    // Persona create button
-    document.getElementById('persona-create-btn')?.addEventListener('click', e => {
+    el.personaCreateBtn?.addEventListener('click', e => {
         e.stopPropagation();
         showPersonaForm();
     });
