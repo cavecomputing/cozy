@@ -75,8 +75,9 @@
     /* Toasts */
     --toast-color:    #10141d;
 
-    /* User-message bubble — flat saturated indigo against the tonal greys */
-    --user-msg-bg:              #3b5bdb;
+    /* User-message bubble — muted indigo, a tonal step above --char-msg-bg
+       rather than a second saturated colour competing with the amber accent */
+    --user-msg-bg:              #33406b;
     --user-msg-color:           #eef1fb;
     --user-msg-divider:         rgba(238, 241, 251, 0.24);
     --user-msg-name-color:      rgba(238, 241, 251, 0.92);
