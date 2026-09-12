@@ -3,6 +3,7 @@ import { API } from './api.js';
 import { showToast, savePrefs, applyAvatar, AVATAR } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { updateContextMeter, updateContextBoundary } from './context-meter.js';
+import { rerenderMessageText } from './messages.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PERSONAS
@@ -75,6 +76,7 @@ export function renderPersonaList() {
                     if (state.activePersona?.id === p.id) {
                         state.activePersona = state.personas.find(x => x.is_default) || state.personas[0];
                         updateUserProfile();
+                        rerenderMessageText();
                         savePrefs();
                     }
                     renderPersonaList();
@@ -90,6 +92,7 @@ export function renderPersonaList() {
         opt.addEventListener('click', () => {
             state.activePersona = p;
             updateUserProfile();
+            rerenderMessageText();
             renderPersonaList();
             savePrefs();
             updateContextMeter();
@@ -251,6 +254,7 @@ export function showPersonaForm(editPersona = null) {
             state.personas = await API.getPersonas();
             state.activePersona = state.personas.find(p => p.id === persona.id) || state.activePersona;
             updateUserProfile();
+            rerenderMessageText();
             renderPersonaList();
             savePrefs();
             updateContextMeter();

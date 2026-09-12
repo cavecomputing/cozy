@@ -388,6 +388,26 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     return { container, message };
 }
 
+/**
+ * Redraw the message bodies already on screen. {{user}} and the other template
+ * variables are resolved at render time from state.activePersona, so switching
+ * persona leaves every drawn message naming the old one until something
+ * rebuilds them — a full renderMessages() would do it, but it also scrolls to
+ * the bottom and drops a stream in progress.
+ */
+export function rerenderMessageText() {
+    el.chatHistory.querySelectorAll('.message').forEach(messageEl => {
+        // An open edit is showing raw text in a contenteditable, not a render.
+        if (messageEl.classList.contains('editing')) return;
+        const parsed = parseThinkingContent(messageEl.dataset.rawText || '');
+        renderMarkdown(
+            messageEl.querySelector('.message-content'),
+            parsed.hasThinking ? parsed.response : (messageEl.dataset.rawText || ''),
+            !messageEl.classList.contains('user'),
+        );
+    });
+}
+
 export function renderMessages() {
     el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
 
