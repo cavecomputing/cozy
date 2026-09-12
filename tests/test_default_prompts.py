@@ -85,33 +85,6 @@ class TestBundledPresets:
         assert matches
         assert 'NanoBear Author v1' not in matches
 
-    def test_bigbear_post_history_wraps_the_user_message(self):
-        # Without {{user_message}} the template appends as a separate user
-        # message and merges into the player's turn, leaving the directives
-        # undelimited. See the <direction> wrapper in the build script.
-        for filename in _bundled_filenames():
-            if not filename.startswith('BigBear'):
-                continue
-            preset = _read_preset(filename)
-            assert '{{user_message}}' in preset['post_history_content'], filename
-
-    def test_bigbear_presets_carry_no_turn_taking_clauses(self):
-        # These are what made the model stop and wait for input; the whole
-        # point of the Director/Adaptive Novel chassis is that they are gone.
-        banned = (
-            "Don't move the scene beyond {{user}}'s input",
-            'Allow space for {{user}} input',
-            'open ended action requires',
-            'Stay locked in the current minute',
-        )
-        for filename in _bundled_filenames():
-            if not filename.startswith('BigBear'):
-                continue
-            preset = _read_preset(filename)
-            body = preset['content'] + preset['post_history_content']
-            for clause in banned:
-                assert clause not in body, f'{filename} still carries {clause!r}'
-
 
 class TestSeeding:
     def test_init_db_seeds_no_prompt_of_its_own(self):

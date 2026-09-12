@@ -39,8 +39,7 @@ BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
 # different preset from "NanoBear v2.0.json" and neither disturbs the other.
 # Anything missing from system_prompts is restored from here on every start,
 # so this directory — not the database — is the source of truth for which
-# presets exist; see seed_default_prompts(). default_prompts/PROVENANCE.md
-# records how the BigBear set was derived from its upstream preset.
+# presets exist; see seed_default_prompts().
 BUNDLED_PROMPTS_DIR = os.path.join(BASE_DIR, 'default_prompts')
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Cap on decoded image dimensions (~8000x8000). Character cards and persona
