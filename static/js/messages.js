@@ -471,6 +471,12 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
 // ═══════════════════════════════════════════════════════════════════════════
 export function startEditing(messageEl) {
     if (messageEl.classList.contains('editing')) return;
+    // Only one message can be open at a time: state.currentEdit is a single
+    // slot, and finishEditing acts on whatever it holds rather than on the
+    // message whose button was clicked. Opening a second edit without closing
+    // the first stranded the first one in .editing forever — its Save, Cancel
+    // and Esc all landed on the newer message and then found the slot empty.
+    flushEdit();
     const contentDiv = messageEl.querySelector('.message-content');
     const actionsBar = messageEl.closest('.message-wrapper').querySelector('.msg-actions');
 
