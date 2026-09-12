@@ -379,7 +379,7 @@ function applySettingsToUI(s) {
     if (el.apiModel) el.apiModel.value = state.apiModel;
     if (el.settingsContextTokens) el.settingsContextTokens.value = s.context_max_tokens || '32768';
     state.contextMaxTokens = s.context_max_tokens || '32768';
-    state.showContextTokenMeter = s.show_context_token_meter !== '0';
+    state.showContextTokenMeter = s.show_context_token_meter === '1';
     if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = state.showContextTokenMeter;
     state.showAdvancedConfiguration = s.show_advanced_configuration === '1';
     if (el.settingsAdvancedToggle) el.settingsAdvancedToggle.checked = state.showAdvancedConfiguration;

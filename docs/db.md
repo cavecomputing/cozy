@@ -264,8 +264,9 @@ backup was taken come back with it.
 On first run, the database is seeded with:
 
 - **Default persona**: "Default Persona" (tagline: "Change me!", `is_default = 1`)
-- **Default settings**: context token budget (`32768`), visible context meter,
-  hidden advanced configuration (`show_advanced_configuration`), an
+- **Default settings**: context token budget (`32768`), hidden context meter
+  (`show_context_token_meter`), hidden advanced configuration
+  (`show_advanced_configuration`), an
   empty extra-request-parameters value, blank summarizer endpoint/key/model
   overrides, a 10% summary cap (`summary_cap_pct`), and 10 messages per
   summarizer batch (`summary_trigger_interval`)

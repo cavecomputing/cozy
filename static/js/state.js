@@ -21,7 +21,7 @@ export const state = {
     autoScroll:          true,
     modelContextLength:  null,
     contextMaxTokens:    '32768',
-    showContextTokenMeter: true,
+    showContextTokenMeter: false,
     showAdvancedConfiguration: false,
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)

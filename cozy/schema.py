@@ -411,7 +411,7 @@ def init_db():
             "ON CONFLICT(key) DO NOTHING"
         )
         conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('show_context_token_meter', '1') "
+            "INSERT INTO settings (key, value) VALUES ('show_context_token_meter', '0') "
             "ON CONFLICT(key) DO NOTHING"
         )
         conn.execute(
