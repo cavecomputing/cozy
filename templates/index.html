@@ -1287,6 +1287,7 @@
 
                 <div class="sampler-help-section">
                     <h3>Building blocks</h3>
+                    <p class="sampler-help-intro">The vocabulary for describing what to find — combine these instead of matching a literal word.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt><code>.</code></dt><dd>Any single character (except a line break, unless the <code>s</code> flag is on).</dd></div>
                         <div class="sampler-help-row"><dt><code>\d</code> <code>\w</code> <code>\s</code></dt><dd>Any digit / any letter, digit or underscore / any whitespace. Capitalised (<code>\D</code>, <code>\W</code>, <code>\S</code>) means the opposite.</dd></div>
@@ -1303,17 +1304,19 @@
 
                 <div class="sampler-help-section">
                     <h3>Flags</h3>
+                    <p class="sampler-help-intro">Toggles that change how the Find pattern behaves.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt><code>g</code></dt><dd>Replace <em>every</em> match instead of only the first. On by default for new filters — without it, a reply with four sets of quotes only gets the first one fixed.</dd></div>
                         <div class="sampler-help-row"><dt><code>i</code></dt><dd>Ignore case, so <code>cat</code> also matches "Cat" and "CAT".</dd></div>
                         <div class="sampler-help-row"><dt><code>m</code></dt><dd>Make <code>^</code> and <code>$</code> mean the start and end of each <em>line</em> rather than the whole reply.</dd></div>
                         <div class="sampler-help-row"><dt><code>s</code></dt><dd>Let <code>.</code> match line breaks too, so a pattern can span paragraphs.</dd></div>
                     </dl>
-                    <p><strong>Display only</strong> is not a flag. It moves the filter to render time: the message on screen is rewritten, the stored text is not — that original is what the edit box shows and what the model reads back. Turn it on for rules that build something to look at, such as stat cards or progress bars, so the markup stays out of the history and out of the next prompt.</p>
+                    <p class="sampler-help-footnote"><strong>Display only</strong> is not a flag. It moves the filter to render time: the message on screen is rewritten, the stored text is not — that original is what the edit box shows and what the model reads back. Turn it on for rules that build something to look at, such as stat cards or progress bars, so the markup stays out of the history and out of the next prompt.</p>
                 </div>
 
                 <div class="sampler-help-section">
                     <h3>The replacement</h3>
+                    <p class="sampler-help-intro">What to put in place of each match — placeholders reuse what the pattern captured.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt><code>$1</code> <code>$2</code></dt><dd>The text captured by the first, second… <code>(…)</code> group in Find. This is how you keep part of what you matched.</dd></div>
                         <div class="sampler-help-row"><dt><code>$&amp;</code></dt><dd>The whole match. <code>&#123;&#123;match&#125;&#125;</code> also works, for scripts copied from SillyTavern.</dd></div>
@@ -1325,6 +1328,7 @@
 
                 <div class="sampler-help-section">
                     <h3>Worked examples</h3>
+                    <p class="sampler-help-intro">Three common fixes, ready to adapt. Test each in the Test box before using it.</p>
                     <p>Straighten German quotation marks — the low-then-high pair becomes an ordinary pair, keeping whatever was between them:</p>
                     <pre class="prompt-help-example">Find     „([^"]*)"
 Replace  "$1"
@@ -1492,7 +1496,7 @@ Flags    g</pre>
 
                 <div class="sampler-help-section">
                     <h3>Parts of an entry</h3>
-                    <p>An entry has 3 parts: keywords, text, and 4 checkboxes. Here is what each part does.</p>
+                    <p class="sampler-help-intro">An entry has 3 parts: keywords, text, and 4 checkboxes. Here is what each part does.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Keywords</dt><dd>The words that select this entry. Type words with commas between them. Example: <code>tavern, barkeep, ale</code>. The entry is used when one of these words appears as a whole word in the checked messages. The keyword <code>tavern</code> matches "the old tavern". It does not match "taverns". An entry with an empty keyword box is never selected by keywords.</dd></div>
                         <div class="sampler-help-row"><dt>Text</dt><dd>The fact the model reads. This is the only box on an entry that is sent to the model. Every other box is an instruction for Cozy, or a note for you.</dd></div>
@@ -1519,7 +1523,7 @@ Flags    g</pre>
 
                 <div class="sampler-help-section">
                     <h3>Global overrides</h3>
-                    <p>These two settings replace the book settings above. They apply to every book on this install.</p>
+                    <p class="sampler-help-intro">These two settings replace the book settings above. They apply to every book on this install.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Scan depth override</dt><dd><code>0</code> means no override. Each book uses its own scan depth. Any other number replaces every book's scan depth with that number.</dd></div>
                         <div class="sampler-help-row"><dt>Always inject all entries</dt><dd>Checked: keyword checking is skipped. Every enabled entry is sent with every message. Insertion order and max entries still apply.</dd></div>
@@ -1563,6 +1567,7 @@ Flags    g</pre>
 
                 <div class="sampler-help-section">
                     <h3>How they work</h3>
+                    <p class="sampler-help-intro">Summaries build up in small steps, then roll forward as the chat grows.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Nothing at first</dt><dd>While the whole chat still fits in the context window, nothing is summarized. Work starts the moment the oldest message falls outside it.</dd></div>
                         <div class="sampler-help-row"><dt>Batches in, entries out</dt><dd>Cozy folds <code>Batch size</code> messages at a time into exactly one compact entry. A user message and a character message each count as one, whatever their length. Catching up several batches runs as one numbered run, such as batch 1/12.</dd></div>
