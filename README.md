@@ -45,9 +45,14 @@ Then open <http://localhost:5001> in your browser.
 To run Cozy on a server or with Docker instead, see
 [Running and updating Cozy](docs/run.md).
 
-## First-time setup
+Hooray! You are up and running! :D
+But don't forget to do the first-start configuration below.
 
-1. Open Cozy.
+And if you would like some more details on character cards, personas, etc, check out [Getting started](docs/getting-started.md).
+
+## First-start configuration
+
+1. Connect to Cozy.
 2. Open `Settings` in the bottom left.
 3. Navigate to `API`.
 4. Click `+` to name and create a preset.
@@ -62,8 +67,7 @@ To run Cozy on a server or with Docker instead, see
    | llama.cpp | `http://localhost:8080/v1` |
    | KoboldCpp | `http://localhost:5001/v1` |
 
-   These are the defaults — if you changed a port or host when setting up
-   the server, adjust the URL to match. If you don't know the endpoint for
+   These are defaults — if you changed a port when setting up a local service, adjust the URL to match. If you don't know the endpoint for
    your service, check its documentation for its OpenAI-compatible base URL.
 6. Under `Connection` enter an `API key` if your server requires one.
 7. Under `Connection` select or search for the `Model` identifier and test the connection.
@@ -75,16 +79,11 @@ To run Cozy on a server or with Docker instead, see
 The server must provide an OpenAI-style streaming `/chat/completions` endpoint.
 Model listing and advanced sampler support vary by server so verify the settings beforehand.
 
+Don't forget to also change the default persona. Otherwise the AI is going to assume your name is literally "Default Persona".
+
 ## Updating
 
 Back up `data/`, then run:
-
-```bash
-git pull
-docker compose -f docker/docker-compose.yml up -d --build
-```
-
-For a Python installation, replace the Docker command with:
 
 ```bash
 git pull
@@ -92,21 +91,19 @@ uv sync
 uv run app.py
 ```
 
-Database migrations run automatically when Cozy starts.
+To update a Docker or server installation instead, see
+[Running and updating Cozy](docs/run.md).
 
 ## Mobile Use
 
 Care has been put into making sure mobile use is responsive and pleasant to use. 
 
 Cozy listens only on localhost by default, so nothing else on your
-network can reach it until you say so. For the Python setup, bind to `0.0.0.0` or a specific network:
+network can reach it until you say so. For the Python setup, bind to `0.0.0.0` or a specific network on your computer:
 
 ```bash
 uv run app.py --host 0.0.0.0
 ```
-
-Under Docker, change the port mapping in `docker/docker-compose.yml` from
-`127.0.0.1:5001:5001` to `5001:5001`.
 
 Then open `http://<computer's LAN address>:5001` on a phone connected to the same LAN.
 

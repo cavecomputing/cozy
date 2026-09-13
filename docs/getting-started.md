@@ -1,81 +1,73 @@
 # Getting Started
 
-This page takes Cozy from a fresh download to a working chat, then points at the
-rest of the manual.
+This page assumes Cozy is already installed and open in your browser. If it
+is not installed yet, follow **Quick start** in the
+[README](../README.md) first.
 
-## 1. Start Cozy
+Work through the sections in order. Each section says when you are done
+with it.
 
-Choose one method. Run the commands from the repository root.
+## 1. Connect an AI server
 
-### Docker
+Cozy is only the chat app. It does not include an AI, and it cannot think
+on its own. You must connect it to a separate AI server. That can be a paid
+service on the internet (for example OpenRouter) or a program running on
+your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
 
-```bash
-docker compose -f docker/docker-compose.yml up -d --build
-```
+1. Click **Settings** at the bottom left of the screen. A settings panel
+   opens.
+2. Click **API** at the top of the settings panel.
+3. Click **+** to create a connection preset, then type a name for it and
+   confirm. A preset stores all the connection settings described below,
+   so you can keep one preset per server and switch between them. A new
+   preset starts as a copy of whatever is currently on the page.
+   **Rename** renames the selected preset.
+4. Under **Connection**, type your server's base **Endpoint** URL into the
+   **Endpoint** field. It normally ends in `/v1`. Some common ones:
 
-### Python
+   | Service | Endpoint |
+   |---|---|
+   | OpenRouter | `https://openrouter.ai/api/v1` |
+   | LM Studio | `http://localhost:1234/v1` |
+   | Ollama | `http://localhost:11434/v1` |
+   | llama.cpp | `http://localhost:8080/v1` |
+   | KoboldCpp | `http://localhost:5001/v1` |
 
-```bash
-uv sync
-uv run app.py
-```
+   These are the defaults. If you changed a port or address when setting
+   up the server, change the URL to match. If you do not know the endpoint
+   for your service, look in that service's documentation for its
+   OpenAI-compatible base URL. Cozy adds `/models` and `/chat/completions`
+   to this URL itself, so do not type those parts.
+5. If your server requires an **API key**, paste it into the **API key**
+   field. Servers on your own computer usually need no key. Keys are stored
+   in your data directory and hidden in API responses.
+6. Set the **Model**. Type the model name, or click the chevron button to
+   list what the server reports and pick one from the list. If the list
+   comes up empty, type the name by hand. Some servers do not provide a
+   list, and that is normal.
+7. Click **Test Connection**. If the test succeeds, you are done with this
+   section. If it fails, see [Troubleshooting](troubleshooting.md).
+8. Under **Context & generation**, set **Max context tokens** to the
+   context size your server supports, and **Max response tokens** to the
+   longest single reply you want to receive.
 
-Open <http://localhost:5001>.
+## 2. Check the samplers
 
-For ports, network addresses, custom data directories, logs and updating, see
-[Running and updating Cozy](run.md).
+Samplers are number settings that control how the model chooses its words.
+Three common ones are Temperature, Min-P, and Repetition penalty. The
+default values work for most models. Change them only if the documentation
+for your model recommends specific values.
 
-## 2. Connect an LLM server
+Only the samplers you turn on are sent to the server. The rest are
+ignored.
 
-Cozy is a chat interface. It does not include an LLM or download models. You
-need an OpenAI-compatible server — a hosted one such as OpenRouter, or something
-local such as llama.cpp, Ollama or KoboldCpp.
+1. Go to **Settings → API → Samplers**.
+2. Click the gear icon in the **Core samplers** header. A list called
+   **Active samplers** opens.
+3. Turn on each sampler your model or server documentation names.
+4. Type in the recommended values.
 
-1. Open **Settings** in the bottom left.
-2. Go to **API**.
-3. Click **+** to create a preset and give it a name. Every connection setting
-   below belongs to the selected preset, so you can keep one per server and
-   switch between them. A new preset starts as a copy of whatever is on the
-   page, so filling the fields in first and making a preset afterwards loses
-   nothing. **Rename** renames the selected preset.
-4. Under **Connection**, enter the base **Endpoint** URL. It normally ends in
-   `/v1`:
-
-   ```text
-   https://openrouter.ai/api/v1
-   ```
-
-   ```text
-   http://localhost:8080/v1
-   ```
-
-5. Enter an **API key** if the server requires one. Keys are stored in your data
-   directory and masked in API responses.
-6. Set the **Model**. Type the identifier, or use the chevron button to browse
-   and search what the server reports.
-7. Click **Test Connection**.
-
-Cozy appends `/models` and `/chat/completions` to the endpoint. The chat
-endpoint must support streaming. Model listing varies by server — if the browse
-list comes up empty, type the model identifier by hand.
-
-Under **Context & generation**, set **Max context tokens** to match your server's
-context window and **Max response tokens** to how long a single reply may run.
-
-If the connection test fails or replies never arrive, see
-[Troubleshooting](troubleshooting.md).
-
-## 3. Check the samplers
-
-**Settings → API → Samplers** controls how the model picks its words —
-temperature, repetition penalty and so on. The defaults work; you only need this
-step if the model you chose recommends particular values.
-
-Only the samplers you turn on are sent. Click the gear icon in the **Core
-samplers** header to open **Active samplers** and enable the ones your model or
-server calls for, then set their values.
-
-A reasonable general-purpose starting point:
+A starting point that works for general chat:
 
 ```text
 Temperature: 0.8
@@ -83,142 +75,146 @@ Min-P: 0.05
 Repetition penalty: 1.05
 ```
 
-Every setting, what it does, and which backends support it:
+What every setting means, and which servers support it:
 [Sampler settings](samplers.md).
 
-## 4. Add a character
+## 3. Add a character
 
-A fresh install ships with one character so you have something to talk to right
-away. She is ordinary user data — delete her and she stays gone.
+A character is who you talk to. A new install includes one character, so
+you can start right away. You can keep her, change her, or delete her. A
+deleted character does not come back.
 
-### Import a card
+### Bring in a card from another site
 
-Cozy reads SillyTavern-compatible **V2 character cards**, as either a `.png`
-with embedded card data or a plain `.json`. Sites such as chub.ai hand out
-exactly this format.
+Cozy reads V2 character cards, the same format SillyTavern uses. A card is
+either a `.png` image with the character data stored inside it, or a plain
+`.json` text file. Sites such as chub.ai hand out exactly this format.
 
-1. Click **+** at the top right of the character sidebar.
+1. Click **+** at the top right of the character sidebar (the left
+   column). The character editor opens.
 2. Click **Import/Export** in the editor header.
-3. Under **Import**, choose **From file (.json / .png)** and pick the card.
-4. Review the fields, then save.
+3. Under **Import**, choose **From file (.json / .png)** and select the
+   card file.
+4. Look over the fields, then save.
 
-Cards are stored as PNG files in `data/characters/`, so anything you import
-stays in the format other apps can read. The same **Import/Export** menu exports
-the character you are editing back out as `.json` or `.png`.
+Imported cards are stored as PNG files in `data/characters/`, so other
+apps can still read them. The same **Import/Export** menu saves the
+character you are editing back out as `.json` or `.png`.
 
-### Update a card to a newer version
+### Replace a card with a newer version
 
-When a card you already have gets a new release, import it **on top of** the
-existing character instead of adding a second copy. Open the character for
-editing first, then use the same **Import** menu item — Cozy asks you to
-confirm, then replaces that character's card in place. Your chats with them,
-and their place in the sidebar, are untouched.
+When a character you already have gets an update, place the new card on
+top of the existing character instead of adding a second copy:
 
-Two things to know. The replacement is wholesale, not a merge: every field
-comes from the new card, so your own edits to the old one are gone and there is
-no undo. And a `.json` card has no picture of its own, so importing one keeps
-the current image and changes only the text; import a `.png` to change both.
+1. Open the character for editing.
+2. Use the same **Import** menu item and select the new file.
+3. Cozy asks you to confirm. Confirm, and the new card replaces the old
+   one in place.
 
-### Create one yourself
+Your chats with that character, and their place in the sidebar, do not
+change. Two warnings. First, the replacement replaces every field. Your
+own edits to the old card are lost, and there is no undo. Second, a
+`.json` card contains no picture, so importing one keeps the current
+picture and changes only the text. Import a `.png` file to change the
+picture too.
 
-Click **+** at the top right of the character sidebar and fill in the editor. A
-name and an avatar image are required; everything else is optional.
+### Make a character yourself
 
-**Basic**
+1. Click **+** at the top right of the character sidebar. The character
+   editor opens.
+2. Fill in the fields. Only a name and an avatar picture are required.
+   Everything else is optional.
 
-- **Description** — appearance, background, who they are. This is the field that
-  does most of the work.
-- **Personality** — a short summary of traits.
+What the fields mean:
+
+- **Description** — what the character looks like, their background, who
+  they are. This field matters the most.
+- **Personality** — a short list of traits.
 - **Scenario** — the situation the story starts in.
-
-**Messages**
-
-- **First message (greeting)** — the character's opening line, shown when a new
+- **First message (greeting)** — the line the character says when a new
   chat starts.
-- **Alternate greetings** — extra openers you can swipe between.
-- **Example messages** — sample exchanges that demonstrate voice and formatting.
+- **Alternate greetings** — extra opening lines you can switch between.
+- **Example messages** — sample exchanges that show how the character
+  talks and formats replies.
+- **System prompt** and **Post history instructions** — extra instructions
+  that apply to this character only.
+- **Creator notes**, **Tags**, **Creator**, **Version** — saved with the
+  card when you export it.
 
-**Advanced**
+In any of these fields, `{{char}}` becomes the character's name and
+`{{user}}` becomes your persona's name (see section 4 below).
 
-- **System prompt** and **Post history instructions** — per-character
-  instructions that slot into the prompt template.
+A field marked with ⊘ is skipped because your prompt template does not
+include it. Hover the marker to see which part is missing. The same marker
+appears next to Author's Note, Active Lorebook, or Auto Summary in the
+memory button's panel when the template leaves that part out.
 
-**Metadata**
+If you close the editor with unsaved changes, Cozy asks whether to discard
+them before it closes. This happens no matter how you close it: the
+**Cancel** button, the **✕**, the Escape key, a click outside the editor,
+or opening another panel.
 
-- **Creator notes**, **Tags**, **Creator**, **Version** — travel with the card
-  when it is exported.
+Click the character in the sidebar to start chatting with them.
 
-In any of these fields, `{{char}}` is replaced with the character's name and
-`{{user}}` with your active persona's name.
+## 4. Set up your persona
 
-A field marked with ⊘ has content that your active prompt template does not
-include, so it will not be sent. That can be deliberate — hover the marker to
-see which variable is missing. The same marker appears in the memory button's
-flyout beside Author's Note, Active Lorebook or Auto Summary whenever the
-template leaves that variable out — whether or not you are using the feature
-yet.
+A persona is who *you* are in the story. Its name is used wherever
+`{{user}}` appears, and its description is sent to the AI with every
+message you send.
 
-Closing the editor with unsaved edits asks before discarding them, whether you
-close it with **Cancel**, the **✕**, Escape, a click outside, or by opening
-another panel.
+1. Click your name at the bottom of the sidebar. Your personas open.
+2. Create a persona and write a short description of yourself, or of the
+   character you play.
+3. Save. To switch to a different persona later, click your name again
+   and pick another one.
 
-Select the character in the sidebar to start chatting.
+You are done with this section when you have one persona saved.
 
-## 5. Make it yours
+## 5. Change the look and behavior (optional)
 
-- **Persona** — click your name at the bottom of the sidebar to create one. The
-  persona is who *you* are in the story, and its description is sent with each
-  message.
-- **System prompt** — **Settings → Prompt** holds the template that assembles
-  character, persona, lorebook and chat context. Several presets ship with Cozy;
-  the eye icon on **Settings → API** previews exactly what will be sent. **+**
-  creates a new prompt as a copy of the selected one, so a bundled template can
-  be forked and edited without touching the original, and **Rename** renames the
-  selected prompt. Renaming a bundled prompt makes Cozy restore the original
-  under its old name on the next start — the files in `default_prompts/` are the
+Nothing in this section is needed to chat. Skip it and come back later if
+you want.
+
+- **Prompt template** — **Settings → Prompt** holds the template that
+  combines the character, your persona, lorebook entries, and chat history
+  into the text the AI receives. Cozy includes several ready-made presets.
+  The eye icon on **Settings → API** shows exactly what will be sent.
+  **+** copies the selected preset so you can edit the copy and leave the
+  original untouched, and **Rename** renames the selected preset. Do not
+  rename a bundled preset: Cozy restores the original under its old name
+  on the next start, because the files in `default_prompts/` are the
   source of truth for those.
-- **Theme** — **Settings → General → Appearance** switches between the built-in
-  themes. The choice is per-browser. You can also drop your own CSS file into
-  `data/themes/`; see [User themes](themes.md).
-- **Slash commands** — type `/` in the chat input to see them. `/prompt <name>`
-  and `/api <name>` switch prompt and API presets without opening Settings;
-  keep typing after the space and matching presets are offered. With no name
-  they show what is active and what is available.
+- **Theme** — **Settings → General → Appearance** changes the colors. This
+  choice is stored in the browser, so each browser can have its own theme.
+  You can also add your own theme file to `data/themes/`; see
+  [User themes](themes.md).
+- **Slash commands** — typing `/` in the chat box lists the available
+  commands. `/prompt <name>` and `/api <name>` switch prompt and API
+  presets without opening Settings. Keep typing after the space and
+  matching presets are offered. Typed with no name, they show what is
+  active and what is available.
 
-On a phone, Settings opens as a list. Choose a section to open its page and use
-the back arrow to return to the list. In the advanced Prompt editor, **Variables**
-opens the template reference below the editor.
+On a phone, Settings opens as a list. Tap a section to open its page, and
+tap the back arrow to return to the list. In the Prompt editor,
+**Variables** opens a list of everything the template can use.
 
-Cozy saves changes automatically unless the screen shows a **Save** button.
+Cozy saves most changes immediately. If a page has a **Save** button,
+click it, or your change is lost.
 
-## 6. Advanced
+## 6. If something goes wrong
 
-None of this is needed to chat. Reach for it when a specific problem shows up.
-
-- **Auto Summaries** — long chats eventually push their oldest messages out of
-  the context window. Auto Summaries condenses what aged out into running notes
-  so the character keeps the thread. Turn it on per chat from the memory button
-  beside the chat input. → [Auto Summaries](auto-summaries.md)
-
-- **Regex output filters** — a named, ordered list of find/replace rules applied
-  to finished replies, for cleaning up recurring output problems such as
-  non-English quotation marks or unwanted narration. Cozy ships some presets,
-  but **no filtering happens until you select one** under **Settings → Regex**.
-  Presets can be imported and exported, and SillyTavern regex scripts are
-  accepted. → [Regex output filters](regex.md)
-
-- **Lorebooks** — entries that are injected into the prompt only when their
-  keywords appear in recent messages, which is how you give a setting more
-  background than fits in a character card. Manage them under **Settings →
-  Lorebooks**, and attach them from the memory button beside the chat input.
-  The picker at the top of the page shows each book’s source, embedded
-  character card (if any), and entry count, with **New**, **Import**,
-  **Export** and **Delete** beside it. The search box in the Entries
-  header narrows a long book to the entries whose keys, secondary keys or
-  comment match — the lore text itself is not searched, since it is long
-  enough that common words match nearly everything. Hidden entries are still
-  saved, and reordering is unavailable while a search is active.
-
-- **Backups** — everything you have made lives in `data/`. Cozy changes often
-  and downgrading is not supported, so copy that directory before updating. →
-  [Data and backups](data-and-backups.md)
+- The connection test fails, or replies never arrive →
+  [Troubleshooting](troubleshooting.md).
+- Old messages fall out of long chats and the character forgets them →
+  [Auto Summaries](auto-summaries.md). Turn it on for one chat at a time
+  from the memory button next to the chat input.
+- Replies keep the same repeated formatting problem, such as wrong
+  quotation marks → [Regex output filters](regex.md). Nothing is filtered
+  until you select a preset under **Settings → Regex**.
+- You want background facts the AI uses only when relevant, such as
+  places, history, or side characters → manage them under
+  **Settings → Lorebooks**, and attach them from the memory button next
+  to the chat input.
+- Before updating Cozy, copy the `data/` directory somewhere safe.
+  Everything you made lives there, and going back to an older version is
+  not supported. → [Data and backups](data-and-backups.md).
