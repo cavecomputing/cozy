@@ -17,7 +17,7 @@ docker compose -f docker/docker-compose.yml up -d --build
 
 ```bash
 uv sync
-uv run python app.py
+uv run app.py
 ```
 
 Open <http://localhost:5001>.

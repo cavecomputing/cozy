@@ -11,7 +11,7 @@ docker compose -f docker/docker-compose.yml ps
 docker compose -f docker/docker-compose.yml logs -f
 ```
 
-Python: read the terminal where `uv run python app.py` is running.
+Python: read the terminal where `uv run app.py` is running.
 
 The default address is <http://localhost:5001>.
 

@@ -30,24 +30,8 @@ expects.
 
 ## Quick start
 
-Run all commands from the repository root.
-
-### Docker
-
-*The intended deployment method.*   
-Requirements: Git, Docker, and Docker Compose.
-
-```bash
-git clone https://github.com/cavecomputing/cozy.git
-cd cozy
-docker compose -f docker/docker-compose.yml up -d --build
-```
-
-Open <http://localhost:5001>.
-
-### Python
-
-Requirements: Git and [uv](https://docs.astral.sh/uv/).
+To use Cozy on your own computer, all you need is Git and
+[uv](https://docs.astral.sh/uv/) installed first.
 
 ```bash
 git clone https://github.com/cavecomputing/cozy.git
@@ -56,7 +40,10 @@ uv sync
 uv run app.py
 ```
 
-Open <http://localhost:5001>.
+Then open <http://localhost:5001> in your browser.
+
+To run Cozy on a server or with Docker instead, see
+[Running and updating Cozy](docs/run.md).
 
 ## First-time setup
 
@@ -64,8 +51,20 @@ Open <http://localhost:5001>.
 2. Open `Settings` in the bottom left.
 3. Navigate to `API`.
 4. Click `+` to name and create a preset.
-5. Under `Connection` enter the base `Endpoint` URL for your LLM server, such as
-   `https://openrouter.ai/api/v1`.
+5. Under `Connection` enter the base `Endpoint` URL for your LLM server.
+   Some common ones:
+
+   | Service | Endpoint |
+   |---|---|
+   | OpenRouter | `https://openrouter.ai/api/v1` |
+   | LM Studio | `http://localhost:1234/v1` |
+   | Ollama | `http://localhost:11434/v1` |
+   | llama.cpp | `http://localhost:8080/v1` |
+   | KoboldCpp | `http://localhost:5001/v1` |
+
+   These are the defaults — if you changed a port or host when setting up
+   the server, adjust the URL to match. If you don't know the endpoint for
+   your service, check its documentation for its OpenAI-compatible base URL.
 6. Under `Connection` enter an `API key` if your server requires one.
 7. Under `Connection` select or search for the `Model` identifier and test the connection.
 8. Set the `Context & generation` settings you would like to use.
@@ -103,7 +102,7 @@ Cozy listens only on localhost by default, so nothing else on your
 network can reach it until you say so. For the Python setup, bind to `0.0.0.0` or a specific network:
 
 ```bash
-uv run python app.py --host 0.0.0.0
+uv run app.py --host 0.0.0.0
 ```
 
 Under Docker, change the port mapping in `docker/docker-compose.yml` from

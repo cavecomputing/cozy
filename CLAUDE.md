@@ -70,10 +70,10 @@ buries the real diff under noise.
 
 ```bash
 # Dev server (Flask, auto-reload, 127.0.0.1:5001; --host / --port to override)
-uv run python app.py
+uv run app.py
 
 # Custom data directory (default: ./data)
-COZY_DATA_DIR=/path/to/data uv run python app.py
+COZY_DATA_DIR=/path/to/data uv run app.py
 
 # Tests (use `uv run` — the bare `python`/`pytest` on PATH may not resolve the project env)
 uv run pytest                                 # full suite

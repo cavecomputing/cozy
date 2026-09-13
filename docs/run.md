@@ -87,7 +87,7 @@ docker compose -f docker/docker-compose.yml up -d
 
 ```bash
 uv sync
-uv run python app.py
+uv run app.py
 ```
 
 Open <http://localhost:5001>.
@@ -100,11 +100,11 @@ for a persistent installation.
 Cozy binds to `127.0.0.1:5001` by default. `--host` and `--port` change that:
 
 ```bash
-uv run python app.py --port 8080
+uv run app.py --port 8080
 ```
 
 ```bash
-uv run python app.py --host 0.0.0.0 --port 8080
+uv run app.py --host 0.0.0.0 --port 8080
 ```
 
 `--host 0.0.0.0` accepts connections from other machines on the network. Cozy
@@ -119,14 +119,14 @@ mapping instead — see [Use a different port](#use-a-different-port) above.
 Linux or macOS:
 
 ```bash
-COZY_DATA_DIR=/path/to/cozy-data uv run python app.py
+COZY_DATA_DIR=/path/to/cozy-data uv run app.py
 ```
 
 PowerShell:
 
 ```powershell
 $env:COZY_DATA_DIR = "C:\path\to\cozy-data"
-uv run python app.py
+uv run app.py
 ```
 
 Cozy creates the directory and its required subdirectories when it starts.
@@ -147,7 +147,7 @@ docker compose -f docker/docker-compose.yml up -d --build
 ```bash
 git pull
 uv sync
-uv run python app.py
+uv run app.py
 ```
 
 Database migrations run automatically during startup.
