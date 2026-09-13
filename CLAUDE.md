@@ -124,7 +124,7 @@ base64 V2 JSON — the format SillyTavern reads. The SQLite `characters` table i
 card data is read back out of the PNG through [cozy/card_store.py](cozy/card_store.py) at request
 time.
 
-Everything else is in `data/cozy_chat.db`; [docs/10-database-schema.html](docs/10-database-schema.html) is the schema reference.
+Everything else is in `data/cozy_chat.db`; [docs/10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html) is the schema reference.
 
 ### Bundled content, and who owns it afterwards
 
@@ -259,7 +259,7 @@ User themes in `$DATA_DIR/themes/` **take precedence** over the built-ins in
   [templates/index.html](templates/index.html)); the wording is meant to match, so changing an
   attribution means changing both. The requirement itself lives in [NOTICE](NOTICE).
 - **[docs/](docs/)** is a hand-maintained user manual, so it goes stale silently.
-  [docs/10-database-schema.html](docs/10-database-schema.html) is the schema reference (tables with their real `CREATE TABLE`,
+  [docs/10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html) is the schema reference (tables with their real `CREATE TABLE`,
   the foreign-key map, the migration ledger, the seeded settings) — a schema change, a new
   migration or a new default setting is not finished until it is reflected there.
   [docs/10-database-schema.md](docs/10-database-schema.md) only points at it for the schema and covers seeder behaviour around

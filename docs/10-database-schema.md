@@ -4,7 +4,7 @@ Cozy uses SQLite (`data/cozy_chat.db`) for chat history, user personas, settings
 
 ## Schema reference
 
-[10-database-schema.html](10-database-schema.html) is the schema reference and the only copy of it: every
+[schema reference](https://cavecomputing.github.io/cozy/10-database-schema.html) is the only copy of it: every
 table with its real `CREATE TABLE`, a map of the three cascading foreign keys,
 the indexes, the migration ledger, and the seeded settings. Open it in a
 browser. A schema change belongs in `db.html`, not here.
@@ -13,7 +13,7 @@ browser. A schema change belongs in `db.html`, not here.
 
 On first run, the database is seeded with a **Default persona** ("Default
 Persona", tagline: "Change me!", `is_default = 1`) and the default settings
-listed under "Seeded settings" in [10-database-schema.html](10-database-schema.html#seeded).
+listed under "Seeded settings" in [10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html#seeded).
 
 Auto Summaries are disabled on new chats until the user enables them for that
 chat.
@@ -81,6 +81,6 @@ The bundled regex presets ship **inactive**: seeding deliberately leaves
 ## Database version and backups
 
 The highest version in the migration registry is what "the database version"
-means for Cozy — see "The database version" in [10-database-schema.html](10-database-schema.html#version).
+means for Cozy — see "The database version" in [10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html#version).
 That number is what a backup carries; how backup and restore treat it is
 covered in [Data and Backups](3-data-and-backups.md).

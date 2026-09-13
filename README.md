@@ -123,7 +123,7 @@ an authenticating reverse proxy. See [Security](docs/7-security.md) and
 - [Security](docs/7-security.md)
 - [Regex output filters](docs/8-regex-output-filters.md)
 - [User themes](docs/9-user-themes.md)
-- [Database schema](docs/10-database-schema.html) — the browsable reference, with [notes on seeding and data](docs/10-database-schema.md)
+- [Database schema](https://cavecomputing.github.io/cozy/10-database-schema.html) — the browsable reference, with [notes on seeding and data](docs/10-database-schema.md)
 
 ## License
 
