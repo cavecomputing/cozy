@@ -283,10 +283,8 @@
                                         <div class="settings-row settings-row--inline">
                                             <label class="settings-row-label" for="settings-context-tokens">Max context tokens</label>
                                             <input type="number" id="settings-context-tokens" class="form-input"
-                                                   min="0" step="256" value="32768"
-                                                   aria-describedby="context-tokens-hint">
+                                                   min="0" step="256" value="32768">
                                         </div>
-                                        <p id="context-tokens-hint" class="settings-hint">Match this to the model's own context window. <code>0</code> means no cap, and Cozy never trims.</p>
                                         <span id="context-size-warning" class="settings-warning" hidden></span>
                                         <div class="settings-row settings-row--inline">
                                             <label class="settings-row-label" for="settings-sampler-max-tokens">Max response tokens</label>
@@ -1363,26 +1361,29 @@ Flags    g</pre>
 
                 <div class="sampler-help-section">
                     <h3>Connection</h3>
+                    <p class="sampler-help-intro">These four fields are everything Cozy needs to reach your model. Get them right once, save them as a preset, and you rarely need to come back.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Endpoint</dt><dd>The server's base URL, which normally ends in <code>/v1</code>. Cozy appends <code>/models</code> to list models and <code>/chat/completions</code> to chat — the chat endpoint must support streaming.</dd></div>
                         <div class="sampler-help-row"><dt>API key</dt><dd>Sent as an auth header with each request. Keys live in your data directory and are masked in API responses. Leave it blank if your server needs none.</dd></div>
                         <div class="sampler-help-row"><dt>Model</dt><dd>The model identifier to send with each request. Type it, or use the chevron to browse what the server reports via <code>/models</code>. If the list comes up empty, type the identifier by hand.</dd></div>
-                        <div class="sampler-help-row"><dt>Test Connection</dt><dd>Sends a short "say hello" request capped at 10 tokens and shows the reply. A failure usually names the cause — check the endpoint, key, and model name first.</dd></div>
+                        <div class="sampler-help-row"><dt>Test connection</dt><dd>Sends a short "say hello" request capped at 10 tokens and shows the reply. A failure usually names the cause — check the endpoint, key, and model name first.</dd></div>
                     </dl>
                 </div>
 
                 <div class="sampler-help-section">
                     <h3>Common endpoints</h3>
+                    <p class="sampler-help-intro">Three setups that cover most users. Paste the URL into the Endpoint field above.</p>
                     <dl class="sampler-help-list sampler-help-list--urls">
                         <div class="sampler-help-row"><dt><code>https://api.openai.com/v1</code></dt><dd>OpenAI's own API. Needs an OpenAI key, and model ids are plain names such as <code>gpt-4o</code>.</dd></div>
                         <div class="sampler-help-row"><dt><code>https://openrouter.ai/api/v1</code></dt><dd>OpenRouter, a gateway where one key reaches models from many providers. Model ids are prefixed with the vendor, e.g. <code>anthropic/claude-sonnet-4</code>.</dd></div>
                         <div class="sampler-help-row"><dt><code>http://localhost:8080/v1</code></dt><dd>A local <code>llama-server</code> (llama.cpp), which serves <code>/v1/chat/completions</code> and <code>/v1/models</code> on port 8080 by default. No key needed unless you set one.</dd></div>
                     </dl>
-                    <p>If Cozy runs in Docker while the model server runs on the host, <code>localhost</code> inside the container means the container itself — use an address Docker can reach, such as <code>host.docker.internal</code> on Docker Desktop.</p>
+                    <p class="sampler-help-footnote">If Cozy runs in Docker while the model server runs on the host, <code>localhost</code> inside the container means the container itself — use an address Docker can reach, such as <code>host.docker.internal</code> on Docker Desktop.</p>
                 </div>
 
                 <div class="sampler-help-section">
                     <h3>Context and response size</h3>
+                    <p class="sampler-help-intro">Two budgets control how much text goes in and how much comes out. When replies get cut off or old messages vanish too soon, one of these is usually the cause.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Max context tokens</dt><dd>The total budget for one request: the prompt plus reserved reply space. Set it to the model's real context window (default 32768). Old messages are left out so the prompt fits inside it. <code>0</code> means no cap — Cozy never trims.</dd></div>
                         <div class="sampler-help-row"><dt>Max response tokens</dt><dd>How long a single reply may run (default 512). It is also the allowance reused for summary runs. Reasoning models spend their thinking tokens from this same allowance before writing a word, so a low value cuts replies and summaries off mid-write — raise it if runs keep failing with <em>cut off by its completion token limit</em>.</dd></div>
@@ -1390,18 +1391,19 @@ Flags    g</pre>
                 </div>
 
                 <div class="sampler-help-section">
-                    <h3>Presets, context, preview</h3>
-                    <ul class="prompt-help-tips">
-                        <li>Use <strong>+</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</li>
-                        <li><strong>Max context tokens</strong> should match your server's context window; <strong>Max response tokens</strong> caps how long a single reply may run.</li>
-                        <li>The <strong>eye</strong> icon previews the exact assembled request for the active character and persona.</li>
-                    </ul>
+                    <h3>Presets and preview</h3>
+                    <p class="sampler-help-intro">Once a connection works, keep it one click away.</p>
+                    <dl class="sampler-help-list">
+                        <div class="sampler-help-row"><dt>Presets</dt><dd>Use <strong>New</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</dd></div>
+                        <div class="sampler-help-row"><dt>Preview</dt><dd>The <strong>eye</strong> icon shows the exact assembled request for the active character and persona — useful for checking what the model actually sees.</dd></div>
+                    </dl>
                 </div>
 
-                <p class="prompt-help-callout">Samplers shape <em>how</em> the model picks its next word. The defaults are sensible — only tweak these if you want to change the feel of the output. Settings marked <span class="sampler-advanced-badge">ADV</span> are niche or experimental.</p>
+                <p class="prompt-help-callout"><strong>Samplers</strong> shape <em>how</em> the model picks its next word. The defaults are sensible — only tweak these if you want to change the feel of the output. Settings marked <span class="sampler-advanced-badge">ADV</span> are niche or experimental.</p>
 
                 <div class="sampler-help-section">
                     <h3>Core samplers</h3>
+                    <p class="sampler-help-intro">The day-to-day controls. Temperature plus one nucleus filter (Top-P or Min-P) is all most setups need.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row">
                             <dt>Temperature</dt>
@@ -1432,6 +1434,7 @@ Flags    g</pre>
 
                 <div class="sampler-help-section">
                     <h3>Advanced samplers <span class="sampler-advanced-badge">ADV</span></h3>
+                    <p class="sampler-help-intro">Specialist tools for fine-tuning output. Each is off by default — enable one at a time and compare before stacking them.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row">
                             <dt>Typical-P</dt>

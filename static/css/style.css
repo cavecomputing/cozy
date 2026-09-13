@@ -4246,12 +4246,20 @@ input[type="checkbox"]:checked::after {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     padding: 0.85rem 1rem;
-    margin-top: 0.85rem;
+    margin: 0 0 1rem;
 }
-.sampler-help-section + .sampler-help-section {
-    border-top-color: var(--accent-color);
-    border-left: 3px solid var(--accent-color);
-    background-color: var(--accent-edit-bg);
+.sampler-help-section:last-child {
+    margin-bottom: 0.4rem;
+}
+.sampler-help-intro {
+    margin: 0 0 0.5rem !important;
+    font-size: var(--text-lg);
+}
+.sampler-help-footnote {
+    margin: 0.6rem 0 0 !important;
+    padding-top: 0.6rem;
+    border-top: 1px dashed var(--border-color);
+    font-size: var(--text-md);
 }
 .sampler-help-section h3 {
     margin: 0 0 0.7rem;
