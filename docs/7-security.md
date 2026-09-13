@@ -29,5 +29,5 @@ directory and do not commit it to Git.
 Settings → About → Storage has a **Backup** menu that downloads the whole data
 directory as a zip and restores one on top of it, so a backup does not mean
 stopping Cozy and copying folders. See
-[Data and backups](data-and-backups.md).
+[Data and backups](3-data-and-backups.md).
 Note: since API keys are stored as plain text in the Cozy database, a backup also inherently contains the same information in pain text.

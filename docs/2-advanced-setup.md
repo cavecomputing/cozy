@@ -1,4 +1,4 @@
-# Running Cozy
+# Advanced setup
 
 Run every command on this page from the top folder of the Cozy repository
 (the folder that contains `app.py`).
@@ -97,7 +97,7 @@ ports:
 Warning: Cozy has no login screen. Anyone who can reach the address can
 read your chats and use your API key. Only open it to a network you trust,
 or put it behind a reverse proxy that asks for a password. See
-[Security](SECURITY.md).
+[Security](7-security.md).
 
 ### File permissions on Linux
 
@@ -158,7 +158,7 @@ machine.
 Warning: Cozy has no login screen. Anyone who can reach the address can
 read your chats and use your API key. Only do this on a network you
 trust, or behind a reverse proxy that asks for a password. See
-[Security](SECURITY.md).
+[Security](7-security.md).
 
 These `--host` and `--port` options work for the Python setup only. Under
 Docker, change the port mapping instead — see [Use a different
@@ -190,7 +190,7 @@ uv run app.py
    Python, press `Ctrl+C` in the terminal where it is running.
 2. Copy the `data/` directory (or your custom data directory) somewhere
    safe. Going back to an older version afterwards is not supported. →
-   [Data and backups](data-and-backups.md).
+   [Data and backups](3-data-and-backups.md).
 3. Run the commands for your setup.
 
 Docker:

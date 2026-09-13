@@ -18,9 +18,9 @@ The default address is <http://localhost:5001>.
 ## Port 5001 is already in use
 
 Stop the program using port 5001 or change Cozy's port. Under Docker, change the
-port mapping — see [Use a different port](run.md#use-a-different-port). Under
+port mapping — see [Use a different port](2-advanced-setup.md#use-a-different-port). Under
 Python, pass `--port` — see
-[Use a different address or port](run.md#use-a-different-address-or-port).
+[Use a different address or port](2-advanced-setup.md#use-a-different-address-or-port).
 
 ## Docker cannot write to `data/`
 
@@ -61,7 +61,7 @@ Not every OpenAI-style server accepts every sampler.
 2. Try the request again.
 3. Check the LLM server's documentation.
 
-See [Sampler settings](samplers.md#backend-compatibility).
+See [Sampler settings](6-sampler-settings.md#backend-compatibility).
 
 ## Replies stop early
 
@@ -81,7 +81,7 @@ stat card or a progress bar — tick **Display only** on it. The filter then
 rewrites the bubble and leaves the stored message alone, which is also the fix
 for a model that has started writing HTML into its replies by itself.
 
-See [Regex output filters](regex.md).
+See [Regex output filters](8-regex-output-filters.md).
 
 ## A summary run keeps failing
 
@@ -95,7 +95,7 @@ thinking is billed against the same token allowance as the summary itself.
    few bullets, so a small fast model suits it.
 
 Batches already folded in are kept, and the next run resumes from there. See
-[Auto Summaries](auto-summaries.md#configure).
+[Auto Summaries](5-auto-summaries.md#configure).
 
 ## An update fails
 

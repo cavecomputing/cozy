@@ -43,12 +43,12 @@ uv run app.py
 Then open <http://localhost:5001> in your browser.
 
 To run Cozy on a server or with Docker instead, see
-[Running and updating Cozy](docs/run.md).
+[Advanced setup](docs/2-advanced-setup.md).
 
 Hooray! You are up and running! :D
 But don't forget to do the first-start configuration below.
 
-And if you would like some more details on character cards, personas, etc, check out [Getting started](docs/getting-started.md).
+And if you would like some more details on character cards, personas, etc, check out [Getting started](docs/1-getting-started.md).
 
 ## First-start configuration
 
@@ -92,7 +92,7 @@ uv run app.py
 ```
 
 To update a Docker or server installation instead, see
-[Running and updating Cozy](docs/run.md).
+[Advanced setup](docs/2-advanced-setup.md).
 
 ## Mobile Use
 
@@ -109,21 +109,21 @@ Then open `http://<computer's LAN address>:5001` on a phone connected to the sam
 
 Cozy has no login screen, so anything that can reach it can read your chats and
 use your API key. Only do this on a network you trust, or put it behind a VPN or
-an authenticating reverse proxy. See [Security](docs/SECURITY.md) and
-[Running and updating Cozy](docs/run.md).
+an authenticating reverse proxy. See [Security](docs/7-security.md) and
+[Advanced setup](docs/2-advanced-setup.md).
 
 ## Documentation
 
-- [Getting started](docs/getting-started.md)
-- [Running and updating Cozy](docs/run.md)
-- [Data and backups](docs/data-and-backups.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Auto Summaries](docs/auto-summaries.md)
-- [Sampler settings](docs/samplers.md)
-- [Regex output filters](docs/regex.md)
-- [User themes](docs/themes.md)
-- [Database structure](docs/db.md) — also as a [browsable page](docs/db.html)
-- [Security](docs/SECURITY.md)
+- [Getting started](docs/1-getting-started.md)
+- [Advanced setup](docs/2-advanced-setup.md)
+- [Data and backups](docs/3-data-and-backups.md)
+- [Troubleshooting](docs/4-troubleshooting.md)
+- [Auto Summaries](docs/5-auto-summaries.md)
+- [Sampler settings](docs/6-sampler-settings.md)
+- [Security](docs/7-security.md)
+- [Regex output filters](docs/8-regex-output-filters.md)
+- [User themes](docs/9-user-themes.md)
+- [Database schema](docs/10-database-schema.html) — the browsable reference, with [notes on seeding and data](docs/10-database-schema.md)
 
 ## License
 

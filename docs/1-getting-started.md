@@ -46,7 +46,7 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
    comes up empty, type the name by hand. Some servers do not provide a
    list, and that is normal.
 7. Click **Test Connection**. If the test succeeds, you are done with this
-   section. If it fails, see [Troubleshooting](troubleshooting.md).
+   section. If it fails, see [Troubleshooting](4-troubleshooting.md).
 8. Under **Context & generation**, set **Max context tokens** to the
    context size your server supports, and **Max response tokens** to the
    longest single reply you want to receive.
@@ -76,7 +76,7 @@ Repetition penalty: 1.05
 ```
 
 What every setting means, and which servers support it:
-[Sampler settings](samplers.md).
+[Sampler settings](6-sampler-settings.md).
 
 ## 3. Add a character
 
@@ -187,7 +187,7 @@ you want.
 - **Theme** — **Settings → General → Appearance** changes the colors. This
   choice is stored in the browser, so each browser can have its own theme.
   You can also add your own theme file to `data/themes/`; see
-  [User themes](themes.md).
+  [User themes](9-user-themes.md).
 - **Slash commands** — typing `/` in the chat box lists the available
   commands. `/prompt <name>` and `/api <name>` switch prompt and API
   presets without opening Settings. Keep typing after the space and
@@ -204,12 +204,12 @@ click it, or your change is lost.
 ## 6. If something goes wrong
 
 - The connection test fails, or replies never arrive →
-  [Troubleshooting](troubleshooting.md).
+  [Troubleshooting](4-troubleshooting.md).
 - Old messages fall out of long chats and the character forgets them →
-  [Auto Summaries](auto-summaries.md). Turn it on for one chat at a time
+  [Auto Summaries](5-auto-summaries.md). Turn it on for one chat at a time
   from the memory button next to the chat input.
 - Replies keep the same repeated formatting problem, such as wrong
-  quotation marks → [Regex output filters](regex.md). Nothing is filtered
+  quotation marks → [Regex output filters](8-regex-output-filters.md). Nothing is filtered
   until you select a preset under **Settings → Regex**.
 - You want background facts the AI uses only when relevant, such as
   places, history, or side characters → manage them under
@@ -217,4 +217,4 @@ click it, or your change is lost.
   to the chat input.
 - Before updating Cozy, copy the `data/` directory somewhere safe.
   Everything you made lives there, and going back to an older version is
-  not supported. → [Data and backups](data-and-backups.md).
+  not supported. → [Data and backups](3-data-and-backups.md).

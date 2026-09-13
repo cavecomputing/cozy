@@ -124,7 +124,7 @@ base64 V2 JSON — the format SillyTavern reads. The SQLite `characters` table i
 card data is read back out of the PNG through [cozy/card_store.py](cozy/card_store.py) at request
 time.
 
-Everything else is in `data/cozy_chat.db`; [docs/db.md](docs/db.md) is the schema reference.
+Everything else is in `data/cozy_chat.db`; [docs/10-database-schema.html](docs/10-database-schema.html) is the schema reference.
 
 ### Bundled content, and who owns it afterwards
 
@@ -152,7 +152,7 @@ and never look again; prompts do not.
   mirrored in [system-prompts.js](static/js/system-prompts.js)), so a new house version takes over
   by sorting after the old one. An `Author` variant never wins, and with no standard title the
   default falls back to the greatest title overall. See the prompt section of
-  [docs/db.md](docs/db.md).
+  [docs/10-database-schema.md](docs/10-database-schema.md).
 
 A seeded character or regex preset is ordinary user data afterwards — deleting it keeps it deleted.
 A seeded prompt is a copy of a file that outranks it.
@@ -259,13 +259,12 @@ User themes in `$DATA_DIR/themes/` **take precedence** over the built-ins in
   [templates/index.html](templates/index.html)); the wording is meant to match, so changing an
   attribution means changing both. The requirement itself lives in [NOTICE](NOTICE).
 - **[docs/](docs/)** is a hand-maintained user manual, so it goes stale silently.
-  [docs/db.md](docs/db.md) enumerates every table, column, index, migration and seeded default — a
-  schema change, a new migration or a new default setting is not finished until it is reflected
-  there, **and in [docs/db.html](docs/db.html)**, which carries the same schema as a standalone
-  page (tables with their real `CREATE TABLE`, the foreign-key map, the migration ledger, the
-  seeded settings). The two are written by hand and neither generates the other, so a schema
-  change that lands in one and not the other leaves a doc quietly lying. A user-visible feature
-  also means checking the README feature list and the matching `docs/` page.
+  [docs/10-database-schema.html](docs/10-database-schema.html) is the schema reference (tables with their real `CREATE TABLE`,
+  the foreign-key map, the migration ledger, the seeded settings) — a schema change, a new
+  migration or a new default setting is not finished until it is reflected there.
+  [docs/10-database-schema.md](docs/10-database-schema.md) only points at it for the schema and covers seeder behaviour around
+  it, so a change in what gets seeded or restored means checking that page too. A user-visible
+  feature also means checking the README feature list and the matching `docs/` page.
 
 The About page's build string comes from the current Git commit via
 [cozy/build_info.py](cozy/build_info.py) (checkouts read `.git`, Docker embeds `.cozy-commit`). The

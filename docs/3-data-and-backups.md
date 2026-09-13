@@ -90,7 +90,7 @@ Keep the old directory until the restored copy has opened correctly.
 ## Custom data directory
 
 For Python, set `COZY_DATA_DIR` before starting Cozy. See
-[Running Cozy](run.md#use-a-different-data-directory).
+[Advanced setup](2-advanced-setup.md#use-a-different-data-directory).
 
 For Docker, change the left side of the volume mapping in
 `docker/docker-compose.yml`:
