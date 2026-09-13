@@ -254,7 +254,7 @@ User themes in `$DATA_DIR/themes/` **take precedence** over the built-ins in
 
 ### Things that must change together
 
-- **Acknowledgements** (currently Sasha and the BigBear presets) appear in the `## Acknowledgements`
+- **Acknowledgements** appear in the `## Acknowledgements`
   section of [README.md](README.md) *and* on the About page (`data-section="about"` in
   [templates/index.html](templates/index.html)); the wording is meant to match, so changing an
   attribution means changing both. The requirement itself lives in [NOTICE](NOTICE).
