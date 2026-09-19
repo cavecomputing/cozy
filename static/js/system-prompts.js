@@ -14,6 +14,11 @@ import { previewChatPayload, previewRenderedTemplates } from './request-builder.
 // STANDARD_NANOBEAR_RE in cozy/defaults.py.
 const STANDARD_NANOBEAR_RE = /^NanoBear(?!\s+Author\b)/;
 
+// A version is a plain number, optionally with one decimal part: "2", "2.1".
+// Mirrors VERSION_RE in cozy/routes/settings.py. The "v" belongs to the badge,
+// never to the stored value, or the two would stack up as "vv2.1".
+const VERSION_RE = /^\d+(?:\.\d+)?$/;
+
 function defaultPromptId() {
     const matches = state.systemPrompts
         .filter(p => STANDARD_NANOBEAR_RE.test(p.name || ''))
@@ -29,10 +34,32 @@ export function syncActivePromptFromEditors() {
     const p = activePrompt();
     if (!p) return null;
     if (el.syspromptDescription) p.description = el.syspromptDescription.value;
+    p.version = readVersionEditor(p.version || '');
     if (el.syspromptContent) p.content = el.syspromptContent.value;
     if (el.postHistoryContent) p.post_history_content = el.postHistoryContent.value;
     renderPromptDescription(p);
+    decorateOption(p);
     return p;
+}
+
+/**
+ * The version box's value, flagged when it doesn't parse. Half-typed is
+ * normal — "2." on the way to "2.1" — so an invalid box keeps the last value
+ * that saved rather than sending the route something it would reject.
+ */
+function readVersionEditor(current) {
+    if (!el.syspromptVersion) return current;
+    const typed = el.syspromptVersion.value.trim();
+    const valid = typed === '' || VERSION_RE.test(typed);
+    el.syspromptVersion.setAttribute('aria-invalid', String(!valid));
+    return valid ? typed : current;
+}
+
+/** On blur, put a half-typed version back to the value that actually saved. */
+export function normalizeVersionEditor() {
+    if (!el.syspromptVersion) return;
+    el.syspromptVersion.value = activePrompt()?.version || '';
+    el.syspromptVersion.setAttribute('aria-invalid', 'false');
 }
 
 /** Show the active prompt's description under the selector (basic mode). */
@@ -43,8 +70,27 @@ function renderPromptDescription(prompt) {
     el.syspromptDescriptionText.classList.toggle('prompt-description-text--empty', Boolean(prompt) && !text);
 }
 
+/**
+ * Put the name and version on an <option> as the parts the themed dropdown
+ * renders — `label` plain, `badge` as a pill. The option's own text stays the
+ * full "name — vX" so the native select, typeahead and screen readers read it
+ * whole. A prompt with no version gets the name alone, no empty pill.
+ */
+function decorateOption(prompt) {
+    const opt = el.syspromptSelect?.querySelector(`option[value="${prompt.id}"]`);
+    if (!opt) return;
+    const version = (prompt.version || '').trim();
+    opt.dataset.label = prompt.name;
+    opt.dataset.badge = version ? `v${version}` : '';
+    opt.textContent = version ? `${prompt.name} — v${version}` : prompt.name;
+}
+
 function setEditorValues(prompt) {
     if (el.syspromptDescription) el.syspromptDescription.value = prompt ? (prompt.description || '') : '';
+    if (el.syspromptVersion) {
+        el.syspromptVersion.value = prompt ? (prompt.version || '') : '';
+        el.syspromptVersion.setAttribute('aria-invalid', 'false');
+    }
     if (el.syspromptContent) el.syspromptContent.value = prompt ? prompt.content : '';
     if (el.postHistoryContent) {
         el.postHistoryContent.value = prompt ? (prompt.post_history_content || '') : '';
@@ -59,6 +105,7 @@ async function savePromptFields({ showSuccess = false } = {}) {
     try {
         await API.updateSystemPrompt(state.activeSystemPromptId, {
             description: p.description || '',
+            version: p.version || '',
             content: p.content || '',
             post_history_content: p.post_history_content || '',
         });
@@ -92,9 +139,9 @@ export async function loadSystemPrompts(existingSettings = null) {
         state.systemPrompts.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.id;
-            opt.textContent = p.name;
             opt.selected = p.id === state.activeSystemPromptId;
             el.syspromptSelect.appendChild(opt);
+            decorateOption(p);
         });
         if (!state.activeSystemPromptId || !state.systemPrompts.find(p => p.id === state.activeSystemPromptId)) {
             state.activeSystemPromptId = defaultPromptId();
@@ -122,6 +169,7 @@ export async function createSystemPrompt() {
             name: name.trim(),
             ...(source ? {
                 description: source.description || '',
+                version: source.version || '',
                 content: source.content || '',
                 post_history_content: source.post_history_content || '',
             } : {}),

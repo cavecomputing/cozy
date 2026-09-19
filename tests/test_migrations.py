@@ -543,12 +543,12 @@ class TestSchemaMigrationLedger:
             }
         # Migration 12 is a one-time backfill scoped to the two titles that
         # existed when it shipped, and a shipped migration is never rewritten.
-        # It is deliberately not derived from the bundled directory: a preset
-        # added later is seeded with its description already set, so it has
-        # nothing for this to fill.
-        assert rows['NanoBear v2.1'].strip()
-        # 'NanoBear Author v1' no longer ships, which exercises the branch the
-        # docstring promises: a missing file is skipped, not a startup failure.
+        # It reads the text out of default_prompts/, where neither of those
+        # titles is a filename any more — the bundle now ships "NanoBear.json"
+        # and carries the edition in a version column instead. So both titles
+        # take the branch the docstring promises: a missing file is skipped,
+        # not a startup failure, and the row keeps its blank description.
+        assert rows['NanoBear v2.1'] == ''
         assert rows['NanoBear Author v1'] == ''
         # A row that was never a stock preset is left alone either way.
         assert rows['Custom'] == ''
@@ -565,6 +565,39 @@ class TestSchemaMigrationLedger:
                 "SELECT description FROM system_prompts WHERE name='NanoBear v2.1'"
             ).fetchone()
         assert row['description'] == 'Mine'
+
+    def test_stock_prompt_versions_backfill_bundled_titles_only(self, tmp_path, monkeypatch):
+        legacy_db = tmp_path / 'versions.db'
+        monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
+        with shared.get_db() as conn:
+            conn.executescript('''
+                CREATE TABLE system_prompts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    content TEXT NOT NULL DEFAULT '',
+                    post_history_content TEXT NOT NULL DEFAULT '',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT INTO system_prompts (name, content) VALUES
+                    ('NanoBear v2.1', 'x'),
+                    ('NanoBear Author v2.1', 'x'),
+                    ('Custom', 'x');
+            ''')
+
+        schema.init_db()
+
+        with shared.get_db() as conn:
+            rows = {
+                r['name']: r['version'] for r in
+                conn.execute('SELECT name, version FROM system_prompts').fetchall()
+            }
+        # Migration 13 names the two titles that existed when the column
+        # shipped; a preset added later arrives with its own version seeded.
+        assert rows['NanoBear v2.1'] == '2.1'
+        assert rows['NanoBear Author v2.1'] == '2.1'
+        # A prompt of the user's own is not part of that lineage.
+        assert rows['Custom'] == ''
 
     def test_chat_persona_backfills_from_last_user_message(self, tmp_path, monkeypatch):
         legacy_db = tmp_path / 'persona.db'

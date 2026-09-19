@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 from cozy import shared
 from cozy import defaults
@@ -51,8 +52,11 @@ def _seed_custom_bundle(tmp_path, files):
         shared.BUNDLED_PROMPTS_DIR = original_dir
 
 
-def _preset_file(name, content='x'):
-    return json.dumps({'name': name, 'content': content, 'post_history_content': ''})
+def _preset_file(name, content='x', version=None):
+    preset = {'name': name, 'content': content, 'post_history_content': ''}
+    if version is not None:
+        preset['version'] = version
+    return json.dumps(preset)
 
 
 class TestBundledPresets:
@@ -63,10 +67,15 @@ class TestBundledPresets:
     def test_bundled_presets_match_the_export_payload_shape(self):
         for filename in _bundled_filenames():
             preset = _read_preset(filename)
-            assert {'name', 'content', 'post_history_content'} <= set(preset), filename
-            assert set(preset) <= {'name', 'description', 'content', 'post_history_content'}, filename
+            assert {'name', 'version', 'content', 'post_history_content'} <= set(preset), filename
+            assert set(preset) <= {'name', 'version', 'description', 'content',
+                                   'post_history_content'}, filename
             assert preset['content'].strip(), filename
             assert preset['post_history_content'].strip(), filename
+            assert preset['version'].strip(), filename
+            # The picker's badge adds the "v" itself, so a bundled file
+            # carrying one would render "vv2.1".
+            assert re.fullmatch(r'\d+(?:\.\d+)?', preset['version']), filename
             if 'description' in preset:
                 assert preset['description'].strip(), filename
 
@@ -78,12 +87,12 @@ class TestBundledPresets:
             assert _read_preset(filename)['name'] == filename[:-len('.json')]
 
     def test_the_bundled_default_is_a_standard_nanobear(self):
-        # A fresh install activates the greatest standard-NanoBear title, so
-        # the bundle has to ship one — and the Author variant must never be
-        # the only NanoBear in it.
+        # A fresh install activates the standard NanoBear carrying the greatest
+        # version, so the bundle has to ship one — and the Author variant must
+        # never be the only NanoBear in it.
         matches = [t for t in _bundled_titles() if defaults.STANDARD_NANOBEAR_RE.match(t)]
         assert matches
-        assert 'NanoBear Author v1' not in matches
+        assert not any(t.startswith('NanoBear Author') for t in matches)
 
 
 class TestSeeding:
@@ -107,6 +116,27 @@ class TestSeeding:
             preset = _read_preset(filename)
             assert rows[preset['name']] == preset.get('description', ''), filename
 
+    def test_seeding_stores_each_bundled_version(self):
+        defaults.seed_default_prompts()
+        with shared.get_db() as conn:
+            rows = {
+                r['name']: r['version'] for r in
+                conn.execute('SELECT name, version FROM system_prompts').fetchall()
+            }
+        for filename in _bundled_filenames():
+            preset = _read_preset(filename)
+            assert rows[preset['name']] == preset['version'], filename
+
+    def test_a_preset_file_without_a_version_seeds_blank(self, tmp_path):
+        # _preset_file() writes no version key. A bundle predating the field
+        # still has to seed rather than being skipped as unreadable.
+        _seed_custom_bundle(tmp_path, {'Plain v1.json': _preset_file('Plain v1')})
+        with shared.get_db() as conn:
+            row = conn.execute(
+                "SELECT version FROM system_prompts WHERE name='Plain v1'"
+            ).fetchone()
+        assert row is not None and row['version'] == ''
+
     def test_every_bundled_preset_carries_a_description(self):
         # The description is what the Prompt page shows under the picker, so a
         # bundled preset without one ships a blank line there.
@@ -118,28 +148,39 @@ class TestSeeding:
     def test_fresh_install_starts_on_the_greatest_standard_nanobear(self):
         defaults.seed_default_prompts()
         expected = max(
-            t for t in _bundled_titles()
-            if defaults.STANDARD_NANOBEAR_RE.match(t)
+            (t for t in _bundled_titles() if defaults.STANDARD_NANOBEAR_RE.match(t)),
+            key=lambda t: defaults.version_key(_read_preset(t + '.json')['version']),
         )
         assert _active_prompt_name() == expected
 
     def test_an_author_variant_never_becomes_the_default(self, tmp_path):
-        # Under the old greatest-title rule the Zulu preset below would win;
-        # the Author variant must not win either, however it sorts.
+        # Zulu sorts last and the Author variant carries the highest version;
+        # neither may take the default from the standard NanoBear.
         _seed_custom_bundle(tmp_path, {
-            'NanoBear v2.1.json': _preset_file('NanoBear v2.1'),
-            'NanoBear Author v1.json': _preset_file('NanoBear Author v1'),
-            'Zulu v9.json': _preset_file('Zulu v9'),
+            'NanoBear.json': _preset_file('NanoBear', version='2.1'),
+            'NanoBear Author.json': _preset_file('NanoBear Author', version='9.0'),
+            'Zulu.json': _preset_file('Zulu', version='9.0'),
         })
-        assert _active_prompt_name() == 'NanoBear v2.1'
+        assert _active_prompt_name() == 'NanoBear'
 
-    def test_among_several_standard_nanobears_the_greatest_wins(self, tmp_path):
+    def test_among_several_standard_nanobears_the_greatest_version_wins(self, tmp_path):
+        # Title order is deliberately the reverse of version order here: the
+        # pick follows the version, and nothing about the filename.
         _seed_custom_bundle(tmp_path, {
-            'NanoBear v2.0.json': _preset_file('NanoBear v2.0'),
-            'NanoBear v2.1.json': _preset_file('NanoBear v2.1'),
-            'NanoBear Author v1.json': _preset_file('NanoBear Author v1'),
+            'NanoBear Classic.json': _preset_file('NanoBear Classic', version='3.0'),
+            'NanoBear.json': _preset_file('NanoBear', version='2.1'),
+            'NanoBear Author.json': _preset_file('NanoBear Author', version='9.0'),
         })
-        assert _active_prompt_name() == 'NanoBear v2.1'
+        assert _active_prompt_name() == 'NanoBear Classic'
+
+    def test_versions_compare_as_numbers_not_text(self, tmp_path):
+        # "2.10" sorts below "2.2" as text. The old greatest-title rule had
+        # exactly that caveat; comparing the halves as integers retires it.
+        _seed_custom_bundle(tmp_path, {
+            'NanoBear.json': _preset_file('NanoBear', version='2.2'),
+            'NanoBear Next.json': _preset_file('NanoBear Next', version='2.10'),
+        })
+        assert _active_prompt_name() == 'NanoBear Next'
 
     def test_with_no_standard_nanobear_the_greatest_title_wins(self, tmp_path):
         _seed_custom_bundle(tmp_path, {
@@ -148,28 +189,46 @@ class TestSeeding:
         })
         assert _active_prompt_name() == 'Zulu v1'
 
-    def test_a_later_version_takes_over_the_default_on_a_fresh_install(self, tmp_path):
-        # The point of the alphabetical rule: shipping NanoBear v2.2 makes it
-        # the default for new installs with nothing else to update.
-        later = tmp_path / 'default_prompts'
-        later.mkdir()
-        for filename in _bundled_filenames():
-            (later / filename).write_text(
-                json.dumps(_read_preset(filename)), encoding='utf-8'
-            )
-        (later / 'NanoBear v2.2.json').write_text(
-            json.dumps({'name': 'NanoBear v2.2', 'content': 'newer', 'post_history_content': ''}),
-            encoding='utf-8',
-        )
+    def test_a_bumped_version_reaches_an_install_that_already_has_the_title(self, tmp_path):
+        # The whole point of versioned identity: bumping the number inside the
+        # bundled file is the entire release, and it lands beside the edition
+        # the user already has rather than being skipped as a known title.
+        defaults.seed_default_prompts()
+        before = _prompt_names()
 
-        original_dir = shared.BUNDLED_PROMPTS_DIR
-        shared.BUNDLED_PROMPTS_DIR = str(later)
-        try:
-            defaults.seed_default_prompts()
-        finally:
-            shared.BUNDLED_PROMPTS_DIR = original_dir
+        bumped = {
+            filename: json.dumps({**_read_preset(filename), 'version': '9.9'})
+            for filename in _bundled_filenames()
+        }
+        _seed_custom_bundle(tmp_path, bumped)
 
-        assert _active_prompt_name() == 'NanoBear v2.2'
+        with shared.get_db() as conn:
+            rows = conn.execute(
+                'SELECT name, version FROM system_prompts ORDER BY id'
+            ).fetchall()
+        # Every bundled title now exists twice: the shipped version and 9.9.
+        assert len(rows) == len(before) * 2
+        for title in before:
+            versions = {r['version'] for r in rows if r['name'] == title}
+            assert '9.9' in versions and len(versions) == 2, title
+
+    def test_an_unbumped_file_changes_nothing_on_restart(self, tmp_path):
+        # Editing content without bumping the version is not a release: the
+        # pair is already present, so the row the user has is left alone.
+        defaults.seed_default_prompts()
+        edited = {
+            filename: json.dumps({**_read_preset(filename), 'content': 'rewritten'})
+            for filename in _bundled_filenames()
+        }
+        _seed_custom_bundle(tmp_path, edited)
+
+        with shared.get_db() as conn:
+            contents = [
+                r['content'] for r in
+                conn.execute('SELECT content FROM system_prompts').fetchall()
+            ]
+        assert 'rewritten' not in contents
+        assert len(contents) == len(_bundled_titles())
 
     def test_a_broken_last_title_falls_back_to_the_one_below_it(self, tmp_path):
         bundle = tmp_path / 'default_prompts'
@@ -239,14 +298,14 @@ class TestSeeding:
         with shared.get_db() as conn:
             conn.execute(
                 "UPDATE system_prompts SET content='my edit' WHERE name=?",
-                ('NanoBear v2.1',),
+                ('NanoBear',),
             )
 
         defaults.seed_default_prompts()
         with shared.get_db() as conn:
             rows = conn.execute(
                 'SELECT content FROM system_prompts WHERE name=?',
-                ('NanoBear v2.1',),
+                ('NanoBear',),
             ).fetchall()
         assert [r['content'] for r in rows] == ['my edit']
 

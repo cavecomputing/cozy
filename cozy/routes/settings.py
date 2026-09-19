@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import sqlite3
 import stat
@@ -179,6 +180,20 @@ def _unique_name(conn, table, base, fallback):
     return candidate
 
 
+# A version is a plain number, optionally with one decimal part: "2", "2.1".
+# No "v" — the UI prepends that for the badge, so storing one would double it.
+VERSION_RE = re.compile(r'^\d+(?:\.\d+)?$')
+
+
+def _invalid_version(version):
+    """The 400 response for a malformed version, or None when it is fine."""
+    if version == '' or VERSION_RE.match(version):
+        return None
+    return jsonify({
+        'error': '"version" must be a number like "2" or "2.1", with no "v"'
+    }), 400
+
+
 @settings_bp.route('/api/settings', methods=['GET'])
 def read_settings():
     s = get_settings()
@@ -232,12 +247,22 @@ def create_system_prompt():
     description = data.get('description', '')
     if not isinstance(description, str):
         return jsonify({'error': '"description" must be a string'}), 400
+    version = data.get('version', '')
+    if not isinstance(version, str):
+        return jsonify({'error': '"version" must be a string'}), 400
+    version = version.strip()
+    bad_version = _invalid_version(version)
+    if bad_version:
+        return bad_version
     with get_db() as conn:
-        if conn.execute('SELECT 1 FROM system_prompts WHERE name = ?', (name,)).fetchone():
+        if conn.execute(
+            'SELECT 1 FROM system_prompts WHERE name = ? AND version = ?', (name, version)
+        ).fetchone():
             return jsonify({'error': f'A prompt named "{name}" already exists'}), 409
         cur = conn.execute(
-            'INSERT INTO system_prompts (name, description, content, post_history_content) VALUES (?, ?, ?, ?)',
-            (name, description, content, post_history_content)
+            'INSERT INTO system_prompts (name, version, description, content, post_history_content) '
+            'VALUES (?, ?, ?, ?, ?)',
+            (name, version, description, content, post_history_content)
         )
         row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)).fetchone()
         return jsonify(dict(row)), 201
@@ -251,21 +276,32 @@ def update_system_prompt(prompt_id):
         if not row:
             return not_found('System prompt')
         name = (data.get('name') or '').strip() or row['name']
-        if name != row['name'] and conn.execute(
-            'SELECT 1 FROM system_prompts WHERE name = ? AND id != ?', (name, prompt_id)
-        ).fetchone():
-            return jsonify({'error': f'A prompt named "{name}" already exists'}), 409
         description = data.get('description', row['description'])
+        version = data.get('version', row['version'])
         content = data.get('content', row['content'])
         post_history_content = data.get('post_history_content', row['post_history_content'])
         if not isinstance(description, str):
             return jsonify({'error': '"description" must be a string'}), 400
+        if not isinstance(version, str):
+            return jsonify({'error': '"version" must be a string'}), 400
         if not isinstance(post_history_content, str):
             return jsonify({'error': '"post_history_content" must be a string'}), 400
+        version = version.strip()
+        bad_version = _invalid_version(version)
+        if bad_version:
+            return bad_version
+        # Name and version identify a prompt together, so a rename only clashes
+        # with a row that matches both — the same prompt at another version is
+        # meant to sit beside this one.
+        if (name, version) != (row['name'], row['version']) and conn.execute(
+            'SELECT 1 FROM system_prompts WHERE name = ? AND version = ? AND id != ?',
+            (name, version, prompt_id)
+        ).fetchone():
+            return jsonify({'error': f'A prompt named "{name}" already exists'}), 409
         conn.execute(
-            'UPDATE system_prompts SET name = ?, description = ?, content = ?, post_history_content = ?, '
-            'updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            (name, description, content, post_history_content, prompt_id)
+            'UPDATE system_prompts SET name = ?, version = ?, description = ?, content = ?, '
+            'post_history_content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (name, version, description, content, post_history_content, prompt_id)
         )
         updated = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         return jsonify(dict(updated))
@@ -289,10 +325,15 @@ def import_system_prompt():
     """Create a paired prompt from an uploaded JSON file.
 
     Expects multipart upload with a ``file`` field whose contents parse as
-    ``{"name": str, "description": str, "content": str,
-    "post_history_content": str}``. ``description`` is optional.
-    Legacy system-only prompt JSON is accepted and gets the default
-    post-history template.
+    ``{"name": str, "version": str, "description": str, "content": str,
+    "post_history_content": str}``. ``version`` and ``description`` are
+    optional; a version must read as a number ("2", "2.1"). Legacy
+    system-only prompt JSON is accepted and gets the default post-history
+    template.
+
+    Name and version identify a prompt together: importing a newer edition of
+    one already installed keeps its own name and sits beside it, while the
+    same name at the same version is a duplicate and is refused with 409.
     """
     if not request.files or 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
@@ -312,14 +353,27 @@ def import_system_prompt():
     description = payload.get('description', '')
     if not isinstance(description, str):
         return jsonify({'error': '"description" must be a string'}), 400
+    version = payload.get('version', '')
+    if not isinstance(version, str):
+        return jsonify({'error': '"version" must be a string'}), 400
+    version = version.strip()
+    bad_version = _invalid_version(version)
+    if bad_version:
+        return bad_version
     raw_name = payload.get('name')
-    base_name = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else 'Imported Prompt'
+    name = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else 'Imported Prompt'
 
     with get_db() as conn:
-        name = _unique_name(conn, 'system_prompts', base_name, 'Imported Prompt')
+        if conn.execute(
+            'SELECT 1 FROM system_prompts WHERE name = ? AND version = ?', (name, version)
+        ).fetchone():
+            return jsonify({
+                'error': f'A prompt named "{name}" at that version already exists'
+            }), 409
         cur = conn.execute(
-            'INSERT INTO system_prompts (name, description, content, post_history_content) VALUES (?, ?, ?, ?)',
-            (name, description, content, post_history_content)
+            'INSERT INTO system_prompts (name, version, description, content, post_history_content) '
+            'VALUES (?, ?, ?, ?, ?)',
+            (name, version, description, content, post_history_content)
         )
         row = conn.execute(
             'SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)
@@ -329,16 +383,18 @@ def import_system_prompt():
 
 @settings_bp.route('/api/system-prompts/<int:prompt_id>/export', methods=['GET'])
 def export_system_prompt(prompt_id):
-    """Download a paired prompt as a {name, description, content, post_history_content} JSON file."""
+    """Download a paired prompt as a {name, version, description, content, post_history_content} JSON file."""
     with get_db() as conn:
         row = conn.execute(
-            'SELECT name, description, content, post_history_content FROM system_prompts WHERE id = ?', (prompt_id,)
+            'SELECT name, version, description, content, post_history_content '
+            'FROM system_prompts WHERE id = ?', (prompt_id,)
         ).fetchone()
         if not row:
             return not_found('System prompt')
 
     body = {
         'name': row['name'],
+        'version': row['version'],
         'description': row['description'],
         'content': row['content'],
         'post_history_content': row['post_history_content'],

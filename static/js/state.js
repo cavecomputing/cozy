@@ -121,6 +121,8 @@ export function initElements() {
         syspromptSelect:   document.getElementById('settings-sysprompt-select'),
         syspromptDescription: document.getElementById('settings-sysprompt-description'),
         syspromptDescriptionText: document.getElementById('settings-sysprompt-description-text'),
+        syspromptVersion:  document.getElementById('settings-sysprompt-version'),
+        promptMetaRow:     document.getElementById('settings-prompt-meta-row'),
         syspromptContent:  document.getElementById('settings-sysprompt-content'),
         syspromptNew:      document.getElementById('settings-sysprompt-new'),
         syspromptRename:   document.getElementById('settings-sysprompt-rename'),

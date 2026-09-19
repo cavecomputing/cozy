@@ -176,10 +176,25 @@ def seed_default_characters():
         )
 
 
-# Titles like "NanoBear v2.1": the standard house prompt. Anything with an
-# "Author" second word ("NanoBear Author v1") is a variant and never the
-# default, even when it sorts above every standard title.
+# Titles like "NanoBear": the standard house prompt. Anything with an "Author"
+# second word ("NanoBear Author") is a variant and never the default, however
+# it sorts or whatever version it carries.
 STANDARD_NANOBEAR_RE = re.compile(r'^NanoBear(?!\s+Author\b)')
+
+
+def version_key(version):
+    """Order two preset versions: "2.10" is above "2.2", blank below both.
+
+    Versions are numbers with at most one decimal part, so the two halves
+    compare as integers rather than as text — which is what retires the old
+    rule's caveat that "v10.0" sorted below "v2.1". Anything unparseable sorts
+    lowest instead of raising: the bundle is a nicety and must not stop startup.
+    """
+    major, _, minor = version.partition('.')
+    try:
+        return (int(major), int(minor or 0))
+    except ValueError:
+        return (-1, 0)
 
 
 def seed_default_prompts():
@@ -192,42 +207,42 @@ def seed_default_prompts():
     trade for the folder being the whole interface: drop a JSON file in and it
     appears on the next start, on new and existing installs alike.
 
-    A title is the *filename* minus .json, which is what makes a revised preset
-    a new file rather than an edit: an install holding "NanoBear v2.0" gains
-    "NanoBear v2.1" alongside it and the older row is left exactly as it is.
+    A title is the *filename* minus .json, and a preset is identified by that
+    title **together with its version** — the same pair the routes reject a
+    duplicate on. So a revision ships by bumping `version` inside the existing
+    file: an install holding "NanoBear" 2.1 gains "NanoBear" 2.2 beside it and
+    the older row is left exactly as it is. Editing a file without bumping its
+    version changes nothing on an install that already has that pair.
 
-    A title already present is skipped, never overwritten, so edits to a bundled
-    preset survive a restart. Renaming one does not — the original title is
-    missing again, and the bundled copy comes back beside it.
+    A title *and* version already present is skipped, never overwritten, so
+    edits to a bundled preset survive a restart. Renaming one does not — the
+    original pair is missing again, and the bundled copy comes back beside it.
 
-    On a fresh install the alphabetically greatest *standard NanoBear* title
+    On a fresh install the *standard NanoBear* carrying the greatest version
     also becomes the active prompt, which is how a new house version takes over
-    without a constant to maintain: "NanoBear v2.2" outranks "NanoBear v2.1" on
-    its own. An "Author" variant never wins, however it sorts, and with no
-    standard title in the bundle the default falls back to the alphabetically
-    greatest title overall. One caveat survives from the old rule: "NanoBear
-    v10.0" would sort *below* v2.1.
+    without a constant to maintain: bumping NanoBear.json to 2.2 is the whole
+    change. An "Author" variant never wins, whatever version it carries, and
+    with no standard title in the bundle the default falls back to the last
+    preset seeded.
     """
     if not os.path.isdir(shared.BUNDLED_PROMPTS_DIR):
         return
 
     with get_db() as conn:
         existing = {
-            r['name'] for r in
-            conn.execute('SELECT name FROM system_prompts').fetchall()
+            (r['name'], r['version']) for r in
+            conn.execute('SELECT name, version FROM system_prompts').fetchall()
         }
         # No prompts of the user's own means a fresh install, where the bundle
         # also decides which preset starts out active.
         fresh_install = not existing
-        default_id = None
-        nanobear_id = None
+        last_id = None
+        best_nanobear = None  # (version_key, id) of the greatest standard title
 
         for filename in sorted(os.listdir(shared.BUNDLED_PROMPTS_DIR)):
             if not filename.lower().endswith('.json') or filename.startswith('.'):
                 continue
             title = filename[:-len('.json')]
-            if title in existing:
-                continue
             source = os.path.join(shared.BUNDLED_PROMPTS_DIR, filename)
             try:
                 with open(source, encoding='utf-8') as handle:
@@ -237,29 +252,40 @@ def seed_default_prompts():
                 description = preset.get('description', '')
                 if not isinstance(description, str):
                     description = ''
+                version = preset.get('version', '')
+                if not isinstance(version, str):
+                    version = ''
             except (OSError, ValueError, KeyError, TypeError):
                 # A bundled preset is a nicety, not a reason to refuse to start.
                 # Log it and move on; the next start retries the file.
                 log.exception('Could not seed bundled prompt %s', filename)
                 continue
 
+            # Checked only once the version is in hand, since it is half the
+            # identity: the same title at a new version is a preset this
+            # install has not seen.
+            if (title, version) in existing:
+                continue
+
             cursor = conn.execute(
-                'INSERT INTO system_prompts (name, description, content, post_history_content) '
-                'VALUES (?, ?, ?, ?)',
-                (title, description, content, post_history),
+                'INSERT INTO system_prompts (name, version, description, content, post_history_content) '
+                'VALUES (?, ?, ?, ?, ?)',
+                (title, version, description, content, post_history),
             )
-            existing.add(title)
-            # Titles arrive in ascending order, so the last one to land is the
-            # greatest. That is the fresh-install default: "NanoBear v2.2"
-            # outranks "NanoBear v2.1" on its own, with nothing to bump here.
-            default_id = cursor.lastrowid
-            if STANDARD_NANOBEAR_RE.match(title):
-                nanobear_id = cursor.lastrowid
+            existing.add((title, version))
+            last_id = cursor.lastrowid
+            # The greatest version wins, not the last file read — filenames no
+            # longer carry the version, so their order says nothing about it.
+            key = version_key(version)
+            if STANDARD_NANOBEAR_RE.match(title) and (
+                best_nanobear is None or key > best_nanobear[0]
+            ):
+                best_nanobear = (key, cursor.lastrowid)
 
         # Left to itself the picker falls back to whichever prompt sorts
         # *first*, which is not necessarily a NanoBear. An existing install
         # already has a selection, and gaining presets must not move it.
-        default_id = nanobear_id or default_id
+        default_id = best_nanobear[1] if best_nanobear else last_id
         if fresh_install and default_id is not None:
             conn.execute(
                 "INSERT INTO settings (key, value) VALUES ('active_system_prompt', ?) "

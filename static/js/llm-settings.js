@@ -409,15 +409,24 @@ function applySettingsToUI(s) {
 // ── Advanced configuration gate ──────────────────────────────────────────
 // Surfaces hidden unless "Show advanced configuration" is checked in the
 // General tab: the Regex tab (nav item and page), the Prompt template
-// editors + Variables help (the prompt selector and description stay
-// visible, the description as read-only text), the Summaries Behavior
-// card, the Extra request parameters card, and the Lorebooks
+// editors + Variables help, the buttons that author a prompt, the Summaries
+// Behavior card, the Extra request parameters card, and the Lorebooks
 // global-overrides card.
+//
+// What survives on the Prompt page is what a reader needs: the picker, the
+// description as read-only text, and Import/export — someone handed a prompt
+// to try should not have to turn anything on first. New, Rename and Delete
+// only matter once you are authoring one, and the help modal is template
+// syntax, which has no editor to apply it to while the editors are hidden.
 export function applyAdvancedConfigurationVisibility() {
     const visible = Boolean(state.showAdvancedConfiguration);
     document.querySelectorAll(
         '.settings-section[data-section="prompt"] .prompt-vars-panel,'
         + ' .settings-section[data-section="prompt"] .prompt-section-right,'
+        + ' #settings-sysprompt-help,'
+        + ' #settings-sysprompt-new,'
+        + ' #settings-sysprompt-rename,'
+        + ' #settings-sysprompt-delete,'
         + ' #summary-behavior-card,'
         + ' #extra-params-card,'
         + ' #lorebook-overrides-card,'
@@ -425,9 +434,9 @@ export function applyAdvancedConfigurationVisibility() {
     ).forEach(node => { node.hidden = !visible; });
     // The basic-mode hint holds the editor's place while it is hidden.
     if (el.promptBasicHint) el.promptBasicHint.hidden = visible;
-    // The prompt description is plain text in basic mode, an editable
-    // field once advanced configuration is shown.
-    if (el.syspromptDescription) el.syspromptDescription.hidden = !visible;
+    // The prompt description is plain text in basic mode; the description and
+    // version fields become editable once advanced configuration is shown.
+    if (el.promptMetaRow) el.promptMetaRow.hidden = !visible;
     if (el.syspromptDescriptionText) el.syspromptDescriptionText.hidden = visible;
     // The Regex page itself still follows section switching: it is only
     // shown when advanced is on AND it is the current section.

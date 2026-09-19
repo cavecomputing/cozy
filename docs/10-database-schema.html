@@ -338,7 +338,7 @@
       <div class="facts">
         <span><b>11</b> tables</span>
         <span><b>3</b> indexes</span>
-        <span><b>12</b> migrations applied</span>
+        <span><b>13</b> migrations applied</span>
         <span><b>WAL</b> journal mode</span>
         <span><b>synchronous</b> = NORMAL</span>
         <span><b>foreign_keys</b> = ON per connection</span>
@@ -620,12 +620,16 @@
       <div class="table-head"><h2>system_prompts</h2><span class="chip chip-soft">paired templates</span></div>
       <p class="purpose">Each prompt is a pair: <code>content</code> goes in front of the chat,
         <code>post_history_content</code> after it. Bundled prompts are restored from
-        <code>default_prompts/</code> on every start, so a deleted one comes back and the filename is the title.</p>
+        <code>default_prompts/</code> on every start, so a deleted one comes back and the filename is the title,
+        with the edition in <code>version</code> — a revision is a version bump inside the existing file.
+        <b>Name and version identify a prompt together</b>: two editions of one prompt sit side by side, while the
+        same name at the same version is refused.</p>
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
           <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. No UNIQUE constraint — the routes reject a clash with 409 instead.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. No UNIQUE constraint — the routes reject a clash with 409 instead, on <b>name and version together</b>.</td></tr>
+          <tr><td class="c-name">version</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">A number, optionally with one decimal part — <code>2</code>, <code>2.1</code> — or blank. Never stores the <code>v</code>; the picker's pill adds it. Editable only with advanced configuration on.</td></tr>
           <tr><td class="c-name">description</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">One line under the selector.</td></tr>
           <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">The system template: <code>{{variable}}</code> plus <code>{{#var}}…{{/var}}</code> sections.</td></tr>
           <tr><td class="c-name">post_history_content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Injected after the history; travels with its partner through import/export.</td></tr>
@@ -636,6 +640,7 @@
       <details><summary>CREATE TABLE</summary><pre>CREATE TABLE system_prompts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT NOT NULL,
+    version    TEXT NOT NULL DEFAULT '',
     description TEXT NOT NULL DEFAULT '',
     content    TEXT NOT NULL DEFAULT '',
     post_history_content TEXT NOT NULL DEFAULT '',
@@ -694,7 +699,7 @@
     </section>
 
     <section id="ledger">
-      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–12</span></div>
+      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–13</span></div>
       <p class="purpose">Ordered, and the order is the point: each runs once, in a serialized transaction, and a
         shipped entry is never renumbered, renamed or reordered.</p>
       <ol class="ledger">
@@ -710,6 +715,7 @@
         <li><span class="v">10</span><span class="n">delete_summary_compress_batch</span><span class="d">Drop the retired summary compression setting.</span></li>
         <li><span class="v">11</span><span class="n">delete_default_prompts_seeded</span><span class="d">Drop the retired one-shot flag for prompt seeding.</span></li>
         <li><span class="v">12</span><span class="n">backfill_stock_prompt_descriptions</span><span class="d">Fill blank descriptions on bundled NanoBear prompts; user-set text untouched.</span></li>
+        <li><span class="v">13</span><span class="n">backfill_stock_prompt_versions</span><span class="d">Set <code>version</code> on the two bundled NanoBear prompts that shipped before the column.</span></li>
       </ol>
       <p class="note">Migrations 3–7 are the last of their kind. The house prompt now ships as a file and a
         revision arrives as a <b>new file</b>, so no future release rewrites a prompt row.</p>
@@ -739,7 +745,7 @@
     </section>
 
     <section id="version">
-      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 12</span></div>
+      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 13</span></div>
       <div class="prose">
         <p>There is no separate version number. The highest entry in the migration registry <strong>is</strong> the
           schema this build understands, and the highest row in a database's ledger is the schema that database is
@@ -756,7 +762,7 @@
         <code>thumbs/</code> cache is keyed by image content and rebuilt on demand, so it is left out.</p>
     </section>
 
-    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 12</footer>
+    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 13</footer>
   </main>
 </div>
 

@@ -461,7 +461,7 @@
                         <div class="settings-section-body prompt-section-body">
                             <div class="prompt-section-left">
                                 <div class="prompt-section-controls settings-card">
-                                    <div class="prompt-select-row">
+                                    <div class="prompt-select-row prompt-picker">
                                         <select id="settings-sysprompt-select" class="form-input settings-select" aria-label="Prompt template"></select>
                                         <button id="settings-sysprompt-new" class="icon-btn" title="New prompt" aria-label="New prompt">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -488,7 +488,10 @@
                                         <input type="file" id="settings-sysprompt-import-file" accept="application/json,.json" hidden>
                                     </div>
                                     <p id="settings-sysprompt-description-text" class="prompt-description-text"></p>
-                                    <input id="settings-sysprompt-description" type="text" class="form-input prompt-description-input" placeholder="Add a short description…" aria-label="Prompt description" autocomplete="off" hidden>
+                                    <div id="settings-prompt-meta-row" class="prompt-meta-row" hidden>
+                                        <input id="settings-sysprompt-description" type="text" class="form-input prompt-description-input" placeholder="Add a short description…" aria-label="Prompt description" autocomplete="off">
+                                        <input id="settings-sysprompt-version" type="text" class="form-input prompt-version-input" placeholder="Version" aria-label="Prompt version (a number like 2 or 2.1)" title="A number like 2 or 2.1 — the “v” is added for you" inputmode="decimal" autocomplete="off" spellcheck="false">
+                                    </div>
                                 </div>
                             </div>
                             <div id="settings-prompt-basic-hint" class="prompt-basic-hint" hidden>

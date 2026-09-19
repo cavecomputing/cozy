@@ -2478,10 +2478,59 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .prompt-description-input {
     font-size: var(--text-md);
 }
+/* Description and version side by side, editable in advanced mode only. */
+.prompt-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.prompt-meta-row .prompt-description-input {
+    flex: 1;
+    min-width: 0;
+}
+/* Scoped to the row on purpose: .form-input's own `width: 100%` weighs the
+   same and sits further down the file, so a bare .prompt-version-input would
+   lose the width and stretch across the row. */
+.prompt-meta-row .prompt-version-input {
+    flex: none;
+    width: 7rem;
+}
+/* Name plain, version as a pill, in both the trigger and the open menu. */
+.prompt-picker :is(.cozy-select-value, .cozy-select-option) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+.prompt-picker .cozy-select-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.prompt-picker .cozy-select-badge {
+    flex: none;
+    margin-left: auto;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    color: var(--fg-cool);
+    background: var(--surface-inset);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
 /* Right-align the import/export menu so it doesn't overflow the row's edge */
 .prompt-select-row .export-menu {
     left: auto;
     right: 0;
+}
+/* Basic mode hides New/Rename/Delete, leaving Import/export at the head of the
+   row — where right-aligning a menu wider than its button hangs it off the
+   card. Keyed to those buttons being hidden, since they stay in the DOM and a
+   sibling selector would still see them. */
+.prompt-select-row:has(#settings-sysprompt-new[hidden]) .export-menu {
+    left: 0;
+    right: auto;
 }
 .prompt-header-actions {
     display: flex;

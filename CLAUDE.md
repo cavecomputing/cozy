@@ -145,13 +145,17 @@ and never look again; prompts do not.
 - Prompts are the exception to every line above: no flag, and **restored on every start**. Anything
   in [default_prompts/](default_prompts/) missing from `system_prompts` is reinserted, so the
   directory is the source of truth and a deleted preset comes back — removing one means deleting
-  its file. A title is the **filename**, so shipping a revised preset means adding
-  `NanoBear v2.1.json`, never editing an existing file. An existing title is skipped, never
-  overwritten, so user edits survive. A fresh install activates the **alphabetically greatest
-  standard-NanoBear** title (`STANDARD_NANOBEAR_RE` in [cozy/defaults.py](cozy/defaults.py),
-  mirrored in [system-prompts.js](static/js/system-prompts.js)), so a new house version takes over
-  by sorting after the old one. An `Author` variant never wins, and with no standard title the
-  default falls back to the greatest title overall. See the prompt section of
+  its file. A title is the **filename**, and a preset is identified by that title **together with
+  its `version`** — the same pair `/api/system-prompts` rejects a duplicate on. So shipping a
+  revision means **bumping `version` inside the existing file**, not adding a new one: an install
+  holding `NanoBear` 2.1 gains `NanoBear` 2.2 beside it. An existing title *at that version* is
+  skipped, never overwritten, so user edits survive — and editing a file without bumping its
+  version reaches nobody who already has it. A fresh install activates the **standard NanoBear
+  carrying the greatest version** (`STANDARD_NANOBEAR_RE` in [cozy/defaults.py](cozy/defaults.py),
+  mirrored in [system-prompts.js](static/js/system-prompts.js)), compared numerically by
+  `version_key()` so `2.10` outranks `2.2`. An `Author` variant never wins, and with no standard
+  title the default falls back to the last preset seeded. A version is a number with at most one
+  decimal part and never carries the `v`; the picker's badge adds that. See the prompt section of
   [docs/10-database-schema.md](docs/10-database-schema.md).
 
 A seeded character or regex preset is ordinary user data afterwards — deleting it keeps it deleted.

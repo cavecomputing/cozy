@@ -181,6 +181,26 @@ def _backfill_stock_prompt_descriptions(conn):
         )
 
 
+def _backfill_stock_prompt_versions(conn):
+    """Set the version on the bundled prompts that shipped before the column.
+
+    The titles and their versions are written out here rather than read from
+    default_prompts/, so what this migration does stays fixed as the bundle
+    moves on — these are the two presets that existed when the column was
+    added, and a later NanoBear arrives as a new file carrying its own version.
+
+    Nothing guards on the current value: the ADD COLUMN block in init_db()
+    runs first and leaves every row at '', so there is no user-set version
+    to overwrite. A row the user edited keeps its edits — only the version
+    of the preset it descends from is filled in.
+    """
+    for title, version in (('NanoBear v2.1', '2.1'), ('NanoBear Author v2.1', '2.1')):
+        conn.execute(
+            'UPDATE system_prompts SET version=? WHERE name=?',
+            (version, title),
+        )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -194,6 +214,7 @@ MIGRATIONS = (
     (10, 'delete_summary_compress_batch', _delete_summary_compress_batch),
     (11, 'delete_default_prompts_seeded', _delete_default_prompts_seeded),
     (12, 'backfill_stock_prompt_descriptions', _backfill_stock_prompt_descriptions),
+    (13, 'backfill_stock_prompt_versions', _backfill_stock_prompt_versions),
 )
 
 
@@ -310,6 +331,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS system_prompts (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 name       TEXT NOT NULL,
+                version    TEXT NOT NULL DEFAULT '',
                 description TEXT NOT NULL DEFAULT '',
                 content    TEXT NOT NULL DEFAULT '',
                 post_history_content TEXT NOT NULL DEFAULT '',
@@ -391,6 +413,8 @@ def init_db():
             conn.execute("ALTER TABLE api_presets ADD COLUMN settings_json TEXT NOT NULL DEFAULT '{}'")
 
         system_prompt_cols = [c[1] for c in conn.execute('PRAGMA table_info(system_prompts)').fetchall()]
+        if system_prompt_cols and 'version' not in system_prompt_cols:
+            conn.execute("ALTER TABLE system_prompts ADD COLUMN version TEXT NOT NULL DEFAULT ''")
         if system_prompt_cols and 'description' not in system_prompt_cols:
             conn.execute("ALTER TABLE system_prompts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
         if system_prompt_cols and 'post_history_content' not in system_prompt_cols:

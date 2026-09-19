@@ -110,7 +110,7 @@ class TestSystemPrompts:
         names = {p['name'] for p in prompts}
         assert set(bundled_prompt_titles()) <= names
 
-        house = next(p for p in prompts if p['name'] == 'NanoBear v2.1')
+        house = next(p for p in prompts if p['name'] == 'NanoBear')
         # The Prompt Builder variables the character editor checks against.
         assert '{{description}}' in house['content']
         assert '{{author_note}}' in house['content']
@@ -178,6 +178,7 @@ class TestSystemPrompts:
     def test_export_prompt_round_trips_through_import(self, client):
         created = client.post('/api/system-prompts', json={
             'name': 'Roundtrip',
+            'version': '1.4',
             'description': 'A short note about this prompt.',
             'content': 'You are {{char}}. End.',
             'post_history_content': '((OOC: End with motion.))',
@@ -191,20 +192,33 @@ class TestSystemPrompts:
         body = json.loads(r.data.decode('utf-8'))
         assert body == {
             'name': 'Roundtrip',
+            'version': '1.4',
             'description': 'A short note about this prompt.',
             'content': 'You are {{char}}. End.',
             'post_history_content': '((OOC: End with motion.))',
         }
 
-        # Re-import the same payload — name collision should suffix " (2)"
+        # Re-importing the same name at the same version is a duplicate.
+        exported = r.data
         r = client.post(
             '/api/system-prompts/import',
-            data={'file': (BytesIO(r.data), 'roundtrip.json')},
+            data={'file': (BytesIO(exported), 'roundtrip.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 409
+
+        # Import it under a name that is free — every field survives the trip.
+        payload = json.loads(exported.decode('utf-8'))
+        payload['name'] = 'Roundtrip Copy'
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (BytesIO(json.dumps(payload).encode('utf-8')), 'roundtrip.json')},
             content_type='multipart/form-data',
         )
         assert r.status_code == 201
         imported = r.get_json()
-        assert imported['name'] == 'Roundtrip (2)'
+        assert imported['name'] == 'Roundtrip Copy'
+        assert imported['version'] == '1.4'
         assert imported['description'] == 'A short note about this prompt.'
         assert imported['content'] == 'You are {{char}}. End.'
         assert imported['post_history_content'] == '((OOC: End with motion.))'
@@ -224,6 +238,87 @@ class TestSystemPrompts:
         # Omitted on update means preserved, not cleared.
         r = client.put(f'/api/system-prompts/{created["id"]}', json={'content': 'Edited.'})
         assert r.get_json()['description'] == 'Hello.'
+
+    def test_prompt_version_defaults_to_empty(self, client):
+        created = client.post('/api/system-prompts', json={'name': 'NoVer'}).get_json()
+        assert created['version'] == ''
+        prompts = client.get('/api/system-prompts').get_json()
+        assert next(p for p in prompts if p['id'] == created['id'])['version'] == ''
+
+    def test_prompt_version_must_read_as_a_number(self, client):
+        # The UI prepends the "v" for the badge, so a stored one would double up.
+        for bad in ('v2.1', '2.1.3', '2.', 'two', '-1', '2 .1'):
+            r = client.post('/api/system-prompts', json={'name': f'Bad {bad}', 'version': bad})
+            assert r.status_code == 400, bad
+            assert 'no "v"' in r.get_json()['error']
+        for good in ('2', '2.1', '10', '0.9', '2.10'):
+            r = client.post('/api/system-prompts', json={'name': f'Good {good}', 'version': good})
+            assert r.status_code == 201, good
+            assert r.get_json()['version'] == good
+
+    def test_same_prompt_at_two_versions_lives_side_by_side(self, client):
+        first = client.post(
+            '/api/system-prompts', json={'name': 'NanoBear', 'version': '2.1'})
+        second = client.post(
+            '/api/system-prompts', json={'name': 'NanoBear', 'version': '2.2'})
+        assert first.status_code == 201
+        assert second.status_code == 201
+        assert second.get_json()['name'] == 'NanoBear'
+        # Same name *and* version is still a clash.
+        dupe = client.post('/api/system-prompts', json={'name': 'NanoBear', 'version': '2.2'})
+        assert dupe.status_code == 409
+        # And so is an update that would collide with the other edition.
+        r = client.put(f'/api/system-prompts/{second.get_json()["id"]}', json={'version': '2.1'})
+        assert r.status_code == 409
+        # Saving a row without moving it is not a clash with itself.
+        r = client.put(f'/api/system-prompts/{second.get_json()["id"]}',
+                       json={'version': '2.2', 'content': 'edited'})
+        assert r.status_code == 200
+
+    def test_importing_another_version_keeps_the_name(self, client):
+        client.post('/api/system-prompts', json={'name': 'NanoBear', 'version': '2.1'})
+        payload = b'{"name":"NanoBear","version":"2.2","content":"x"}'
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (BytesIO(payload), 'nb.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        assert r.get_json()['name'] == 'NanoBear'
+        # The same name at the same version is a duplicate, not a second copy.
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (BytesIO(payload), 'nb.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 409
+        assert 'already exists' in r.get_json()['error']
+
+    def test_update_prompt_version(self, client):
+        created = client.post('/api/system-prompts', json={'name': 'Ver'}).get_json()
+        r = client.put(f'/api/system-prompts/{created["id"]}', json={'version': ' 3.0 '})
+        assert r.status_code == 200
+        # Surrounding whitespace would show up inside the dropdown's badge.
+        assert r.get_json()['version'] == '3.0'
+        # Omitted on update means preserved, not cleared.
+        r = client.put(f'/api/system-prompts/{created["id"]}', json={'content': 'Edited.'})
+        assert r.get_json()['version'] == '3.0'
+        # An explicit empty string does clear it.
+        r = client.put(f'/api/system-prompts/{created["id"]}', json={'version': ''})
+        assert r.get_json()['version'] == ''
+
+    def test_prompt_version_must_be_a_string(self, client):
+        r = client.post('/api/system-prompts', json={'name': 'BadVer', 'version': 2.1})
+        assert r.status_code == 400
+        created = client.post('/api/system-prompts', json={'name': 'BadVerUpdate'}).get_json()
+        r = client.put(f'/api/system-prompts/{created["id"]}', json={'version': ['x']})
+        assert r.status_code == 400
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (BytesIO(b'{"name":"BadVerImport","version":2.1}'), 'bad.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 400
 
     def test_prompt_description_must_be_a_string(self, client):
         r = client.post('/api/system-prompts', json={'name': 'Bad', 'description': 5})

@@ -27,7 +27,7 @@ import {
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, renameSystemPrompt,
     deleteSystemPrompt,
-    updateSystemPromptContent, syncActivePromptFromEditors,
+    updateSystemPromptContent, syncActivePromptFromEditors, normalizeVersionEditor,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
     exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, initPromptVarsPanel,
     toggleRenderedPrompts, closeRenderedPrompts,
@@ -575,13 +575,19 @@ function bindSettingsHandlers() {
     };
     el.syspromptContent?.addEventListener('input', handleSystemPromptInput);
     el.syspromptContent?.addEventListener('blur', persistSystemPrompt);
-    // Description edits reuse the same debounced autosave, without
-    // re-running the context meter (the text doesn't affect the request).
-    el.syspromptDescription?.addEventListener('input', () => {
+    // Description and version edits reuse the same debounced autosave, without
+    // re-running the context meter (neither affects the request).
+    const handlePromptMetaInput = () => {
         syncActivePromptFromEditors();
         saveSystemPromptDebounced();
-    });
+    };
+    el.syspromptDescription?.addEventListener('input', handlePromptMetaInput);
     el.syspromptDescription?.addEventListener('blur', persistSystemPrompt);
+    el.syspromptVersion?.addEventListener('input', handlePromptMetaInput);
+    el.syspromptVersion?.addEventListener('blur', async () => {
+        await persistSystemPrompt();
+        normalizeVersionEditor();
+    });
     el.postHistoryContent?.addEventListener('input', handleSystemPromptInput);
     el.postHistoryContent?.addEventListener('blur', persistSystemPrompt);
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
