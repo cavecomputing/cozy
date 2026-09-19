@@ -5,7 +5,7 @@ import { exportChat } from './export.js';
 import { clearDraft } from './drafts.js';
 import { regenerateLastAssistantMessage, handleSwipeAction } from './messages.js';
 import { jumpToContextBoundary, setContextMeterVisible } from './context-meter.js';
-import { matchPresetByName } from './preset-match.js';
+import { matchPresetByName, labelPresets } from './preset-match.js';
 import { activatePreset } from './llm-settings.js';
 import { selectSystemPrompt } from './system-prompts.js';
 
@@ -19,7 +19,7 @@ const COMMANDS = [
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
     { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
     { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
-    { name: '/prompt', description: 'Switch prompt preset: /prompt <name>', run: switchPromptPreset },
+    { name: '/prompt', description: 'Switch prompt preset: /prompt <name> [version]', run: switchPromptPreset },
     { name: '/api',    description: 'Switch API preset: /api <name>', run: switchApiPreset },
 ];
 
@@ -80,13 +80,16 @@ function presetSuggestions(value) {
     const source = key === '/prompt' ? state.systemPrompts : state.apiPresets;
     const run = key === '/prompt' ? switchPromptPreset : switchApiPreset;
     const kind = key === '/prompt' ? 'Prompt' : 'API';
-    return source
-        .filter(p => typeof p?.name === 'string' && p.name.toLowerCase().startsWith(partial))
+    // Labels qualify a repeated name with its version, and a label is itself a
+    // valid query — so each edition gets its own row that selects that edition.
+    const named = source.filter(p => typeof p?.name === 'string');
+    return labelPresets(named)
+        .filter(label => label.toLowerCase().startsWith(partial))
         .slice(0, 8)
-        .map(p => ({
-            name: `${key} ${p.name}`,
+        .map(label => ({
+            name: `${key} ${label}`,
             description: `Switch ${kind.toLowerCase()} preset`,
-            args: p.name,
+            args: label,
             run,
         }));
 }
@@ -248,7 +251,7 @@ function candidateNames(candidates) {
 }
 
 async function switchPromptPreset(args) {
-    const { preset, error, candidates } = matchPresetByName(state.systemPrompts, args);
+    const { preset, label, error, candidates } = matchPresetByName(state.systemPrompts, args);
     if (!preset) {
         if (candidates.length === 0) return showToast('No prompt presets yet — create one in Settings → Prompt');
         const active = state.systemPrompts.find(p => p.id === state.activeSystemPromptId);
@@ -259,7 +262,7 @@ async function switchPromptPreset(args) {
     }
     await selectSystemPrompt(preset.id);
     if (el.syspromptSelect) el.syspromptSelect.value = String(preset.id);
-    showToast(`Prompt preset: ${preset.name}`, 'success');
+    showToast(`Prompt preset: ${label}`, 'success');
 }
 
 async function switchApiPreset(args) {

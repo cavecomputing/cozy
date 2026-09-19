@@ -178,12 +178,16 @@ you want.
 - **Prompt template** — **Settings → Prompt** holds the template that
   combines the character, your persona, lorebook entries, and chat history
   into the text the AI receives. Cozy includes several ready-made presets.
-  The eye icon on **Settings → API** shows exactly what will be sent.
-  **+** copies the selected preset so you can edit the copy and leave the
-  original untouched, and **Rename** renames the selected preset. Do not
-  rename a bundled preset: Cozy restores the original under its old name
-  on the next start, because the files in `default_prompts/` are the
-  source of truth for those.
+  The eye icon on **Settings → API** shows exactly what will be sent. The
+  pill beside a preset's name is its version, and two versions of the same
+  preset can sit side by side once an update ships.
+  **Import/export** is always available, so a preset someone shares with you
+  can be loaded straight in. The buttons that author a preset — **+**, which
+  copies the selected one so you can edit the copy, **Rename** and
+  **Delete** — appear once **Show advanced configuration** is ticked in
+  **Settings → General**. Do not rename a bundled preset: Cozy restores the
+  original under its old name on the next start, because the files in
+  `default_prompts/` are the source of truth for those.
 - **Theme** — **Settings → General → Appearance** changes the colors. This
   choice is stored in the browser, so each browser can have its own theme.
   You can also add your own theme file to `data/themes/`; see
@@ -192,7 +196,9 @@ you want.
   commands. `/prompt <name>` and `/api <name>` switch prompt and API
   presets without opening Settings. Keep typing after the space and
   matching presets are offered. Typed with no name, they show what is
-  active and what is available.
+  active and what is available. Where two versions of the same prompt are
+  installed, `/prompt <name>` picks the newer one and
+  `/prompt <name> <version>` — `/prompt NanoBear 2.1` — picks the exact one.
 
 On a phone, Settings opens as a list. Tap a section to open its page, and
 tap the back arrow to return to the list. In the Prompt editor,

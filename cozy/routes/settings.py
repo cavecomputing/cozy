@@ -2,7 +2,6 @@
 
 import json
 import os
-import re
 import shutil
 import sqlite3
 import stat
@@ -14,7 +13,9 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, Response
 
 from cozy import shared
-from cozy.defaults import DEFAULT_POST_HISTORY_TEMPLATE, seed_default_prompts
+from cozy.defaults import (
+    DEFAULT_POST_HISTORY_TEMPLATE, VERSION_RE, seed_default_prompts, version_key,
+)
 from cozy.schema import MIGRATIONS, init_db
 from cozy.shared import get_db, json_download, not_found, safe_download_name
 
@@ -180,11 +181,6 @@ def _unique_name(conn, table, base, fallback):
     return candidate
 
 
-# A version is a plain number, optionally with one decimal part: "2", "2.1".
-# No "v" — the UI prepends that for the badge, so storing one would double it.
-VERSION_RE = re.compile(r'^\d+(?:\.\d+)?$')
-
-
 def _invalid_version(version):
     """The 400 response for a malformed version, or None when it is fine."""
     if version == '' or VERSION_RE.match(version):
@@ -227,11 +223,23 @@ def write_settings():
 
 # ── System prompts CRUD ────────────────────────────────────────────────────
 
+def _prompt_order(prompt):
+    """Group a prompt's editions together, newest first.
+
+    Sorted here rather than in SQL because `version` is TEXT, where "2.10"
+    would rank below "2.2". `created_at` breaks a tie between two rows sharing
+    a name and a version, which only an old database can hold — the routes
+    reject that pair now.
+    """
+    major, minor = version_key(prompt['version'])
+    return (prompt['name'].lower(), -major, -minor, prompt['created_at'] or '')
+
+
 @settings_bp.route('/api/system-prompts', methods=['GET'])
 def list_system_prompts():
     with get_db() as conn:
-        rows = conn.execute('SELECT * FROM system_prompts ORDER BY created_at ASC').fetchall()
-        return jsonify([dict(r) for r in rows])
+        rows = conn.execute('SELECT * FROM system_prompts').fetchall()
+        return jsonify(sorted((dict(r) for r in rows), key=_prompt_order))
 
 
 @settings_bp.route('/api/system-prompts', methods=['POST'])
@@ -399,7 +407,15 @@ def export_system_prompt(prompt_id):
         'content': row['content'],
         'post_history_content': row['post_history_content'],
     }
-    return json_download(body, f"{safe_download_name(row['name'], 'prompt')}.json")
+    # Two editions of one prompt would otherwise land in a downloads folder
+    # under the same filename, where the second silently becomes "… (1)".
+    # Appended after sanitizing, because safe_download_name() drops the dot —
+    # a version is digits and at most one dot, so it carries nothing the
+    # quoted Content-Disposition header needs protecting from.
+    stem = safe_download_name(row['name'], 'prompt')
+    if VERSION_RE.match(row['version'] or ''):
+        stem = f"{stem} {row['version']}"
+    return json_download(body, f'{stem}.json')
 
 
 # ── API Presets CRUD ──────────────────────────────────────────────────────

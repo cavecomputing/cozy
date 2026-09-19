@@ -116,6 +116,34 @@ class TestSystemPrompts:
         assert '{{author_note}}' in house['content']
         assert house['post_history_content'].strip()
 
+    def test_list_groups_editions_by_name_newest_first(self, client):
+        # Inserted deliberately out of order, the way an upgrade lands them:
+        # the seeder appends new editions after every existing row.
+        for name, version in (
+            ('NanoBear', '2.1'), ('NanoBear Author', '2.1'),
+            ('NanoBear', '2.10'), ('NanoBear Author', '2.2'),
+            ('NanoBear', '2.2'), ('Mine', ''),
+        ):
+            assert client.post(
+                '/api/system-prompts',
+                json={'name': name, 'version': version, 'content': 'x'},
+            ).status_code == 201
+
+        listed = [
+            (p['name'], p['version'])
+            for p in client.get('/api/system-prompts').get_json()
+        ]
+        # Names group alphabetically; inside a group the version descends, and
+        # "2.10" outranks "2.2" because the halves compare as numbers.
+        assert listed == [
+            ('Mine', ''),
+            ('NanoBear', '2.10'),
+            ('NanoBear', '2.2'),
+            ('NanoBear', '2.1'),
+            ('NanoBear Author', '2.2'),
+            ('NanoBear Author', '2.1'),
+        ]
+
     def test_create_prompt(self, client):
         r = client.post('/api/system-prompts', json={
             'name': 'Custom RP',
@@ -238,6 +266,23 @@ class TestSystemPrompts:
         # Omitted on update means preserved, not cleared.
         r = client.put(f'/api/system-prompts/{created["id"]}', json={'content': 'Edited.'})
         assert r.get_json()['description'] == 'Hello.'
+
+    def test_export_filename_carries_the_version(self, client):
+        # Two editions otherwise download as the same "NanoBear.json", where
+        # the browser quietly renames the second.
+        created = client.post('/api/system-prompts', json={
+            'name': 'NanoBear', 'version': '2.1', 'content': 'x',
+        }).get_json()
+        r = client.get(f'/api/system-prompts/{created["id"]}/export')
+        assert 'filename="NanoBear 2.1.json"' in r.headers['Content-Disposition']
+
+        # The dot survives: safe_download_name() would strip it, so the version
+        # is appended after sanitizing rather than passed through it.
+        plain = client.post('/api/system-prompts', json={
+            'name': 'Mine', 'content': 'x',
+        }).get_json()
+        r = client.get(f'/api/system-prompts/{plain["id"]}/export')
+        assert 'filename="Mine.json"' in r.headers['Content-Disposition']
 
     def test_prompt_version_defaults_to_empty(self, client):
         created = client.post('/api/system-prompts', json={'name': 'NoVer'}).get_json()

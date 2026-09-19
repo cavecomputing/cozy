@@ -4,14 +4,15 @@ import { saveLLMSettings } from './llm-settings.js';
 import { downloadUrl, sanitize, showToast, copyText, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { previewChatPayload, previewRenderedTemplates } from './request-builder.js';
+import { newestPreset } from './preset-match.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAIRED PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Standard house prompt ("NanoBear v2.1"); an "Author" second word
-// ("NanoBear Author v1") is a variant, never the default. Mirrors
-// STANDARD_NANOBEAR_RE in cozy/defaults.py.
+// Standard house prompt ("NanoBear"); an "Author" second word ("NanoBear
+// Author") is a variant, never the default. Mirrors STANDARD_NANOBEAR_RE in
+// cozy/defaults.py.
 const STANDARD_NANOBEAR_RE = /^NanoBear(?!\s+Author\b)/;
 
 // A version is a plain number, optionally with one decimal part: "2", "2.1".
@@ -20,10 +21,11 @@ const STANDARD_NANOBEAR_RE = /^NanoBear(?!\s+Author\b)/;
 const VERSION_RE = /^\d+(?:\.\d+)?$/;
 
 function defaultPromptId() {
-    const matches = state.systemPrompts
-        .filter(p => STANDARD_NANOBEAR_RE.test(p.name || ''))
-        .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-    return (matches.length ? matches[matches.length - 1] : state.systemPrompts[0]).id;
+    // The greatest version among standard NanoBears, mirroring what
+    // seed_default_prompts() activates on a fresh install. Picking by name
+    // would be arbitrary now that every edition shares one.
+    const matches = state.systemPrompts.filter(p => STANDARD_NANOBEAR_RE.test(p.name || ''));
+    return (matches.length ? newestPreset(matches) : state.systemPrompts[0]).id;
 }
 
 function activePrompt() {
@@ -167,9 +169,12 @@ export async function createSystemPrompt() {
     try {
         const created = await API.createSystemPrompt({
             name: name.trim(),
+            // The version is deliberately not copied: it belongs to the
+            // release the fork came from, not to the prompt you are now
+            // writing, and carrying it over would claim a number someone
+            // else's updates own.
             ...(source ? {
                 description: source.description || '',
-                version: source.version || '',
                 content: source.content || '',
                 post_history_content: source.post_history_content || '',
             } : {}),

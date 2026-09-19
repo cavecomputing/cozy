@@ -182,6 +182,12 @@ def seed_default_characters():
 STANDARD_NANOBEAR_RE = re.compile(r'^NanoBear(?!\s+Author\b)')
 
 
+# A version is a plain number, optionally with one decimal part: "2", "2.1".
+# Shared with the routes, which reject anything else, and mirrored in
+# static/js/system-prompts.js. Never holds the "v" — the picker's badge adds it.
+VERSION_RE = re.compile(r'^\d+(?:\.\d+)?$')
+
+
 def version_key(version):
     """Order two preset versions: "2.10" is above "2.2", blank below both.
 
@@ -253,7 +259,16 @@ def seed_default_prompts():
                 if not isinstance(description, str):
                     description = ''
                 version = preset.get('version', '')
-                if not isinstance(version, str):
+                # Anything the routes would reject is dropped rather than
+                # stored: a bundled file is not validated input, and a bad
+                # version would reach the picker's badge and the export
+                # filename. Seeding blank is the same as shipping none.
+                if not isinstance(version, str) or not VERSION_RE.match(version):
+                    if version:
+                        log.warning(
+                            'Ignoring malformed version %r in bundled prompt %s',
+                            version, filename,
+                        )
                     version = ''
             except (OSError, ValueError, KeyError, TypeError):
                 # A bundled preset is a nicety, not a reason to refuse to start.

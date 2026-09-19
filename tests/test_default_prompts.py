@@ -137,6 +137,22 @@ class TestSeeding:
             ).fetchone()
         assert row is not None and row['version'] == ''
 
+    def test_a_malformed_version_in_a_bundle_file_seeds_blank(self, tmp_path):
+        # default_prompts/ is a directory anyone can drop a file into, so it is
+        # not validated input. A "v" would otherwise reach the picker's badge
+        # as "vv2.1" and the export filename.
+        _seed_custom_bundle(tmp_path, {
+            'Bad.json': _preset_file('Bad', version='v2.1'),
+            'Worse.json': _preset_file('Worse', version='2.1.3'),
+            'Good.json': _preset_file('Good', version='2.1'),
+        })
+        with shared.get_db() as conn:
+            rows = {
+                r['name']: r['version'] for r in
+                conn.execute('SELECT name, version FROM system_prompts').fetchall()
+            }
+        assert rows == {'Bad': '', 'Worse': '', 'Good': '2.1'}
+
     def test_every_bundled_preset_carries_a_description(self):
         # The description is what the Prompt page shows under the picker, so a
         # bundled preset without one ships a blank line there.
