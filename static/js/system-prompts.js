@@ -2,7 +2,7 @@ import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
 import { downloadUrl, sanitize, showToast, copyText, flashSettingsSavedTick } from './utils.js';
-import { confirmDialog } from './confirm.js';
+import { confirmDialog, promptDialog } from './confirm.js';
 import { previewChatPayload, previewRenderedTemplates } from './request-builder.js';
 import { newestPreset } from './preset-match.js';
 
@@ -161,7 +161,7 @@ export async function selectSystemPrompt(id) {
 }
 
 export async function createSystemPrompt() {
-    const name = prompt('New prompt name:');
+    const name = await promptDialog({ title: 'New prompt', confirmLabel: 'Create' });
     if (!name || !name.trim()) return;
     // A new prompt starts as a copy of the selected one, editors included, so
     // a template you have been working on can be forked without retyping it.
@@ -192,7 +192,9 @@ export async function createSystemPrompt() {
 export async function renameSystemPrompt() {
     if (!state.activeSystemPromptId) return;
     const active = activePrompt();
-    const name = prompt('Prompt name:', active?.name || '');
+    const name = await promptDialog({
+        title: 'Rename prompt', value: active?.name || '', confirmLabel: 'Rename',
+    });
     if (!name || !name.trim() || name.trim() === active?.name) return;
     try {
         await API.updateSystemPrompt(state.activeSystemPromptId, { name: name.trim() });

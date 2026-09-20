@@ -2,7 +2,7 @@ import { state, el } from './state.js';
 import { loadSamplerSettings, updateContextSizeWarning, SAMPLER_FIELDS } from './sampler.js';
 import { API } from './api.js';
 import { showToast, withBusy, flashSettingsSavedTick } from './utils.js';
-import { confirmDialog } from './confirm.js';
+import { confirmDialog, promptDialog } from './confirm.js';
 
 const MODEL_SEARCH_DEBOUNCE_MS = 250;
 const SETTINGS_SAVE_DEBOUNCE_MS = 500;
@@ -491,7 +491,7 @@ function collectPresetSettings() {
 }
 
 export async function createNewPreset() {
-    const name = prompt('Preset name:');
+    const name = await promptDialog({ title: 'New API preset', confirmLabel: 'Create' });
     if (!name || !name.trim()) return;
     try {
         await flushLLMSettingsSave({ strict: true });
@@ -515,7 +515,9 @@ export async function renamePreset() {
     const id = el.apiPreset?.value;
     if (!id) return;
     const preset = state.apiPresets.find(p => String(p.id) === id);
-    const name = prompt('Preset name:', preset?.name || '');
+    const name = await promptDialog({
+        title: 'Rename preset', value: preset?.name || '', confirmLabel: 'Rename',
+    });
     if (!name || !name.trim() || name.trim() === preset?.name) return;
     try {
         await flushLLMSettingsSave({ strict: true });

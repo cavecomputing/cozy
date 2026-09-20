@@ -4477,6 +4477,11 @@ input[type="checkbox"]:checked::after {
 
 .confirm-message[hidden] { display: none; }
 
+/* The prompt field. .form-input sets `display: block`, which would win over
+   the hidden attribute, so confirm mode has to hide it explicitly. */
+.confirm-input { margin-top: 0.2rem; }
+.confirm-input[hidden] { display: none; }
+
 .confirm-actions {
     display: flex;
     justify-content: flex-end;

@@ -2,7 +2,7 @@ import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
 import { showToast, flashSettingsSavedTick } from './utils.js';
-import { confirmDialog } from './confirm.js';
+import { confirmDialog, promptDialog } from './confirm.js';
 import {
     FLAG_LABELS, combineFilterFlags, escapeForInput, filterError, runFilters,
     selectFilters, splitFilterFlags, splitSlashForm,
@@ -345,7 +345,7 @@ export async function selectRegexPreset(id) {
 }
 
 export async function createRegexPreset() {
-    const name = prompt('New filter preset name:');
+    const name = await promptDialog({ title: 'New filter preset', confirmLabel: 'Create' });
     if (!name || !name.trim()) return;
     try {
         await flushRegexSave();
