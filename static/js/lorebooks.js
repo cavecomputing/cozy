@@ -451,11 +451,17 @@ function reindexEntryRows() {
     });
 }
 
-export function handleEntriesClick(e) {
+export async function handleEntriesClick(e) {
     const row = e.target.closest('.lorebook-entry');
     if (!row) return;
     const idx = parseInt(row.dataset.index, 10);
     if (e.target.closest('.lorebook-entry-delete')) {
+        // The editor is explicit-Save, but a removed row is gone from it with
+        // no way back — and an entry holds a whole block of prose.
+        const keys = row.querySelector('[data-field="keys"]')?.value.trim();
+        if (!(await confirmDialog({
+            title: keys ? `Delete entry "${keys}"?` : 'Delete this entry?',
+        }))) return;
         row.remove();
         reindexEntryRows();
         if (el.lorebookEntries.querySelectorAll('.lorebook-entry').length === 0) {

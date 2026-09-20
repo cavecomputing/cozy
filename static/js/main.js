@@ -1058,15 +1058,18 @@ function bindMessageHandlers() {
                     : showToast('Could not copy message'));
         } else if (e.target.closest('.fork-msg-btn')) {
             if (!state.activeChat || !msgEl.dataset.msgId) return;
-            try {
-                const newChat = await API.forkChat(state.activeChat.id, parseInt(msgEl.dataset.msgId));
-                state.chats.push(newChat);
-                renderChats();
-                await selectChat(newChat);
-                showToast('Chat forked', 'success', 2000);
-            } catch (err) {
-                showToast('Could not fork chat: ' + err.message, 'error');
-            }
+            // Disabled for the duration: two fast clicks used to fork twice.
+            await withBusy(e.target.closest('.fork-msg-btn'), null, async () => {
+                try {
+                    const newChat = await API.forkChat(state.activeChat.id, parseInt(msgEl.dataset.msgId));
+                    state.chats.push(newChat);
+                    renderChats();
+                    await selectChat(newChat);
+                    showToast('Chat forked', 'success', 2000);
+                } catch (err) {
+                    showToast('Could not fork chat: ' + err.message, 'error');
+                }
+            });
         } else if (e.target.closest('.swipe-prev') || e.target.closest('.swipe-next')) {
             const isPrev = !!e.target.closest('.swipe-prev');
             await handleSwipeAction(msgEl, isPrev);

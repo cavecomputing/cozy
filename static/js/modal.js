@@ -412,9 +412,14 @@ document.addEventListener('click', closeExportMenu);
 
 deleteBtn.addEventListener('click', async () => {
     if (!editingCharId) return;
+    // deleteCharacter() runs the confirm itself, so the editor can only be torn
+    // down once it reports the delete went through. Closing first meant that
+    // declining the confirm still ran clearForm() and took unsaved edits with
+    // it. close() rather than closeUnlessDirty(): the character is gone, so
+    // there is nothing left to offer to save.
+    const charId = editingCharId;
     const name = fields.name.value.trim();
-    close();
-    await deleteCharacter(editingCharId, name);
+    if (await deleteCharacter(charId, name)) close();
 });
 closeBtn.addEventListener('click',  closeUnlessDirty);
 cancelBtn.addEventListener('click', closeUnlessDirty);

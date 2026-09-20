@@ -3706,7 +3706,8 @@ input[type="checkbox"]:checked::after {
 }
 
 /* Any icon-only button can show work in flight; see withBusy() in utils.js. */
-.icon-btn.spinning svg {
+.icon-btn.spinning svg,
+.msg-action-btn.spinning svg {
     animation: spin 0.8s linear infinite;
 }
 

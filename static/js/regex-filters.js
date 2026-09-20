@@ -402,11 +402,18 @@ export function addFilter() {
     el.regexFilterList.lastElementChild?.querySelector('[data-field="name"]')?.focus();
 }
 
-export function handleFilterListClick(e) {
+export async function handleFilterListClick(e) {
     const row = e.target.closest('.regex-filter');
     if (!row) return;
     const idx = parseInt(row.dataset.index, 10);
     if (e.target.closest('.regex-filter-delete')) {
+        // The list autosaves, so the row leaving *is* the deletion — there is
+        // no Save to decline afterwards, and a tuned pattern has no undo.
+        // An unnamed filter is normal here, so fall back to a generic title.
+        const name = row.querySelector('[data-field="name"]')?.value.trim();
+        if (!(await confirmDialog({
+            title: name ? `Delete filter "${name}"?` : 'Delete this filter?',
+        }))) return;
         row.remove();
         reindexRows();
         if (!el.regexFilterList.querySelector('.regex-filter')) {
