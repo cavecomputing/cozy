@@ -36,6 +36,7 @@ export function renderPersonaList() {
         const name = document.createElement('span');
         name.className = 'persona-name';
         name.textContent = p.name;
+        name.title = p.name;
         info.appendChild(name);
         if (p.tagline) {
             const tag = document.createElement('span');
@@ -66,7 +67,7 @@ export function renderPersonaList() {
             const del = document.createElement('button');
             del.className = 'persona-delete-btn icon-btn';
             del.title = 'Delete persona';
-            del.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            del.innerHTML = icons.TRASH;
             del.addEventListener('click', async e => {
                 e.stopPropagation();
                 if (!(await confirmDialog({ title: `Delete persona "${p.name}"?` }))) return;
@@ -182,6 +183,28 @@ export function showPersonaForm(editPersona = null) {
     descInput.value = editPersona?.description || '';
     applyAvatar(avatarPreview, editPersona, '?', AVATAR.SM);
 
+    // The message sits under the whole avatar-beside-name row rather than
+    // inside it, or the flex row would seat it as a third column next to the
+    // field. cleanup() rebinds by cloning the buttons, which leaves this note
+    // behind, so clear it on the way in as well as on the way out.
+    const clearNameError = () => {
+        nameInput.removeAttribute('aria-invalid');
+        nameInput.removeAttribute('aria-describedby');
+        el.personaForm.querySelector('#pf-name-error')?.remove();
+    };
+    clearNameError();
+    // Enter saves and Escape cancels, as in the inline chat rename. Escape has
+    // to stop here: the document handler would otherwise take the dropup down
+    // with the form. Both listeners are named so cleanup() can drop them —
+    // the name field is not cloned the way the buttons are, so a listener left
+    // behind would fire again on the next open, against a stale Save button.
+    const onNameKeydown = e => {
+        if (e.key === 'Enter')  { e.preventDefault(); saveBtnEl.click(); }
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelBtnEl.click(); }
+    };
+    nameInput.addEventListener('input', clearNameError);
+    nameInput.addEventListener('keydown', onNameKeydown);
+
     let selectedFile = null;
     let objectUrl = null;
     // Clear the previous pick: re-choosing the same file wouldn't fire `change`
@@ -216,6 +239,9 @@ export function showPersonaForm(editPersona = null) {
             parkPersonaForm();
         }
         if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+        el.personaForm.querySelector('#pf-name-error')?.remove();
+        nameInput.removeEventListener('input', clearNameError);
+        nameInput.removeEventListener('keydown', onNameKeydown);
         fileInput.removeEventListener('change', onFileChange);
         saveBtnEl.replaceWith(saveBtnEl.cloneNode(true));
         cancelBtnEl.replaceWith(cancelBtnEl.cloneNode(true));
@@ -235,7 +261,18 @@ export function showPersonaForm(editPersona = null) {
     // strips listeners by cloning the button on every exit path.
     saveBtnEl.addEventListener('click', async () => {
         const name = nameInput.value.trim();
-        if (!name) { nameInput.focus(); return; }
+        clearNameError();
+        if (!name) {
+            const note = document.createElement('p');
+            note.className = 'field-error';
+            note.id = 'pf-name-error';
+            note.textContent = 'A persona needs a name.';
+            nameInput.closest('.pf-row').insertAdjacentElement('afterend', note);
+            nameInput.setAttribute('aria-invalid', 'true');
+            nameInput.setAttribute('aria-describedby', note.id);
+            nameInput.focus({ preventScroll: true });
+            return;
+        }
         const tagline = taglineInput.value.trim();
         const desc = descInput.value.trim();
 

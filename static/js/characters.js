@@ -41,6 +41,7 @@ export function renderCharList() {
         const nameSpan = document.createElement('span');
         nameSpan.className = 'char-name';
         nameSpan.textContent = char.missing ? `${char.name} (missing)` : char.name;
+        nameSpan.title = nameSpan.textContent;
         selectBtn.append(avatarDiv, nameSpan);
 
         const actions = document.createElement('div');

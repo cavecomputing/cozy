@@ -58,6 +58,7 @@ function buildChatSelectButton(chat) {
     const nameSpan = document.createElement('span');
     nameSpan.className = 'chat-name';
     nameSpan.textContent = displayChatName(chat);
+    nameSpan.title = nameSpan.textContent;
 
     // Double-click the name to rename
     button.addEventListener('dblclick', e => {
