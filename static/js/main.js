@@ -131,17 +131,44 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     savePrefs();
 }
 
+/**
+ * Close one `.export-dropdown` menu — the Import/export pairs on the Prompt
+ * and Regex tabs and the Backup menu on About are the same three lines of
+ * teardown, and Escape needs a fourth caller for whichever one is open.
+ */
+function closeExportMenu(menu) {
+    if (!menu || menu.hidden) return false;
+    menu.hidden = true;
+    const dropdown = menu.closest('.export-dropdown');
+    dropdown?.classList.remove('open');
+    dropdown?.querySelector('[aria-haspopup]')?.setAttribute('aria-expanded', 'false');
+    return true;
+}
+
+/**
+ * Peel whichever dropdown is open inside Settings, innermost first. Returns
+ * true when one was closed, which is how Escape knows to stop.
+ */
+function closeOpenSettingsMenu() {
+    if (el.modelPickerMenu?.hidden === false) { closeModelMenu(); return true; }
+    if (el.summaryModelPickerMenu?.hidden === false) { closeSummaryModelMenu(); return true; }
+    const menu = document.querySelector('.export-menu:not([hidden])');
+    // Focus is on the trigger already when the menu was opened by click, but
+    // not when the user tabbed into an item — and hiding the menu under a
+    // focused item would drop focus to the body.
+    const trigger = menu?.closest('.export-dropdown')?.querySelector('[aria-haspopup]');
+    if (!closeExportMenu(menu)) return false;
+    trigger?.focus();
+    return true;
+}
+
 // ── Backup and restore (About → Storage) ─────────────────────────────────
 // Download is a plain navigation so the browser streams the zip straight to
 // disk. Restore replaces the whole data directory, so it asks first and
 // reloads afterwards: every list on screen belongs to the database that just
 // went away.
 function bindBackupHandlers() {
-    const closeMenu = () => {
-        if (el.backupMenu) el.backupMenu.hidden = true;
-        el.backupDropdown?.classList.remove('open');
-        el.backupBtn?.setAttribute('aria-expanded', 'false');
-    };
+    const closeMenu = () => closeExportMenu(el.backupMenu);
     el.backupBtn?.addEventListener('click', e => {
         e.stopPropagation();
         const willOpen = el.backupMenu?.hidden;
@@ -611,11 +638,7 @@ function bindSettingsHandlers() {
         if (!e.target.closest('#prompt-rendered-flyout')) closeRenderedPrompts();
     });
     // Import / export dropdown
-    const closeSyspromptIoMenu = () => {
-        if (el.syspromptIoMenu) el.syspromptIoMenu.hidden = true;
-        el.syspromptIoDropdown?.classList.remove('open');
-        el.syspromptIoBtn?.setAttribute('aria-expanded', 'false');
-    };
+    const closeSyspromptIoMenu = () => closeExportMenu(el.syspromptIoMenu);
     el.syspromptIoBtn?.addEventListener('click', e => {
         e.stopPropagation();
         const willOpen = el.syspromptIoMenu?.hidden;
@@ -643,11 +666,7 @@ function bindSettingsHandlers() {
     // Flag checkboxes fire `change`, not `input`, in some engines.
     el.regexFilterList?.addEventListener('change', handleFilterListInput);
     el.regexTestInput?.addEventListener('input', debounce(updateTestPanel, 200));
-    const closeRegexIoMenu = () => {
-        if (el.regexIoMenu) el.regexIoMenu.hidden = true;
-        el.regexIoDropdown?.classList.remove('open');
-        el.regexIoBtn?.setAttribute('aria-expanded', 'false');
-    };
+    const closeRegexIoMenu = () => closeExportMenu(el.regexIoMenu);
     el.regexIoBtn?.addEventListener('click', e => {
         e.stopPropagation();
         const willOpen = el.regexIoMenu?.hidden;
@@ -835,6 +854,14 @@ function bindChatHandlers() {
         if (el.promptRenderedFlyout?.hidden === false) {
             e.preventDefault();
             closeRenderedPrompts();
+            return;
+        }
+        // Last layer before the fall-through: a model picker or an
+        // import/export menu open inside Settings used to drop straight
+        // through to closeAllExcept(), which shut the whole flyout and lost
+        // the user's place over a dropdown they only wanted to dismiss.
+        if (closeOpenSettingsMenu()) {
+            e.preventDefault();
             return;
         }
         Flyouts.closeAllExcept(null);
