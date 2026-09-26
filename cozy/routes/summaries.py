@@ -23,6 +23,7 @@ from cozy.routes.llm import _error_detail, _summary_llm_settings
 from cozy.routes.settings import get_settings
 from cozy.shared import get_db, not_found
 from cozy.summarizer import (
+    BATCH_TARGET_TOKENS,
     append_entry_problems,
     append_token_limits,
     append_summary,
@@ -30,6 +31,7 @@ from cozy.summarizer import (
     collapse_story_lines,
     dump_summary_json,
     enforce_cap,
+    estimate_tokens,
     fit_append_entries,
     parse_summary_json,
     parse_summarizer_output,
@@ -38,6 +40,7 @@ from cozy.summarizer import (
     section_lines,
     section_to_text,
     strip_thinking_content,
+    token_batches,
 )
 
 log = logging.getLogger('cozy')
@@ -105,6 +108,17 @@ def call_summarizer(messages, cap_tokens=0):
 
 # ── Config helpers ──────────────────────────────────────────────────────────
 
+def _context_tokens(settings):
+    """``context_max_tokens`` as an int, 32768 when missing or unreadable."""
+    raw_ctx = settings.get('context_max_tokens')
+    if raw_ctx is None or raw_ctx == '':
+        raw_ctx = 32768
+    try:
+        return int(raw_ctx)
+    except (TypeError, ValueError, OverflowError):
+        return 32768
+
+
 def _cap_tokens(settings):
     """Summary size cap in tokens = summary_cap_pct% of context_max_tokens."""
     raw_pct = settings.get('summary_cap_pct')
@@ -120,13 +134,7 @@ def _cap_tokens(settings):
     # written directly rather than through the browser UI.
     pct = min(90.0, max(1.0, pct))
 
-    raw_ctx = settings.get('context_max_tokens')
-    if raw_ctx is None or raw_ctx == '':
-        raw_ctx = 32768
-    try:
-        ctx = int(raw_ctx)
-    except (TypeError, ValueError, OverflowError):
-        ctx = 32768
+    ctx = _context_tokens(settings)
     if ctx <= 0:
         return 0
 
@@ -179,11 +187,18 @@ def _completion_budget(settings, cap_tokens):
     return max(_response_token_reserve(settings), floor)
 
 
-def _trigger_interval(settings):
-    try:
-        return max(1, int(settings.get('summary_trigger_interval') or 10))
-    except (TypeError, ValueError):
-        return 10
+def _batch_target_tokens(settings):
+    """Tokens of chat per story entry, mirroring ``batchTargetTokens`` in
+    static/js/summaries.js.
+
+    Never more than an eighth of the context: on a small window a full-size batch would
+    retire nearly all the recent chat at once. It reads the context *setting*, never how
+    full the window is — sizing batches from the window made them shrink as it filled.
+    """
+    ctx = _context_tokens(settings)
+    if ctx <= 0:
+        return BATCH_TARGET_TOKENS
+    return max(1, min(BATCH_TARGET_TOKENS, ctx // 8))
 
 
 # ── Job status helpers ──────────────────────────────────────────────────────
@@ -412,7 +427,7 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             chat_id, require_running=require_running, job_token=job_token
         )
         settings = get_settings()
-        interval = _trigger_interval(settings)
+        target = _batch_target_tokens(settings)
         cap_tokens = _cap_tokens(settings)
 
         with get_db() as conn:
@@ -454,14 +469,17 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             ).fetchall()
 
         batch = []
+        sizes = []
         for msg in msgs:
             # Reasoning blocks never reach the summarizer — they are stripped
             # from the prompt too, so summarizing them would describe text the
             # model never sees. Names are resolved and each line is labelled
             # with its speaker, as the chat view shows it.
-            content = resolve_names(
-                strip_thinking_content(msg['content']), char_name, user_name
-            )
+            visible = strip_thinking_content(msg['content'])
+            # Sized before names are resolved: that is the text the browser measured
+            # when it picked where this run ends.
+            sizes.append(estimate_tokens(visible))
+            content = resolve_names(visible, char_name, user_name)
             speaker = ((msg['persona_name'] or user_name) if msg['role'] == 'user'
                        else char_name)
             batch.append({'role': msg['role'], 'content': content, 'name': speaker})
@@ -473,10 +491,11 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             )
             return
 
-        total = math.ceil(len(batch) / interval)
-        for bi in range(total):
-            chunk = batch[bi * interval:(bi + 1) * interval]
-            chunk_ids = ids[bi * interval:(bi + 1) * interval]
+        bounds = token_batches(sizes, target)
+        total = len(bounds)
+        for bi, (start, stop) in enumerate(bounds):
+            chunk = batch[start:stop]
+            chunk_ids = ids[start:stop]
             batch_label = f'batch {bi + 1}/{total}'
             _set_status(
                 chat_id,

@@ -528,11 +528,6 @@ function bindSettingsHandlers() {
         updateContextMeterSoon();
     });
     el.summaryCapInput?.addEventListener('blur', flushLLMSettingsSave);
-    el.summaryIntervalInput?.addEventListener('input', () => {
-        state.summaryTriggerInterval = el.summaryIntervalInput.value || '10';
-        queueLLMSettingsSave({ summary_trigger_interval: state.summaryTriggerInterval });
-    });
-    el.summaryIntervalInput?.addEventListener('blur', flushLLMSettingsSave);
 
     // LLM API settings — autosave while typing, then flush on blur.
     el.apiEndpoint?.addEventListener('input', () => {

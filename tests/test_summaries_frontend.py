@@ -20,7 +20,6 @@ BASE_SETUP = r"""
     state.apiModel = 'main-model';
     state.summaryApiEndpoint = '';
     state.summaryApiModel = '';
-    state.summaryTriggerInterval = '20';
     state.messages = Array.from({ length: 3 }, (_, i) => ({
         id: i + 1,
         role: i % 2 ? 'character' : 'user',
@@ -57,18 +56,17 @@ def test_main_endpoint_fallback_triggers_on_first_aged_out_message():
 
         assert.equal(calls.length, 1);
         assert.equal(calls[0].chatId, 7);
-        // Only three messages exist, so the 20-message batch clamps to the two
-        // oldest and leaves the newest turn raw.
-        assert.equal(calls[0].up_to_msg_id, 2);
+        // A 32-token context allows a 4-token batch, which the first ~7-token
+        // message fills on its own.
+        assert.equal(calls[0].up_to_msg_id, 1);
     """
     run_node_module(code)
 
 
-def test_run_retires_exactly_one_flat_batch():
+def test_run_retires_exactly_one_batch():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -90,21 +88,18 @@ def test_run_retires_exactly_one_flat_batch():
         await maybeTriggerSummary();
 
         assert.equal(calls.length, 1);
-        // The configured batch is retired verbatim: the 10 oldest ids, ending
-        // at 10. The old estimator stopped at 13 here, driven by the window
-        // size rather than by the setting.
-        assert.equal(calls[0].up_to_msg_id, 10);
+        // One batch retires: a 202-token context allows a 25-token batch, and
+        // at ~4 tokens a message the seventh brings it there.
+        assert.equal(calls[0].up_to_msg_id, 7);
     """
     run_node_module(code)
 
 
-def test_batch_size_is_independent_of_message_length():
-    """The defect this replaces: batch size used to be derived from token
-    estimates, so unusually large messages shrank the batch and made updates
-    fire far more often than the setting asked for."""
+def test_long_messages_make_a_batch_of_fewer_messages():
+    """A batch is an amount of text: longer replies fill it in fewer messages,
+    so each entry covers about the same amount of story whatever the prompt."""
     code = BASE_SETUP + r"""
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '10';
 
         async function targetFor(contextTokens, textFor) {
             el.settingsContextTokens.value = String(contextTokens);
@@ -131,14 +126,49 @@ def test_batch_size_is_independent_of_message_length():
             return calls;
         }
 
-        // Uniform, modest turns.
-        assert.deepEqual(await targetFor(202, i => `m-${i}-abcdefghij`), [10]);
-        // Five outsized old messages — previously these filled the projected
-        // headroom early and cut the batch short at id 8.
-        assert.deepEqual(
-            await targetFor(280, i => (i < 5 ? 'x'.repeat(100) : 'x'.repeat(10))),
-            [10],
-        );
+        // The same 25-token batch: seven ~4-token turns, or three 10-token ones.
+        assert.deepEqual(await targetFor(202, i => `m-${i}-abcdefghij`), [7]);
+        assert.deepEqual(await targetFor(202, () => 'x'.repeat(40)), [3]);
+    """
+    run_node_module(code)
+
+
+def test_batch_does_not_shrink_as_the_window_fills():
+    """The batch is sized from the context *setting*, never from how much history
+    currently fits. An earlier version capped it by the fitting history, so it
+    shrank as the window filled and updates fired far more often than intended."""
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+
+        async function targetWithReserve(responseTokens) {
+            el.samplerMaxTokens.value = String(responseTokens);
+            state.messages = Array.from({ length: 25 }, (_, i) => ({
+                id: i + 1,
+                role: i % 2 ? 'character' : 'user',
+                text: `m-${i}-abcdefghij`,
+            }));
+            state.activeChat.summary_up_to_msg_id = null;
+            state.activeChat.summary_status = 'idle';
+            const calls = [];
+            API.runSummary = async (chatId, options) => {
+                calls.push(options.up_to_msg_id);
+                return {
+                    id: chatId,
+                    summary_enabled: true,
+                    summary: { lines: [] },
+                    summary_up_to_msg_id: options.up_to_msg_id,
+                    summary_status: 'idle',
+                    summary_status_detail: '',
+                };
+            };
+            await maybeTriggerSummary();
+            return calls;
+        }
+
+        // Reserving 100 of 202 tokens for the reply leaves half the room for
+        // history, yet the batch is the same seven messages.
+        assert.deepEqual(await targetWithReserve(10), [7]);
+        assert.deepEqual(await targetWithReserve(100), [7]);
     """
     run_node_module(code)
 
@@ -149,16 +179,15 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
             text: `m-${i}-abcdefghij`,
         }));
-        // The message the run boundary lands on (id 10 — see the flat-batch
-        // test above) never persisted. Retirement counts the oldest PERSISTED
-        // ids, so the batch becomes ids 1..9 plus 11.
-        delete state.messages[9].id;
+        // The message the run boundary lands on (id 7 — see the one-batch
+        // test above) never persisted. Batches are cut from PERSISTED messages
+        // in id order, so the batch becomes ids 1..6 plus 8.
+        delete state.messages[6].id;
         const calls = [];
         API.runSummary = async (chatId, options) => {
             calls.push(options.up_to_msg_id);
@@ -174,7 +203,7 @@ def test_run_target_skips_unpersisted_message_at_the_boundary():
 
         await maybeTriggerSummary();
 
-        assert.deepEqual(calls, [11]);
+        assert.deepEqual(calls, [8]);
     """
     run_node_module(code)
 
@@ -185,7 +214,6 @@ def test_run_target_follows_id_order_not_array_position():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -210,9 +238,9 @@ def test_run_target_follows_id_order_not_array_position():
 
         await maybeTriggerSummary();
 
-        // The 10 oldest ids end at 10 — not id 23, which happens to occupy
-        // position 6 in the mis-ordered array.
-        assert.deepEqual(calls, [10]);
+        // The batch closes on id 7, the seventh oldest — not id 23, which
+        // happens to occupy position 6 in the mis-ordered array.
+        assert.deepEqual(calls, [7]);
     """
     run_node_module(code)
 
@@ -222,16 +250,18 @@ def test_oversized_batch_clamps_and_keeps_the_newest_message_raw():
     stop one short, so the newest turn is never summarized out from under a
     swipe or an in-flight send."""
     code = BASE_SETUP + r"""
-        el.settingsContextTokens.value = '202';
+        el.settingsContextTokens.value = '2000';
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '20';
-        // Long-ish turns, and a watermark that leaves only 12 unsummarized
-        // messages (ids 14..25) against a 20-message batch.
+        // A watermark leaving 12 unsummarized messages (ids 14..25), and a
+        // newest turn too big for the window, so everything measures as aged
+        // out. The eleven older ~4-token turns come nowhere near the 250-token
+        // batch a 2000-token context allows.
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
-            text: `m-${i}-` + 'abcdefghij'.repeat(8),
+            text: `m-${i}-abcdefghij`,
         }));
+        state.messages[24].text = 'x'.repeat(12000);
         state.activeChat.summary_up_to_msg_id = 13;
         const calls = [];
         API.runSummary = async (chatId, options) => {
@@ -261,7 +291,6 @@ def test_backlog_larger_than_the_batch_drains_one_batch_per_run():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '60';
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 40 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -280,13 +309,14 @@ def test_backlog_larger_than_the_batch_drains_one_batch_per_run():
             };
         };
 
-        // Far more than 10 messages are outside this tiny window.
+        // A 60-token context allows a 7-token batch, two ~4-token messages, and
+        // far more than that is outside this tiny window.
         await maybeTriggerSummary();
-        assert.deepEqual(calls, [10]);
+        assert.deepEqual(calls, [2]);
 
         // The next run picks up the following batch rather than the backlog.
         await maybeTriggerSummary();
-        assert.deepEqual(calls, [10, 20]);
+        assert.deepEqual(calls, [2, 4]);
     """
     run_node_module(code)
 
@@ -297,7 +327,6 @@ def test_second_run_without_new_messages_is_a_no_op():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '10';
         state.messages = Array.from({ length: 25 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -317,10 +346,10 @@ def test_second_run_without_new_messages_is_a_no_op():
         };
 
         await maybeTriggerSummary();
-        assert.deepEqual(calls, [10]);
+        assert.deepEqual(calls, [7]);
 
         await maybeTriggerSummary();
-        assert.deepEqual(calls, [10], 'no second request without new messages');
+        assert.deepEqual(calls, [7], 'no second request without new messages');
     """
     run_node_module(code)
 
@@ -420,11 +449,11 @@ def test_unsatisfiable_reserve_never_retires_history():
     run_node_module(code)
 
 
-def test_backlog_drains_in_interval_blocks_and_dam_damage_is_bounded():
-    """A big backlog retires one interval block per run, and an oversized
-    message that dams the window costs at most one block per event."""
+def test_backlog_drains_in_batches_and_dam_damage_is_bounded():
+    """A big backlog retires one batch per run, and an oversized message that
+    dams the window costs at most one batch per event."""
     code = BASE_SETUP + r"""
-        el.settingsContextTokens.value = '2000';
+        el.settingsContextTokens.value = '400';
         el.samplerMaxTokens.value = '10';
         state.messages = Array.from({ length: 30 }, (_, i) => ({
             id: i + 1,
@@ -448,9 +477,10 @@ def test_backlog_drains_in_interval_blocks_and_dam_damage_is_bounded():
         };
 
         await maybeTriggerSummary();
-        // 28 messages aged, but one run retires exactly one 20-block of the
-        // oldest ids — never the whole backlog in a single request.
-        assert.deepEqual(calls, [20]);
+        // 28 messages aged, but one run retires exactly one batch of the oldest
+        // ids — 50 tokens at this context, thirteen ~4-token messages — never
+        // the whole backlog in a single request.
+        assert.deepEqual(calls, [13]);
     """
     run_node_module(code)
 
@@ -487,9 +517,9 @@ def test_message_target_waits_for_context_pressure_then_creates_headroom():
             text: 'm-44-abcdefghij',
         });
         await maybeTriggerSummary();
-        // One message aged, so the next whole batch retires: ids 21..40. The
-        // batch does not shrink just because the window is nearly full.
-        assert.deepEqual(calls, [40]);
+        // One message aged, so the next whole batch retires: 25 tokens, ids
+        // 21..27. The batch does not shrink just because the window is nearly full.
+        assert.deepEqual(calls, [27]);
     """
     run_node_module(code)
 
@@ -504,7 +534,6 @@ def test_send_catch_up_retires_whole_batches_not_single_messages():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '202';
         el.samplerMaxTokens.value = '10';
-        state.summaryTriggerInterval = '4';
         state.messages = Array.from({ length: 45 }, (_, i) => ({
             id: i + 1,
             role: i % 2 ? 'character' : 'user',
@@ -525,15 +554,17 @@ def test_send_catch_up_retires_whole_batches_not_single_messages():
         };
 
         await ensureSummaryReadyForSend();
-        // One message (id 21) is outside the window; the whole batch 21..24 retires.
-        assert.deepEqual(calls, [24]);
+        // One message (id 21) is outside the window; the whole 25-token batch,
+        // ids 21..27, retires.
+        assert.deepEqual(calls, [27]);
 
-        // A backlog of five spans two batches, so one job retires eight.
+        // A smaller window ages out a backlog; one job retires it in whole
+        // batches — 18 tokens at this context, five ~4-token messages each.
         el.settingsContextTokens.value = '150';
         calls.length = 0;
         await ensureSummaryReadyForSend();
         assert.equal(calls.length, 1);
-        assert.equal((calls[0] - 24) % 4, 0, `target ${calls[0]} is not a whole batch past 24`);
+        assert.equal((calls[0] - 27) % 5, 0, `target ${calls[0]} is not a whole batch past 27`);
     """
     run_node_module(code)
 
@@ -1257,7 +1288,6 @@ def test_enabling_summaries_drains_the_whole_existing_backlog_in_batches():
         el.summaryCancelBtn = { addEventListener() {} };
         el.summaryResetBtn = { addEventListener() {} };
         el.settingsContextTokens.value = '60';
-        state.summaryTriggerInterval = '10';
         state.summaryApiEndpoint = 'http://summary.example/v1';
         state.summaryApiModel = 'summary-model';
         state.messages = Array.from({ length: 40 }, (_, i) => ({
@@ -1300,9 +1330,11 @@ def test_enabling_summaries_drains_the_whole_existing_backlog_in_batches():
         await listeners.change();
 
         // One server job owns the full known backlog. Its worker divides this target into
-        // configured-size provider calls and can therefore report batch 1/N, 2/N, ….
+        // one provider call per batch and can therefore report batch 1/N, 2/N, ….
+        // A 60-token context makes a batch two ~4-token messages.
         assert.equal(targets.length, 1);
-        assert.ok(targets[0] > 10, 'catch-up should target more than the first batch');
+        assert.ok(targets[0] > 2, 'catch-up should target more than the first batch');
+        assert.equal(targets[0] % 2, 0, `target ${targets[0]} is not a whole batch`);
         assert.equal(state.activeChat.summary_up_to_msg_id, targets[0]);
     """
     run_node_module(code)
@@ -1684,7 +1716,6 @@ def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_ru
         el.settingsContextTokens = { value: '202' };
         el.samplerMaxTokens = { value: '10' };
         state.autoSummariesEnabled = true;
-        state.summaryTriggerInterval = '20';
         state.apiModel = 'main-model';
         state.summaryApiEndpoint = 'http://summary.example/v1';
         state.summaryApiModel = 'summary-model';
@@ -1782,7 +1813,6 @@ def test_rebuild_click_during_background_run_still_issues_the_rebuild():
         el.settingsContextTokens = { value: '202' };
         el.samplerMaxTokens = { value: '10' };
         state.autoSummariesEnabled = true;
-        state.summaryTriggerInterval = '20';
         state.apiModel = 'main-model';
         state.summaryApiEndpoint = 'http://summary.example/v1';
         state.summaryApiModel = 'summary-model';
@@ -1915,7 +1945,6 @@ REBUILD_SETUP = r"""
     el.summaryResetBtn = { addEventListener() {} };
     el.settingsContextTokens = { value: '202' };
     el.samplerMaxTokens = { value: '10' };
-    state.summaryTriggerInterval = '20';
     state.apiModel = 'main-model';
     state.summaryApiEndpoint = 'http://summary.example/v1';
     state.summaryApiModel = 'summary-model';

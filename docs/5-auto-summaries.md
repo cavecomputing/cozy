@@ -21,21 +21,24 @@ model blank to use the matching main connection value.
 Settings:
 
 - **Size cap:** Maximum summary size as a percentage of the context window.
-- **Batch size:** How many messages Cozy folds into each summary entry. Each
-  batch becomes exactly **one compact** story entry.
 
 Cozy does not summarize while everything still fits. Once the oldest message no
 longer fits, a normal background update summarizes one batch and drops those
 messages from the raw transcript. When several batches already need attention,
 Cozy submits them as one catch-up run and shows overall progress such as
-**batch 1/12**, **batch 2/12**, and so on. One user or character message counts
-as one message, whatever its length.
+**batch 1/12**, **batch 2/12**, and so on.
 
-Batch size is the whole contract: 10 messages in, one entry out. A larger batch
-means fewer, denser entries — more history remembered per token of summary, but
-a bigger drop in verbatim history each time one runs. If a chat holds fewer
-messages than the batch size, Cozy retires what it can and always keeps the
-newest message.
+A batch is an amount of text, not a number of messages: about **3,200 tokens**
+of chat in, exactly **one compact** story entry out. On a small context the
+batch shrinks so it is never more than an eighth of **Max context tokens** — an
+8k context folds about 1,024 tokens at a time, 16k about 2,048. Counting text
+means reply length no longer changes how much story each entry covers: a prompt
+that asks for long replies fills a batch in a few messages, one that asks for
+short replies takes more.
+
+A batch ends with the message that reaches its size, so a single message longer
+than a batch is folded in on its own. If a chat holds less than a batch of text,
+Cozy retires what it can and always keeps the newest message.
 
 Summarization sends old chat content to the selected LLM server and may add API
 cost or local processing time.

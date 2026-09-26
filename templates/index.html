@@ -703,18 +703,13 @@
                             <section class="settings-card" id="summary-behavior-card">
                                 <header class="settings-card-header">
                                     <h4>Behavior <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></h4>
-                                    <p>How large the summary may grow and how much history each update folds in.</p>
+                                    <p>How large the summary may grow.</p>
                                 </header>
                                 <div class="settings-row settings-row--inline">
                                     <label class="settings-row-label" for="settings-summary-cap-pct">Size cap (% of context)</label>
                                     <input type="number" id="settings-summary-cap-pct" class="form-input" min="1" max="90" step="1" value="10" aria-describedby="summary-cap-hint">
                                 </div>
                                 <p id="summary-cap-hint" class="settings-hint">The summary is capped at this percentage of the Max context tokens budget. Once it is full, the oldest entries roll off to make room for new ones. Counts are estimates marked with <code>&#8776;</code>.</p>
-                                <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-summary-interval">Batch size (messages)</label>
-                                    <input type="number" id="settings-summary-interval" class="form-input" min="1" step="1" value="10" aria-describedby="summary-interval-hint">
-                                </div>
-                                <p id="summary-interval-hint" class="settings-hint">When history first falls outside the context window, Cozy folds this many messages at a time. User and character messages each count as one. Each batch becomes exactly <strong>one compact</strong> summary entry. Catching up several batches is shown as one run with overall progress, such as batch 1/12.</p>
                             </section>
                         </div>
                     </div>
@@ -1568,7 +1563,7 @@ Flags    g</pre>
                     <p class="sampler-help-intro">Summaries build up in small steps, then roll forward as the chat grows.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row"><dt>Nothing at first</dt><dd>While the whole chat still fits in the context window, nothing is summarized. Work starts the moment the oldest message falls outside it.</dd></div>
-                        <div class="sampler-help-row"><dt>Batches in, entries out</dt><dd>Cozy folds <code>Batch size</code> messages at a time into exactly one compact entry. A user message and a character message each count as one, whatever their length. Catching up several batches runs as one numbered run, such as batch 1/12.</dd></div>
+                        <div class="sampler-help-row"><dt>Batches in, entries out</dt><dd>Cozy folds about 3,200 tokens of chat at a time into exactly one compact entry — less on a small context, never more than an eighth of Max context tokens. It counts text, not messages, so long replies make a batch of fewer messages and short ones a batch of more. Catching up several batches runs as one numbered run, such as batch 1/12.</dd></div>
                         <div class="sampler-help-row"><dt>Rolling window</dt><dd>New entries are appended on the end. When the summary reaches its size cap, the oldest entries roll off to make room. The summary remembers the recent past, not the whole chat.</dd></div>
                         <div class="sampler-help-row"><dt>Where it is sent</dt><dd>The summary reaches the model only through <code>&#123;&#123;summary&#125;&#125;</code> in the prompt template. Without it, nothing is sent, and the memory flyout shows a &#8857; marker next to Auto Summary.</dd></div>
                     </dl>
@@ -1584,8 +1579,8 @@ Flags    g</pre>
                 </div>
 
                 <div class="sampler-help-section">
-                    <h3>Batch and size settings</h3>
-                    <p>The <strong>Behavior</strong> card below — <strong>Batch size</strong> and <strong>Size cap</strong> — only appears when <strong>Show advanced configuration</strong> is turned on in <strong>Settings &#8594; General</strong>. The cap is a percentage of the Max context tokens budget. Once the summary is full, the oldest entries roll off.</p>
+                    <h3>Size setting</h3>
+                    <p>The <strong>Behavior</strong> card below, with <strong>Size cap</strong>, only appears when <strong>Show advanced configuration</strong> is turned on in <strong>Settings &#8594; General</strong>. The cap is a percentage of the Max context tokens budget. Once the summary is full, the oldest entries roll off.</p>
                 </div>
             </div>
         </div>

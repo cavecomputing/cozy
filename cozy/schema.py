@@ -234,6 +234,19 @@ def _merge_versioned_stock_prompt_titles(conn):
             conn.execute('DELETE FROM system_prompts WHERE id=?', (stale['id'],))
 
 
+def _delete_summary_trigger_interval(conn):
+    """Remove the retired message-count batch setting.
+
+    A batch is now a fixed amount of text rather than a number of messages, so reply
+    length no longer decides how much each summary entry covers, and there is nothing
+    left for the setting to size.
+    """
+    conn.execute(
+        'DELETE FROM settings WHERE key=?',
+        ('summary_trigger_interval',),
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -249,6 +262,7 @@ MIGRATIONS = (
     (12, 'backfill_stock_prompt_descriptions', _backfill_stock_prompt_descriptions),
     (13, 'backfill_stock_prompt_versions', _backfill_stock_prompt_versions),
     (14, 'merge_versioned_stock_prompt_titles', _merge_versioned_stock_prompt_titles),
+    (15, 'delete_summary_trigger_interval', _delete_summary_trigger_interval),
 )
 
 
@@ -487,7 +501,6 @@ def init_db():
             ('summary_api_key', ''),
             ('summary_api_model', ''),
             ('summary_cap_pct', '10'),
-            ('summary_trigger_interval', '10'),
         ):
             conn.execute(
                 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING',

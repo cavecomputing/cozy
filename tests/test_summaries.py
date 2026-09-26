@@ -32,6 +32,7 @@ from cozy.summarizer import (
     section_to_text,
     strip_thinking_content,
     summary_to_text,
+    token_batches,
 )
 
 
@@ -620,6 +621,11 @@ def _add_messages(client, chat_id, n):
     return ids
 
 
+def _batch_every(monkeypatch, n):
+    """Size each batch at ``n`` of ``_add_messages``' messages, which estimate at 3 tokens."""
+    monkeypatch.setattr(summaries, '_batch_target_tokens', lambda _settings: 3 * n)
+
+
 def _store_summary(chat_id, summary_obj, watermark=None):
     """Seed server-owned summary state without using the public chat patch route."""
     with shared.get_db() as conn:
@@ -732,15 +738,56 @@ def test_run_job_folds_and_advances_watermark(client, sample_chat, monkeypatch):
     assert len(calls) >= 1
 
 
-def test_run_job_batches_by_interval(client, sample_chat, monkeypatch):
-    client.put('/api/settings', json={'summary_trigger_interval': '2'})
+def test_run_job_batches_by_tokens(client, sample_chat, monkeypatch):
+    _batch_every(monkeypatch, 2)
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',
                         lambda messages, cap_tokens=0: calls.append(1) or CANNED)
     ids = _add_messages(client, sample_chat['id'], 5)
     summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
-    # ceil(5 / 2) == 3 batches
+    # Two full batches, and the last message is half a batch: enough to stand alone.
     assert len(calls) == 3
+
+
+def test_run_job_folds_a_trailing_sliver_into_the_last_batch(
+        client, sample_chat, monkeypatch):
+    """Under half a batch left at the end joins the batch before it, not an entry of its own."""
+    _batch_every(monkeypatch, 4)
+    calls = []
+    monkeypatch.setattr(summaries, 'call_summarizer',
+                        lambda messages, cap_tokens=0: calls.append(messages) or CANNED)
+    ids = _add_messages(client, sample_chat['id'], 5)
+
+    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+
+    assert len(calls) == 1
+    assert 'msg 4' in calls[0][1]['content']
+
+
+def test_batches_are_sized_on_the_text_the_browser_measures(
+        client, sample_chat, monkeypatch):
+    """Reasoning is left out of a message's size, and names are resolved only after it
+    is measured: the browser picked the run's end from the stored text."""
+    sizes_seen = []
+    real_token_batches = summaries.token_batches
+    monkeypatch.setattr(
+        summaries, 'token_batches',
+        lambda sizes, target: sizes_seen.append(sizes) or real_token_batches(sizes, target),
+    )
+    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+    stored = '<think>' + 'private reasoning ' * 50 + '</think>' + '{{user}} ' * 40
+    message = client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
+        'role': 'user', 'content': stored,
+    }).get_json()
+
+    summaries._run_summary_job(sample_chat['id'], message['id'])
+
+    visible = strip_thinking_content(stored)
+    # The default persona's name is longer than the placeholder, so resolving first
+    # would measure a different size.
+    assert estimate_tokens(resolve_names(visible, 'TestChar', 'Default Persona')) \
+        != estimate_tokens(visible)
+    assert sizes_seen == [[estimate_tokens(visible)]]
 
 
 def test_run_job_sends_names_not_placeholders(client, sample_chat, sample_persona, monkeypatch):
@@ -960,7 +1007,7 @@ def test_overlong_reply_twice_is_trimmed_and_the_run_moves_on(
 def test_append_mode_accumulates_story_across_batches(client, sample_chat, monkeypatch):
     """The core fix: consecutive batches ADD story beats instead of compressing."""
     from cozy.summarizer import APPEND_INSTRUCTIONS
-    client.put('/api/settings', json={'summary_trigger_interval': '1'})
+    _batch_every(monkeypatch, 1)
     replies = iter((
         'STORY SO FAR\n- S1 happened\n\nBONDS\n- A & B: allies',
         'STORY SO FAR\n- S2 happened\n\nBONDS\n- A & B: allies',
@@ -988,7 +1035,7 @@ def test_append_mode_accumulates_story_across_batches(client, sample_chat, monke
 def test_each_batch_becomes_one_entry_stamped_with_its_message_range(
         client, sample_chat, monkeypatch):
     """The whole contract: N messages in, one ranged entry out, per batch."""
-    client.put('/api/settings', json={'summary_trigger_interval': '2'})
+    _batch_every(monkeypatch, 2)
     replies = iter((
         'STORY SO FAR\n- First stretch.\n\nBONDS\n- A & B: allies',
         'STORY SO FAR\n- Second stretch.\n\nBONDS\n- A & B: allies',
@@ -1011,7 +1058,7 @@ def test_each_batch_becomes_one_entry_stamped_with_its_message_range(
 
 
 def test_multi_batch_job_reports_overall_progress(client, sample_chat, monkeypatch):
-    client.put('/api/settings', json={'summary_trigger_interval': '2'})
+    _batch_every(monkeypatch, 2)
     monkeypatch.setattr(
         summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
     details = []
@@ -1060,8 +1107,8 @@ def test_full_summary_sheds_its_oldest_entry(client, sample_chat, monkeypatch):
     client.put('/api/settings', json={
         'context_max_tokens': '600',
         'summary_cap_pct': '10',
-        'summary_trigger_interval': '1',
     })
+    _batch_every(monkeypatch, 1)
     # Each delta fits its 36-token per-entry budget, while two entries cannot both fit
     # the 36-token STORY section, exercising ordinary oldest-first rolloff.
     beat = 'a fairly wordy beat carrying real narrative weight ' * 2
@@ -1268,7 +1315,7 @@ def test_pause_discards_inflight_result_and_keeps_last_checkpoint(
         client, sample_chat, monkeypatch):
     cid = sample_chat['id']
     client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
-    client.put('/api/settings', json={'summary_trigger_interval': '1'})
+    _batch_every(monkeypatch, 1)
     ids = _add_messages(client, cid, 2)
     with shared.get_db() as conn:
         conn.execute(
@@ -1456,7 +1503,7 @@ def test_rebuild_keeps_batches_completed_before_a_failure(
     monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
     summaries._run_summary_job(sample_chat['id'], ids[-1])
 
-    client.put('/api/settings', json={'summary_trigger_interval': '1'})
+    _batch_every(monkeypatch, 1)
     calls = 0
 
     def fail_second_batch(messages, cap_tokens=0):
@@ -1577,7 +1624,7 @@ def test_cancel_endpoint_keeps_completed_batches_and_stops_the_rest(
     """The point of the button: abandon a long backfill without losing its progress."""
     cid = sample_chat['id']
     client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
-    client.put('/api/settings', json={'summary_trigger_interval': '1'})
+    _batch_every(monkeypatch, 1)
     ids = _add_messages(client, cid, 6)
     with shared.get_db() as conn:
         conn.execute(
@@ -1833,9 +1880,54 @@ def test_summary_llm_settings_fallback(client):
 def test_config_defaults_seeded(client):
     s = get_settings()
     assert s['summary_cap_pct'] == '10'
-    assert s['summary_trigger_interval'] == '10'
+    # A batch is an amount of text now, so there is no message count left to set.
+    assert 'summary_trigger_interval' not in s
     # A batch is now one entry, so there is no second pass left to size.
     assert 'summary_compress_batch' not in s
+
+
+# ── Batch sizing ────────────────────────────────────────────────────────────
+
+
+def test_token_batches_close_on_the_message_that_reaches_the_target():
+    assert token_batches([4, 4, 4, 4, 4, 4], 10) == [(0, 3), (3, 6)]
+
+
+def test_token_batches_give_an_oversized_message_a_batch_of_its_own():
+    assert token_batches([2, 50, 2, 2, 2, 2], 10) == [(0, 2), (2, 6)]
+    assert token_batches([50, 50], 10) == [(0, 1), (1, 2)]
+
+
+def test_token_batches_fold_a_trailing_sliver_into_the_previous_batch():
+    # 4 tokens left over is under half of 10: it joins the batch before it.
+    assert token_batches([6, 6, 4], 10) == [(0, 3)]
+    # 5 is half: enough to stand as a batch of its own.
+    assert token_batches([6, 6, 5], 10) == [(0, 2), (2, 3)]
+
+
+def test_token_batches_keep_a_short_run_as_one_batch():
+    assert token_batches([1, 2], 10) == [(0, 2)]
+    assert token_batches([], 10) == []
+
+
+def test_token_batches_carry_zero_size_messages_along():
+    """A turn that was all hidden reasoning measures 0 and rides with its neighbours."""
+    assert token_batches([0, 0, 10, 0, 10], 10) == [(0, 3), (3, 5)]
+    assert token_batches([0, 0], 10) == [(0, 2)]
+
+
+@pytest.mark.parametrize('context, expected', [
+    ('32768', 3200),
+    ('128000', 3200),
+    ('16384', 2048),
+    ('8192', 1024),
+    ('4', 1),
+    ('0', 3200),
+    ('', 3200),
+    ('not-a-number', 3200),
+])
+def test_batch_target_is_capped_at_an_eighth_of_the_context(context, expected):
+    assert summaries._batch_target_tokens({'context_max_tokens': context}) == expected
 
 
 # ── Summary cap sizing ──────────────────────────────────────────────────────
@@ -1962,6 +2054,23 @@ def test_migration_deletes_the_retired_compress_batch_setting(client):
     assert 'summary_compress_batch' not in get_settings()
     schema.init_db()  # rerunning must be a no-op, not an error
     assert 'summary_compress_batch' not in get_settings()
+
+
+def test_migration_deletes_the_retired_trigger_interval_setting(client):
+    """Migration 15 removes the message-count batch setting, and startup never re-seeds it."""
+    with shared.get_db() as conn:
+        conn.execute(
+            'INSERT INTO settings (key, value) VALUES (?, ?) '
+            'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+            ('summary_trigger_interval', '4'),
+        )
+        conn.execute('DELETE FROM schema_migrations WHERE version=?', (15,))
+
+    schema.init_db()
+
+    assert 'summary_trigger_interval' not in get_settings()
+    schema.init_db()  # rerunning must be a no-op, not an error
+    assert 'summary_trigger_interval' not in get_settings()
 
 
 def test_startup_recovery_resets_running(client, sample_chat):

@@ -338,7 +338,7 @@
       <div class="facts">
         <span><b>11</b> tables</span>
         <span><b>3</b> indexes</span>
-        <span><b>14</b> migrations applied</span>
+        <span><b>15</b> migrations applied</span>
         <span><b>WAL</b> journal mode</span>
         <span><b>synchronous</b> = NORMAL</span>
         <span><b>foreign_keys</b> = ON per connection</span>
@@ -699,7 +699,7 @@
     </section>
 
     <section id="ledger">
-      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–14</span></div>
+      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–15</span></div>
       <p class="purpose">Ordered, and the order is the point: each runs once, in a serialized transaction, and a
         shipped entry is never renumbered, renamed or reordered.</p>
       <ol class="ledger">
@@ -717,6 +717,7 @@
         <li><span class="v">12</span><span class="n">backfill_stock_prompt_descriptions</span><span class="d">Fill blank descriptions on bundled NanoBear prompts; user-set text untouched.</span></li>
         <li><span class="v">13</span><span class="n">backfill_stock_prompt_versions</span><span class="d">Set <code>version</code> on the two bundled NanoBear prompts that shipped before the column.</span></li>
         <li><span class="v">14</span><span class="n">merge_versioned_stock_prompt_titles</span><span class="d">Rename "NanoBear v2.1" titles to the bundled names, or drop an untouched duplicate of the seeded copy.</span></li>
+        <li><span class="v">15</span><span class="n">delete_summary_trigger_interval</span><span class="d">Drop the retired message-count summary batch setting.</span></li>
       </ol>
       <p class="note">Migrations 3–7 are the last to rewrite a prompt's text. The house prompt now ships as a
         file and a revision arrives as a <b>version bump</b> inside it; 14 only renames the rows left from when
@@ -737,7 +738,6 @@
         <div><span>summary_api_key</span><span>''</span></div>
         <div><span>summary_api_model</span><span>''</span></div>
         <div><span>summary_cap_pct</span><span>'10'</span></div>
-        <div><span>summary_trigger_interval</span><span>'10'</span></div>
         <div><span>default_characters_seeded</span><span>'1'</span></div>
         <div><span>default_regex_seeded</span><span>'1'</span></div>
       </div>
@@ -747,7 +747,7 @@
     </section>
 
     <section id="version">
-      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 14</span></div>
+      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 15</span></div>
       <div class="prose">
         <p>There is no separate version number. The highest entry in the migration registry <strong>is</strong> the
           schema this build understands, and the highest row in a database's ledger is the schema that database is
@@ -764,7 +764,7 @@
         <code>thumbs/</code> cache is keyed by image content and rebuilt on demand, so it is left out.</p>
     </section>
 
-    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 14</footer>
+    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 15</footer>
   </main>
 </div>
 

@@ -43,7 +43,6 @@ export const state = {
     summaryApiKeySet:    false,
     summaryApiModel:     '',
     summaryCapPct:       '10',
-    summaryTriggerInterval: '10',
     _summaryPollTimer:   null,   // interval id while a run is polling
 };
 
@@ -251,7 +250,6 @@ export function initElements() {
         summaryRefreshModels: document.getElementById('settings-summary-refresh-models'),
         summaryModelPickerMenu: document.getElementById('summary-model-picker-menu'),
         summaryCapInput:     document.getElementById('settings-summary-cap-pct'),
-        summaryIntervalInput: document.getElementById('settings-summary-interval'),
     });
 }
 

@@ -42,6 +42,12 @@ STORY_ENTRY_MAX_TOKENS = 240
 BOND_ENTRY_MAX_TOKENS = 200
 BONDS_UPDATE_MAX_TOKENS = 600
 
+# How much chat one story entry covers, in estimated tokens. Measured in text rather than
+# messages because reply length is set by the prompt, the model, the card and the user —
+# a message count that suits one-paragraph replies crams 400-word ones into one entry.
+# Mirrored as BATCH_TARGET_TOKENS in static/js/summaries.js, which picks the run's end.
+BATCH_TARGET_TOKENS = 3200
+
 THINKING_TAG_PAIRS = (
     ('<think>', '</think>'),
     ('<thinking>', '</thinking>'),
@@ -106,6 +112,29 @@ def estimate_tokens(text):
     s = str(text)
     words = len([w for w in s.split() if w])
     return max(1, math.ceil(max(words * 1.3, len(s) / 4)))
+
+
+def token_batches(sizes, target):
+    """Split per-message token sizes, oldest first, into ``(start, stop)`` index ranges.
+
+    A batch closes on the message that brings it to ``target``, so a message larger than
+    the target is a batch of its own. A trailing group under half the target joins the
+    batch before it: the browser picks the run's end with its own estimate, and a small
+    disagreement must not turn the last message or two into an entry of their own.
+    """
+    bounds = []
+    start = total = 0
+    for i, size in enumerate(sizes):
+        total += size
+        if total >= target:
+            bounds.append((start, i + 1))
+            start, total = i + 1, 0
+    if start < len(sizes):
+        if bounds and total * 2 < target:
+            bounds[-1] = (bounds[-1][0], len(sizes))
+        else:
+            bounds.append((start, len(sizes)))
+    return bounds
 
 
 def _norm_heading(line):

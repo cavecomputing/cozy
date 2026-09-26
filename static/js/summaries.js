@@ -11,6 +11,7 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { estimateMessageTokens, estimateTextTokens } from './tokenizer.js';
+import { parseThinkingContent } from './thinking.js';
 import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
@@ -25,6 +26,9 @@ const POLL_MS = 2500;
 // got past "Starting…". The status request is a single-row read.
 const WAIT_POLL_MS = 500;
 const MAX_SEND_POLL_FAILURES = 3;
+// Tokens of chat per story entry. Mirrors BATCH_TARGET_TOKENS in cozy/summarizer.py,
+// which splits the run this module picks the end of.
+const BATCH_TARGET_TOKENS = 3200;
 let pollEpoch = 0;
 let summaryBudgetChangeHandler = null;
 
@@ -81,9 +85,11 @@ function capTokens() {
     return ctx > 0 ? Math.floor(ctx * pct / 100) : 0;
 }
 
-function batchSize() {
-    const parsed = parseInt(state.summaryTriggerInterval || '10', 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+/** Mirrors ``_batch_target_tokens`` in cozy/routes/summaries.py: at most an eighth of the context. */
+function batchTargetTokens() {
+    const ctx = getContextTokenBudget();
+    if (ctx <= 0) return BATCH_TARGET_TOKENS;
+    return Math.max(1, Math.min(BATCH_TARGET_TOKENS, Math.floor(ctx / 8)));
 }
 
 // ── Aged-out message detection ──────────────────────────────────────────────
@@ -205,14 +211,17 @@ function agedOutUnsummarized(excludeLastN = 0) {
 
 /**
  * Pick the inclusive watermark for an automatic update. Once any unsummarized
- * history falls outside the raw token budget, retire one flat batch of
- * ``batchSize()`` oldest messages — the batch is a message count, so it never
- * depends on how large those messages happen to be.
+ * history falls outside the raw token budget, retire one batch: the oldest
+ * messages up to ``batchTargetTokens()`` of text. The target is an amount of text,
+ * not a message count, so long replies make a batch of fewer messages and short
+ * ones a batch of more — each entry covers about the same amount of story.
  *
- * An earlier version sized the batch by predicting the token cost of future
- * messages and capping the result at half the currently fitting history. That
- * made the effective batch shrink as the window filled, so updates fired far
- * more often than configured and grew the summary faster than intended.
+ * The target never depends on how full the window is. An earlier version sized
+ * the batch by predicting the token cost of future messages and capping the
+ * result at half the currently fitting history. That made the effective batch
+ * shrink as the window filled, so updates fired far more often than intended and
+ * grew the summary faster. The small-context ceiling reads the context *setting*
+ * for the same reason.
  *
  * ``wholeBacklog`` is the catch-up before a send and after enabling: it covers
  * everything outside the window, still in whole batches. Retiring exactly what
@@ -230,23 +239,32 @@ function automaticRunTarget(excludeLastN = 0, { wholeBacklog = false } = {}) {
     const { candidates, agedOut } = assessment;
     if (agedOut.length === 0 || candidates.length <= 1) return null;
     if (untrustedContextAssessment(assessment, 'automatic memory update')) return null;
-    const batches = wholeBacklog ? Math.ceil(agedOut.length / batchSize()) : 1;
-    return oldestRetirableId(candidates, batches * batchSize());
+    return oldestRetirableId(candidates, wholeBacklog ? agedOut.length : 1);
 }
 
 /**
- * Id of the targetCount-th oldest persisted candidate. The server retires an
- * id range (everything at or below the target), so pick by id order rather
- * than array position — a mis-ordered or partially-saved state.messages must
- * never widen the range — and always leave the newest persisted message raw.
+ * Id ending the first batch that covers the ``coverCount`` oldest persisted
+ * candidates. Batches are cut the way ``token_batches`` in cozy/summarizer.py
+ * cuts them: one closes on the message that brings it to the target, so an
+ * oversized message is a batch of its own. The server retires an id range
+ * (everything at or below the target), so walk in id order rather than array
+ * position — a mis-ordered or partially-saved state.messages must never widen
+ * the range — and always leave the newest persisted message raw, retiring the
+ * rest when less than a batch remains.
  */
-function oldestRetirableId(candidates, targetCount) {
-    const ids = candidates
-        .map(message => message?.id)
-        .filter(id => Number.isInteger(id) && id > 0)
-        .sort((a, b) => a - b);
-    const count = Math.min(targetCount, ids.length - 1);
-    return count > 0 ? ids[count - 1] : null;
+function oldestRetirableId(candidates, coverCount) {
+    const persisted = candidates
+        .filter(message => Number.isInteger(message?.id) && message.id > 0)
+        .sort((a, b) => a.id - b.id);
+    const target = batchTargetTokens();
+    let total = 0;
+    for (let i = 0; i < persisted.length - 1; i += 1) {
+        total += estimateTextTokens(parseThinkingContent(persisted[i].text).response);
+        if (total < target) continue;
+        if (i + 1 >= coverCount) return persisted[i].id;
+        total = 0;
+    }
+    return persisted.length > 1 ? persisted[persisted.length - 2].id : null;
 }
 
 /**
@@ -578,8 +596,8 @@ export async function ensureSummaryReadyForSend(signal, {
             if (agedOutUnsummarized(excludeLastN).length === 0) return;
 
             // Submit the whole backlog currently outside the window as one server job,
-            // in whole batches. The worker still calls the provider in configured-size
-            // chunks, but status can now report meaningful cumulative progress (batch
+            // in whole batches. The worker still calls the provider one batch of text
+            // at a time, but status can now report meaningful cumulative progress (batch
             // 1/12, 2/12, …) instead of a client-side procession of unrelated batch 1/1
             // jobs.
             await triggerRun({
@@ -652,9 +670,8 @@ async function enableSummariesForChat() {
         renderMemorySummaryCard();  // arms the feature; hint tells the user to configure
         return;
     }
-    // Drain the existing backlog now, one checkpointed interval at a time. Keeping each
-    // provider request bounded preserves the configured batch contract while avoiding a
-    // half-filled summary that needs a send or a manual resume to finish.
+    // Drain the existing backlog now, one checkpointed batch at a time, so the summary
+    // isn't left half-filled until a send or a manual resume finishes it.
     try {
         return await ensureSummaryReadyForSend(undefined, { backfill: true });
     } catch (e) {
