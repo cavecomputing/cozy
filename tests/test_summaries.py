@@ -13,6 +13,7 @@ import cozy.routes.chats as chat_routes
 from cozy.routes.settings import get_settings
 import cozy.routes.summaries as summaries
 from cozy.summarizer import (
+    append_entry_problems,
     append_token_limits,
     append_summary,
     bond_key,
@@ -21,6 +22,7 @@ from cozy.summarizer import (
     dump_summary_json,
     enforce_cap,
     estimate_tokens,
+    fit_append_entries,
     parse_summary,
     parse_summary_json,
     parse_summarizer_output,
@@ -28,8 +30,13 @@ from cozy.summarizer import (
     section_to_text,
     strip_thinking_content,
     summary_to_text,
-    validate_append_entries,
 )
+
+
+@pytest.fixture(autouse=True)
+def no_retry_delay(monkeypatch):
+    """A batch retries after a pause; the tests have no endpoint to wait for."""
+    monkeypatch.setattr(summaries, 'RETRY_DELAY_SECONDS', 0)
 
 
 # ── Pure summarizer logic ───────────────────────────────────────────────────
@@ -320,6 +327,17 @@ def test_collapse_story_lines_leaves_one_entry_and_empty_story_alone():
     assert [l['section'] for l in empty['lines']] == ['bonds']
 
 
+def test_collapse_story_lines_drops_a_copied_back_current_story():
+    """A model that echoes CURRENT STORY before its new line must not stamp every older
+    entry onto this batch's range."""
+    echoed = parse_summary('STORY SO FAR\n- old one\n- old two\n- the new beat')
+    out = collapse_story_lines(echoed, ['old one', 'old two'])
+    assert [l['text'] for l in out['lines']] == ['the new beat']
+    # One line that happens to read like an older entry is still this batch's own.
+    quiet = collapse_story_lines(parse_summary('STORY SO FAR\n- old one'), ['old one'])
+    assert [l['text'] for l in quiet['lines']] == ['old one']
+
+
 
 
 
@@ -371,6 +389,27 @@ def test_append_summary_keeps_identical_text_from_distinct_message_ranges():
     assert retried == out
 
 
+@pytest.mark.parametrize('placeholder', [
+    'A & B: unchanged',
+    'A & B: No change from before.',
+    'A & B: N/A',
+    'No relationships changed.',
+    '(none)',
+])
+def test_append_summary_skips_placeholder_bond_lines(placeholder):
+    """Rule 4 forbids these, but one that slipped through used to overwrite the whole
+    dossier or open a junk bond that never went away."""
+    prev = {'lines': [{'section': 'bonds', 'text': 'A & B: allies since the flood'}]}
+    reply = {'lines': [
+        {'section': 'story', 'text': 'S2'},
+        {'section': 'bonds', 'text': placeholder},
+    ]}
+    out = append_summary(prev, reply)
+    assert [l['text'] for l in out['lines'] if l['section'] == 'bonds'] == [
+        'A & B: allies since the flood',
+    ]
+
+
 def test_append_summary_first_batch_from_empty():
     out = append_summary({'lines': []}, parse_summary('STORY SO FAR\n- first\n\nBONDS\n- A & B: allies'))
     assert [l['text'] for l in out['lines']] == ['first', 'A & B: allies']
@@ -418,26 +457,56 @@ def test_build_append_messages_asks_for_exactly_one_story_entry():
 
 def test_append_token_limits_keep_room_for_multiple_entries():
     # A 12k summary gives STORY 7.2k tokens, but one batch still tops out at 240.
-    assert append_token_limits(12000) == (240, 120, 360)
+    assert append_token_limits(12000) == (240, 200, 600)
+    # A 64k context at the default 10% cap gives a bond the full 200.
+    assert append_token_limits(6553)[1] == 200
     # Small summaries scale down so one entry does not occupy most of its section.
     assert append_token_limits(800) == (60, 40, 106)
 
 
-def test_validate_append_entries_rejects_a_verbose_delta():
-    with pytest.raises(ValueError, match='per-batch limit is 60'):
-        validate_append_entries({
-            'lines': [{'section': 'story', 'text': 'sprawling detail ' * 30}],
-        }, 60, 40, 100)
+def test_append_entry_problems_names_each_line_over_its_limit():
+    problems = append_entry_problems({'lines': [
+        {'section': 'story', 'text': 'sprawling detail ' * 30},
+        {'section': 'bonds', 'text': 'Lina and Mark: ' + 'long history ' * 30},
+        {'section': 'bonds', 'text': 'Lina and Sol: brief'},
+    ]}, 60, 40, 100)
+    assert len(problems) == 3
+    assert 'story line' in problems[0] and 'limit 60' in problems[0]
+    assert '"Lina and Mark"' in problems[1] and 'limit 40' in problems[1]
+    assert 'total' in problems[2] and 'limit 100' in problems[2]
+    assert append_entry_problems({'lines': [{'section': 'story', 'text': 'fine'}]},
+                                 60, 40, 100) == []
+    assert append_entry_problems({'lines': []}, 60, 40, 100) == ['no story line']
 
 
-
-
+def test_fit_append_entries_trims_every_line_into_its_limit():
+    fitted = fit_append_entries({'lines': [
+        {'section': 'story', 'text': 'sprawling detail ' * 30},
+        {'section': 'bonds', 'text': 'A & B: ' + 'history ' * 40},
+        {'section': 'bonds', 'text': 'A & C: ' + 'history ' * 40},
+        {'section': 'bonds', 'text': 'A & D: ' + 'history ' * 40},
+    ]}, 60, 40, 100)
+    assert append_entry_problems(fitted, 60, 40, 100) == []
+    assert fitted['lines'][0]['text'].startswith('sprawling detail')
+    assert fitted['lines'][0]['text'].endswith('…')
+    # The batch total drops the last updates; the earlier ones keep their names.
+    bonds = [l['text'] for l in fitted['lines'] if l['section'] == 'bonds']
+    assert [b.split(':')[0] for b in bonds] == ['A & B', 'A & C']
 
 
 def test_parse_summarizer_output_rejects_empty_and_malformed_content():
-    for content in ('', 'just some prose', 'STORY SO FAR\n\nBONDS'):
+    for content in ('', 'just some prose', 'BONDS\n- A & B: allies'):
         with pytest.raises(ValueError):
             parse_summarizer_output(content)
+    # Headings alone parse to nothing; the worker reports the missing story line.
+    assert parse_summarizer_output('STORY SO FAR\n\nBONDS') == {'lines': []}
+
+
+def test_parse_summarizer_output_skips_a_preamble_before_the_story_heading():
+    obj = parse_summarizer_output(
+        'Here is the update:\n\nSTORY SO FAR\n- they reach the gate\n\nBONDS\n- A & B: allies'
+    )
+    assert [l['text'] for l in obj['lines']] == ['they reach the gate', 'A & B: allies']
 
 
 def test_parse_summarizer_output_accepts_an_omitted_bonds_section():
@@ -628,42 +697,123 @@ def test_run_job_incremental(client, sample_chat, monkeypatch):
     assert 'msg 2' in seen[-1][1]['content']  # only the new message went in
 
 
+def _chat_row(chat_id):
+    with shared.get_db() as conn:
+        return conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
+
+
 def test_run_job_error_sets_error_status(client, sample_chat, monkeypatch):
+    calls = []
+
     def boom(messages, cap_tokens=0):
+        calls.append(messages)
         raise RuntimeError('summarizer exploded')
     monkeypatch.setattr(summaries, 'call_summarizer', boom)
     ids = _add_messages(client, sample_chat['id'], 2)
     summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
-    with shared.get_db() as conn:
-        row = conn.execute('SELECT summary_status, summary_status_detail FROM chats WHERE id=?',
-                           (sample_chat['id'],)).fetchone()
+    row = _chat_row(sample_chat['id'])
     assert row['summary_status'] == 'error'
     assert 'exploded' in row['summary_status_detail']
+    # One retry, then the failure stands.
+    assert len(calls) == summaries.BATCH_ATTEMPTS == 2
+
+
+def test_run_job_retries_a_failed_request_once(client, sample_chat, monkeypatch):
+    """A dropped connection or a 502 from a restarting endpoint must not end the run."""
+    outcomes = iter([RuntimeError('502 Bad Gateway'), CANNED])
+
+    def flaky(messages, cap_tokens=0):
+        outcome = next(outcomes)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(summaries, 'call_summarizer', flaky)
+    ids = _add_messages(client, sample_chat['id'], 2)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
+
+    row = _chat_row(sample_chat['id'])
+    assert row['summary_status'] == 'idle'
+    assert row['summary_up_to_msg_id'] == ids[-1]
 
 
 @pytest.mark.parametrize('reply', [
     '',
     'not the requested format',
-    'STORY SO FAR\n\nBONDS',
 ])
 def test_run_job_rejects_invalid_model_content_without_advancing(
         client, sample_chat, monkeypatch, reply):
-    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: reply)
+    calls = []
+    monkeypatch.setattr(summaries, 'call_summarizer',
+                        lambda messages, cap_tokens=0: calls.append(messages) or reply)
     ids = _add_messages(client, sample_chat['id'], 2)
 
     summaries._run_summary_job(sample_chat['id'], ids[-1])
 
-    with shared.get_db() as conn:
-        row = conn.execute(
-            'SELECT summary_json, summary_up_to_msg_id, summary_status FROM chats WHERE id=?',
-            (sample_chat['id'],),
-        ).fetchone()
+    row = _chat_row(sample_chat['id'])
     assert row['summary_json'] == ''
     assert row['summary_up_to_msg_id'] is None
     assert row['summary_status'] == 'error'
+    # The retry told the model what was wrong with the first reply.
+    assert len(calls) == 2
+    assert 'YOUR PREVIOUS REPLY WAS REJECTED' in calls[1][1]['content']
 
 
-def test_run_job_rejects_overlong_summary_without_advancing(client, sample_chat, monkeypatch):
+def test_run_job_asks_again_for_a_missing_story_line_then_moves_on(
+        client, sample_chat, monkeypatch):
+    """Headings with nothing under them get one retry. A second empty reply retires the
+    batch without an entry rather than stalling the chat on it forever."""
+    calls = []
+    monkeypatch.setattr(summaries, 'call_summarizer',
+                        lambda messages, cap_tokens=0: calls.append(messages)
+                        or 'STORY SO FAR\n\nBONDS')
+    ids = _add_messages(client, sample_chat['id'], 2)
+
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
+
+    assert len(calls) == 2
+    assert 'no story line' in calls[1][1]['content']
+    row = _chat_row(sample_chat['id'])
+    assert row['summary_status'] == 'idle'
+    assert row['summary_up_to_msg_id'] == ids[-1]
+    assert parse_summary_json(row['summary_json'])['lines'] == []
+    assert 'no story line' in row['summary_status_detail']
+
+
+def test_overlong_bond_is_sent_back_with_a_note_and_the_corrected_reply_is_kept(
+        client, sample_chat, monkeypatch):
+    """The reported stall: one bond line over its limit failed the batch, and every
+    later run resent the same messages and got the same reply."""
+    long_bond = 'Lina and Mark: ' + 'a long shared history of debts and favours ' * 30
+    replies = iter([
+        f'STORY SO FAR\n- They cross the river.\n\nBONDS\n- {long_bond}',
+        'STORY SO FAR\n- They cross the river.\n\nBONDS\n- Lina and Mark: wary allies.',
+    ])
+    calls = []
+
+    def complete(messages, cap_tokens=0):
+        calls.append(messages)
+        return next(replies)
+
+    monkeypatch.setattr(summaries, 'call_summarizer', complete)
+    ids = _add_messages(client, sample_chat['id'], 2)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
+
+    assert len(calls) == 2
+    note = calls[1][1]['content'].split('YOUR PREVIOUS REPLY WAS REJECTED')[1]
+    bond_entry_tokens = append_token_limits(summaries._cap_tokens(get_settings()))[1]
+    assert '"Lina and Mark"' in note and f'limit {bond_entry_tokens}' in note
+    row = _chat_row(sample_chat['id'])
+    assert row['summary_status'] == 'idle'
+    assert row['summary_status_detail'] == ''
+    assert row['summary_up_to_msg_id'] == ids[-1]
+    bonds = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']
+             if l['section'] == 'bonds']
+    assert bonds == ['Lina and Mark: wary allies.']
+
+
+def test_overlong_reply_twice_is_trimmed_and_the_run_moves_on(
+        client, sample_chat, monkeypatch):
     client.put('/api/settings', json={
         'context_max_tokens': '500',
         'summary_cap_pct': '10',
@@ -679,21 +829,16 @@ def test_run_job_rejects_overlong_summary_without_advancing(client, sample_chat,
     ids = _add_messages(client, sample_chat['id'], 2)
     summaries._run_summary_job(sample_chat['id'], ids[-1])
 
-    assert len(calls) == 1
-    with shared.get_db() as conn:
-        row = conn.execute(
-            'SELECT summary_json, summary_up_to_msg_id FROM chats WHERE id=?',
-            (sample_chat['id'],),
-        ).fetchone()
-    assert row['summary_json'] == ''
-    assert row['summary_up_to_msg_id'] is None
-    with shared.get_db() as conn:
-        status = conn.execute(
-            'SELECT summary_status, summary_status_detail FROM chats WHERE id=?',
-            (sample_chat['id'],),
-        ).fetchone()
-    assert status['summary_status'] == 'error'
-    assert 'per-batch limit' in status['summary_status_detail']
+    assert len(calls) == 2
+    row = _chat_row(sample_chat['id'])
+    assert row['summary_status'] == 'idle'
+    assert row['summary_up_to_msg_id'] == ids[-1]
+    assert 'after a retry' in row['summary_status_detail']
+    story_entry_tokens = append_token_limits(summaries._cap_tokens(get_settings()))[0]
+    story = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']
+             if l['section'] == 'story']
+    assert story and story[0].startswith('important context')
+    assert estimate_tokens(story[0]) <= story_entry_tokens
 
 
 def test_append_mode_accumulates_story_across_batches(client, sample_chat, monkeypatch):
@@ -847,10 +992,12 @@ def test_rebuild_drops_legacy_pinned_flags(client, sample_chat, monkeypatch):
 
 
 
-def test_append_overflow_preserves_the_previous_checkpoint(client, sample_chat, monkeypatch):
-    """An oversized delta cannot evict stored history or advance the watermark."""
+def test_append_overflow_cannot_evict_the_previous_entries(client, sample_chat, monkeypatch):
+    """An oversized delta is cut to its entry limit, not left to swamp the section and
+    push older memory out through enforce_cap."""
     from cozy.summarizer import APPEND_INSTRUCTIONS
-    client.put('/api/settings', json={'context_max_tokens': '500', 'summary_cap_pct': '10'})
+    # An 800-token summary: STORY holds 480 tokens, one entry at most 60.
+    client.put('/api/settings', json={'context_max_tokens': '8000', 'summary_cap_pct': '10'})
     over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}\n\nBONDS\n- A & B: allies"
     calls = []
 
@@ -865,18 +1012,15 @@ def test_append_overflow_preserves_the_previous_checkpoint(client, sample_chat, 
     }, watermark=ids[0])
     summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
 
-    assert len(calls) == 1
-    assert calls[0][0]['content'] == APPEND_INSTRUCTIONS
-    with shared.get_db() as conn:
-        row = conn.execute(
-            'SELECT summary_json, summary_up_to_msg_id, summary_status FROM chats WHERE id=?',
-            (sample_chat['id'],),
-        ).fetchone()
-    assert summary_to_text(parse_summary_json(row['summary_json'])) == (
-        'STORY SO FAR\n- previous useful memory'
-    )
-    assert row['summary_up_to_msg_id'] == ids[0]
-    assert row['summary_status'] == 'error'
+    assert len(calls) == 2
+    assert all(call[0]['content'] == APPEND_INSTRUCTIONS for call in calls)
+    row = _chat_row(sample_chat['id'])
+    story = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']
+             if l['section'] == 'story']
+    assert story[0] == 'previous useful memory'
+    assert story[1].startswith('sprawling detail') and estimate_tokens(story[1]) <= 60
+    assert row['summary_up_to_msg_id'] == ids[-1]
+    assert row['summary_status'] == 'idle'
 
 
 def test_append_mode_merges_bonds_without_duplicating(client, sample_chat, monkeypatch):
@@ -1202,7 +1346,8 @@ def test_rebuild_keeps_batches_completed_before_a_failure(
     def fail_second_batch(messages, cap_tokens=0):
         nonlocal calls
         calls += 1
-        if calls == 2:
+        # Calls two and three are the second batch's attempt and its retry.
+        if calls in (2, 3):
             raise RuntimeError('second batch failed')
         return CANNED
 
@@ -1350,6 +1495,38 @@ def test_cancel_endpoint_keeps_completed_batches_and_stops_the_rest(
     # Cancelling is a normal outcome, not a failure.
     assert row['summary_status'] == 'idle'
     assert row['summary_status_detail'] == ''
+
+
+def test_cancel_during_the_retry_pause_sends_no_second_request(
+        client, sample_chat, monkeypatch):
+    cid = sample_chat['id']
+    client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
+    ids = _add_messages(client, cid, 2)
+    with shared.get_db() as conn:
+        conn.execute(
+            "UPDATE chats SET summary_status='running', summary_status_detail='Starting…' "
+            'WHERE id=?',
+            (cid,),
+        )
+    calls = []
+
+    def unreachable(messages, cap_tokens=0):
+        calls.append(messages)
+        raise RuntimeError('connection refused')
+
+    monkeypatch.setattr(summaries, 'call_summarizer', unreachable)
+    monkeypatch.setattr(
+        summaries.time, 'sleep',
+        lambda seconds: client.post(f'/api/chats/{cid}/summary/cancel'),
+    )
+
+    summaries._run_summary_job(cid, ids[-1], require_running=True)
+
+    assert len(calls) == 1
+    row = _chat_row(cid)
+    assert row['summary_status'] == 'idle'
+    assert row['summary_status_detail'] == ''
+    assert row['summary_up_to_msg_id'] is None
 
 
 def test_cancel_endpoint_blocks_a_later_publish_from_the_stopped_worker(

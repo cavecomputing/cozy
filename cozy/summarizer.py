@@ -34,10 +34,13 @@ BONDS_CAP_FRACTION = 0.4
 
 # A batch entry is a compact delta, not permission to consume its whole section. These
 # ceilings keep a normal-sized summary useful across many batches; the proportional
-# floors below scale them down further when the configured summary cap is small.
+# floors below scale them down further when the configured summary cap is small. A bond
+# gets more room than a story entry's share suggests because the central relationship
+# is rewritten nearly every batch and carries the whole chat's history; the batch total
+# stays three full dossiers.
 STORY_ENTRY_MAX_TOKENS = 240
-BOND_ENTRY_MAX_TOKENS = 120
-BONDS_UPDATE_MAX_TOKENS = 360
+BOND_ENTRY_MAX_TOKENS = 200
+BONDS_UPDATE_MAX_TOKENS = 600
 
 THINKING_TAG_PAIRS = (
     ('<think>', '</think>'),
@@ -58,8 +61,8 @@ APPEND_INSTRUCTIONS = (
     "STORY RULES:\n"
     "1. Output EXACTLY ONE story line, covering everything that happens in the NEW "
     "MESSAGES, in the order it happened. Never split the batch across several bullets. "
-    "If literally nothing happened, output the STORY SO FAR heading with no bullet "
-    "under it.\n"
+    "If little of note happened, say briefly what the exchange was about — the line is "
+    "never left out.\n"
     "2. STORY SO FAR is ADDITIVE. Do NOT repeat, reword, reorder, or compress the "
     "existing story lines — the system keeps them exactly as they are. Your one line "
     "covers only the new messages.\n"
@@ -214,8 +217,11 @@ def parse_summarizer_output(text):
     """Validate and parse a model response in the required summary format.
 
     A transport-level success is not enough to retire chat history: the response must
-    begin with ``STORY SO FAR`` and contain at least one summary line. Reasoning blocks
-    are discarded before validation so they never become memory.
+    carry the ``STORY SO FAR`` heading. Everything before that heading is discarded, so a
+    model that opens with "Here is the update:" still counts as answering in the format.
+    Reasoning blocks are discarded too, so they never become memory. A reply with
+    headings but no lines parses to an empty object; ``append_entry_problems`` reports
+    the missing story line, so the worker can ask again instead of failing outright.
 
     A missing ``BONDS`` heading is accepted rather than fatal. Rule 4 tells the model to
     write a bond line only for a relationship that is new or that changed and forbids
@@ -231,24 +237,34 @@ def parse_summarizer_output(text):
     ]
     if not meaningful:
         raise ValueError('Summarizer returned empty content')
-    if _norm_heading(meaningful[0]) != STORY_HEADING:
+    start = next(
+        (index for index, line in enumerate(meaningful)
+         if _norm_heading(line) == STORY_HEADING),
+        None,
+    )
+    if start is None:
         raise ValueError('Summarizer response is missing the STORY SO FAR heading')
-
-    parsed = parse_summary('\n'.join(meaningful))
-    if not parsed['lines']:
-        raise ValueError('Summarizer returned headings without any summary lines')
-    return parsed
+    return parse_summary('\n'.join(meaningful[start:]))
 
 
-def collapse_story_lines(obj):
+def collapse_story_lines(obj, previous=()):
     """Fold a reply's story lines into the single entry one batch is allowed to produce.
 
     The prompt asks for exactly one line, but a model that splits the batch into two or
     three bullets anyway must not fail the run: raising here would stall the feature on a
     cosmetic deviation, and the beats are consecutive by construction, so joining them
     loses nothing. Bonds are untouched — they are separate relationships, not a timeline.
+
+    ``previous`` is the stored story text. A multi-line reply that repeats some of it is
+    the model copying CURRENT STORY back before its new line, despite rule 2; the copies
+    are dropped before the join, or this batch's entry would carry every older one. A
+    single-line reply is kept even when it matches an older entry — two quiet batches can
+    legitimately read the same.
     """
     story = [line for line in summary_lines(obj) if line.get('section') != 'bonds']
+    if len(story) > 1:
+        seen = set(previous)
+        story = [line for line in story if line.get('text') not in seen]
     bonds = [dict(line) for line in summary_lines(obj) if line.get('section') == 'bonds']
     merged = []
     if story:
@@ -375,36 +391,98 @@ def append_token_limits(cap_tokens):
     return story_entry, bond_entry, bonds_update
 
 
-def validate_append_entries(obj, story_entry_tokens, bond_entry_tokens,
-                            bonds_update_tokens):
-    """Reject a model delta that could monopolize the rolling summary.
-
-    Validation happens before the worker advances its watermark, so a verbose response
-    cannot evict older entries and then claim that its source messages were remembered.
-    """
-    story = section_lines(obj, 'story')
+def _bonds_update_size(obj):
     bonds = section_lines(obj, 'bonds')
+    return estimate_tokens('\n'.join(line.get('text', '') for line in bonds))
+
+
+def append_entry_problems(obj, story_entry_tokens, bond_entry_tokens,
+                          bonds_update_tokens):
+    """What in a batch delta breaks the per-batch limits, as short notes; [] when nothing.
+
+    The limits stop one verbose reply from monopolizing the rolling summary. The notes
+    name the offending line and its size because they are read twice: by the model as
+    the reason it is being asked again, and by the user if the second reply misses too.
+    """
+    problems = []
+    story = section_lines(obj, 'story')
+    if not story:
+        problems.append('no story line')
     for line in story:
         tokens = estimate_tokens(line.get('text', ''))
         if tokens > story_entry_tokens:
-            raise ValueError(
-                f'Summarizer story entry used about {tokens} tokens; '
-                f'the per-batch limit is {story_entry_tokens}'
+            problems.append(
+                f'the story line is about {tokens} tokens (limit {story_entry_tokens})'
             )
-    for line in bonds:
+    for line in section_lines(obj, 'bonds'):
         tokens = estimate_tokens(line.get('text', ''))
         if tokens > bond_entry_tokens:
-            raise ValueError(
-                f'Summarizer bond entry used about {tokens} tokens; '
-                f'the per-bond limit is {bond_entry_tokens}'
+            names = line.get('text', '').split(':', 1)[0].strip()[:60]
+            problems.append(
+                f'the bond line for "{names}" is about {tokens} tokens '
+                f'(limit {bond_entry_tokens})'
             )
-    bonds_tokens = estimate_tokens('\n'.join(line.get('text', '') for line in bonds))
+    bonds_tokens = _bonds_update_size(obj)
     if bonds_tokens > bonds_update_tokens:
-        raise ValueError(
-            f'Summarizer bond updates used about {bonds_tokens} tokens; '
-            f'the per-batch limit is {bonds_update_tokens}'
+        problems.append(
+            f'the bond lines total about {bonds_tokens} tokens (limit {bonds_update_tokens})'
         )
+    return problems
+
+
+def fit_append_entries(obj, story_entry_tokens, bond_entry_tokens, bonds_update_tokens):
+    """Force a batch delta inside the per-batch limits once the model has missed twice.
+
+    Failing the batch instead stalls the whole chat: every later run resends the same
+    messages to the same model, and sending waits on the summary. So an over-long line
+    keeps the longest prefix that fits, and bond updates beyond the batch total are
+    dropped last-first — a dropped update leaves that relationship's stored dossier as it
+    was. A missing story line stays missing; the batch simply adds no entry.
+    """
+    obj = {'lines': [dict(line) for line in summary_lines(obj)]}
+    for line in obj['lines']:
+        limit = bond_entry_tokens if line.get('section') == 'bonds' else story_entry_tokens
+        if estimate_tokens(line['text']) > limit:
+            line['text'] = _longest_fitting_prefix(
+                line['text'], lambda text: estimate_tokens(text) <= limit
+            ) or line['text']
+    while _bonds_update_size(obj) > bonds_update_tokens:
+        last_bond = max(
+            index for index, line in enumerate(obj['lines'])
+            if line.get('section') == 'bonds'
+        )
+        obj['lines'].pop(last_bond)
     return obj
+
+
+def retry_note(problems):
+    """The note appended to a batch request that is being sent again after a bad reply."""
+    listed = '\n'.join(f'- {problem}' for problem in problems)
+    return (
+        f"\n\nYOUR PREVIOUS REPLY WAS REJECTED:\n{listed}\n"
+        "Write the reply again in the required format and within every limit. To shorten "
+        "a line, drop resolved, repeated, or decorative detail; keep what is current and "
+        "unresolved."
+    )
+
+
+def _longest_fitting_prefix(text, fits):
+    """The longest prefix of ``text`` that ``fits``, marked with an ellipsis when cut, or
+    None when not even one character does. Binary search keeps it small and deterministic.
+    """
+    best = None
+    low, high = 1, len(text)
+    while low <= high:
+        middle = (low + high) // 2
+        candidate = text[:middle].rstrip()
+        if middle < len(text):
+            candidate += '…'
+        if fits(candidate):
+            best = candidate
+            low = middle + 1
+        else:
+            high = middle - 1
+    return best
 
 
 def enforce_cap(obj, cap_tokens):
@@ -462,24 +540,14 @@ def enforce_cap(obj, cap_tokens):
             continue
         line = obj['lines'][positions[0]]
         original = line['text']
-        best = None
-        low, high = 1, len(original)
-        while low <= high:
-            middle = (low + high) // 2
-            candidate = original[:middle].rstrip()
-            if middle < len(original):
-                candidate += '…'
+
+        def fits_in_section(candidate):
             line['text'] = candidate
-            if section_fits(section):
-                best = candidate
-                low = middle + 1
-            else:
-                high = middle - 1
-        if best:
-            line['text'] = best
-            shortened = True
-        else:
-            line['text'] = original
+            return section_fits(section)
+
+        best = _longest_fitting_prefix(original, fits_in_section)
+        line['text'] = best or original
+        shortened = shortened or bool(best)
 
     if fits():
         if trimmed and shortened:
@@ -527,6 +595,28 @@ def build_append_messages(story_text, bonds_text, batch_messages, story_entry_to
     ]
 
 
+# The body of a reply bond line that only declares the relationship unchanged.
+_BOND_PLACEHOLDER = re.compile(
+    r'^\W*(?:unchanged|no (?:real |significant )?changes?|not updated|no updates?'
+    r'|nothing (?:new|changed)|no new developments?'
+    r'|(?:none|n/?a|same(?: as before)?)\W*$)',
+    re.IGNORECASE,
+)
+
+
+def _is_bond_update(text):
+    """True when a reply bond line is a real ``Names: dossier`` update.
+
+    Rules 4 and 7 forbid the alternatives, but a model that slips anyway must not reach
+    the merge: a line naming no relationship ("- No changes") would open a junk bond that
+    lives forever, and "- A and B: unchanged" would overwrite A and B's whole dossier with
+    the placeholder.
+    """
+    head, colon, body = text.partition(':')
+    return bool(colon and head.strip() and body.strip()
+                and not _BOND_PLACEHOLDER.match(body.strip()))
+
+
 def append_summary(prev_obj, new_obj, msg_range=None):
     """Fold an *append-mode* reply into the existing summary.
 
@@ -543,7 +633,8 @@ def append_summary(prev_obj, new_obj, msg_range=None):
     is updated in place, keeping its position; every relationship the reply does not
     mention is carried through untouched. This is what makes a bond safe to leave out of a
     reply: replacing the section wholesale meant re-transcribing every relationship on
-    every batch, and each lossy re-copy became the next batch's input.
+    every batch, and each lossy re-copy became the next batch's input. Reply lines that
+    fail ``_is_bond_update`` are skipped.
 
     Returns fresh copies and never mutates its inputs.
     """
@@ -585,7 +676,7 @@ def append_summary(prev_obj, new_obj, msg_range=None):
         if line.get('section') != 'bonds':
             continue
         text = line.get('text', '')
-        if not text:
+        if not _is_bond_update(text):
             continue
         key = bond_key(text)
         existing = by_key.get(key)

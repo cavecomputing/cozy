@@ -815,13 +815,81 @@ def test_send_guard_waits_for_summary_run_before_resolving():
     run_node_module(code)
 
 
-def test_send_guard_rejects_invalid_run_response():
-    code = BASE_SETUP + r"""
+# Warnings reach the user as toasts, which need a DOM. This records their text, and
+# keeps each toast's five-second removal timer from holding node open after the test.
+# Summary polls run on shorter timers and are unaffected.
+TOAST_CAPTURE = r"""
+    const toasts = [];
+    globalThis.document = {
+        getElementById() { return { appendChild(node) { toasts.push(node.textContent); } }; },
+        createElement() { return { setAttribute() {}, appendChild() {}, remove() {} }; },
+    };
+    const timerBeforeToasts = globalThis.setTimeout;
+    globalThis.setTimeout = (fn, ms, ...args) => {
+        const timer = timerBeforeToasts(fn, ms, ...args);
+        if (ms >= 5000) timer.unref?.();
+        return timer;
+    };
+"""
+
+
+def test_send_guard_warns_and_proceeds_on_invalid_run_response():
+    code = BASE_SETUP + TOAST_CAPTURE + r"""
         API.runSummary = async () => null;
+        await ensureSummaryReadyForSend();
+        assert.equal(toasts.length, 1);
+        assert.match(toasts[0], /^Memory update failed: .*invalid status response/);
+    """
+    run_node_module(code)
+
+
+def test_send_goes_ahead_when_the_memory_update_fails():
+    """A summarizer that is down must not stop the chat. Memory is behind, not lost."""
+    code = BASE_SETUP + TOAST_CAPTURE + r"""
+        API.runSummary = async chatId => ({
+            id: chatId,
+            summary_enabled: true,
+            summary: { lines: [] },
+            summary_up_to_msg_id: null,
+            summary_status: 'error',
+            summary_status_detail: 'Connection refused.',
+        });
+
+        await ensureSummaryReadyForSend();
+
+        assert.equal(toasts.length, 1);
+        assert.match(toasts[0], new RegExp(
+            "^Memory update failed: Connection refused — this reply can't see \\d+ "
+            + 'older messages? until memory catches up\\.$',
+        ));
+        // Enabling the feature still reports why its backfill stopped.
         await assert.rejects(
-            ensureSummaryReadyForSend(),
-            /invalid status response/,
+            ensureSummaryReadyForSend(undefined, { backfill: true }),
+            /Connection refused/,
         );
+    """
+    run_node_module(code)
+
+
+def test_send_goes_ahead_when_memory_stops_advancing():
+    code = BASE_SETUP + TOAST_CAPTURE + r"""
+        let runs = 0;
+        API.runSummary = async chatId => {
+            runs += 1;
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: null,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await ensureSummaryReadyForSend();
+
+        assert.equal(runs, 2);
+        assert.match(toasts[0], /^Memory update failed: the summary stopped advancing/);
     """
     run_node_module(code)
 
@@ -924,20 +992,19 @@ def test_send_guard_stops_waiting_when_summaries_are_paused():
     run_node_module(code)
 
 
-def test_send_guard_blocks_unconfigured_memory_gap_only_when_needed():
-    code = BASE_SETUP + r"""
+def test_send_guard_warns_about_an_unconfigured_memory_gap_only_when_needed():
+    code = BASE_SETUP + TOAST_CAPTURE + r"""
         el.apiEndpoint.value = '';
         state.apiModel = '';
 
-        await assert.rejects(
-            ensureSummaryReadyForSend(),
-            /Configure an Auto Summaries endpoint and model/,
-        );
+        await ensureSummaryReadyForSend();
+        assert.equal(toasts.length, 1);
+        assert.match(toasts[0], /Configure an Auto Summaries endpoint and model/);
 
-        // With no context limit, nothing ages out and ordinary sending remains
-        // available even when no summarizer is configured.
+        // With no context limit, nothing ages out, so there is nothing to warn about.
         el.settingsContextTokens.value = '0';
         await ensureSummaryReadyForSend();
+        assert.equal(toasts.length, 1);
     """
     run_node_module(code)
 
@@ -1463,6 +1530,7 @@ def test_rebuild_clears_stale_summary_when_full_history_fits_without_it():
             };
         };
         API.runSummary = async () => { runs += 1; throw new Error('should not run'); };
+        API.getSummaryStatus = async () => ({ ...state.activeChat });
 
         initSummaryHandlers();
         await listeners.click();
@@ -1540,14 +1608,16 @@ def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_ru
                 summary_status_detail: '',
             };
         };
-        API.getSummaryStatus = async chatId => ({
+        // Before the rebuild is posted the server still holds the empty summary the
+        // click is judged against; afterwards it reports the rebuilt one.
+        API.getSummaryStatus = async chatId => (calls.length ? {
             id: chatId,
             summary_enabled: true,
             summary: rebuiltSummary,
             summary_up_to_msg_id: calls[0].up_to_msg_id,
             summary_status: 'idle',
             summary_status_detail: '',
-        });
+        } : { ...state.activeChat });
 
         const nativeSetTimeout = globalThis.setTimeout;
         globalThis.setTimeout = (fn, _ms) => nativeSetTimeout(fn, 0);
@@ -1943,6 +2013,112 @@ def test_rebuild_button_still_starts_over_when_the_summary_is_empty():
     run_node_module(code)
 
 
+def test_rebuild_button_decides_from_the_server_not_a_stale_tab():
+    """A tab loaded before a run began still shows an empty summary. Pressing the button
+    there used to start over, discarding every batch the other run had finished."""
+    code = REBUILD_SETUP + r"""
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: null,
+            summary: { lines: [] },
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+        const server = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: 4,
+            summary: { lines: [{ section: 'story', text: 'finished in another tab' }] },
+            summary_status: 'error',
+            summary_status_detail: 'Summarizer request failed',
+        };
+        API.getSummaryStatus = async () => ({ ...server });
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            server.summary_up_to_msg_id = options.up_to_msg_id;
+            server.summary_status = 'idle';
+            return { ...server };
+        };
+
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.ok(calls.length > 0, 'expected the button to continue the run');
+        assert.ok(calls.every(call => call.rebuild === false),
+            'a stale tab must not start over');
+        assert.ok(calls[0].up_to_msg_id > 4);
+    """
+    run_node_module(code)
+
+
+# The styled confirm dialog is plain DOM. This stands in for just enough of it, and
+# for the toast container, to answer the dialog from a test.
+FAKE_DIALOG_DOM = r"""
+    const dialogHandlers = {};
+    const dialogNodes = {};
+    const fakeNode = selector => ({
+        hidden: false, textContent: '', disabled: false, value: '',
+        classList: { toggle() {} },
+        focus() {},
+        setAttribute() {}, appendChild() {}, remove() {},
+        addEventListener(type, fn) { dialogHandlers[selector] = fn; },
+        querySelector(inner) { return dialogNodes[inner] ??= fakeNode(inner); },
+    });
+    globalThis.document = {
+        body: { appendChild() {} },
+        activeElement: null,
+        addEventListener() {},
+        removeEventListener() {},
+        contains() { return false; },
+        getElementById() { return { appendChild() {} }; },
+        createElement() { return fakeNode('root'); },
+    };
+    const dialogShown = () => '.confirm-accept' in dialogHandlers
+        && dialogNodes['.confirm-title']?.textContent;
+    const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+"""
+
+
+def test_rebuild_from_scratch_asks_before_replacing_a_summary():
+    code = REBUILD_SETUP + FAKE_DIALOG_DOM + r"""
+        // Up to date: everything past the watermark fits, so there is nothing to
+        // continue and the button means start over.
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: 10,
+            summary: { lines: [{ section: 'story', text: 'an older beat' }] },
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+        API.getSummaryStatus = async () => ({ ...state.activeChat });
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push({ chatId, ...options });
+            return { ...state.activeChat, summary_up_to_msg_id: options.up_to_msg_id };
+        };
+
+        initSummaryHandlers();
+        let click = listeners.click();
+        await settle();
+        assert.ok(dialogShown(), 'expected a confirm before starting over');
+        dialogHandlers['.confirm-cancel']();
+        await click;
+        assert.equal(calls.length, 0, 'declining must not start a rebuild');
+
+        click = listeners.click();
+        await settle();
+        dialogHandlers['.confirm-accept']();
+        await click;
+        assert.equal(calls[0].rebuild, true);
+    """
+    run_node_module(code)
+
+
 def test_cancel_button_is_live_only_while_a_run_is_in_flight():
     code = r"""
         import assert from 'node:assert/strict';
@@ -1977,18 +2153,11 @@ def test_cancel_button_is_live_only_while_a_run_is_in_flight():
     run_node_module(code)
 
 
-def test_send_guard_abandons_the_send_when_the_run_is_cancelled():
-    """Cancelling mid-send must not silently start the next batch or generate over a gap."""
-    code = BASE_SETUP + r"""
+def test_stopping_memory_mid_send_lets_the_reply_go_ahead():
+    """Stopping the memory run means "don't wait", not "don't send" — the send button
+    cancels a send. It must not answer the stop by starting the next batch either."""
+    code = BASE_SETUP + TOAST_CAPTURE + r"""
         import { initSummaryHandlers } from './static/js/summaries.js';
-
-        // The cancel path explains itself with a toast, which needs a DOM.
-        globalThis.document = {
-            getElementById() { return { appendChild() {} }; },
-            createElement() {
-                return { setAttribute() {}, appendChild() {}, remove() {} };
-            },
-        };
 
         el.summaryToggle = { addEventListener() {} };
         el.summaryRebuildBtn = { addEventListener() {}, setAttribute() {} };
@@ -2035,15 +2204,10 @@ def test_send_guard_abandons_the_send_when_the_run_is_cancelled():
             summary_status_detail: '',
         });
 
-        let raised = null;
-        try {
-            await ensureSummaryReadyForSend();
-        } catch (e) {
-            raised = e;
-        }
-        assert.ok(raised, 'the send must not proceed over a known memory gap');
-        assert.equal(raised.name, 'AbortError');
-        // Crucially it did not answer the cancel by starting the next batch.
+        await ensureSummaryReadyForSend();
+
+        assert.match(toasts[0], /^Memory update stopped — this reply can't see/);
+        // It did not answer the cancel by starting the next batch.
         assert.equal(runs, 1);
     """
     run_node_module(code)

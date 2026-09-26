@@ -85,6 +85,9 @@ See [Regex output filters](8-regex-output-filters.md).
 
 ## A summary run keeps failing
 
+Every batch is already retried once before a run stops, so an error that keeps
+coming back points at a setting, not bad luck.
+
 If the status line shows *"cut off by its completion token limit"*, the
 summarizer's reply ran out of room. The usual cause is a reasoning model: its
 thinking is billed against the same token allowance as the summary itself.

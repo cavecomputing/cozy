@@ -11,6 +11,7 @@ import json
 import logging
 import math
 import threading
+import time
 import uuid
 
 import requests as http_requests
@@ -21,17 +22,20 @@ from cozy.routes.llm import _error_detail, _summary_llm_settings
 from cozy.routes.settings import get_settings
 from cozy.shared import get_db, not_found
 from cozy.summarizer import (
+    append_entry_problems,
     append_token_limits,
     append_summary,
     build_append_messages,
     collapse_story_lines,
     dump_summary_json,
     enforce_cap,
+    fit_append_entries,
     parse_summary_json,
     parse_summarizer_output,
+    retry_note,
+    section_lines,
     section_to_text,
     strip_thinking_content,
-    validate_append_entries,
 )
 
 log = logging.getLogger('cozy')
@@ -42,6 +46,11 @@ summaries_bp = Blueprint('summaries', __name__)
 # an old HTTP call from mistaking a newly-started run's ``running`` row for its own job.
 _job_tokens = {}
 _job_tokens_lock = threading.RLock()
+
+# Each batch gets one retry. The pause gives a restarting or overloaded endpoint a
+# moment before the same request goes out again.
+BATCH_ATTEMPTS = 2
+RETRY_DELAY_SECONDS = 5
 
 
 # ── Summarizer LLM call ─────────────────────────────────────────────────────
@@ -79,8 +88,9 @@ def call_summarizer(messages, cap_tokens=0):
         # A truncated reply can still parse (the cut lands mid-bullet or right
         # after a heading) and would retire history against chopped memory.
         raise RuntimeError(
-            'Summarizer response was cut off by its completion token limit; '
-            'try a larger context size or summary cap'
+            'Summarizer response was cut off by its completion token limit; raise Max '
+            'response tokens (Settings → API → Context & generation) or use a summarizer '
+            'model that does not reason at length'
         )
     message = choices[0].get('message')
     if not isinstance(message, dict):
@@ -297,6 +307,71 @@ def _summary_state(row):
 
 # ── The worker ──────────────────────────────────────────────────────────────
 
+def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
+                     require_running=False, job_token=None):
+    """Ask the summarizer for one batch's delta. Returns ``(delta, warning)``.
+
+    A batch gets ``BATCH_ATTEMPTS`` tries. A failed request is sent again after a pause;
+    a reply that broke the format or the length limits is sent again with a note saying
+    what was wrong, since resending the same request invites the same reply. A second
+    reply that still overshoots is trimmed to fit and accepted with a warning: failing it
+    stalled the chat, because every later run resends the same messages and sending
+    waits on the summary. Only a second request or format failure raises.
+    """
+    limits = append_token_limits(cap_tokens)
+    story_entry_tokens, _, bonds_update_tokens = limits
+    system, user = build_append_messages(
+        section_to_text(summary_obj, 'story'),
+        section_to_text(summary_obj, 'bonds'),
+        chunk,
+        *limits,
+    )
+    request = [system, user]
+    previous_story = [line['text'] for line in section_lines(summary_obj, 'story')]
+    for attempt in range(1, BATCH_ATTEMPTS + 1):
+        final = attempt == BATCH_ATTEMPTS
+        if attempt > 1:
+            _set_status(
+                chat_id, detail=f'Summarizing… ({batch_label}, retrying)',
+                require_running=require_running, job_token=job_token,
+            )
+        _assert_summary_active(
+            chat_id, require_running=require_running, job_token=job_token
+        )
+        try:
+            reply = call_summarizer(request, story_entry_tokens + bonds_update_tokens)
+        except RuntimeError as e:
+            if final:
+                raise
+            log.warning('Summarizer request for chat %s failed, retrying: %s', chat_id, e)
+            time.sleep(RETRY_DELAY_SECONDS)
+            continue
+        # A disable may have committed while the HTTP request was in flight. Do not
+        # parse or publish that now-stale result.
+        _assert_summary_active(
+            chat_id, require_running=require_running, job_token=job_token
+        )
+        try:
+            delta = collapse_story_lines(parse_summarizer_output(reply), previous_story)
+        except ValueError as e:
+            if final:
+                raise
+            problems = [str(e)]
+        else:
+            problems = append_entry_problems(delta, *limits)
+            if not problems:
+                return delta, ''
+            if final:
+                warning = (
+                    f'The summarizer still broke its limits on {batch_label} after a '
+                    f'retry ({"; ".join(problems)}), so Cozy kept what fit.'
+                )
+                return fit_append_entries(delta, *limits), warning[:300]
+        log.warning('Summarizer reply for chat %s rejected, retrying: %s',
+                    chat_id, '; '.join(problems))
+        request = [system, {**user, 'content': user['content'] + retry_note(problems)}]
+
+
 def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False,
                      job_token=None):
     """Fold messages ``(watermark, up_to_msg_id]`` into the chat's running summary,
@@ -366,9 +441,10 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
         for bi in range(total):
             chunk = batch[bi * interval:(bi + 1) * interval]
             chunk_ids = ids[bi * interval:(bi + 1) * interval]
+            batch_label = f'batch {bi + 1}/{total}'
             _set_status(
                 chat_id,
-                detail=f'Summarizing… (batch {bi + 1}/{total})',
+                detail=f'Summarizing… ({batch_label})',
                 require_running=require_running,
                 job_token=job_token,
             )
@@ -392,38 +468,17 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                     warning = write_warning
                 continue
 
-            story_entry_tokens, bond_entry_tokens, bonds_update_tokens = (
-                append_token_limits(cap_tokens)
-            )
-            messages = build_append_messages(
-                section_to_text(summary_obj, 'story'),
-                section_to_text(summary_obj, 'bonds'),
+            delta, batch_warning = _summarize_batch(
+                chat_id,
+                summary_obj,
                 visible_chunk,
-                story_entry_tokens,
-                bond_entry_tokens,
-                bonds_update_tokens,
-            )
-            _assert_summary_active(
-                chat_id, require_running=require_running, job_token=job_token
-            )
-            reply = call_summarizer(
-                messages,
-                story_entry_tokens + bonds_update_tokens,
-            )
-            # A disable may have committed while the HTTP request was in flight. Do not
-            # parse or publish that now-stale result.
-            _assert_summary_active(
-                chat_id, require_running=require_running, job_token=job_token
-            )
-            parsed = collapse_story_lines(parse_summarizer_output(reply))
-            validate_append_entries(
-                parsed,
-                story_entry_tokens,
-                bond_entry_tokens,
-                bonds_update_tokens,
+                cap_tokens,
+                batch_label,
+                require_running=require_running,
+                job_token=job_token,
             )
             candidate = append_summary(
-                summary_obj, parsed, msg_range=(chunk_ids[0], chunk_ids[-1])
+                summary_obj, delta, msg_range=(chunk_ids[0], chunk_ids[-1])
             )
             # _persist_summary enforces the cap on the way to disk and hands back what
             # it stored, so the running object is trimmed exactly once per batch.
@@ -435,8 +490,10 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                 require_running=require_running,
                 job_token=job_token,
             )
-            if write_warning:
-                warning = write_warning
+            # A reply the model could not fit is the cause of any cap trim that follows,
+            # so it is the one worth reporting.
+            if batch_warning or write_warning:
+                warning = batch_warning or write_warning
 
         _set_status(
             chat_id,

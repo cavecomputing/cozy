@@ -51,6 +51,11 @@ runs keep failing with *"cut off by its completion token limit"*, raise **Max
 Response Tokens** in **Settings → API → Context & generation**, or point the
 summarizer at a non-reasoning model — it only has to write a few bullets.
 
+**Each batch gets one retry.** When the summarizer can't be reached or answers in
+the wrong format, Cozy tries that batch again — after a few seconds' pause for a
+connection problem — and the status line says *retrying*. A second failure stops
+the run and shows the error; every batch already finished is kept.
+
 ## Growing and rolling off
 
 Folding messages in is always additive. Each update appends one new entry to the
@@ -59,9 +64,11 @@ is silently rewritten. Entries are kept in chronological order, oldest first, an
 the summary tells the model so.
 
 A story entry uses at most about 240 tokens, and smaller summary caps scale that
-limit down to preserve room for several entries. If a summarizer ignores the
-limit, Cozy rejects that batch without advancing its message marker or evicting
-older memory.
+limit down to preserve room for several entries. A summarizer that overshoots a
+limit is asked once more, with a note naming the line that ran long. If the
+second reply still overshoots, Cozy keeps the part of each line that fits and
+says so in the status line — a run never stops over length alone, and an
+over-long entry can't push older memory out.
 
 Each story entry is labelled with the messages it covers, so you can see exactly
 what any line came from.
@@ -79,8 +86,8 @@ card. The Author's Note is sent verbatim on every request and never rolls off.
 
 Relationships are tracked separately under **Bonds**, which are updated in place
 as they develop rather than appended to the timeline. Each changed relationship
-is a concise current-state dossier, normally capped at about 120 tokens, rather
-than an indefinitely growing log. When bonds run out of room, the most recently
+is a concise current-state dossier of at most about 200 tokens — less when the
+summary cap is small — rather than an indefinitely growing log. When bonds run out of room, the most recently
 opened one is dropped first, on the reasoning that a long-running relationship
 carries more history than one opened a batch ago.
 
@@ -93,6 +100,11 @@ carries more history than one opened a batch ago.
 All existing old messages are processed in one visible, sequentially numbered
 catch-up run as soon as Auto Summary is enabled. Sending a new message may wait
 for an active update so that no old history is skipped.
+
+A memory update never stops you from chatting. If it fails, or you stop it while
+a message is waiting on it, the reply goes ahead anyway and a warning says how
+many older messages it can't see. Those messages aren't lost — they're still in
+the chat, and the next successful update folds them in.
 
 ## Stop, rebuild, and reset
 
@@ -121,6 +133,11 @@ The same button does one of two things, and its tooltip tells you which:
   It picks up from where it left off instead of redoing finished batches.
 - **Rebuild from history** when there is nothing to continue: it discards the
   summary and generates it again from the stored messages, one entry per batch.
+  Cozy asks first whenever that would replace an existing summary.
+
+Which of the two the button does is decided from the server's copy of the chat,
+so a tab left open from before a run — or another device — continues that run
+instead of starting over.
 
 You rarely need to press it. Sending a message or finishing a turn also continues
 an interrupted run, because the pre-send check folds in any history that has aged

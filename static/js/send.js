@@ -109,7 +109,8 @@ async function sendOnce(text) {
     try {
         // Persisting this user turn can move an older message outside the raw
         // context window. Fold that newly aged-out history into memory before
-        // building the request so no turn falls between the two.
+        // building the request so no turn falls between the two. A failed
+        // update warns and lets the reply go ahead rather than blocking it.
         await ensureSummaryReadyForSend(signal);
 
         source = 'Chat API';

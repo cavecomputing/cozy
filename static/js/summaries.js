@@ -493,11 +493,26 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
     }
 }
 
+/** Toast text for a send that goes ahead while memory is behind the context window. */
+function memoryGapWarning(reason, excludeLastN) {
+    const behind = agedOutUnsummarized(excludeLastN).length;
+    const said = reason.replace(/\.$/, '');
+    if (!behind) return said;
+    return `${said} — this reply can't see ${behind} older message${behind === 1 ? '' : 's'} `
+        + 'until memory catches up.';
+}
+
 /**
- * Close any gap between the stored watermark and the raw context boundary. Before
- * generation this prevents forgotten history; enablement reuses the same loop to backfill
- * an existing chat. The loop matters because a newly enlarged summary can itself move the
- * boundary and age out one more message.
+ * Close any gap between the stored watermark and the raw context boundary, so history
+ * doesn't fall between the two before generation; enablement reuses the same loop to
+ * backfill an existing chat. The loop matters because a newly enlarged summary can
+ * itself move the boundary and age out one more message.
+ *
+ * Before a send this never blocks. When the update fails, stops advancing, or the user
+ * stops it, the reply goes ahead with a warning: memory is behind, not lost — the
+ * messages stay in the chat and the next successful run folds them in — and a reply
+ * that can't see a few older messages beats no reply. A backfill rethrows instead, so
+ * enabling the feature can report why it didn't finish.
  */
 export async function ensureSummaryReadyForSend(signal, {
     excludeLastN = 0,
@@ -513,53 +528,57 @@ export async function ensureSummaryReadyForSend(signal, {
         showToast(refusal);
         return;
     }
-    if (!summarizerConfigured()) {
-        throw new Error('Configure an Auto Summaries endpoint and model before sending so aged-out history is not forgotten.');
-    }
 
     const chatId = chat.id;
-    let previousWatermark = chat.summary_up_to_msg_id || 0;
-    let stalledRuns = 0;
-    for (;;) {
-        assertSendStillActive(chatId, signal);
-        if (!summariesActive(state.activeChat)) return;
-        if (agedOutUnsummarized(excludeLastN).length === 0) return;
-
-        // Submit the whole backlog currently outside the window as one server job. The
-        // worker still calls the provider in configured-size chunks, but status can now
-        // report meaningful cumulative progress (batch 1/12, 2/12, …) instead of a
-        // client-side procession of unrelated batch 1/1 jobs.
-        await triggerRun({
-            awaitCompletion: true,
-            chatId,
-            signal,
-            excludeLastN,
-            exactTarget: true,
-        });
-        assertSendStillActive(chatId, signal);
-        if (!summariesActive(state.activeChat)) return;
-        // Cancelling the run this send was waiting on abandons the send too. Continuing
-        // would either start the next batch (ignoring the cancel) or generate against a
-        // known gap in memory, and this guard exists precisely to prevent the second.
-        if (consumeCancellation(chatId)) {
-            if (backfill) return;
-            showToast('Memory update cancelled — send again when you are ready.');
-            throw abortError('Summary cancelled during send');
+    try {
+        if (!summarizerConfigured()) {
+            throw new Error('Configure an Auto Summaries endpoint and model');
         }
+        let previousWatermark = chat.summary_up_to_msg_id || 0;
+        let stalledRuns = 0;
+        for (;;) {
+            assertSendStillActive(chatId, signal);
+            if (!summariesActive(state.activeChat)) return;
+            if (agedOutUnsummarized(excludeLastN).length === 0) return;
 
-        const watermark = state.activeChat.summary_up_to_msg_id || 0;
-        if (agedOutUnsummarized(excludeLastN).length === 0) return;
-        if (watermark <= previousWatermark) {
-            stalledRuns += 1;
-            if (stalledRuns >= 2) {
-                throw new Error(backfill
-                    ? 'Chat memory did not advance; automatic backfill stopped.'
-                    : 'Chat memory did not advance; response generation was paused to avoid forgetting history.');
+            // Submit the whole backlog currently outside the window as one server job.
+            // The worker still calls the provider in configured-size chunks, but status
+            // can now report meaningful cumulative progress (batch 1/12, 2/12, …) instead
+            // of a client-side procession of unrelated batch 1/1 jobs.
+            await triggerRun({
+                awaitCompletion: true,
+                chatId,
+                signal,
+                excludeLastN,
+                exactTarget: true,
+            });
+            assertSendStillActive(chatId, signal);
+            if (!summariesActive(state.activeChat)) return;
+            // Stopping the run this send was waiting on means "don't wait", not "don't
+            // send" — the send button is the way to cancel the send. Carry on without
+            // starting the next batch.
+            if (consumeCancellation(chatId)) {
+                if (!backfill) showToast(memoryGapWarning('Memory update stopped', excludeLastN));
+                return;
             }
-        } else {
-            stalledRuns = 0;
-            previousWatermark = watermark;
+
+            const watermark = state.activeChat.summary_up_to_msg_id || 0;
+            if (agedOutUnsummarized(excludeLastN).length === 0) return;
+            if (watermark <= previousWatermark) {
+                stalledRuns += 1;
+                if (stalledRuns >= 2) {
+                    throw new Error(backfill
+                        ? 'Chat memory did not advance; automatic backfill stopped.'
+                        : 'the summary stopped advancing');
+                }
+            } else {
+                stalledRuns = 0;
+                previousWatermark = watermark;
+            }
         }
+    } catch (e) {
+        if (backfill || e.name === 'AbortError') throw e;
+        showToast(memoryGapWarning(`Memory update failed: ${e.message}`, excludeLastN));
     }
 }
 
@@ -650,6 +669,16 @@ async function rebuildSummary() {
     cancelledRuns.delete(chatId);
     let resuming = false;
     try {
+        // Whether this press continues or starts over is decided from this tab's copy
+        // of the chat, which goes stale when a run moved on in another tab or on
+        // another device. Starting over from a stale copy throws away batches that
+        // run already paid for, so decide from the server's state.
+        const fresh = await API.getSummaryStatus(chatId);
+        if (!validSummaryState(fresh)) {
+            throw new Error('Summarizer returned an invalid status response.');
+        }
+        applySummaryState(fresh, chatId);
+        if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
         // A run already in flight would swallow this click through triggerRun's
         // join branch and never issue the actual rebuild. Wait it out first; a
         // failed background run must not block its own replacement.
@@ -674,6 +703,25 @@ async function rebuildSummary() {
             if (refusal) {
                 showToast(refusal);
                 return;
+            }
+            // Starting over costs a model call per batch, and the first finished batch
+            // overwrites the current summary — Reset asks before discarding less. When
+            // the whole history fits without a summary, triggerRun only clears it, and
+            // nothing is lost.
+            const rebuildsBatches = agedOutMessages(0, {
+                includeSummarized: true,
+                summaryTextOverride: '',
+            }).length > 0;
+            if (rebuildsBatches && state.activeChat.summary?.lines?.length) {
+                const ok = await confirmDialog({
+                    title: 'Rebuild the summary from scratch?',
+                    message: 'Every batch is summarized again. The current summary is '
+                        + 'replaced as soon as the first batch finishes, so if the run '
+                        + 'stops partway, only the rebuilt part remains.',
+                    confirmLabel: 'Rebuild',
+                });
+                if (!ok) return;
+                if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
             }
             await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
         }
