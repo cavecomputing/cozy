@@ -427,6 +427,18 @@ select.settings-select:focus-visible {
     display: flex;
 }
 
+/* While a row's menu is open the row keeps its hover look and its ⋯ stays
+   pressed, so the menu still reads as that row's with the pointer on it. */
+.char-item:not(.active):has(.char-menu-btn[aria-expanded="true"]) {
+    background-color: var(--hover-bg);
+    color: var(--text-color);
+}
+
+.char-item-actions .char-menu-btn[aria-expanded="true"] {
+    background-color: color-mix(in srgb, var(--text-color) 12%, transparent);
+    color: var(--text-color);
+}
+
 /* A favorited row keeps its star visible at rest; the ⋯ still appears
    only on hover or focus, or while its menu is open, like any other row.
    (Desktop only — on touch the whole group stays visible, see the
@@ -3934,17 +3946,43 @@ input[type="checkbox"]:checked::after {
     background-color: var(--border-color);
 }
 
-/* The character rows' ⋯ menu. toggleCharMenu() sets top and right from the
-   row that opened it, so the shared default of left: 0 has to go. */
+/* The character rows' ⋯ menu. toggleCharMenu() places it from the row that
+   opened it and sets the corner it grows from. Unlike the other export menus
+   it floats clear of its panel, so it carries the flyouts' shadow. */
 .char-row-menu {
-    left: auto;
+    min-width: 168px;
+    box-shadow: var(--shadow-md);
+    animation: rowMenuIn var(--motion-fast) ease-out;
 }
 
-.char-row-menu .char-row-menu-danger {
+@keyframes rowMenuIn {
+    from { opacity: 0; transform: scale(0.96); }
+}
+
+.char-row-menu button {
+    gap: 0.6rem;
+}
+
+.char-row-menu svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+}
+
+.char-row-menu .export-menu-sep {
+    margin: 0.3rem 0.5rem;
+}
+
+.char-row-menu .char-row-menu-danger,
+.char-row-menu .char-row-menu-danger svg {
     color: var(--danger-color);
 }
 
 @media (hover: hover) {
+    .char-row-menu button:hover svg {
+        color: inherit;
+    }
     .char-row-menu .char-row-menu-danger:hover {
         background-color: var(--danger-bg-hover);
     }

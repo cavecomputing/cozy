@@ -790,7 +790,8 @@ function bindCharacterHandlers() {
             }
         } else if (menuBtn) {
             e.stopPropagation();
-            if (char) toggleCharMenu(menuBtn, char);
+            // A click with no detail came from Enter or Space, not a pointer.
+            if (char) toggleCharMenu(menuBtn, char, e.detail === 0);
         } else if (selectBtn) {
             selectCharacter(id);
         }
@@ -819,15 +820,32 @@ function bindCharacterHandlers() {
     }, true);
     // The menu is placed once, so it can't follow the rows as the list scrolls.
     el.charList.parentElement.addEventListener('scroll', closeCharMenu, { passive: true });
-    // Escape closes the menu and stops there, instead of reaching the document
-    // handlers that close the mobile sidebar and every open flyout.
+    // Keys while the menu is open. Escape closes it and stops there, instead of
+    // reaching the document handlers that close the mobile sidebar and every
+    // open flyout. The arrows walk the items, from the ⋯ as well, wrapping at
+    // either end. Tab leaves for wherever it would have gone from the ⋯.
+    // Focus goes back to the ⋯ before the menu closes: an unhovered row shows
+    // its ⋯ only while the menu is open or focus is in the row, and focusing
+    // a hidden button quietly drops focus out of the list.
     el.sidebar.addEventListener('keydown', e => {
-        if (e.key !== 'Escape') return;
+        if (el.charRowMenu.hidden) return;
         const trigger = el.charList.querySelector('.char-menu-btn[aria-expanded="true"]');
-        if (!closeCharMenu()) return;
-        e.preventDefault();
-        e.stopPropagation();
-        trigger?.focus();
+        const items = [...el.charRowMenu.querySelectorAll('li:not([hidden]) > button')];
+        const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            trigger?.focus();
+            closeCharMenu();
+        } else if (step) {
+            e.preventDefault();
+            const at = items.indexOf(document.activeElement);
+            const next = at === -1 ? (step > 0 ? 0 : items.length - 1) : (at + step + items.length) % items.length;
+            items[next].focus();
+        } else if (e.key === 'Tab' && el.charRowMenu.contains(document.activeElement)) {
+            trigger?.focus();
+            closeCharMenu();
+        }
     });
 }
 

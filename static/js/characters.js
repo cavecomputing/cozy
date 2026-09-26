@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
-import { applyAvatar, AVATAR, compareCharacters, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
+import { applyAvatar, AVATAR, compareCharacters, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages, flushEdit } from './messages.js';
 
@@ -95,8 +95,9 @@ export function closeCharMenu() {
 }
 
 /** Open the row menu for `char` beside its ⋯ button, or close it when that
- *  row's menu is the one already showing. */
-export function toggleCharMenu(trigger, char) {
+ *  row's menu is the one already showing. `fromKeyboard` puts focus on the
+ *  first item, the way a menu button opened with Enter or Space should. */
+export function toggleCharMenu(trigger, char, fromKeyboard = false) {
     const menu = el.charRowMenu;
     const sameRow = !menu.hidden && menu.dataset.charId === String(char.id);
     closeCharMenu();
@@ -104,22 +105,38 @@ export function toggleCharMenu(trigger, char) {
 
     // A card whose file is missing has nothing to edit.
     menu.querySelectorAll('[data-row-edit]').forEach(li => { li.hidden = !!char.missing; });
-    menu.querySelector('[data-action="archive"]').textContent = char.archived ? 'Unarchive' : 'Archive';
+    menu.querySelector('[data-action="archive"] span').textContent = char.archived ? 'Unarchive' : 'Archive';
     menu.dataset.charId = char.id;
     menu.hidden = false;
     trigger.setAttribute('aria-expanded', 'true');
-    // Safari doesn't focus a clicked button, and Escape is only caught while
-    // focus is inside the sidebar. No scroll: a scroll closes the menu.
-    trigger.focus({ preventScroll: true });
+    // By pointer, focus stays on the ⋯: Safari doesn't focus a clicked button,
+    // and Escape is only caught while focus is inside the sidebar. No scroll
+    // either way: a scroll closes the menu.
+    const focusTarget = fromKeyboard ? menu.querySelector('li:not([hidden]) > button') : trigger;
+    focusTarget.focus({ preventScroll: true });
 
-    // Right edges aligned under the ⋯, or above it when the sidebar has no
-    // room left below. Coordinates are the sidebar's: the menu is its child.
+    // Coordinates are the sidebar's: the menu is its child.
     const box = el.sidebar.getBoundingClientRect();
     const at = trigger.getBoundingClientRect();
-    const fitsBelow = at.bottom + 4 + menu.offsetHeight <= box.bottom;
-    const top = fitsBelow ? at.bottom + 4 : at.top - 4 - menu.offsetHeight;
-    menu.style.top = `${top - box.top}px`;
-    menu.style.right = `${box.right - at.right}px`;
+    const height = menu.offsetHeight;
+    if (window.matchMedia(MOBILE_SHELL_QUERY).matches) {
+        // The drawer clips anything past its edge, so the menu drops under the
+        // ⋯ with right edges aligned, or sits above it when there's no room.
+        const fitsBelow = at.bottom + 4 + height <= box.bottom;
+        menu.style.top = `${(fitsBelow ? at.bottom + 4 : at.top - 4 - height) - box.top}px`;
+        menu.style.left = 'auto';
+        menu.style.right = `${box.right - at.right}px`;
+        menu.style.transformOrigin = fitsBelow ? 'top right' : 'bottom right';
+    } else {
+        // Out past the sidebar's right edge, level with the row, the way the
+        // persona switcher flies out: it opens toward the pointer instead of
+        // back across the list, and leaves the row it acts on in view.
+        const row = trigger.closest('.char-item').getBoundingClientRect();
+        menu.style.top = `${Math.min(row.top, box.bottom - height) - box.top}px`;
+        menu.style.left = `${box.width + 6}px`;
+        menu.style.right = 'auto';
+        menu.style.transformOrigin = 'top left';
+    }
 }
 
 /** Fold the Archived section open or shut, keeping focus on its toggle. */
