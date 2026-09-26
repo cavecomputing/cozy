@@ -807,6 +807,31 @@ def test_run_job_error_sets_error_status(client, sample_chat, monkeypatch):
     assert len(calls) == summaries.BATCH_ATTEMPTS == 2
 
 
+def test_expected_job_failures_log_one_line_and_bugs_keep_their_traceback(
+        client, sample_chat, monkeypatch, caplog):
+    ids = _add_messages(client, sample_chat['id'], 2)
+
+    def provider_down(messages, cap_tokens=0):
+        raise RuntimeError('503 Service Unavailable')
+    monkeypatch.setattr(summaries, 'call_summarizer', provider_down)
+    with caplog.at_level('INFO', logger='cozy'):
+        summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    failed = [r for r in caplog.records if 'Summary job failed' in r.getMessage()]
+    assert [r.levelname for r in failed] == ['WARNING']
+    assert '503 Service Unavailable' in failed[0].getMessage()
+    assert not any(r.exc_info for r in caplog.records if r.levelno >= 30)
+
+    caplog.clear()
+
+    def bug(messages, cap_tokens=0):
+        raise KeyError('lines')
+    monkeypatch.setattr(summaries, 'call_summarizer', bug)
+    with caplog.at_level('INFO', logger='cozy'):
+        summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    failed = [r for r in caplog.records if 'Summary job failed' in r.getMessage()]
+    assert failed and failed[0].levelname == 'ERROR' and failed[0].exc_info
+
+
 def test_run_job_retries_a_failed_request_once(client, sample_chat, monkeypatch):
     """A dropped connection or a 502 from a restarting endpoint must not end the run."""
     outcomes = iter([RuntimeError('502 Bad Gateway'), CANNED])

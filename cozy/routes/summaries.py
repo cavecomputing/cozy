@@ -542,7 +542,13 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             job_token=job_token,
         )
     except Exception as e:  # noqa: BLE001 — terminal state must always be recorded
-        log.exception('Summary job failed for chat %s', chat_id)
+        if isinstance(e, (RuntimeError, ValueError)):
+            # The provider failed or answered out of format, or the chat was deleted
+            # mid-run: expected outcomes, where a traceback only points back in here.
+            log.warning('Summary job failed for chat %s: %s', chat_id, e)
+            log.debug('Summary job traceback', exc_info=True)
+        else:
+            log.exception('Summary job failed for chat %s', chat_id)
         _set_status(
             chat_id,
             status='error',
