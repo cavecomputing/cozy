@@ -71,10 +71,10 @@ And if you would like some more details on character cards, personas, etc, check
    your service, check its documentation for its OpenAI-compatible base URL.
 6. Under `Connection` enter an `API key` if your server requires one.
 7. Under `Connection` select or search for the `Model` identifier and test the connection.
-8. Set the `Context & generation` settings you would like to use.
-9. Under `Samplers` and in the `Core samplers` box click the gear icon to enable the reccomended samplers for the model you are using.
-10. Set the sampler settings as reccomended by the model you are using.
-11. Chat with the default character or create a new character by clicking the `+` icon in the top right of the character sidebar.
+8. Set the `Context & generation` settings you would like to use. The sampler defaults below them
+   work for most models, so there is nothing to change there unless your model's documentation
+   says otherwise.
+9. Chat with the default character or create a new character by clicking the `+` icon in the top right of the character sidebar.
 
 The server must provide an OpenAI-style streaming `/chat/completions` endpoint.
 Model listing and advanced sampler support vary by server so verify the settings beforehand.

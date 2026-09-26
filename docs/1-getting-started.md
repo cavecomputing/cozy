@@ -54,26 +54,18 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
 ## 2. Check the samplers
 
 Samplers are number settings that control how the model chooses its words.
-Three common ones are Temperature, Min-P, and Repetition penalty. The
-default values work for most models. Change them only if the documentation
-for your model recommends specific values.
+Cozy starts with **Temperature 1.0** and **Min-P 0.05** and everything else
+off, which suits most models. If you have not been told otherwise, you are
+done with this section without changing anything.
 
 Only the samplers you turn on are sent to the server. The rest are
-ignored.
+ignored. If your model's documentation recommends specific values:
 
 1. Go to **Settings → API → Samplers**.
 2. Click the gear icon in the **Core samplers** header. A list called
    **Active samplers** opens.
 3. Turn on each sampler your model or server documentation names.
 4. Type in the recommended values.
-
-A starting point that works for general chat:
-
-```text
-Temperature: 0.8
-Min-P: 0.05
-Repetition penalty: 1.05
-```
 
 What every setting means, and which servers support it:
 [Sampler settings](6-sampler-settings.md).

@@ -62,16 +62,12 @@ If a request fails after enabling a sampler:
 
 Backend-specific JSON can be added under **Settings → API → Extra request parameters**.
 
-## Simple starting points
+## Simple adjustments
 
-For general chat:
-
-```text
-Temperature: 0.8
-Min-P: 0.05
-Repetition penalty: 1.05
-```
+The defaults — Temperature 1.0 and Min-P 0.05, everything else off — are the
+starting point, and suit most models as they are.
 
 For more predictable replies, lower Temperature. For more varied replies, raise
-it gradually. Avoid enabling several advanced filters at once unless you know
-how your server combines them.
+it gradually. If replies start repeating the same phrases, turn on Repetition
+penalty at around `1.05`. Avoid enabling several advanced filters at once
+unless you know how your server combines them.
