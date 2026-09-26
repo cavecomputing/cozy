@@ -1,10 +1,8 @@
 """Message and swipe routes."""
 
-from datetime import datetime
-
 from flask import Blueprint, request, jsonify
 
-from cozy.routes.chats import chat_to_dict
+from cozy.routes.chats import chat_to_dict, default_chat_name
 from cozy.shared import get_db, not_found, persona_avatar_url
 
 messages_bp = Blueprint('messages', __name__)
@@ -54,7 +52,7 @@ def fork_chat(chat_id):
         if not msg:
             return not_found('Message')
 
-        name = datetime.now().strftime('%b %d %H:%M:%S')
+        name = default_chat_name()
 
         # A fork continues the same conversation, so per-chat settings come with it.
         # The Author's Note especially: it is user-written text the docs point at for

@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from io import BytesIO
 
 from cozy import shared
@@ -1089,6 +1090,20 @@ class TestFork:
         new_chat = r.get_json()
         msgs = client.get(f'/api/chats/{new_chat["id"]}/messages').get_json()
         assert len(msgs) == 2
+
+    def test_fork_is_named_like_a_new_chat(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'A',
+        }).get_json()
+        created = client.post(
+            f'/api/characters/{sample_chat["character_id"]}/chats', json={}
+        ).get_json()
+        forked = client.post(f'/api/chats/{chat_id}/fork?message_id={msg["id"]}').get_json()
+
+        stamp = r'\d{4}-\d{2}-\d{2}:\d{2}-\d{2}-\d{2}'
+        assert re.fullmatch(stamp, created['name'])
+        assert re.fullmatch(stamp, forked['name'])
 
     def test_fork_requires_message_id(self, client, sample_chat):
         r = client.post(f'/api/chats/{sample_chat["id"]}/fork')
