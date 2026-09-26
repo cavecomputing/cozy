@@ -51,8 +51,8 @@ def _delete_summary_compress_batch(conn):
 
 # Migrations 3-7 upgrade a stock prompt that init_db() used to insert inline.
 # Nothing creates that row any more — the house prompt ships as a file in
-# default_prompts/ and a revision arrives as a new file — so this is the last
-# of them. They stay for databases that predate them, where the stock row is
+# default_prompts/ and a revision arrives as a version bump inside it — so this
+# is the last of them. They stay for databases that predate them, where the stock row is
 # still whatever version was current when it was written.
 def _add_summary_to_legacy_default_prompt(conn):
     """Add summary memory to untouched copies of the former stock prompt."""

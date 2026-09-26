@@ -32,14 +32,14 @@ BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
 # Character cards shipped with Cozy. Copied into CHARACTERS_DIR once, on the
 # first run of a fresh install — see seed_default_characters().
 BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
-# Prompt presets shipped with Cozy as {name, content, post_history_content}
-# JSON — the same payload the export endpoint produces. The *filename* minus
-# .json is the title each one is seeded under, so shipping a revised preset
-# means adding a file rather than editing one: "NanoBear v2.1.json" is a
-# different preset from "NanoBear v2.0.json" and neither disturbs the other.
-# Anything missing from system_prompts is restored from here on every start,
-# so this directory — not the database — is the source of truth for which
-# presets exist; see seed_default_prompts().
+# Prompt presets shipped with Cozy as {name, version, description, content,
+# post_history_content} JSON — the same payload the export endpoint produces.
+# The *filename* minus .json is the title each one is seeded under, and a preset
+# is that title together with its version, so shipping a revision means bumping
+# "version" inside the existing file: "NanoBear" 2.2 seeds beside "NanoBear" 2.1
+# and neither disturbs the other. Anything missing from system_prompts is
+# restored from here on every start, so this directory — not the database — is
+# the source of truth for which presets exist; see seed_default_prompts().
 BUNDLED_PROMPTS_DIR = os.path.join(BASE_DIR, 'default_prompts')
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Cap on decoded image dimensions (~8000x8000). Character cards and persona
