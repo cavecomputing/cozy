@@ -201,6 +201,39 @@ def _backfill_stock_prompt_versions(conn):
         )
 
 
+def _merge_versioned_stock_prompt_titles(conn):
+    """Fold the old "NanoBear v2.1" titles into the ones the bundle ships now.
+
+    Before the version column the edition lived in the title. Migration 13 gave
+    those rows version 2.1, but the bundle now ships "NanoBear" at 2.1, which
+    the seeder took for a different preset — so an upgraded install listed each
+    one twice, the old row showing "NanoBear v2.1 v2.1" in the picker.
+
+    This runs before the seeder, so where the new title is still free, taking
+    it is the whole fix: the seeder then finds the pair present and adds
+    nothing, and edits in the row survive under the new title. An install that
+    already gained the duplicate drops the old row only while its templates
+    still match the seeded one, moving the active selection across; a row the
+    user edited is theirs and stays.
+    """
+    pair = "SELECT id, content, post_history_content FROM system_prompts WHERE name=? AND version='2.1'"
+    for old, new in (('NanoBear v2.1', 'NanoBear'), ('NanoBear Author v2.1', 'NanoBear Author')):
+        stale = conn.execute(pair, (old,)).fetchone()
+        if not stale:
+            continue
+        current = conn.execute(pair, (new,)).fetchone()
+        if current is None:
+            conn.execute('UPDATE system_prompts SET name=? WHERE id=?', (new, stale['id']))
+        elif (stale['content'], stale['post_history_content']) == (
+            current['content'], current['post_history_content']
+        ):
+            conn.execute(
+                "UPDATE settings SET value=? WHERE key='active_system_prompt' AND value=?",
+                (str(current['id']), str(stale['id'])),
+            )
+            conn.execute('DELETE FROM system_prompts WHERE id=?', (stale['id'],))
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -215,6 +248,7 @@ MIGRATIONS = (
     (11, 'delete_default_prompts_seeded', _delete_default_prompts_seeded),
     (12, 'backfill_stock_prompt_descriptions', _backfill_stock_prompt_descriptions),
     (13, 'backfill_stock_prompt_versions', _backfill_stock_prompt_versions),
+    (14, 'merge_versioned_stock_prompt_titles', _merge_versioned_stock_prompt_titles),
 )
 
 

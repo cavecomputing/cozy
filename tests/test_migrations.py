@@ -536,10 +536,11 @@ class TestSchemaMigrationLedger:
 
         schema.init_db()
 
+        # Keyed by id: migration 14 renames the NanoBear row after this one ran.
         with shared.get_db() as conn:
             rows = {
-                r['name']: r['description'] for r in
-                conn.execute('SELECT name, description FROM system_prompts').fetchall()
+                r['id']: r['description'] for r in
+                conn.execute('SELECT id, description FROM system_prompts').fetchall()
             }
         # Migration 12 is a one-time backfill scoped to the two titles that
         # existed when it shipped, and a shipped migration is never rewritten.
@@ -548,21 +549,19 @@ class TestSchemaMigrationLedger:
         # and carries the edition in a version column instead. So both titles
         # take the branch the docstring promises: a missing file is skipped,
         # not a startup failure, and the row keeps its blank description.
-        assert rows['NanoBear v2.1'] == ''
-        assert rows['NanoBear Author v1'] == ''
+        assert rows[1] == ''
+        assert rows[2] == ''
         # A row that was never a stock preset is left alone either way.
-        assert rows['Custom'] == ''
+        assert rows[3] == ''
 
         # A description the user set themselves survives a re-run.
         with shared.get_db() as conn:
-            conn.execute(
-                "UPDATE system_prompts SET description='Mine' WHERE name='NanoBear v2.1'"
-            )
+            conn.execute("UPDATE system_prompts SET description='Mine' WHERE id=1")
             conn.execute('DELETE FROM schema_migrations WHERE version=12')
         schema.init_db()
         with shared.get_db() as conn:
             row = conn.execute(
-                "SELECT description FROM system_prompts WHERE name='NanoBear v2.1'"
+                'SELECT description FROM system_prompts WHERE id=1'
             ).fetchone()
         assert row['description'] == 'Mine'
 
@@ -587,17 +586,107 @@ class TestSchemaMigrationLedger:
 
         schema.init_db()
 
+        # Keyed by id: migration 14 renames both stock rows after this one ran.
         with shared.get_db() as conn:
             rows = {
-                r['name']: r['version'] for r in
-                conn.execute('SELECT name, version FROM system_prompts').fetchall()
+                r['id']: r['version'] for r in
+                conn.execute('SELECT id, version FROM system_prompts').fetchall()
             }
         # Migration 13 names the two titles that existed when the column
         # shipped; a preset added later arrives with its own version seeded.
-        assert rows['NanoBear v2.1'] == '2.1'
-        assert rows['NanoBear Author v2.1'] == '2.1'
+        assert rows[1] == '2.1'
+        assert rows[2] == '2.1'
         # A prompt of the user's own is not part of that lineage.
-        assert rows['Custom'] == ''
+        assert rows[3] == ''
+
+    def test_versioned_stock_titles_take_the_bundled_names(self, tmp_path, monkeypatch):
+        legacy_db = tmp_path / 'titles.db'
+        monkeypatch.setattr(shared, 'DATABASE', str(legacy_db))
+        with shared.get_db() as conn:
+            conn.executescript('''
+                CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                INSERT INTO settings VALUES ('active_system_prompt', '1');
+                CREATE TABLE system_prompts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    content TEXT NOT NULL DEFAULT '',
+                    post_history_content TEXT NOT NULL DEFAULT '',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT INTO system_prompts (name, content) VALUES
+                    ('NanoBear v2.1', 'my edits'),
+                    ('NanoBear Author v2.1', 'x'),
+                    ('Custom', 'x');
+            ''')
+
+        schema.init_db()
+        defaults.seed_default_prompts()
+
+        with shared.get_db() as conn:
+            rows = {
+                r['id']: (r['name'], r['version'], r['content']) for r in
+                conn.execute('SELECT * FROM system_prompts').fetchall()
+            }
+            active = conn.execute(
+                "SELECT value FROM settings WHERE key='active_system_prompt'"
+            ).fetchone()['value']
+        # Renamed in place, edits and all, so the seeder finds both pairs
+        # present and adds no second copy of either.
+        assert rows == {
+            1: ('NanoBear', '2.1', 'my edits'),
+            2: ('NanoBear Author', '2.1', 'x'),
+            3: ('Custom', '', 'x'),
+        }
+        assert active == '1'
+
+    def _duplicate_of_seeded(self, name, old_name, content=None):
+        """Put back the pre-migration duplicate an upgraded install gained."""
+        with shared.get_db() as conn:
+            seeded = conn.execute(
+                "SELECT * FROM system_prompts WHERE name=? AND version='2.1'", (name,)
+            ).fetchone()
+            cur = conn.execute(
+                'INSERT INTO system_prompts (name, version, content, post_history_content) '
+                "VALUES (?, '2.1', ?, ?)",
+                (old_name, seeded['content'] if content is None else content,
+                 seeded['post_history_content']),
+            )
+            return seeded['id'], cur.lastrowid
+
+    def test_untouched_duplicates_of_seeded_prompts_are_dropped(self):
+        defaults.seed_default_prompts()
+        kept, stale = self._duplicate_of_seeded('NanoBear', 'NanoBear v2.1')
+        self._duplicate_of_seeded('NanoBear Author', 'NanoBear Author v2.1')
+        with shared.get_db() as conn:
+            conn.execute(
+                "UPDATE settings SET value=? WHERE key='active_system_prompt'", (str(stale),)
+            )
+            conn.execute('DELETE FROM schema_migrations WHERE version=14')
+
+        schema.init_db()
+
+        with shared.get_db() as conn:
+            names = [r['name'] for r in conn.execute('SELECT name FROM system_prompts')]
+            active = conn.execute(
+                "SELECT value FROM settings WHERE key='active_system_prompt'"
+            ).fetchone()['value']
+        assert sorted(names) == ['NanoBear', 'NanoBear Author']
+        # The selection moves to the copy that stays, rather than dangling.
+        assert active == str(kept)
+
+    def test_edited_duplicate_of_a_seeded_prompt_is_kept(self):
+        defaults.seed_default_prompts()
+        self._duplicate_of_seeded('NanoBear', 'NanoBear v2.1', content='my edits')
+        with shared.get_db() as conn:
+            conn.execute('DELETE FROM schema_migrations WHERE version=14')
+
+        schema.init_db()
+
+        with shared.get_db() as conn:
+            names = {r['name'] for r in conn.execute('SELECT name FROM system_prompts')}
+        assert 'NanoBear v2.1' in names
+        assert 'NanoBear' in names
 
     def test_chat_persona_backfills_from_last_user_message(self, tmp_path, monkeypatch):
         legacy_db = tmp_path / 'persona.db'
