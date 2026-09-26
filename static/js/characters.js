@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
-import { applyAvatar, AVATAR, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
+import { applyAvatar, AVATAR, compareCharacters, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages, flushEdit } from './messages.js';
 
@@ -9,6 +9,9 @@ import { renderMessages, flushEdit } from './messages.js';
 // SIDEBAR — CHARACTER LIST
 // ═══════════════════════════════════════════════════════════════════════════
 export function renderCharList() {
+    // The one place the list is ordered. Sorting state in place keeps its order
+    // the displayed one, which the startup and after-delete picks rely on.
+    state.characters.sort(compareCharacters);
     el.charList.innerHTML = '';
     if (state.characters.length === 0) {
         const li = document.createElement('li');

@@ -144,7 +144,7 @@ def list_characters():
     with get_db() as conn:
         _sync_characters(conn)
         rows = conn.execute(
-            'SELECT * FROM characters ORDER BY pinned_at DESC NULLS LAST, created_at ASC'
+            'SELECT * FROM characters ORDER BY created_at ASC'
         ).fetchall()
         result = []
         for row in rows:

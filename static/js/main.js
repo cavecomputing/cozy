@@ -781,16 +781,6 @@ function bindCharacterHandlers() {
                         // Replace the character in state and re-render so order updates
                         const idx = state.characters.findIndex(c => c.id === id);
                         if (idx !== -1) state.characters[idx] = updated;
-                        // Mirror server sort: pinned first (most recent pin at top),
-                        // then unpinned by created_at ASC
-                        state.characters.sort((a, b) => {
-                            if (a.pinned && !b.pinned) return -1;
-                            if (!a.pinned && b.pinned) return 1;
-                            if (a.pinned && b.pinned) {
-                                return (b.pinned_at || '').localeCompare(a.pinned_at || '');
-                            }
-                            return (a.created_at || '').localeCompare(b.created_at || '');
-                        });
                         renderCharList();
                     })
                     .catch(err => showToast('Could not pin character: ' + err.message, 'error'));

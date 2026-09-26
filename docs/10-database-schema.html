@@ -417,7 +417,7 @@
           <tr><td class="c-name">filename</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">PNG filename under <code>data/characters/</code>. NOT NULL, UNIQUE.</td></tr>
           <tr><td class="c-name">crc</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">CRC32 hex of the file, so a rename on disk is recognised as the same card.</td></tr>
           <tr><td class="c-name">missing</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> once the file is gone from disk.</td></tr>
-          <tr><td class="c-name">pinned_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">Pin time; newest pinned sort first.</td></tr>
+          <tr><td class="c-name">pinned_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">Pin time, <code>NULL</code> when unpinned. Pinned characters list first; the sidebar sorts both groups by name.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">First registration.</td></tr>
         </tbody>
       </table></div>

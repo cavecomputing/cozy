@@ -381,6 +381,17 @@ export function hideEmptyState() {
     if (el.emptyState) el.emptyState.hidden = true;
 }
 
+const nameCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
+/**
+ * Sidebar order: pinned first, then by name the way a person alphabetises —
+ * case and accents ignored, "Bot 2" before "Bot 10". Equal names fall back to
+ * id so the order never depends on what the server happened to send.
+ */
+export function compareCharacters(a, b) {
+    return (b.pinned - a.pinned) || nameCollator.compare(a.name, b.name) || a.id - b.id;
+}
+
 // Server-side thumbnail tiers (see thumbs.py). SM covers every circular
 // avatar; LG supplies the expanded message avatar.
 export const AVATAR = { SM: 128, LG: 1024 };
