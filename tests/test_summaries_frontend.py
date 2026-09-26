@@ -1179,6 +1179,23 @@ def test_unlimited_context_summary_status_does_not_show_zero_cap():
     run_node_module(code)
 
 
+def test_empty_summary_with_a_backlog_says_so():
+    """After a Reset the card claimed nothing had aged out while dozens of messages had."""
+    code = BASE_SETUP + r"""
+        const { renderMemorySummaryCard } = await import('./static/js/summaries.js');
+        el.summaryToggle = {};
+        el.summaryStatus = { className: '', textContent: '', appendChild() {} };
+
+        renderMemorySummaryCard();
+        assert.match(el.summaryStatus.textContent, /^\d+ older messages? not summarized yet — folded in before your next message\.$/);
+
+        el.settingsContextTokens.value = '100000';
+        renderMemorySummaryCard();
+        assert.match(el.summaryStatus.textContent, /^No aged-out history yet/);
+    """
+    run_node_module(code)
+
+
 def test_enable_response_does_not_start_run_for_newly_selected_chat():
     code = r"""
         import assert from 'node:assert/strict';

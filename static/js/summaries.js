@@ -887,7 +887,13 @@ function renderStatus() {
     // idle
     const lineCount = chat.summary?.lines?.length || 0;
     if (lineCount === 0) {
-        box.textContent = 'No aged-out history yet — the summary fills in as the chat grows.';
+        // An empty summary can still have history waiting — after a Reset, say — and
+        // "nothing aged out yet" then hid a backlog the next send would stop to fold in.
+        const waiting = agedOutUnsummarized().length;
+        box.textContent = waiting === 0
+            ? 'No aged-out history yet — the summary fills in as the chat grows.'
+            : `${waiting} older message${waiting === 1 ? '' : 's'} not summarized yet`
+                + (summarizerConfigured() ? ' — folded in before your next message.' : '.');
     } else {
         const count = summarizedCount();
         const toks = estimateTextTokens(summaryToText(chat.summary));
