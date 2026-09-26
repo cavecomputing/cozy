@@ -20,6 +20,10 @@ import { confirmDialog } from './confirm.js';
 const STORY_HEADING = 'STORY SO FAR';
 const BONDS_HEADING = 'BONDS';
 const POLL_MS = 2500;
+// While a send, backfill or rebuild is waiting on a run, check far more often: every
+// tick of POLL_MS was up to 2.5s added to the wait, and a short job's progress never
+// got past "Starting…". The status request is a single-row read.
+const WAIT_POLL_MS = 500;
 const MAX_SEND_POLL_FAILURES = 3;
 let pollEpoch = 0;
 let summaryBudgetChangeHandler = null;
@@ -374,7 +378,7 @@ function assertSendStillActive(chatId, signal) {
 function waitForNextPoll(signal) {
     if (signal?.aborted) return Promise.reject(abortError());
     return new Promise((resolve, reject) => {
-        const timer = setTimeout(done, POLL_MS);
+        const timer = setTimeout(done, WAIT_POLL_MS);
         function done() {
             signal?.removeEventListener?.('abort', cancelled);
             resolve();

@@ -877,6 +877,27 @@ TOAST_CAPTURE = r"""
 """
 
 
+def test_send_waiting_on_a_quick_run_is_released_promptly():
+    """A job that finishes at once must not hold the send for a 2.5s polling tick."""
+    code = BASE_SETUP + r"""
+        API.runSummary = async (chatId, options) => ({
+            id: chatId, summary_enabled: true, summary: { lines: [] },
+            summary_up_to_msg_id: null, summary_status: 'running',
+            summary_status_detail: 'Starting…',
+        });
+        API.getSummaryStatus = async chatId => ({
+            id: chatId, summary_enabled: true, summary: { lines: [] },
+            summary_up_to_msg_id: 2, summary_status: 'idle', summary_status_detail: '',
+        });
+        const started = Date.now();
+        await ensureSummaryReadyForSend();
+        const waited = Date.now() - started;
+        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
+        assert.ok(waited < 1500, `the send waited ${waited}ms for a finished job`);
+    """
+    run_node_module(code)
+
+
 def test_send_guard_warns_and_proceeds_on_invalid_run_response():
     code = BASE_SETUP + TOAST_CAPTURE + r"""
         API.runSummary = async () => null;
