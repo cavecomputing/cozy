@@ -77,7 +77,8 @@ The summary is a rolling window. When it reaches its size cap the **oldest**
 entries roll off to make room for new ones. Nothing is compressed or merged — an
 entry is either there in full or gone. The one exception is a section down to its
 last entry: rather than empty the section, Cozy trims that entry's tail and marks
-it with an ellipsis.
+it with an ellipsis. Rolling off is routine and goes unremarked; trimming an
+entry is noted in the status line.
 
 That means the summary remembers the recent past, not the whole chat. For
 anything that must always be remembered — a premise, a standing rule, a fact

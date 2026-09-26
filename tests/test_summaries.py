@@ -82,7 +82,8 @@ def test_enforce_cap_drops_the_oldest_story_entry_and_keeps_bonds():
     assert not any(t == 'x' * 400 for t in texts)
     assert 'a later beat ' * 5 in texts
     assert any(l['section'] == 'bonds' for l in capped['lines'])
-    assert warning
+    # Rolling off the oldest entry is the window working, not something to warn about.
+    assert not warning
 
 
 def test_enforce_cap_shortens_the_last_story_entry_instead_of_erasing_it():
@@ -241,7 +242,8 @@ def test_enforce_cap_drops_the_newest_bond_first():
     remaining = [l['text'] for l in capped['lines']]
     assert len(remaining) == 1
     assert remaining[0].startswith('A & B:')
-    assert warning
+    # Dropping C & D is routine; the warning is for A & B, still too long and shortened.
+    assert warning and 'shortened' in warning
 
 
 def test_section_cap_splits_sixty_forty_and_never_rounds_to_zero():

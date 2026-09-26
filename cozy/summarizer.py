@@ -540,10 +540,14 @@ def enforce_cap(obj, cap_tokens):
 
     A non-empty section is never reduced to empty: if its final line still exceeds that
     section's cap, it is shortened as a final safety net.
+
+    Dropping whole entries is the rolling window doing its job, so it warns about nothing;
+    it once did, which left every mature chat's memory card permanently in warning. The
+    warning is kept for what is not routine: an entry that had to be shortened, or a cap
+    too small to hold anything.
     """
     obj = {'lines': [dict(line) for line in summary_lines(obj)]}
     warning = ''
-    trimmed = False
     if not cap_tokens or cap_tokens <= 0:
         return obj, warning
 
@@ -568,7 +572,6 @@ def enforce_cap(obj, cap_tokens):
             if len(positions) <= 1:
                 break
             obj['lines'].pop(positions[0] if oldest_first else positions[-1])
-            trimmed = True
 
     # Preserve the longest fitting prefix of each section's final line. Binary search
     # keeps this deterministic fallback small while retaining more context than dropping
@@ -593,11 +596,7 @@ def enforce_cap(obj, cap_tokens):
         shortened = shortened or bool(best)
 
     if fits():
-        if trimmed and shortened:
-            warning = 'The summary outgrew its size cap; entries were dropped and shortened.'
-        elif trimmed:
-            warning = 'The summary outgrew its size cap; entries were dropped.'
-        elif shortened:
+        if shortened:
             warning = 'The summary model exceeded the size cap; its last entry was shortened.'
         return obj, warning
 
