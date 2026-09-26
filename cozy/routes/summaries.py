@@ -17,6 +17,7 @@ import uuid
 import requests as http_requests
 from flask import Blueprint, request, jsonify
 
+from cozy.card_store import get_character_card_data
 from cozy.routes.chats import chat_to_dict
 from cozy.routes.llm import _error_detail, _summary_llm_settings
 from cozy.routes.settings import get_settings
@@ -32,6 +33,7 @@ from cozy.summarizer import (
     fit_append_entries,
     parse_summary_json,
     parse_summarizer_output,
+    resolve_names,
     retry_note,
     section_lines,
     section_to_text,
@@ -307,6 +309,25 @@ def _summary_state(row):
 
 # ── The worker ──────────────────────────────────────────────────────────────
 
+def _speaker_names(conn, chat):
+    """The character's and the user's names, as the chat view shows them.
+
+    The user is the chat's own persona, falling back to the default persona — the
+    browser's own last choice, which the page falls back to first, never reaches here.
+    """
+    char = get_character_card_data(conn, chat['character_id']).get('name') or 'Character'
+    persona = None
+    if chat['persona_id'] is not None:
+        persona = conn.execute(
+            'SELECT name FROM personas WHERE id=?', (chat['persona_id'],)
+        ).fetchone()
+    if persona is None:
+        persona = conn.execute(
+            'SELECT name FROM personas WHERE is_default=1 ORDER BY id LIMIT 1'
+        ).fetchone()
+    return char, (persona['name'] if persona and persona['name'] else 'User')
+
+
 def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
                      require_running=False, job_token=None):
     """Ask the summarizer for one batch's delta. Returns ``(delta, warning)``.
@@ -388,8 +409,8 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
 
         with get_db() as conn:
             row = conn.execute(
-                'SELECT summary_json, summary_up_to_msg_id, summary_status '
-                'FROM chats WHERE id=?', (chat_id,)
+                'SELECT summary_json, summary_up_to_msg_id, summary_status, '
+                'character_id, persona_id FROM chats WHERE id=?', (chat_id,)
             ).fetchone()
             if not row:
                 if require_running:
@@ -407,6 +428,7 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
             else:
                 summary_obj = parse_summary_json(row['summary_json'])
                 watermark = row['summary_up_to_msg_id'] or 0
+            char_name, user_name = _speaker_names(conn, row)
 
         if up_to_msg_id is None:
             _set_status(
@@ -417,8 +439,9 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
 
         with get_db() as conn:
             msgs = conn.execute(
-                'SELECT id, role, content FROM messages '
-                'WHERE chat_id=? AND id>? AND id<=? ORDER BY id ASC',
+                'SELECT m.id, m.role, m.content, p.name AS persona_name FROM messages m '
+                'LEFT JOIN personas p ON p.id = m.persona_id '
+                'WHERE m.chat_id=? AND m.id>? AND m.id<=? ORDER BY m.id ASC',
                 (chat_id, watermark, up_to_msg_id)
             ).fetchall()
 
@@ -426,9 +449,14 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
         for msg in msgs:
             # Reasoning blocks never reach the summarizer — they are stripped
             # from the prompt too, so summarizing them would describe text the
-            # model never sees.
-            content = strip_thinking_content(msg['content'])
-            batch.append({'role': msg['role'], 'content': content})
+            # model never sees. Names are resolved and each line is labelled
+            # with its speaker, as the chat view shows it.
+            content = resolve_names(
+                strip_thinking_content(msg['content']), char_name, user_name
+            )
+            speaker = ((msg['persona_name'] or user_name) if msg['role'] == 'user'
+                       else char_name)
+            batch.append({'role': msg['role'], 'content': content, 'name': speaker})
         ids = [m['id'] for m in msgs]
         if not batch:
             _set_status(

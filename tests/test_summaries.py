@@ -26,6 +26,7 @@ from cozy.summarizer import (
     parse_summary,
     parse_summary_json,
     parse_summarizer_output,
+    resolve_names,
     section_cap,
     section_to_text,
     strip_thinking_content,
@@ -455,6 +456,25 @@ def test_build_append_messages_asks_for_exactly_one_story_entry():
     assert 'EXACTLY ONE story line' in APPEND_INSTRUCTIONS
 
 
+def test_build_append_messages_labels_speakers_by_name():
+    msgs = build_append_messages('', '', [
+        {'role': 'character', 'content': 'Halt.', 'name': 'Sasha'},
+        {'role': 'user', 'content': 'Hello.', 'name': 'Morgan'},
+        {'role': 'user', 'content': 'Unlabelled.'},
+    ], 240, 120, 360)
+    user = msgs[1]['content']
+    assert 'Sasha: Halt.' in user and 'Morgan: Hello.' in user
+    # A caller with no names still gets the role labels.
+    assert 'User: Unlabelled.' in user
+
+
+def test_resolve_names_matches_the_frontend():
+    assert resolve_names('{{char}} meets {{USER}}.', 'Sasha', 'Morgan') == 'Sasha meets Morgan.'
+    # Names are inserted literally, never read as replacement syntax.
+    assert resolve_names('{{char}}', r'\1 $&', 'x') == r'\1 $&'
+    assert resolve_names(None, 'a', 'b') == ''
+
+
 def test_append_token_limits_keep_room_for_multiple_entries():
     # A 12k summary gives STORY 7.2k tokens, but one batch still tops out at 240.
     assert append_token_limits(12000) == (240, 200, 600)
@@ -675,6 +695,29 @@ def test_run_job_batches_by_interval(client, sample_chat, monkeypatch):
     summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
     # ceil(5 / 2) == 3 batches
     assert len(calls) == 3
+
+
+def test_run_job_sends_names_not_placeholders(client, sample_chat, sample_persona, monkeypatch):
+    """The stored greeting keeps {{char}}/{{user}}; the summarizer must read names."""
+    sent = []
+    monkeypatch.setattr(summaries, 'call_summarizer',
+                        lambda messages, cap_tokens=0: sent.append(messages) or CANNED)
+    chat_id = sample_chat['id']
+    client.put(f'/api/chats/{chat_id}', json={'persona_id': sample_persona['id']})
+    greeting = client.post(f'/api/chats/{chat_id}/messages', json={
+        'role': 'character', 'content': '{{char}} salutes {{user}} at the gate.',
+    }).get_json()
+    reply = client.post(f'/api/chats/{chat_id}/messages', json={
+        'role': 'user', 'content': 'Hi, {{char}}.', 'persona_id': sample_persona['id'],
+    }).get_json()
+
+    summaries._run_summary_job(chat_id, reply['id'], rebuild=False)
+
+    prompt = sent[0][1]['content']
+    assert '{{' not in prompt
+    assert 'TestChar: TestChar salutes TestUser at the gate.' in prompt
+    assert 'TestUser: Hi, TestChar.' in prompt
+    assert greeting['id'] < reply['id']
 
 
 def test_run_job_incremental(client, sample_chat, monkeypatch):

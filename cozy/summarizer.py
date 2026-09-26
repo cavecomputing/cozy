@@ -151,6 +151,18 @@ def bond_key(text):
     return ' + '.join(sorted(parts))
 
 
+def resolve_names(text, char, user):
+    """``{{char}}`` and ``{{user}}`` replaced by the names they stand for.
+
+    Stored messages keep the placeholders as written — a greeting copied from a card
+    always does — and the chat view resolves them on screen. The summarizer reads the
+    stored text, so it gets the same substitution. Case-insensitive, like the frontend's.
+    """
+    text = re.sub(r'\{\{char\}\}', lambda _: char, '' if text is None else str(text),
+                  flags=re.IGNORECASE)
+    return re.sub(r'\{\{user\}\}', lambda _: user, text, flags=re.IGNORECASE)
+
+
 def strip_thinking_content(text):
     """Return the visible response with supported reasoning blocks removed.
 
@@ -576,7 +588,9 @@ def build_append_messages(story_text, bonds_text, batch_messages, story_entry_to
     """
     convo = []
     for msg in batch_messages:
-        who = 'User' if msg.get('role') == 'user' else 'Character'
+        # Named speakers let a bond line open with the right names (rule 7); the role is
+        # only the fallback for a caller that has none.
+        who = msg.get('name') or ('User' if msg.get('role') == 'user' else 'Character')
         convo.append(f"{who}: {msg.get('content', '')}")
     convo_text = '\n\n'.join(convo)
     user = (
