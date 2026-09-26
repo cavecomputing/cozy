@@ -320,7 +320,20 @@ function makeTemplateContext(character, persona, lorebookText, summaryText) {
         context.post_history_instructions,
         context,
     );
+    // Cards, personas and lorebooks write the two names as {{char}} and
+    // {{user}}. The template pass swaps each value in whole and never looks
+    // inside it, so without this the model read the placeholders themselves.
+    for (const key of Object.keys(context)) {
+        if (key !== 'user' && key !== 'char') context[key] = resolveNames(context[key], context);
+    }
     return context;
+}
+
+/** {{char}} and {{user}} replaced by the names they stand for. */
+function resolveNames(text, context) {
+    return String(text || '')
+        .replace(/\{\{char\}\}/gi, () => context.char)
+        .replace(/\{\{user\}\}/gi, () => context.user);
 }
 
 function assembleMessages(selectedMessages, { summaryText = '' } = {}) {
@@ -372,8 +385,10 @@ function assembleMessages(selectedMessages, { summaryText = '' } = {}) {
         const message = selectedMessages[i];
         const source = message._contextSource || 'message_history';
         // Reasoning blocks never go back into the prompt — they burn context
-        // without adding anything the model needs to continue the scene.
-        const content = parseThinkingContent(message.text || '').response;
+        // without adding anything the model needs to continue the scene. The
+        // names are resolved here as the renderer resolves them on screen, so
+        // a greeting copied from a card reads the same to the model as to you.
+        const content = resolveNames(parseThinkingContent(message.text || '').response, context);
         if (!content) continue;
 
         if (wrapsUserMessage && i === lastUserIndex) {

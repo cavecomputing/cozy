@@ -312,6 +312,42 @@ def test_dropped_section_leaves_no_gap_in_the_assembled_prompt():
     run_node_module(code)
 
 
+def test_names_inside_card_text_and_history_reach_the_model_resolved():
+    """{{char}}/{{user}} written inside a card, persona or message are names too.
+
+    The screen shows them resolved, so the model must not be the one reader
+    left looking at the placeholders.
+    """
+    code = BASE_NODE_SETUP + r"""
+        state.activePersona = { name: 'Morgan', description: '{{user}} is new in town.' };
+        state.activeCharacter = {
+            name: 'Mira',
+            description: '{{char}} guards {{USER}}.',
+            scenario: '{{char}} meets {{user}} at the gate.',
+            mes_example: '{{user}}: Hi\n{{char}}: Hello.',
+        };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: '{{description}}\n{{scenario}}\n{{mesExamples}}\n{{persona}}',
+            post_history_content: '',
+        }];
+        state.messages = [
+            { id: 1, role: 'character', text: '*{{char}} salutes {{user}}.*' },
+            { id: 2, role: 'user', text: 'Hi, {{char}}.' },
+        ];
+
+        const payload = buildChatPayload();
+        const everything = payload.messages.map(m => m.content).join('\n');
+        assert.doesNotMatch(everything, /\{\{(char|user)\}\}/i);
+        assert.match(payload.messages[0].content, /^Mira guards Morgan\.\nMira meets Morgan at the gate\./);
+        assert.match(payload.messages[0].content, /Morgan: Hi\nMira: Hello\.\nMorgan is new in town\.$/);
+        assert.ok(payload.messages.some(m => m.role === 'assistant' && m.content === '*Mira salutes Morgan.*'));
+        assert.equal(payload.messages.at(-1).content, 'Hi, Mira.');
+    """
+    run_node_module(code)
+
+
 def test_default_post_history_template_preserves_character_card_behavior():
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = {
