@@ -418,6 +418,7 @@
           <tr><td class="c-name">crc</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">CRC32 hex of the file, so a rename on disk is recognised as the same card.</td></tr>
           <tr><td class="c-name">missing</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> once the file is gone from disk.</td></tr>
           <tr><td class="c-name">pinned_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">Pin time, <code>NULL</code> when unpinned. Pinned characters list first; the sidebar sorts both groups by name.</td></tr>
+          <tr><td class="c-name">archived</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> while archived: the character is listed in the sidebar's folded <em>Archived</em> section. Archiving clears <code>pinned_at</code>. Not the retired gallery's <code>archived_at</code>, which migration 08 dropped.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">First registration.</td></tr>
         </tbody>
       </table></div>
@@ -427,6 +428,7 @@
     crc        TEXT    NOT NULL,
     missing    INTEGER DEFAULT 0,
     pinned_at  DATETIME DEFAULT NULL,
+    archived   INTEGER NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )</pre></details>
     </section>

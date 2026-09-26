@@ -384,12 +384,13 @@ export function hideEmptyState() {
 const nameCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
 /**
- * Sidebar order: pinned first, then by name the way a person alphabetises —
- * case and accents ignored, "Bot 2" before "Bot 10". Equal names fall back to
- * id so the order never depends on what the server happened to send.
+ * Sidebar order: archived last, pinned first, then by name the way a person
+ * alphabetises — case and accents ignored, "Bot 2" before "Bot 10". Equal
+ * names fall back to id so the order never depends on what the server sent.
  */
 export function compareCharacters(a, b) {
-    return (b.pinned - a.pinned) || nameCollator.compare(a.name, b.name) || a.id - b.id;
+    return (a.archived - b.archived) || (b.pinned - a.pinned)
+        || nameCollator.compare(a.name, b.name) || a.id - b.id;
 }
 
 // Server-side thumbnail tiers (see thumbs.py). SM covers every circular

@@ -506,6 +506,7 @@ class TestSchemaMigrationLedger:
                 }
 
             assert 'pinned_at' in columns('characters')
+            assert 'archived' in columns('characters')
             assert 'archived_at' not in columns('characters')
             assert 'author_note' in columns('chats')
             assert 'settings_json' in columns('api_presets')
@@ -836,7 +837,7 @@ class TestSchemaMigrationLedger:
                 row['name'] for row in conn.execute('PRAGMA table_info(characters)')
             }
             character = conn.execute(
-                'SELECT id, filename, pinned_at FROM characters WHERE id=1'
+                'SELECT id, filename, pinned_at, archived FROM characters WHERE id=1'
             ).fetchone()
             chat = conn.execute('SELECT name FROM chats WHERE id=1').fetchone()
             message = conn.execute('SELECT content FROM messages WHERE id=1').fetchone()
@@ -850,6 +851,10 @@ class TestSchemaMigrationLedger:
         assert 'character_collections' not in tables
         assert 'character_collection_members' not in tables
         assert 'archived_at' not in character_columns
+        # The sidebar's archive is a different column, added before migration 8
+        # runs; it must survive that migration and start out unarchived.
+        assert 'archived' in character_columns
+        assert character['archived'] == 0
         assert character['id'] == 1
         assert character['filename'] == filename
         assert character['pinned_at'] is not None

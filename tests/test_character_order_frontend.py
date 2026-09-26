@@ -1,4 +1,5 @@
-"""compareCharacters() decides the sidebar order: pinned first, then by name."""
+"""compareCharacters() decides the sidebar order: archived last, pinned first,
+then by name."""
 
 from helpers import run_node_module
 
@@ -8,7 +9,7 @@ SETUP = r"""
     import { compareCharacters } from './static/js/utils.js';
 
     let nextId = 1;
-    const char = (name, pinned = false, id = nextId++) => ({ id, name, pinned });
+    const char = (name, pinned = false, id = nextId++) => ({ id, name, pinned, archived: false });
     const order = chars => [...chars].sort(compareCharacters).map(c => c.name);
 """
 
@@ -18,6 +19,14 @@ def test_pinned_come_first_and_sort_by_name_not_pin_time():
         // Listed in the order they were pinned; the sidebar ignores that.
         const chars = [char('Zed', true), char('Bea'), char('Mia', true), char('Al')];
         assert.deepEqual(order(chars), ['Mia', 'Zed', 'Al', 'Bea']);
+    """)
+
+
+def test_archived_come_last_and_sort_by_name():
+    run_node_module(SETUP + r"""
+        const archived = name => ({ ...char(name), archived: true });
+        const chars = [archived('Ann'), char('Zed', true), archived('Ada'), char('Bea')];
+        assert.deepEqual(order(chars), ['Zed', 'Bea', 'Ada', 'Ann']);
     """)
 
 

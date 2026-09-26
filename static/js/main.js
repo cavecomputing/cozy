@@ -9,7 +9,7 @@ import {
     withBusy, flashSettingsSavedTick,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
-import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu } from './characters.js';
+import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './messages.js';
 import { Modal } from './modal.js';
@@ -759,10 +759,14 @@ function bindCharacterHandlers() {
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
     el.mobileNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
-    // Character list — select / pin / row menu
+    // Character list — select / pin / row menu / Archived section
     el.charList.addEventListener('click', e => {
         if (e.target.closest('.char-list-create-btn')) {
             openCharacterModal();
+            return;
+        }
+        if (e.target.closest('.char-archived-btn')) {
+            toggleArchivedSection();
             return;
         }
         const pinBtn    = e.target.closest('.char-pin-btn');
@@ -802,6 +806,8 @@ function bindCharacterHandlers() {
         closeCharMenu();
         if (action === 'edit') {
             if (char) openCharacterModal(char);
+        } else if (action === 'archive') {
+            toggleArchived(id);
         } else {
             deleteCharacter(id, char?.name);
         }

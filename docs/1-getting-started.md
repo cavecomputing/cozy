@@ -77,6 +77,11 @@ you can start right away. You can keep her, change her, or delete her:
 **Edit** and **Delete** are in the **⋯** menu beside her name in the
 sidebar. A deleted character does not come back.
 
+To tidy the sidebar without deleting anyone, choose **Archive** from the
+same menu. The character moves into the folded **Archived** section at the
+bottom of the list, chats and all; click **Archived** to unfold it, and
+choose **Unarchive** to bring a character back.
+
 ### Bring in a card from another site
 
 Cozy reads V2 character cards, the same format SillyTavern uses. A card is

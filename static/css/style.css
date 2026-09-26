@@ -453,6 +453,48 @@ select.settings-select:focus-visible {
     color: var(--accent-color);
 }
 
+/* Archived rows are dimmed so they read as set aside — except the one on
+   screen, which stays as legible as any active row, and a missing one,
+   which .char-item.missing already dims. */
+.char-item.archived:not(.active, .missing) .char-select-btn {
+    opacity: 0.6;
+}
+
+/* "Archived (N)": heads the archived rows and folds them away. Typography
+   comes from .section-label. */
+.char-archived-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin: 0.5rem 0 0.25rem;
+    padding: 0.45rem 0.75rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.char-archived-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    transition: transform var(--motion-base) ease;
+}
+
+.char-archived-btn[aria-expanded="true"] svg {
+    transform: rotate(90deg);
+}
+
+@media (hover: hover) {
+    .char-archived-btn:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
+}
+
 .char-list-empty {
     display: flex;
     flex-direction: column;
@@ -4695,6 +4737,10 @@ input[type="checkbox"]:checked::after {
         min-height: 52px;
         padding-top: 0.65rem;
         padding-bottom: 0.65rem;
+    }
+
+    .char-archived-btn {
+        min-height: var(--mobile-tap-target);
     }
 
     .char-item-actions .icon-btn,

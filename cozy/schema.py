@@ -314,6 +314,7 @@ def init_db():
                 crc        TEXT    NOT NULL,
                 missing    INTEGER DEFAULT 0,
                 pinned_at  DATETIME DEFAULT NULL,
+                archived   INTEGER NOT NULL DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -431,6 +432,11 @@ def init_db():
         cols = [c[1] for c in conn.execute('PRAGMA table_info(characters)').fetchall()]
         if 'pinned_at' not in cols:
             conn.execute('ALTER TABLE characters ADD COLUMN pinned_at DATETIME DEFAULT NULL')
+        # Not `archived_at`: migration 8 drops that column (the retired gallery's
+        # archive) and runs after this block, so a database below version 8
+        # would lose it again until the next start.
+        if 'archived' not in cols:
+            conn.execute('ALTER TABLE characters ADD COLUMN archived INTEGER NOT NULL DEFAULT 0')
 
         chat_cols = [c[1] for c in conn.execute('PRAGMA table_info(chats)').fetchall()]
         if chat_cols and 'author_note' not in chat_cols:

@@ -45,6 +45,7 @@ def _char_to_dict(row, card_data=None):
             'avatar_url': None,
             'pinned': pinned,
             'pinned_at': row['pinned_at'],
+            'archived': bool(row['archived']),
             'created_at': row['created_at'],
         }
 
@@ -60,6 +61,7 @@ def _char_to_dict(row, card_data=None):
                       else f"/characters/{row['filename']}?v={row['crc']}",
         'pinned': pinned,
         'pinned_at': row['pinned_at'],
+        'archived': bool(row['archived']),
     }
     d.update(card_data_fields(card_data or {}))
     if not d.get('name'):
@@ -307,6 +309,24 @@ def toggle_pin_character(char_id):
         else:
             conn.execute(
                 'UPDATE characters SET pinned_at=CURRENT_TIMESTAMP WHERE id=?', (char_id,)
+            )
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        return _char_json(row)
+
+
+@characters_bp.route('/api/characters/<int:char_id>/archive', methods=['POST'])
+def toggle_archive_character(char_id):
+    with get_db() as conn:
+        row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
+        if not row:
+            return not_found('Character')
+        if row['archived']:
+            conn.execute('UPDATE characters SET archived=0 WHERE id=?', (char_id,))
+        else:
+            # Archiving takes a character out of the pinned group for good;
+            # unarchiving does not bring the pin back.
+            conn.execute(
+                'UPDATE characters SET archived=1, pinned_at=NULL WHERE id=?', (char_id,)
             )
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         return _char_json(row)

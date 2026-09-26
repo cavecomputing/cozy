@@ -734,6 +734,46 @@ class TestPin:
         assert r.status_code == 404
 
 
+# ── Archive ────────────────────────────────────────────────────────────────
+
+class TestArchive:
+    def test_new_characters_are_not_archived(self, sample_character):
+        assert sample_character['archived'] is False
+
+    def test_archive_toggle(self, client, sample_character):
+        char_id = sample_character['id']
+        r = client.post(f'/api/characters/{char_id}/archive')
+        assert r.status_code == 200
+        assert r.get_json()['archived'] is True
+        listing = client.get('/api/characters').get_json()
+        assert next(c for c in listing if c['id'] == char_id)['archived'] is True
+
+        r2 = client.post(f'/api/characters/{char_id}/archive')
+        assert r2.status_code == 200
+        assert r2.get_json()['archived'] is False
+
+    def test_archiving_clears_the_pin_for_good(self, client, sample_character):
+        char_id = sample_character['id']
+        client.post(f'/api/characters/{char_id}/pin')
+
+        archived = client.post(f'/api/characters/{char_id}/archive').get_json()
+        assert archived['pinned'] is False
+
+        restored = client.post(f'/api/characters/{char_id}/archive').get_json()
+        assert restored['archived'] is False
+        assert restored['pinned'] is False
+
+    def test_archiving_keeps_chats(self, client, sample_character, sample_chat):
+        char_id = sample_character['id']
+        client.post(f'/api/characters/{char_id}/archive')
+        chats = client.get(f'/api/characters/{char_id}/chats').get_json()
+        assert [c['id'] for c in chats] == [sample_chat['id']]
+
+    def test_archive_404_for_missing_character(self, client):
+        r = client.post('/api/characters/99999/archive')
+        assert r.status_code == 404
+
+
 class TestRetiredCharacterOrganization:
     def test_character_responses_omit_retired_fields(self, client, sample_character):
         character = client.get(f'/api/characters/{sample_character["id"]}').get_json()
@@ -745,7 +785,6 @@ class TestRetiredCharacterOrganization:
 
     def test_retired_character_routes_are_gone(self, client, sample_character):
         char_id = sample_character['id']
-        assert client.post(f'/api/characters/{char_id}/archive').status_code == 404
         assert client.post(f'/api/characters/{char_id}/duplicate').status_code == 404
         assert client.get('/api/character-collections').status_code == 404
         assert client.post('/api/character-collections', json={'name': 'Old'}).status_code == 404

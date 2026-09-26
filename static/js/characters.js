@@ -8,6 +8,11 @@ import { renderMessages, flushEdit } from './messages.js';
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHARACTER LIST
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Whether the Archived section is unfolded. Not saved: it starts folded on
+// every load and unfolds by itself when the character on screen is archived.
+let archivedOpen = false;
+
 export function renderCharList() {
     // The one place the list is ordered. Sorting state in place keeps its order
     // the displayed one, which the startup and after-delete picks rely on.
@@ -24,9 +29,23 @@ export function renderCharList() {
         el.charList.appendChild(li);
         return;
     }
+    // Archived characters sort last, so the first one is where their section starts.
+    const firstArchived = state.characters.find(c => c.archived);
     state.characters.forEach(char => {
+        if (char === firstArchived) {
+            const toggle = document.createElement('li');
+            toggle.className = 'char-archived-toggle';
+            toggle.innerHTML = `
+                <button type="button" class="char-archived-btn section-label" aria-expanded="${archivedOpen}">
+                    ${icons.CHEVRIGHT}<span>Archived (${state.characters.filter(c => c.archived).length})</span>
+                </button>
+            `;
+            el.charList.appendChild(toggle);
+        }
+        if (char.archived && !archivedOpen) return;
+
         const li = document.createElement('li');
-        li.className = `char-item${char.id === state.activeCharacter?.id ? ' active' : ''}${char.missing ? ' missing' : ''}${char.pinned ? ' pinned' : ''}`;
+        li.className = `char-item${char.id === state.activeCharacter?.id ? ' active' : ''}${char.missing ? ' missing' : ''}${char.pinned ? ' pinned' : ''}${char.archived ? ' archived' : ''}`;
         li.dataset.charId = char.id;
 
         const selectBtn = document.createElement('button');
@@ -53,7 +72,7 @@ export function renderCharList() {
         const pinIcon = char.pinned ? icons.STAR_FILLED : icons.STAR;
         const pinTitle = char.pinned ? 'Unpin character' : 'Pin character';
         const menuBtn = `<button class="icon-btn char-menu-btn" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">${icons.MORE}</button>`;
-        if (char.missing) {
+        if (char.missing || char.archived) {
             actions.innerHTML = menuBtn;
         } else {
             actions.innerHTML = `
@@ -83,8 +102,9 @@ export function toggleCharMenu(trigger, char) {
     closeCharMenu();
     if (sameRow) return;
 
-    // A card whose file is missing can only be deleted.
+    // A card whose file is missing has nothing to edit.
     menu.querySelectorAll('[data-row-edit]').forEach(li => { li.hidden = !!char.missing; });
+    menu.querySelector('[data-action="archive"]').textContent = char.archived ? 'Unarchive' : 'Archive';
     menu.dataset.charId = char.id;
     menu.hidden = false;
     trigger.setAttribute('aria-expanded', 'true');
@@ -100,6 +120,30 @@ export function toggleCharMenu(trigger, char) {
     const top = fitsBelow ? at.bottom + 4 : at.top - 4 - menu.offsetHeight;
     menu.style.top = `${top - box.top}px`;
     menu.style.right = `${box.right - at.right}px`;
+}
+
+/** Fold the Archived section open or shut, keeping focus on its toggle. */
+export function toggleArchivedSection() {
+    archivedOpen = !archivedOpen;
+    renderCharList();
+    el.charList.querySelector('.char-archived-btn')?.focus();
+}
+
+/** Archive or unarchive a character. The one on screen stays open when
+ *  archived, so the section unfolds with it rather than hiding its row. */
+export async function toggleArchived(charId) {
+    try {
+        const updated = await API.toggleCharacterArchive(charId);
+        const idx = state.characters.findIndex(c => c.id === charId);
+        if (idx !== -1) state.characters[idx] = updated;
+        if (state.activeCharacter?.id === charId) {
+            state.activeCharacter = updated;
+            if (updated.archived) archivedOpen = true;
+        }
+        renderCharList();
+    } catch (err) {
+        showToast('Could not archive character: ' + err.message, 'error');
+    }
 }
 
 function clearActiveCharacterState() {
@@ -149,6 +193,11 @@ export async function selectCharacter(charId) {
     state.activeCharacter = char;
     state.activeChat = null;
     el.currentCharName.textContent = char.name;
+    // A restored or fallback pick can be archived while its section is folded.
+    if (char.archived && !archivedOpen) {
+        archivedOpen = true;
+        renderCharList();
+    }
     updateComposerState();
 
     document.querySelectorAll('.char-item').forEach(i => {
