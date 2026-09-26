@@ -891,7 +891,9 @@ def test_run_job_asks_again_for_a_missing_story_line_then_moves_on(
     assert row['summary_status'] == 'idle'
     assert row['summary_up_to_msg_id'] == ids[-1]
     assert parse_summary_json(row['summary_json'])['lines'] == []
-    assert 'no story line' in row['summary_status_detail']
+    # The status says the batch has no entry, not that Cozy "kept what fit".
+    assert 'no story entry for batch 1/1' in row['summary_status_detail']
+    assert 'kept what fit' not in row['summary_status_detail']
 
 
 def test_overlong_bond_is_sent_back_with_a_note_and_the_corrected_reply_is_kept(

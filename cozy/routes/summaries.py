@@ -383,10 +383,18 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
             if not problems:
                 return delta, ''
             if final:
-                warning = (
-                    f'The summarizer still broke its limits on {batch_label} after a '
-                    f'retry ({"; ".join(problems)}), so Cozy kept what fit.'
-                )
+                # "Kept what fit" describes a trimmed line; a batch with no story line
+                # at all is retired without an entry, and the status has to say that.
+                if not section_lines(delta, 'story'):
+                    warning = (
+                        f'The summarizer wrote no story entry for {batch_label}, even '
+                        'after a retry, so the story has none for those messages.'
+                    )
+                else:
+                    warning = (
+                        f'The summarizer still broke its limits on {batch_label} after a '
+                        f'retry ({"; ".join(problems)}), so Cozy kept what fit.'
+                    )
                 return fit_append_entries(delta, *limits), warning[:300]
         log.warning('Summarizer reply for chat %s rejected, retrying: %s',
                     chat_id, '; '.join(problems))
