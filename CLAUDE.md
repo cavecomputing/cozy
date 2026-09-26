@@ -69,8 +69,9 @@ buries the real diff under noise.
 ## Run / test
 
 ```bash
-# Dev server (Flask, auto-reload, 127.0.0.1:5001; --host / --port to override)
-uv run app.py
+# Dev server (Flask, 127.0.0.1:5001; --host / --port to override). --debug adds
+# auto-reload and the debugger; it is opt-in because users run this same command.
+uv run app.py --debug
 
 # Custom data directory (default: ./data)
 COZY_DATA_DIR=/path/to/data uv run app.py

@@ -135,6 +135,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A cozy roleplay frontend.")
     parser.add_argument("--host", help="Change host binding", default="127.0.0.1", type=str)
     parser.add_argument("--port", help="Change port binding", default=5001, type=int)
+    parser.add_argument("--debug", action="store_true",
+                        help="Development: reload on file changes and serve Flask's debugger")
     args = parser.parse_args()
     BIND_HOST = args.host
     BIND_PORT = args.port
@@ -149,8 +151,12 @@ if __name__ == '__main__':
     # livereload.Server wraps WSGI and buffers responses, which breaks SSE
     # streaming.  Flask's dev server supports streaming natively and the
     # ``extra_files`` watcher gives us auto-reload on template/static changes.
+    #
+    # Debug is opt-in because this is also how the README tells everyone to
+    # run Cozy: it serves Werkzeug's PIN-locked Python console at /console,
+    # and --host 0.0.0.0 would put that on the network.
     extra = [
         *glob.glob('static/**/*', recursive=True),
         *glob.glob('templates/**/*', recursive=True),
     ]
-    app.run(port=BIND_PORT, debug=True, extra_files=extra, threaded=True, host=BIND_HOST)
+    app.run(port=BIND_PORT, debug=args.debug, extra_files=extra, threaded=True, host=BIND_HOST)
