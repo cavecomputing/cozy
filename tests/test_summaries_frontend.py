@@ -936,6 +936,47 @@ def test_send_goes_ahead_when_the_memory_update_fails():
     run_node_module(code)
 
 
+def test_after_a_failed_run_sends_stop_waiting_on_memory():
+    """A broken summarizer held every send for a whole doomed attempt.
+
+    Once a run has failed, the send warns and goes ahead instead of starting or
+    joining another; the background retry keeps going, and the first run that
+    succeeds brings the wait back.
+    """
+    code = BASE_SETUP + TOAST_CAPTURE + r"""
+        import { applySummaryState } from './static/js/summaries.js';
+        const chatState = status => ({
+            id: 7, summary_enabled: true, summary: { lines: [] },
+            summary_up_to_msg_id: null, summary_status: status,
+            summary_status_detail: status === 'error' ? 'Connection refused.' : '',
+        });
+        let runs = 0;
+        let polls = 0;
+        API.runSummary = async () => { runs += 1; return chatState('error'); };
+        // Were a send to join the retry, it would find the retry failing too.
+        API.getSummaryStatus = async () => { polls += 1; return chatState('error'); };
+
+        await ensureSummaryReadyForSend();
+        assert.equal(runs, 1);
+
+        // The retry started after the reply is running when the next send goes out.
+        applySummaryState(chatState('running'), 7);
+        await ensureSummaryReadyForSend();
+        assert.equal(runs, 1, 'no new run for a send while memory is failing');
+        assert.equal(polls, 0, 'and no waiting on the retry either');
+        assert.match(toasts.at(-1), new RegExp(
+            "^Memory is behind: its last update failed — this reply can't see \\d+ "
+            + 'older messages? until memory catches up\\.$',
+        ));
+
+        // A run that ends cleanly brings the wait back.
+        applySummaryState(chatState('idle'), 7);
+        await ensureSummaryReadyForSend();
+        assert.equal(runs, 2);
+    """
+    run_node_module(code)
+
+
 def test_send_goes_ahead_when_memory_stops_advancing():
     code = BASE_SETUP + TOAST_CAPTURE + r"""
         let runs = 0;

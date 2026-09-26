@@ -275,6 +275,13 @@ function summarizedCount() {
 }
 
 // ── State merge + polling ───────────────────────────────────────────────────
+
+// Chats whose latest finished run failed, with its error. While a chat is in here a
+// send stops waiting on memory (see ensureSummaryReadyForSend), and the card keeps the
+// error on show while a retry runs, since the retry's own progress would hide it. Any
+// run that ends idle — a success, a cancel, a reset, a disable — takes the chat out.
+const failedRuns = new Map();
+
 const SUMMARY_KEYS = ['summary_enabled', 'summary', 'summary_up_to_msg_id',
                       'summary_status', 'summary_status_detail'];
 
@@ -293,6 +300,11 @@ export function applySummaryState(st, expectedChatId = st?.id ?? state.activeCha
     if (st.summary_status === 'idle'
         && /^(Starting|Summarizing)/i.test(st.summary_status_detail || '')) {
         st = { ...st, summary_status_detail: '' };
+    }
+    if (st.summary_status === 'error') {
+        failedRuns.set(expectedChatId, st.summary_status_detail || 'Summary update failed.');
+    } else if (st.summary_status === 'idle') {
+        failedRuns.delete(expectedChatId);
     }
 
     const chat = state.activeChat?.id === expectedChatId ? state.activeChat : null;
@@ -536,6 +548,15 @@ export async function ensureSummaryReadyForSend(signal, {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
     if (agedOutUnsummarized(excludeLastN).length === 0) return;
+    // After a failed run a send stops waiting on memory. The retry that starts after
+    // each reply would most likely fail the same way, and waiting on it held every
+    // turn for a whole attempt — pause and retry included — only to warn anyway. The
+    // reply goes ahead with the gap named; the background retries carry on, and the
+    // first one that succeeds brings the wait back.
+    if (!backfill && failedRuns.has(chat.id)) {
+        showToast(memoryGapWarning('Memory is behind: its last update failed', excludeLastN));
+        return;
+    }
     // A refused (self-contradictory) measurement must not stall the send:
     // proceed without updating memory rather than retiring history wrongly.
     const refusal = windowMeasurementUntrusted(excludeLastN, 'pre-send memory update');
@@ -852,7 +873,10 @@ function renderStatus() {
         const spin = document.createElement('span');
         spin.className = 'summary-spinner';
         box.appendChild(spin);
-        box.appendChild(document.createTextNode(' ' + (chat.summary_status_detail || 'Summarizing…')));
+        const failed = failedRuns.get(chat.id);
+        box.appendChild(document.createTextNode(' ' + (failed
+            ? `Retrying — the last update failed: ${failed}`
+            : (chat.summary_status_detail || 'Summarizing…'))));
         return;
     }
     if (status === 'error') {

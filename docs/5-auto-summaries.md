@@ -106,6 +106,11 @@ a message is waiting on it, the reply goes ahead anyway and a warning says how
 many older messages it can't see. Those messages aren't lost — they're still in
 the chat, and the next successful update folds them in.
 
+Once an update has failed, messages stop waiting on memory at all: each reply
+goes straight ahead with that warning, Cozy retries in the background after
+every reply, and the memory panel shows the error until a retry succeeds. From
+then on, sending waits for memory again as usual.
+
 ## Stop, rebuild, and reset
 
 Three buttons sit in the **Auto Summary** header, left of the enable switch. None
