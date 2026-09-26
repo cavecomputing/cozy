@@ -12,6 +12,7 @@ export function renderCharList() {
     // The one place the list is ordered. Sorting state in place keeps its order
     // the displayed one, which the startup and after-delete picks rely on.
     state.characters.sort(compareCharacters);
+    closeCharMenu();   // its row is about to be replaced
     el.charList.innerHTML = '';
     if (state.characters.length === 0) {
         const li = document.createElement('li');
@@ -51,21 +52,54 @@ export function renderCharList() {
         actions.className = 'char-item-actions';
         const pinIcon = char.pinned ? icons.STAR_FILLED : icons.STAR;
         const pinTitle = char.pinned ? 'Unpin character' : 'Pin character';
+        const menuBtn = `<button class="icon-btn char-menu-btn" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">${icons.MORE}</button>`;
         if (char.missing) {
-            actions.innerHTML = `
-                <button class="icon-btn char-delete-btn" title="Delete character" aria-label="Delete character">${icons.TRASH}</button>
-            `;
+            actions.innerHTML = menuBtn;
         } else {
             actions.innerHTML = `
                 <button class="icon-btn char-pin-btn" title="${pinTitle}" aria-label="${pinTitle}">${pinIcon}</button>
-                <button class="icon-btn char-edit-btn" title="Edit character" aria-label="Edit character">${icons.EDIT}</button>
-                <button class="icon-btn char-delete-btn" title="Delete character" aria-label="Delete character">${icons.TRASH}</button>
+                ${menuBtn}
             `;
         }
 
         li.append(selectBtn, actions);
         el.charList.appendChild(li);
     });
+}
+
+/** Close the row menu. Returns true when it was open, so Escape knows to stop. */
+export function closeCharMenu() {
+    if (el.charRowMenu.hidden) return false;
+    el.charRowMenu.hidden = true;
+    el.charList.querySelector('.char-menu-btn[aria-expanded="true"]')?.setAttribute('aria-expanded', 'false');
+    return true;
+}
+
+/** Open the row menu for `char` beside its ⋯ button, or close it when that
+ *  row's menu is the one already showing. */
+export function toggleCharMenu(trigger, char) {
+    const menu = el.charRowMenu;
+    const sameRow = !menu.hidden && menu.dataset.charId === String(char.id);
+    closeCharMenu();
+    if (sameRow) return;
+
+    // A card whose file is missing can only be deleted.
+    menu.querySelectorAll('[data-row-edit]').forEach(li => { li.hidden = !!char.missing; });
+    menu.dataset.charId = char.id;
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    // Safari doesn't focus a clicked button, and Escape is only caught while
+    // focus is inside the sidebar. No scroll: a scroll closes the menu.
+    trigger.focus({ preventScroll: true });
+
+    // Right edges aligned under the ⋯, or above it when the sidebar has no
+    // room left below. Coordinates are the sidebar's: the menu is its child.
+    const box = el.sidebar.getBoundingClientRect();
+    const at = trigger.getBoundingClientRect();
+    const fitsBelow = at.bottom + 4 + menu.offsetHeight <= box.bottom;
+    const top = fitsBelow ? at.bottom + 4 : at.top - 4 - menu.offsetHeight;
+    menu.style.top = `${top - box.top}px`;
+    menu.style.right = `${box.right - at.right}px`;
 }
 
 function clearActiveCharacterState() {

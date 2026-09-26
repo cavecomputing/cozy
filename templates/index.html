@@ -82,6 +82,15 @@
             <ul class="char-list" id="char-list"></ul>
         </div>
 
+        <!-- One menu for every character row, placed beside whichever row's ⋯
+             opened it. It lives here rather than in the row so the scrolling
+             list can't clip it. -->
+        <ul class="export-menu char-row-menu" id="char-row-menu" role="menu" hidden>
+            <li data-row-edit><button type="button" data-action="edit" role="menuitem">Edit</button></li>
+            <li class="export-menu-sep" data-row-edit role="separator"></li>
+            <li><button type="button" data-action="delete" class="char-row-menu-danger" role="menuitem">Delete</button></li>
+        </ul>
+
         <div id="user-profile-container">
             <!-- Dropup Menu -->
             <div id="persona-dropup" class="dropup-content" role="menu" aria-hidden="true">

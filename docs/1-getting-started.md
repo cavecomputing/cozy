@@ -73,8 +73,9 @@ What every setting means, and which servers support it:
 ## 3. Add a character
 
 A character is who you talk to. A new install includes one character, so
-you can start right away. You can keep her, change her, or delete her. A
-deleted character does not come back.
+you can start right away. You can keep her, change her, or delete her:
+**Edit** and **Delete** are in the **⋯** menu beside her name in the
+sidebar. A deleted character does not come back.
 
 ### Bring in a card from another site
 

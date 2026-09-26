@@ -9,7 +9,7 @@ import {
     withBusy, flashSettingsSavedTick,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
-import { loadCharacters, selectCharacter, deleteCharacter, renderCharList } from './characters.js';
+import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './messages.js';
 import { Modal } from './modal.js';
@@ -759,15 +759,14 @@ function bindCharacterHandlers() {
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
     el.mobileNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
-    // Character list — select / edit / delete / pin
+    // Character list — select / pin / row menu
     el.charList.addEventListener('click', e => {
         if (e.target.closest('.char-list-create-btn')) {
             openCharacterModal();
             return;
         }
         const pinBtn    = e.target.closest('.char-pin-btn');
-        const editBtn   = e.target.closest('.char-edit-btn');
-        const deleteBtn = e.target.closest('.char-delete-btn');
+        const menuBtn   = e.target.closest('.char-menu-btn');
         const selectBtn = e.target.closest('.char-select-btn');
         const item      = e.target.closest('.char-item');
         if (!item) return;
@@ -785,15 +784,44 @@ function bindCharacterHandlers() {
                     })
                     .catch(err => showToast('Could not pin character: ' + err.message, 'error'));
             }
-        } else if (editBtn) {
+        } else if (menuBtn) {
             e.stopPropagation();
-            if (char) openCharacterModal(char);
-        } else if (deleteBtn) {
-            e.stopPropagation();
-            deleteCharacter(id, char?.name);
+            if (char) toggleCharMenu(menuBtn, char);
         } else if (selectBtn) {
             selectCharacter(id);
         }
+    });
+
+    // Row menu — acts on the row it was opened from
+    el.charRowMenu.addEventListener('click', e => {
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+        e.stopPropagation();
+        const id   = parseInt(el.charRowMenu.dataset.charId, 10);
+        const char = state.characters.find(c => c.id === id);
+        closeCharMenu();
+        if (action === 'edit') {
+            if (char) openCharacterModal(char);
+        } else {
+            deleteCharacter(id, char?.name);
+        }
+    });
+    // Any click outside the menu and the ⋯ buttons closes it. Capture phase,
+    // because the star and the ⋯ stop their clicks from bubbling.
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#char-row-menu, .char-menu-btn')) closeCharMenu();
+    }, true);
+    // The menu is placed once, so it can't follow the rows as the list scrolls.
+    el.charList.parentElement.addEventListener('scroll', closeCharMenu, { passive: true });
+    // Escape closes the menu and stops there, instead of reaching the document
+    // handlers that close the mobile sidebar and every open flyout.
+    el.sidebar.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        const trigger = el.charList.querySelector('.char-menu-btn[aria-expanded="true"]');
+        if (!closeCharMenu()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        trigger?.focus();
     });
 }
 
