@@ -53,6 +53,7 @@ def _test_db(tmp_path, monkeypatch):
     # tests should not quietly depend on that.
     card_store._crc_memo.clear()
     card_store._card_memo.clear()
+    card_store._placeholder_memo.clear()
     schema.init_db()
     yield db_path
 

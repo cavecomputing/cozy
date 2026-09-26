@@ -664,12 +664,6 @@ class TestChatJsonlImportExport:
 
 
 class TestCharacters:
-    def test_create_character_requires_image(self, client):
-        r = client.post('/api/characters', data={
-            'data': '{"name": "Alice"}',
-        }, content_type='multipart/form-data')
-        assert r.status_code == 400
-
     def test_create_character(self, client):
         png = make_minimal_png()
         r = client.post('/api/characters', data={

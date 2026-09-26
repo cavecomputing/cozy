@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from cozy import shared
 from cozy.card_store import (
     CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, file_crc_cached, get_character_card,
-    normalize_to_v2, normalize_character_book, read_character_card, read_character_card_cached,
+    has_placeholder_image, normalize_to_v2, normalize_character_book, read_character_card, read_character_card_cached,
     write_character_card,
 )
 from cozy.shared import get_db, json_download, not_found
@@ -48,12 +48,16 @@ def _char_to_dict(row, card_data=None):
             'created_at': row['created_at'],
         }
 
+    # A card with no picture of its own reports none, so the UI draws initials
+    # rather than scaling up the placeholder's single pixel.
+    path = os.path.join(shared.CHARACTERS_DIR, row['filename'])
     d = {
         'id': row['id'],
         'filename': row['filename'],
         'missing': bool(row['missing']),
         'created_at': row['created_at'],
-        'avatar_url': f"/characters/{row['filename']}?v={row['crc']}",
+        'avatar_url': None if has_placeholder_image(path)
+                      else f"/characters/{row['filename']}?v={row['crc']}",
         'pinned': pinned,
         'pinned_at': row['pinned_at'],
     }
@@ -156,9 +160,6 @@ def list_characters():
 
 @characters_bp.route('/api/characters', methods=['POST'])
 def create_character():
-    if 'image' not in request.files:
-        return jsonify({'error': 'An image is required'}), 400
-
     try:
         data = json.loads(request.form.get('data', '{}'))
     except (json.JSONDecodeError, UnicodeDecodeError):
@@ -167,7 +168,10 @@ def create_character():
         return jsonify({'error': 'name is required'}), 400
 
     card = normalize_to_v2(data)
-    png_bytes = ensure_png(request.files['image'].read())
+    # The card data lives inside the PNG, so a character created without a
+    # picture still needs one: the placeholder JSON imports already use.
+    image = request.files.get('image')
+    png_bytes = ensure_png(image.read()) if image else make_minimal_png()
     png_bytes = write_png_chara(png_bytes, card)
 
     filename = _unique_filename(data['name'])

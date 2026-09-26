@@ -65,6 +65,48 @@ class TestCreate:
 
 # ── PNG round-trip with realistic content ─────────────────────────────────
 
+class TestCreateWithoutImage:
+    """A character can be made from a name alone; the card still lives in a PNG."""
+
+    def _create(self, client, **files):
+        return client.post('/api/characters', data={
+            'data': json.dumps({'name': 'Plain', 'description': 'No picture yet.'}), **files,
+        }, content_type='multipart/form-data')
+
+    def test_card_is_stored_on_the_placeholder_and_reports_no_avatar(self, client):
+        r = self._create(client)
+        assert r.status_code == 201
+        char = r.get_json()
+        # Nothing to show, so the UI draws initials rather than one black pixel...
+        assert char['avatar_url'] is None
+        listed = client.get('/api/characters').get_json()
+        assert next(c for c in listed if c['id'] == char['id'])['avatar_url'] is None
+        # ...but the card is a real PNG other apps can read.
+        path = os.path.join(shared.CHARACTERS_DIR, char['filename'])
+        with open(path, 'rb') as f:
+            assert extract_png_chara(f.read())['data']['description'] == 'No picture yet.'
+
+    def test_a_picture_uploaded_later_replaces_the_placeholder(self, client):
+        char = self._create(client).get_json()
+        r = client.post(f'/api/characters/{char["id"]}/avatar', data={
+            'avatar': (BytesIO(_solid_png((64, 64), (0, 128, 255))), 'blue.png', 'image/png'),
+        }, content_type='multipart/form-data')
+        updated = r.get_json()
+        assert updated['avatar_url'].startswith(f'/characters/{char["filename"]}?v=')
+        assert updated['description'] == 'No picture yet.'
+
+    def test_a_card_created_with_a_picture_reports_it(self, client):
+        r = self._create(client, image=(BytesIO(_solid_png((64, 64), (0, 128, 255))), 'a.png', 'image/png'))
+        assert r.get_json()['avatar_url'].startswith('/characters/')
+
+    def test_a_json_import_has_no_picture_either(self, client):
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(json.dumps(v2_card(name='FromJson')).encode()), 'c.json'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 201
+        assert r.get_json()['avatar_url'] is None
+
+
 class TestPngRoundtrip:
     def test_basic_roundtrip(self):
         card = v2_card(name='Basic', description='A simple character.')
@@ -563,6 +605,10 @@ class TestSync:
         assert card_reads == [path]
 
     def test_edited_card_is_reread(self, client, sample_character):
+        # A real picture: the 1x1 placeholder reports no avatar_url to compare.
+        client.post(f'/api/characters/{sample_character["id"]}/avatar', data={
+            'avatar': (BytesIO(_solid_png((8, 8), (255, 0, 0))), 'red.png', 'image/png'),
+        }, content_type='multipart/form-data')
         before = client.get('/api/characters').get_json()[0]
         client.put(f'/api/characters/{sample_character["id"]}',
                    json={'description': 'Rewritten on disk.'})

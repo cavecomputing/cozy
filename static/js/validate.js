@@ -13,22 +13,17 @@
 /**
  * Validate a character card before it is saved.
  *
- * @param {object}  card              the collected form values
- * @param {boolean} card.isNew        true when creating rather than editing
- * @param {boolean} card.hasImage     true when an avatar is present or pending
+ * No image is required: a card saved without one is stored on a placeholder
+ * PNG and drawn with its initials.
+ *
+ * @param {object}  card       the collected form values
  * @returns {Array<{field: string, message: string}>} empty when the card is valid
  */
-export function validateCharacter({ name, isNew, hasImage } = {}) {
+export function validateCharacter({ name } = {}) {
     const errors = [];
 
     if (!String(name ?? '').trim()) {
         errors.push({ field: 'name', message: 'Give the character a name.' });
-    }
-
-    // Only new cards need an image. An existing card already has one, and an
-    // edit that does not touch the avatar must not be blocked by it.
-    if (isNew && !hasImage) {
-        errors.push({ field: 'avatar', message: 'Choose an image for the character.' });
     }
 
     return errors;

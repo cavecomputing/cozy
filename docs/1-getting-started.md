@@ -114,8 +114,9 @@ picture too.
 
 1. Click **+** at the top right of the character sidebar. The character
    editor opens.
-2. Fill in the fields. Only a name and an avatar picture are required.
-   Everything else is optional.
+2. Fill in the fields. Only a name is required; everything else is
+   optional. Without a picture the character shows its initials, and you can
+   add one later by clicking the image in the editor.
 
 What the fields mean:
 

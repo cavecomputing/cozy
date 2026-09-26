@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, AVATAR, showToast, Flyouts, updateComposerState, markUnusedVar, withBusy } from './utils.js';
+import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, markUnusedVar, withBusy } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
 import { renderMessages } from './messages.js';
@@ -27,8 +27,6 @@ const exportItems   = exportMenu.querySelectorAll('[data-export-item]');
 
 const avatarPreview = document.getElementById('modal-avatar-preview');
 const avatarInput   = document.getElementById('avatar-file-input');
-const avatarRequired = document.getElementById('modal-avatar-required');
-const identityRow   = overlay.querySelector('.modal-identity');
 const importInput   = document.getElementById('import-file-input');
 
 const tabBtns   = overlay.querySelectorAll('.tab-btn');
@@ -125,10 +123,14 @@ avatarInput.addEventListener('change', () => {
         avatarPreview.style.backgroundImage = `url('${e.target.result}')`;
         avatarPreview.dataset.hasImage = 'true';
         avatarPreview.textContent = '';
-        avatarPreview.classList.remove('is-required');
-        if (avatarRequired) avatarRequired.hidden = true;
     };
     reader.readAsDataURL(file);
+});
+
+// A card saved without a picture is drawn with its initials, so the empty
+// image well shows them as the name is typed.
+fields.name.addEventListener('input', () => {
+    if (avatarPreview.dataset.hasImage !== 'true') avatarPreview.textContent = getInitials(fields.name.value);
 });
 
 function populate(char) {
@@ -164,8 +166,6 @@ function clearFieldErrors() {
         n.removeAttribute('aria-invalid');
         n.removeAttribute('aria-describedby');
     });
-    avatarPreview.classList.remove('is-required');
-    if (avatarRequired) avatarRequired.hidden = true;
 }
 
 /**
@@ -178,22 +178,6 @@ function showFieldErrors(errors) {
     let first = null;
 
     for (const { field, message } of errors) {
-        if (field === 'avatar') {
-            // The image well is not a text field: it carries the mark on the
-            // well itself, and its message goes under the whole identity row
-            // rather than inside the flex row beside the name.
-            avatarPreview.classList.add('is-required');
-            if (avatarRequired) avatarRequired.hidden = false;
-            const note = document.createElement('p');
-            note.className = 'field-error field-error--identity';
-            note.id = 'cf-avatar-error';
-            note.textContent = message;
-            identityRow.insertAdjacentElement('afterend', note);
-            avatarInput.setAttribute('aria-invalid', 'true');
-            avatarInput.setAttribute('aria-describedby', note.id);
-            first = first || avatarPreview;
-            continue;
-        }
         const input = fields[field];
         if (!input) continue;
 
@@ -248,8 +232,6 @@ function open(char = null) {
     exportItems.forEach(li => { li.hidden = !char; });
     closeExportMenu();                              // always close dropdown on open
     deleteBtn.hidden = !char;                       // only show delete on edit, not create
-    avatarPreview.classList.toggle('is-required', !char);
-    if (avatarRequired) avatarRequired.hidden = !!char;
     if (char) populate(char);
     else      clearForm();
     updateFieldMarkers();
@@ -319,11 +301,7 @@ async function applyCharUpdate(char, isNew) {
 async function save() {
     const data = collect();
     const isEditing = !!editingCharId;
-    const errors = validateCharacter({
-        name: data.name,
-        isNew: !editingCharId,
-        hasImage: !!pendingAvatarFile,
-    });
+    const errors = validateCharacter({ name: data.name });
     if (errors.length) {
         showFieldErrors(errors);
         return;

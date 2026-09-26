@@ -83,6 +83,29 @@ def file_crc_cached(path):
     return _memoized(_crc_memo, path, file_crc)
 
 
+_placeholder_memo = {}
+
+
+def _is_placeholder_png(path):
+    """True for make_minimal_png()'s 1x1 stand-in rather than real artwork."""
+    try:
+        with open(path, 'rb') as f:
+            head = f.read(24)
+    except OSError:
+        return False
+    # IHDR opens every PNG, and its first two fields are width and height.
+    return head[12:16] == b'IHDR' and head[16:24] == bytes([0, 0, 0, 1, 0, 0, 0, 1])
+
+
+def has_placeholder_image(path):
+    """Whether the card at *path* was saved without a picture of its own.
+
+    A card needs a PNG to carry its data, so one created or imported without an
+    image lives in the 1x1 placeholder; the UI draws initials for it instead.
+    """
+    return bool(_memoized(_placeholder_memo, path, _is_placeholder_png))
+
+
 def read_character_card_cached(path):
     """Parsed card data for *path*, or None.
 

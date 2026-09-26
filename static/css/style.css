@@ -3343,12 +3343,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     line-height: 1.4;
 }
 
-/* The image well's message: the identity row is avatar-beside-name, so this
-   sits under the pair rather than inside the row. */
-.field-error--identity {
-    padding: 0 var(--space-4);
-}
-
 :is(.form-input, .form-textarea, .tags-input-wrap)[aria-invalid="true"] {
     border-color: var(--status-danger);
 }
@@ -3929,10 +3923,6 @@ input[type="checkbox"]:checked::after {
     cursor: pointer;
 }
 
-.modal-avatar.is-required {
-    border: 1px solid var(--danger-color);
-}
-
 .avatar-change-label {
     position: absolute;
     inset: 0;
@@ -3951,45 +3941,13 @@ input[type="checkbox"]:checked::after {
     opacity: 1;
 }
 
-/* Same chip on the bigger character avatar: a touch larger, and clear of the
-   "Required" pill in the opposite corner. It sits above the hover overlay so
-   the two read as one control. */
+/* Same chip on the bigger character avatar: a touch larger. It sits above the
+   hover overlay so the two read as one control. */
 .modal-avatar-badge {
     width: 18px;
     height: 18px;
     border-color: var(--bg-color);
     z-index: 2;
-}
-
-.modal-avatar-required {
-    position: absolute;
-    top: 0.25rem;
-    right: 0.25rem;
-    width: 1rem;
-    height: 1rem;
-    padding: 0;
-    border: 1px solid var(--danger-color);
-    border-radius: 50%;
-    background-color: var(--danger-bg-hover);
-    color: var(--danger-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    font-size: 0;
-    font-weight: 700;
-    line-height: 1;
-    pointer-events: none;
-    z-index: 2;
-}
-
-.modal-avatar-required::before {
-    content: '!';
-    font-size: var(--text-xs);
-}
-
-.modal-avatar-required[hidden] {
-    display: none;
 }
 
 .modal-name-wrap {
