@@ -45,7 +45,7 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
    list what the server reports and pick one from the list. If the list
    comes up empty, type the name by hand. Some servers do not provide a
    list, and that is normal.
-7. Click **Test Connection**. If the test succeeds, you are done with this
+7. Click **Test** beside the preset picker. If the test succeeds, you are done with this
    section. If it fails, see [Troubleshooting](4-troubleshooting.md).
 8. Under **Context & generation**, set **Max context tokens** to the
    context size your server supports, and **Max response tokens** to the

@@ -36,4 +36,6 @@ Settings → About → Storage has a **Backup** menu that downloads the whole da
 directory as a zip and restores one on top of it, so a backup does not mean
 stopping Cozy and copying folders. See
 [Data and backups](3-data-and-backups.md).
-Note: since API keys are stored as plain text in the Cozy database, a backup also inherently contains the same information in pain text.
+Because API keys are stored as plain text in the Cozy database, a backup
+contains them in plain text too. Keep backup files as private as the data
+directory itself.
