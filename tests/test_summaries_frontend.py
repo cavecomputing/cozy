@@ -494,6 +494,50 @@ def test_message_target_waits_for_context_pressure_then_creates_headroom():
     run_node_module(code)
 
 
+def test_send_catch_up_retires_whole_batches_not_single_messages():
+    """One message aging out before a send must not become a one-message entry.
+
+    Retiring exactly what fell out made the pre-send catch-up a single-message job,
+    whose new entry could push the next message out and start another while the
+    send waited. It rounds up to whole batches, counted from the watermark.
+    """
+    code = BASE_SETUP + r"""
+        el.settingsContextTokens.value = '202';
+        el.samplerMaxTokens.value = '10';
+        state.summaryTriggerInterval = '4';
+        state.messages = Array.from({ length: 45 }, (_, i) => ({
+            id: i + 1,
+            role: i % 2 ? 'character' : 'user',
+            text: `m-${i}-abcdefghij`,
+        }));
+        state.activeChat.summary_up_to_msg_id = 20;
+        const calls = [];
+        API.runSummary = async (chatId, options) => {
+            calls.push(options.up_to_msg_id);
+            return {
+                id: chatId,
+                summary_enabled: true,
+                summary: { lines: [] },
+                summary_up_to_msg_id: options.up_to_msg_id,
+                summary_status: 'idle',
+                summary_status_detail: '',
+            };
+        };
+
+        await ensureSummaryReadyForSend();
+        // One message (id 21) is outside the window; the whole batch 21..24 retires.
+        assert.deepEqual(calls, [24]);
+
+        // A backlog of five spans two batches, so one job retires eight.
+        el.settingsContextTokens.value = '150';
+        calls.length = 0;
+        await ensureSummaryReadyForSend();
+        assert.equal(calls.length, 1);
+        assert.equal((calls[0] - 24) % 4, 0, `target ${calls[0]} is not a whole batch past 24`);
+    """
+    run_node_module(code)
+
+
 def test_message_target_does_not_summarize_early_when_everything_fits():
     code = BASE_SETUP + r"""
         el.settingsContextTokens.value = '1000';

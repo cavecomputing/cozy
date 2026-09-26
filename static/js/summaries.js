@@ -210,16 +210,24 @@ function agedOutUnsummarized(excludeLastN = 0) {
  * made the effective batch shrink as the window filled, so updates fired far
  * more often than configured and grew the summary faster than intended.
  *
+ * ``wholeBacklog`` is the catch-up before a send and after enabling: it covers
+ * everything outside the window, still in whole batches. Retiring exactly what
+ * had aged out instead left every catch-up a short last batch — before a send
+ * usually a single message, whose new entry could push the next message out and
+ * start another one-message job while the send waited.
+ *
  * ``oldestRetirableId`` clamps an oversized batch to the messages that actually
- * exist and always leaves the newest one raw. A backlog larger than one batch
- * drains over successive calls via ``ensureSummaryReadyForSend``.
+ * exist and always leaves the newest one raw. Without ``wholeBacklog``, a backlog
+ * larger than one batch drains over successive calls via
+ * ``ensureSummaryReadyForSend``.
  */
-function automaticRunTarget(excludeLastN = 0) {
+function automaticRunTarget(excludeLastN = 0, { wholeBacklog = false } = {}) {
     const assessment = windowAssessment(excludeLastN);
     const { candidates, agedOut } = assessment;
     if (agedOut.length === 0 || candidates.length <= 1) return null;
     if (untrustedContextAssessment(assessment, 'automatic memory update')) return null;
-    return oldestRetirableId(candidates, batchSize());
+    const batches = wholeBacklog ? Math.ceil(agedOut.length / batchSize()) : 1;
+    return oldestRetirableId(candidates, batches * batchSize());
 }
 
 /**
@@ -412,7 +420,8 @@ async function waitForSummaryCompletion(chatId, initialState, signal) {
 
 async function triggerRun({ rebuild = false, awaitCompletion = false,
                             chatId = state.activeChat?.id, signal,
-                            excludeLastN = 0, exactTarget = false } = {}) {
+                            excludeLastN = 0, exactTarget = false,
+                            wholeBacklog = false } = {}) {
     if (chatId == null || state.activeChat?.id !== chatId) return null;
     // A deliberate new run supersedes any earlier cancel.
     cancelledRuns.delete(chatId);
@@ -464,7 +473,9 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
     const agedOutIds = agedOut.map(m => m.id).filter(id => Number.isInteger(id) && id > 0);
     const upTo = rebuild
         ? (agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null)
-        : (exactTarget ? exactRunTarget(excludeLastN) : automaticRunTarget(excludeLastN));
+        : (exactTarget
+            ? exactRunTarget(excludeLastN)
+            : automaticRunTarget(excludeLastN, { wholeBacklog }));
     if (upTo == null) {
         // Nothing is outside the context window. On an explicit rebuild that means
         // a grown context now fits everything — clear any lingering stale summary.
@@ -541,16 +552,17 @@ export async function ensureSummaryReadyForSend(signal, {
             if (!summariesActive(state.activeChat)) return;
             if (agedOutUnsummarized(excludeLastN).length === 0) return;
 
-            // Submit the whole backlog currently outside the window as one server job.
-            // The worker still calls the provider in configured-size chunks, but status
-            // can now report meaningful cumulative progress (batch 1/12, 2/12, …) instead
-            // of a client-side procession of unrelated batch 1/1 jobs.
+            // Submit the whole backlog currently outside the window as one server job,
+            // in whole batches. The worker still calls the provider in configured-size
+            // chunks, but status can now report meaningful cumulative progress (batch
+            // 1/12, 2/12, …) instead of a client-side procession of unrelated batch 1/1
+            // jobs.
             await triggerRun({
                 awaitCompletion: true,
                 chatId,
                 signal,
                 excludeLastN,
-                exactTarget: true,
+                wholeBacklog: true,
             });
             assertSendStillActive(chatId, signal);
             if (!summariesActive(state.activeChat)) return;
