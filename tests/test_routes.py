@@ -1085,6 +1085,36 @@ class TestFork:
         msgs = client.get(f'/api/chats/{new_chat["id"]}/messages').get_json()
         assert len(msgs) == 2
 
+    def test_fork_keeps_auto_summary_memory(self, client, sample_chat):
+        """Forking must not turn memory off and drop older history from the fork."""
+        chat_id = sample_chat['id']
+        ids = [client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user' if i % 2 == 0 else 'character', 'content': f'm{i}',
+        }).get_json()['id'] for i in range(8)]
+        client.put(f'/api/chats/{chat_id}', json={'summary_enabled': True})
+        with shared.get_db() as conn:
+            conn.execute(
+                'UPDATE chats SET summary_json=?, summary_up_to_msg_id=? WHERE id=?',
+                (json.dumps({'lines': [
+                    {'section': 'story', 'text': 'Early.', 'start_msg_id': ids[0], 'end_msg_id': ids[2]},
+                    {'section': 'story', 'text': 'Later.', 'start_msg_id': ids[3], 'end_msg_id': ids[5]},
+                    {'section': 'bonds', 'text': 'A and B: allies.'},
+                ]}), ids[5], chat_id),
+            )
+
+        whole = client.post(f'/api/chats/{chat_id}/fork?message_id={ids[7]}').get_json()
+        copies = [m['id'] for m in client.get(f'/api/chats/{whole["id"]}/messages').get_json()]
+        assert whole['summary_enabled'] is True
+        assert [l['text'] for l in whole['summary']['lines']] == ['Early.', 'Later.', 'A and B: allies.']
+        assert whole['summary']['lines'][1]['end_msg_id'] == copies[5]
+        assert whole['summary_up_to_msg_id'] == copies[5]
+
+        # Forked from inside the summarized range: only what happened before it.
+        early = client.post(f'/api/chats/{chat_id}/fork?message_id={ids[3]}').get_json()
+        copies = [m['id'] for m in client.get(f'/api/chats/{early["id"]}/messages').get_json()]
+        assert [l['text'] for l in early['summary']['lines']] == ['Early.']
+        assert early['summary_up_to_msg_id'] == copies[2]
+
     def test_fork_is_named_like_a_new_chat(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={

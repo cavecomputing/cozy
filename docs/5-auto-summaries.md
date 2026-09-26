@@ -165,6 +165,13 @@ Reset then rebuild is also how you convert a summary created by an older version
 of Cozy, which produced several entries per batch, into the current
 one-entry-per-batch form.
 
+## Forks
+
+Forking a chat keeps its memory. A fork taken after the summarized part of the
+chat copies the whole summary and stays on; one taken from inside it keeps only
+the story entries for messages before the fork point, and leaves Bonds out,
+since a relationship dossier may already describe what happened after it.
+
 ## Limits
 
 - Summary quality depends on the selected model.

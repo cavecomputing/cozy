@@ -23,6 +23,7 @@ from cozy.summarizer import (
     enforce_cap,
     estimate_tokens,
     fit_append_entries,
+    fork_summary,
     parse_summary,
     parse_summary_json,
     parse_summarizer_output,
@@ -454,6 +455,49 @@ def test_build_append_messages_asks_for_exactly_one_story_entry():
     assert '360 tokens' in user
     # The one-entry rule reaches the model through the system prompt too.
     assert 'EXACTLY ONE story line' in APPEND_INSTRUCTIONS
+
+
+def _ranged_summary():
+    return dump_summary_json({'lines': [
+        {'section': 'story', 'text': 'First.', 'start_msg_id': 10, 'end_msg_id': 15},
+        {'section': 'story', 'text': 'Second.', 'start_msg_id': 16, 'end_msg_id': 21},
+        {'section': 'bonds', 'text': 'A and B: allies.'},
+    ]})
+
+
+def test_fork_after_the_watermark_keeps_the_whole_summary_remapped():
+    new_ids = {old: old + 100 for old in range(10, 30)}
+    summary, watermark = fork_summary(_ranged_summary(), 21, 25, new_ids)
+    lines = parse_summary_json(summary)['lines']
+    assert [l['text'] for l in lines] == ['First.', 'Second.', 'A and B: allies.']
+    assert (lines[0]['start_msg_id'], lines[0]['end_msg_id']) == (110, 115)
+    assert (lines[1]['start_msg_id'], lines[1]['end_msg_id']) == (116, 121)
+    assert watermark == 121
+
+
+def test_fork_inside_the_summary_keeps_only_what_happened_before_it():
+    new_ids = {old: old + 100 for old in range(10, 19)}
+    summary, watermark = fork_summary(_ranged_summary(), 21, 18, new_ids)
+    lines = parse_summary_json(summary)['lines']
+    # "Second." covers messages after the fork point, and a bond may too.
+    assert [l['text'] for l in lines] == ['First.']
+    assert watermark == 115
+
+
+def test_fork_remaps_the_watermark_past_deleted_messages():
+    # Message 21, the old watermark, was deleted; 20 is the last copy it still covers.
+    new_ids = {old: old + 100 for old in range(10, 21)}
+    new_ids.update({22: 122})
+    summary, watermark = fork_summary(_ranged_summary(), 21, 22, new_ids)
+    lines = parse_summary_json(summary)['lines']
+    assert watermark == 120
+    # The range whose end is gone keeps its text but no longer claims a label.
+    assert 'start_msg_id' not in lines[1] and lines[1]['text'] == 'Second.'
+
+
+def test_fork_with_nothing_to_carry_over():
+    assert fork_summary('', None, 5, {5: 50}) == ('', None)
+    assert fork_summary(_ranged_summary(), 21, 12, {10: 1, 11: 2, 12: 3}) == ('', None)
 
 
 def test_build_append_messages_labels_speakers_by_name():

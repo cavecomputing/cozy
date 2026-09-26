@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 
 from cozy.routes.chats import chat_to_dict, default_chat_name
 from cozy.shared import get_db, not_found, persona_avatar_url
+from cozy.summarizer import fork_summary
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -57,15 +58,16 @@ def fork_chat(chat_id):
         # A fork continues the same conversation, so per-chat settings come with it.
         # The Author's Note especially: it is user-written text the docs point at for
         # anything that must always be remembered, and losing it here was silent.
-        # Summary state deliberately does not carry over — the copies get new message
-        # ids, so the watermark and each entry's range would need remapping, and an
-        # unremapped watermark is exactly how history gets retired wrongly.
+        # Auto Summary too — its memory is remapped onto the copies below, since
+        # leaving it behind turned memory off and let older history silently drop
+        # out of the fork's context.
         cur = conn.execute(
             'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded, '
-            'lorebook_notice_dismissed, author_note, persona_id) '
-            'VALUES (?,?,?,?,?,?,?)',
+            'lorebook_notice_dismissed, author_note, persona_id, summary_enabled) '
+            'VALUES (?,?,?,?,?,?,?,?)',
             (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'],
-             chat['lorebook_notice_dismissed'], chat['author_note'], chat['persona_id'])
+             chat['lorebook_notice_dismissed'], chat['author_note'], chat['persona_id'],
+             chat['summary_enabled'])
         )
         new_chat_id = cur.lastrowid
 
@@ -93,6 +95,15 @@ def fork_chat(chat_id):
                     'INSERT INTO message_swipes (message_id, content, created_at) VALUES (?,?,?)',
                     (old_to_new[s['message_id']], s['content'], s['created_at'])
                 )
+
+        summary_json, watermark = fork_summary(
+            chat['summary_json'], chat['summary_up_to_msg_id'], msg_id, old_to_new
+        )
+        if summary_json:
+            conn.execute(
+                'UPDATE chats SET summary_json=?, summary_up_to_msg_id=? WHERE id=?',
+                (summary_json, watermark, new_chat_id),
+            )
 
         new_chat = conn.execute('SELECT * FROM chats WHERE id=?', (new_chat_id,)).fetchone()
         return jsonify(chat_to_dict(new_chat)), 201

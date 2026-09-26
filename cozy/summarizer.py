@@ -322,6 +322,37 @@ def parse_summary_json(raw):
     return {'lines': out}
 
 
+def fork_summary(summary_json, watermark, fork_point, new_ids):
+    """The memory a fork taken at message ``fork_point`` inherits: ``(json, watermark)``.
+
+    ``new_ids`` maps each copied message's id to its copy's. A fork taken at or after the
+    watermark keeps the whole summary. One taken inside the summarized range keeps only
+    the story entries that end at or before the fork point, and no bonds — a bond is a
+    dossier of the whole chat, so it may already describe what happens after the fork.
+    Ranges are remapped onto the copies; one whose messages were since deleted keeps its
+    text and loses its label. ``('', None)`` when nothing carries over.
+    """
+    whole = bool(watermark) and watermark <= fork_point
+    kept, covered = [], watermark if whole else 0
+    for line in summary_lines(parse_summary_json(summary_json)):
+        start, end = line.get('start_msg_id'), line.get('end_msg_id')
+        if not whole and (line['section'] == 'bonds' or end is None or end > fork_point):
+            continue
+        line = dict(line)
+        if end is not None:
+            covered = max(covered, end)
+            if start in new_ids and end in new_ids:
+                line['start_msg_id'], line['end_msg_id'] = new_ids[start], new_ids[end]
+            else:
+                del line['start_msg_id'], line['end_msg_id']
+        kept.append(line)
+    # The copies keep their order, so everything summarized is still one prefix of them.
+    new_watermark = max((new for old, new in new_ids.items() if old <= covered), default=None)
+    if not kept or new_watermark is None:
+        return '', None
+    return dump_summary_json({'lines': kept}), new_watermark
+
+
 def dump_summary_json(obj):
     """Serialize a summary object to a compact JSON string for storage."""
     return json.dumps({'lines': summary_lines(obj)}, ensure_ascii=False)
