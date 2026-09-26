@@ -8,6 +8,12 @@ The default Python and Docker configurations listen only on the local computer.
 Do not listen on a public network interface unless you are only accessing over LAN. If you do, consider an authentication layer with a reverse proxy.
 Do not make this accessible over the internet unless your remote access method is a VPN. Consider authentication via reverse proxy.
 
+Cozy only accepts changes from its own page. When your browser marks a
+request as coming from another website — or from another port on the same
+computer — Cozy refuses it, so a page you happen to have open cannot import,
+delete or restore anything. That is not a login: anything that can reach
+Cozy directly, such as a script on your network, can still use it.
+
 ## Private data
 
 Cozy stores chats, settings, API keys, and other private data in `data/`, under

@@ -1376,3 +1376,50 @@ class TestChatAuthorNote:
         client.put(f'/api/chats/{sample_chat["id"]}', json={'author_note': 'x'})
         r = client.put(f'/api/chats/{sample_chat["id"]}', json={'author_note': ''})
         assert r.get_json()['author_note'] == ''
+
+
+class TestCrossSiteWrites:
+    """Only Cozy's own page may change anything; other sites are refused."""
+
+    def persona_count(self, client):
+        return len(client.get('/api/personas').get_json())
+
+    def test_write_from_another_site_is_refused(self, client):
+        before = self.persona_count(client)
+        r = client.post('/api/personas', json={'name': 'Planted'},
+                        headers={'Sec-Fetch-Site': 'cross-site'})
+        assert r.status_code == 403
+        assert self.persona_count(client) == before
+
+    def test_same_site_is_not_same_origin(self, client):
+        # Another port on the same host is "same-site", and just as foreign.
+        r = client.post('/api/personas', json={'name': 'Planted'},
+                        headers={'Sec-Fetch-Site': 'same-site'})
+        assert r.status_code == 403
+
+    def test_restore_upload_from_another_site_never_reaches_the_route(self, client):
+        # Garbage would be a 400 from the route itself; 403 means it never ran.
+        r = client.post('/api/backup/restore',
+                        data={'file': (BytesIO(b'not a zip'), 'backup.zip')},
+                        content_type='multipart/form-data',
+                        headers={'Sec-Fetch-Site': 'cross-site'})
+        assert r.status_code == 403
+
+    def test_own_page_can_write(self, client):
+        r = client.post('/api/personas', json={'name': 'Mine'},
+                        headers={'Sec-Fetch-Site': 'same-origin'})
+        assert r.status_code == 201
+
+    def test_older_browser_falls_back_to_origin(self, client):
+        foreign = client.post('/api/personas', json={'name': 'Planted'},
+                              headers={'Origin': 'http://evil.example'})
+        assert foreign.status_code == 403
+        own = client.post('/api/personas', json={'name': 'Mine'},
+                          headers={'Origin': 'http://localhost'})
+        assert own.status_code == 201
+
+    def test_reads_and_non_browser_clients_are_unaffected(self, client):
+        assert client.get('/api/personas',
+                          headers={'Sec-Fetch-Site': 'cross-site'}).status_code == 200
+        # No Sec-Fetch-Site and no Origin: curl, scripts, the test client.
+        assert client.post('/api/personas', json={'name': 'Scripted'}).status_code == 201

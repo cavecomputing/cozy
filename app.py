@@ -2,8 +2,9 @@ import os
 import glob
 import logging
 import argparse
+from urllib.parse import urlsplit
 
-from flask import Flask, render_template, jsonify, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
 
 from cozy import shared
@@ -25,6 +26,28 @@ def handle_exception(e):
         return jsonify({'error': e.description}), e.code
     log.exception('Unhandled error: %s', e)
     return jsonify({'error': 'Internal server error'}), 500
+
+
+# ── Same-origin writes only ───────────────────────────────────────────────
+# Cozy has no login, so any other page open in the same browser can send it
+# requests. A file upload needs no CORS preflight, which put every upload
+# route in reach — /api/backup/restore among them, which replaces the whole
+# data directory. Browsers say where a request came from; writes that did
+# not come from Cozy's own page are refused.
+@app.before_request
+def refuse_cross_site_writes():
+    if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        return None
+    site = request.headers.get('Sec-Fetch-Site')
+    if site is not None:
+        allowed = site in ('same-origin', 'none')
+    else:
+        # Browsers too old for Sec-Fetch-Site still send Origin cross-site.
+        origin = request.headers.get('Origin')
+        allowed = origin is None or urlsplit(origin).netloc == request.host
+    if not allowed:
+        return jsonify({'error': 'Cross-site request refused'}), 403
+    return None
 
 
 # ── Serve files from DATA_DIR ─────────────────────────────────────────────
