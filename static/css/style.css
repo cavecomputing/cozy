@@ -6101,7 +6101,9 @@ input[type="checkbox"]:checked::after {
     :is(.preset-select-row, .prompt-select-row) > .icon-btn,
     .prompt-select-row .export-dropdown > .icon-btn { width: 100%; border: 1px solid var(--line-soft); border-radius: var(--radius); }
     .preset-connection .settings-row { flex-direction: column; align-items: stretch; }
-    .preset-connection .settings-row > * { flex: auto; width: 100%; }
+    /* Named rather than `> *`, which loses to the desktop `> .form-input` rule
+       and keeps its 10rem basis — a 160px-tall field once the row is a column. */
+    .preset-connection .settings-row > :is(.settings-row-label, .form-input, .settings-model-row) { flex: auto; width: 100%; }
     .sampler-card .settings-row { flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
     .sampler-card .settings-row-label { flex: 1 1 120px; }
     .sampler-value-wrap { flex: 1 1 100%; }
