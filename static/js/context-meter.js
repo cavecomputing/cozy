@@ -5,6 +5,11 @@ import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.j
 import { analyzeContext } from './context-analysis.js';
 import { retargetTooltip } from './tooltips.js';
 import { saveLLMSettings } from './llm-settings.js';
+import { drawOlderMessages } from './messages.js';
+
+// The message the separator sits above. Kept so that a page drawn later, by
+// drawOlderMessages(), can place a separator whose message wasn't on screen.
+let boundaryTargetId = null;
 
 export function getCurrentContextAnalysis({ includeDraft = false } = {}) {
     return analyzeContext({
@@ -14,10 +19,10 @@ export function getCurrentContextAnalysis({ includeDraft = false } = {}) {
 }
 
 /**
- * Whether a context-window separator is drawn in the transcript, and so
- * whether the Message history segment is worth clicking. Mirrors the guard in
- * updateContextBoundary() rather than probing the DOM, since the meter and the
- * boundary re-render in either order.
+ * Whether a context-window separator is in the transcript (drawn, or waiting
+ * on a page not drawn yet), and so whether the Message history segment is
+ * worth clicking. Mirrors the guard in updateContextBoundary() rather than
+ * probing the DOM, since the meter and the boundary re-render in either order.
  */
 function canJumpToBoundary(analysis) {
     return analysis.maxTokens > 0 && (state.messages?.length || 0) > 0;
@@ -145,9 +150,26 @@ export function updateContextMeter() {
     }
 }
 
+function newBoundary() {
+    const boundary = document.createElement('div');
+    boundary.className = 'context-boundary';
+    boundary.textContent = 'Context window';
+    return boundary;
+}
+
+/** Put the separator above its message, if that message is drawn. */
+export function placeContextBoundary() {
+    if (boundaryTargetId == null || !el.chatHistory) return;
+    const target = el.chatHistory.querySelector(`.message[data-msg-id="${boundaryTargetId}"]`);
+    if (!target) return;
+    const boundary = el.chatHistory.querySelector('.context-boundary') || newBoundary();
+    el.chatHistory.insertBefore(boundary, target.closest('.message-container') || target);
+}
+
 export function updateContextBoundary() {
     const existing = el.chatHistory?.querySelector('.context-boundary');
     if (existing) existing.remove();
+    boundaryTargetId = null;
 
     if (getContextTokenBudget() <= 0 || state.messages.length === 0) return;
 
@@ -166,25 +188,16 @@ export function updateContextBoundary() {
         boundaryMessageId = rawMessages[0].id ?? null;
     }
 
-    const boundary = document.createElement('div');
-    boundary.className = 'context-boundary';
-    boundary.textContent = 'Context window';
-
-    if (rawMessages.length === 0) {
-        el.chatHistory.appendChild(boundary);
+    // No message of the chat in the window (all of it summarized, or a draft
+    // filling the window alone), so the window opens after the last one.
+    if (rawMessages.length === 0 || boundaryMessageId == null) {
+        el.chatHistory.appendChild(newBoundary());
         return;
     }
 
-    if (boundaryMessageId != null) {
-        const target = el.chatHistory.querySelector(`.message[data-msg-id="${boundaryMessageId}"]`);
-        if (target) {
-            el.chatHistory.insertBefore(boundary, target.closest('.message-container') || target);
-            return;
-        }
-    }
-
-    const firstContainer = el.chatHistory.querySelector('.message-container');
-    if (firstContainer) el.chatHistory.insertBefore(boundary, firstContainer);
+    // A message above the drawn pages gets its separator once one reaches it.
+    boundaryTargetId = boundaryMessageId;
+    placeContextBoundary();
 }
 
 // Landing the separator flush with the top edge reads as having scrolled past
@@ -199,6 +212,9 @@ const BOUNDARY_FLASH_MS = 1400;
  */
 export function jumpToContextBoundary() {
     const scroller = el.chatHistory;
+    // The separator's message may sit above the drawn pages; draw down to it.
+    while (boundaryTargetId != null && !scroller?.querySelector('.context-boundary')
+        && drawOlderMessages()) { /* next page */ }
     const boundary = scroller?.querySelector('.context-boundary');
     if (!boundary) return false;
 

@@ -11,7 +11,7 @@ import {
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats } from './chats.js';
-import { startEditing, finishEditing, handleSwipeAction, findStateMsg } from './messages.js';
+import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -1194,6 +1194,11 @@ function bindPersonaHandlers() {
     });
 }
 
+// Older pages wait for the scrolling to pause. Drawing one has to move
+// scrollTop to hold the view still, and on iOS a scrollTop write mid-fling
+// stops the momentum dead.
+const drawOlderSoon = debounce(drawOlderNearTop, 100);
+
 function bindScrollHandlers() {
     // Scroll-to-bottom button
     el.scrollToBottomBtn?.addEventListener('click', () => {
@@ -1226,6 +1231,7 @@ function bindScrollHandlers() {
             el.chatHistory.scrollHeight - el.chatHistory.scrollTop - el.chatHistory.clientHeight < 60;
         state.autoScroll = atBottom;
         el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
+        drawOlderSoon();
     });
 }
 

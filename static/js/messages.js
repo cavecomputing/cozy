@@ -8,7 +8,7 @@ import {
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
 } from './thinking.js';
-import { updateContextMeter, updateContextBoundary } from './context-meter.js';
+import { updateContextMeter, updateContextBoundary, placeContextBoundary } from './context-meter.js';
 import { generateResponse } from './request-builder.js';
 import { applyDisplayFilters, applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
@@ -388,6 +388,58 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     return { container, message };
 }
 
+// A long chat is drawn from its newest end, a page at a time as the reader
+// scrolls up: building every message at once took seconds on long chats and
+// kept all of them in the DOM. state.messages still holds the whole chat, so
+// context, memory and the request never see the difference.
+const DRAW_PAGE = 100;
+// The state.messages array on screen, and the index of its oldest drawn entry.
+let drawnList = null;
+let drawnFrom = 0;
+
+/** Message elements for state.messages[start, end), in order. */
+function buildMessageRange(start, end) {
+    const fragment = document.createDocumentFragment();
+    for (let i = start; i < end; i += 1) {
+        const m = state.messages[i];
+        const isFirstMsg = i === 0 && m.role === 'character';
+        const { container } = buildMessageEl(
+            m.role, m.text, isFirstMsg, m.created_at,
+            m.swipes, m.activeSwipeIndex, m.persona, m.id
+        );
+        fragment.appendChild(container);
+    }
+    return fragment;
+}
+
+/**
+ * Draw the page of messages just above the oldest one on screen, holding the
+ * view still. Returns false when there is nothing older left to draw.
+ */
+export function drawOlderMessages() {
+    // A chat switch replaces the array; what is on screen is about to go.
+    if (drawnList !== state.messages || drawnFrom <= 0) return false;
+    const scroller = el.chatHistory;
+    const start = Math.max(0, drawnFrom - DRAW_PAGE);
+    const anchor = scroller.querySelector('.message-container');
+    const anchorTop = anchor?.getBoundingClientRect().top ?? 0;
+    scroller.prepend(buildMessageRange(start, drawnFrom));
+    drawnFrom = start;
+    // Before measuring: a separator landing in the new page pushes the view down too.
+    placeContextBoundary();
+    // Measured rather than assumed from scrollHeight: browsers with scroll
+    // anchoring have already compensated by now, and adding the height again
+    // would throw the reader a page down.
+    scroller.scrollTop += (anchor?.getBoundingClientRect().top ?? 0) - anchorTop;
+    return true;
+}
+
+/** Draw older pages until at least a screenful sits above the view, or none are left. */
+export function drawOlderNearTop() {
+    const scroller = el.chatHistory;
+    while (scroller.scrollTop < scroller.clientHeight && drawOlderMessages()) { /* next page */ }
+}
+
 /**
  * Redraw the message bodies already on screen. {{user}} and the other template
  * variables are resolved at render time from state.activePersona, so switching
@@ -410,6 +462,7 @@ export function rerenderMessageText() {
 
 export function renderMessages() {
     el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
+    drawnList = null;
 
     const char = state.activeCharacter;
     if (!char && state.characters.length === 0) {
@@ -434,16 +487,9 @@ export function renderMessages() {
         return;
     }
 
-    const fragment = document.createDocumentFragment();
-    state.messages.forEach((m, i) => {
-        const isFirstMsg = i === 0 && m.role === 'character';
-        const { container } = buildMessageEl(
-            m.role, m.text, isFirstMsg, m.created_at,
-            m.swipes, m.activeSwipeIndex, m.persona, m.id
-        );
-        fragment.appendChild(container);
-    });
-    el.chatHistory.appendChild(fragment);
+    drawnList = state.messages;
+    drawnFrom = Math.max(0, state.messages.length - DRAW_PAGE);
+    el.chatHistory.appendChild(buildMessageRange(drawnFrom, state.messages.length));
 
     // Reset scroll-to-bottom button visibility — if there's no overflow,
     // no scroll event will fire so the button could stay stale from a previous chat.
@@ -452,6 +498,9 @@ export function renderMessages() {
     state.autoScroll = atBottom;
     el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
     scrollToBottom();
+    // Short messages can leave the newest page without enough height to scroll,
+    // and a transcript that cannot scroll never asks for the older pages.
+    drawOlderNearTop();
     updateContextBoundary();
 }
 
