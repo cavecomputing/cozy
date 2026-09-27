@@ -12,7 +12,7 @@ TRANSCRIPT_SETUP = r"""
     import { state, el } from './static/js/state.js';
     import { renderMessages, drawOlderMessages, drawOlderNearTop } from './static/js/messages.js';
     import {
-        updateContextBoundary, jumpToContextBoundary, getCurrentContextAnalysis,
+        updateContextBoundary, updateContextViews, jumpToContextBoundary, getCurrentContextAnalysis,
     } from './static/js/context-meter.js';
 
     const camel = name => name.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
@@ -247,6 +247,39 @@ def test_jump_draws_down_to_an_undrawn_separator():
         const boundary = scroller.querySelector('.context-boundary');
         // Landed just below the top edge, as for a drawn separator.
         assert.equal(boundary.getBoundingClientRect().top, 28);
+    """)
+
+
+def test_hidden_meter_leaves_the_draft_out_of_the_separator():
+    """Nothing quotes a draft-inclusive count with the meter hidden, so the
+    separator measures without it and typing has nothing to recompute."""
+    run_node_module(TRANSCRIPT_SETUP + r"""
+        el.settingsContextTokens.value = '600';
+        state.messages = chatOf(30);
+        let draftReads = 0;
+        el.userInput = { get value() { draftReads += 1; return 'ramble '.repeat(60); } };
+        // The meter itself, so that it draws rather than bailing before it analyses.
+        Object.assign(el, {
+            contextTokenMeter: Object.assign(new FakeNode(), { hidden: true }),
+            contextTokenLabel: new FakeNode(),
+            contextTokenBar: new FakeNode(),
+        });
+        renderMessages();
+
+        state.showContextTokenMeter = false;
+        draftReads = 0;
+        updateContextViews();
+        assert.equal(draftReads, 0);
+        const undrafted = boundaryBefore();
+
+        // Shown, the draft evicts older turns and the separator moves down with
+        // them, from one draft-inclusive analysis shared with the meter.
+        state.showContextTokenMeter = true;
+        draftReads = 0;
+        updateContextViews();
+        assert.equal(draftReads, 1);
+        assert.equal(el.contextTokenMeter.hidden, false, 'the meter drew from the shared analysis');
+        assert.ok(boundaryBefore() > undrafted);
     """)
 
 

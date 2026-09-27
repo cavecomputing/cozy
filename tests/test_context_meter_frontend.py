@@ -136,8 +136,8 @@ def test_response_reserve_follows_a_max_tokens_in_extra_request_params():
 
 def test_meter_and_boundary_agree_about_the_draft():
     """The meter's tooltip offers to jump to the separator, so the message
-    count it quotes has to be the window the separator is drawn from — both
-    read the draft-inclusive analysis."""
+    count it quotes has to be the window the separator is drawn from — while
+    the meter shows, both read the draft-inclusive analysis."""
     run_node_module(r"""
         import assert from 'node:assert/strict';
         import { state, el } from './static/js/state.js';

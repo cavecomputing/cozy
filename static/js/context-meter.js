@@ -103,17 +103,31 @@ export function setContextMeterVisible(visible) {
     state.showContextTokenMeter = visible;
     if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = visible;
     saveLLMSettings({ show_context_token_meter: visible ? '1' : '0' });
-    updateContextMeter();
+    // The separator counts the draft only while the meter shows, so it moves too.
+    updateContextViews();
 }
 
-export function updateContextMeter() {
+/**
+ * Redraw the meter and the separator from one analysis. That analysis is the
+ * costly part of both, and it grows with the length of the chat.
+ */
+export function updateContextViews() {
+    // Hidden, the meter needs none, and the separator measures without the draft.
+    const analysis = state.showContextTokenMeter && state.activeChat
+        ? getCurrentContextAnalysis({ includeDraft: true })
+        : null;
+    updateContextMeter(analysis);
+    updateContextBoundary(analysis);
+}
+
+export function updateContextMeter(analysis = null) {
     if (!el.contextTokenMeter || !el.contextTokenLabel || !el.contextTokenBar) return;
     if (!state.showContextTokenMeter || !state.activeChat) {
         el.contextTokenMeter.hidden = true;
         return;
     }
     const wasHidden = el.contextTokenMeter.hidden;
-    const analysis = getCurrentContextAnalysis({ includeDraft: true });
+    analysis ||= getCurrentContextAnalysis({ includeDraft: true });
     renderSegments(analysis);
 
     if (analysis.maxTokens <= 0) {
@@ -166,7 +180,7 @@ export function placeContextBoundary() {
     el.chatHistory.insertBefore(boundary, target.closest('.message-container') || target);
 }
 
-export function updateContextBoundary() {
+export function updateContextBoundary(analysis = null) {
     const existing = el.chatHistory?.querySelector('.context-boundary');
     if (existing) existing.remove();
     boundaryTargetId = null;
@@ -174,11 +188,12 @@ export function updateContextBoundary() {
     if (getContextTokenBudget() <= 0 || state.messages.length === 0) return;
 
     const rawMessages = getRawHistoryMessages(state.messages);
-    // Same draft-inclusive view the meter uses. A long draft genuinely pushes
-    // older turns out of the window, and the meter's own tooltip offers to jump
-    // here — counting the draft in one place but not the other left the
-    // separator sitting several messages away from the count it quoted.
-    const analysis = getCurrentContextAnalysis({ includeDraft: true });
+    // Same view the meter uses: draft-inclusive while it shows. A long draft
+    // genuinely pushes older turns out of the window, and the meter's own
+    // tooltip offers to jump here — counting the draft in one place but not the
+    // other left the separator sitting several messages away from the count it
+    // quoted. With the meter hidden nothing quotes a count, so typing is free.
+    analysis ||= getCurrentContextAnalysis({ includeDraft: state.showContextTokenMeter });
     let boundaryMessageId = analysis.firstSelectedMessageId;
 
     // Summarized transcript remains visible even though only the post-watermark

@@ -6,7 +6,7 @@ import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from '
 import { renderMessages } from './messages.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
 import { confirmDialog } from './confirm.js';
-import { updateContextMeter, updateContextBoundary } from './context-meter.js';
+import { updateContextViews } from './context-meter.js';
 import { validateCharacter } from './validate.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -291,8 +291,7 @@ async function applyCharUpdate(char, isNew) {
         renderLorebookFlyout();
         renderLorebookNotice();
         updateComposerState();
-        updateContextMeter();
-        updateContextBoundary();
+        updateContextViews();
     } else if (isNew) {
         await selectCharacter(char.id);
     }

@@ -44,7 +44,7 @@ import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
 import { saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
-import { updateContextMeter, updateContextBoundary, initContextMeter, setContextMeterVisible } from './context-meter.js';
+import { updateContextMeter, updateContextViews, initContextMeter, setContextMeterVisible } from './context-meter.js';
 import { enhanceSettingsSelects } from './custom-select.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
 import { confirmDialog } from './confirm.js';
@@ -383,20 +383,17 @@ function bindSidebarHandlers() {
     });
 }
 
-// The meter and the boundary separator each run the full context analysis —
-// template and lorebook resolution over the whole chat, once per call, with no
-// cache between them. Every input that moves the token budget refreshes them,
-// so the recompute is debounced: typing "32768" into Context tokens used to
-// re-analyse the conversation five times. Persistence behind those fields was
-// already debounced; this was the half that wasn't.
+// The meter and the boundary separator share one full context analysis —
+// template and lorebook resolution over the whole chat — per refresh. Every
+// input that moves the token budget refreshes them, so the recompute is
+// debounced: typing "32768" into Context tokens used to re-analyse the
+// conversation five times. Persistence behind those fields was already
+// debounced; this was the half that wasn't.
 //
 // The pair moves together so the separator never contradicts the meter's
 // tooltip. Two timers because the callers differ in what they refresh: a field
 // that cannot move the boundary has no business redrawing it.
-const updateContextViewsSoon = debounce(() => {
-    updateContextMeter();
-    updateContextBoundary();
-}, 150);
+const updateContextViewsSoon = debounce(updateContextViews, 150);
 const updateContextMeterSoon = debounce(updateContextMeter, 150);
 
 function bindSettingsHandlers() {
@@ -564,8 +561,7 @@ function bindSettingsHandlers() {
     // API presets
     el.apiPreset?.addEventListener('change', () => {
         activatePreset(el.apiPreset.value).then(() => {
-            updateContextMeter();
-            updateContextBoundary();
+            updateContextViews();
         });
     });
     el.presetNew?.addEventListener('click', createNewPreset);
@@ -579,8 +575,7 @@ function bindSettingsHandlers() {
     });
     el.syspromptSelect?.addEventListener('change', () => {
         selectSystemPrompt(el.syspromptSelect.value).then(() => {
-            updateContextMeter();
-            updateContextBoundary();
+            updateContextViews();
         });
     });
     // Prompt editors — debounced autosave while typing, flush on blur.
@@ -1159,13 +1154,15 @@ function bindComposerHandlers() {
             handleSend();
         }
     });
-    // The draft counts toward the window, so typing moves both views. It does
-    // not need letter-level latency, hence the shared debounce.
+    // The draft counts toward the window while the meter shows, so typing moves
+    // both views. It does not need letter-level latency, hence the shared
+    // debounce. Hidden, the meter leaves the draft out of both, and typing
+    // skips an analysis that grows with the length of the chat.
     el.userInput.addEventListener('input', () => {
         autoResize(el.userInput);
         saveDraftDebounced();
         updateSlashCommands();
-        updateContextViewsSoon();
+        if (state.showContextTokenMeter) updateContextViewsSoon();
     });
     autoResize(el.userInput);
 }
@@ -1240,10 +1237,7 @@ function bindScrollHandlers() {
 // ═══════════════════════════════════════════════════════════════════════════
 async function init() {
     initElements();
-    setSummaryBudgetChangeHandler(() => {
-        updateContextMeter();
-        updateContextBoundary();
-    });
+    setSummaryBudgetChangeHandler(updateContextViews);
     initTooltips();
     initContextMeter();
     // Lift the pinned settings header off the cards once the pane scrolls.

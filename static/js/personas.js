@@ -2,7 +2,7 @@ import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { showToast, savePrefs, applyAvatar, AVATAR } from './utils.js';
 import { confirmDialog } from './confirm.js';
-import { updateContextMeter, updateContextBoundary } from './context-meter.js';
+import { updateContextViews } from './context-meter.js';
 import { rerenderMessageText } from './messages.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -96,8 +96,7 @@ export function renderPersonaList() {
             rerenderMessageText();
             renderPersonaList();
             savePrefs();
-            updateContextMeter();
-            updateContextBoundary();
+            updateContextViews();
             // Record the choice on the open chat, not just in this browser, so the
             // next machine to open it speaks as the same person. Sending a message
             // stores this too; here it covers switching and then walking away.
@@ -294,8 +293,7 @@ export function showPersonaForm(editPersona = null) {
             rerenderMessageText();
             renderPersonaList();
             savePrefs();
-            updateContextMeter();
-            updateContextBoundary();
+            updateContextViews();
         } catch (err) { console.error(err); showToast(err.message || 'Connection failed', 'error'); }
         saveBtnEl.disabled = false;
         cleanup();

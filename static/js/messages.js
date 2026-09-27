@@ -8,7 +8,7 @@ import {
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
 } from './thinking.js';
-import { updateContextMeter, updateContextBoundary, placeContextBoundary } from './context-meter.js';
+import { updateContextViews, updateContextBoundary, placeContextBoundary } from './context-meter.js';
 import { generateResponse } from './request-builder.js';
 import { applyDisplayFilters, applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
@@ -179,8 +179,7 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
         stateMsg.text = newContent;
         stateMsg.activeSwipeIndex = idx;
     }
-    updateContextMeter();
-    updateContextBoundary();
+    updateContextViews();
     return idx;
 }
 
@@ -202,8 +201,7 @@ function showSwipe(msgEl, swipes, idx) {
             });
         }
     }
-    updateContextMeter();
-    updateContextBoundary();
+    updateContextViews();
 }
 
 export async function handleSwipeAction(msgEl, isPrev) {
@@ -530,8 +528,7 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
     }
 
     if (role === 'user') scrollToBottom(); else maybeScrollToBottom();
-    updateContextMeter();
-    updateContextBoundary();
+    updateContextViews();
     return container;
 }
 
