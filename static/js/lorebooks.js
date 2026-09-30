@@ -584,7 +584,6 @@ async function setActiveLorebook(sel) {
         const idx = state.chats.findIndex(c => c.id === chat.id);
         if (idx >= 0) state.chats[idx] = updated;
         renderLorebookFlyout();
-        renderLorebookNotice();
         updateComposerState();
         updateContextViews();
     } catch (e) {
@@ -639,50 +638,4 @@ export function scheduleAuthorNoteSave() {
 export function flushAuthorNote() {
     clearTimeout(authorNoteTimer);
     saveAuthorNote();
-}
-
-// ── Inline notice above the composer ──────────────────────────────────────
-
-const NOTICE_AUTO_DISMISS_MS = 5000;
-let noticeTimer = null;
-
-export function renderLorebookNotice() {
-    if (!el.lorebookNotice) return;
-    if (noticeTimer) { clearTimeout(noticeTimer); noticeTimer = null; }
-
-    const chat = state.activeChat;
-    const char = state.activeCharacter;
-    const embedded = char?.character_book || char?.data?.character_book;
-    const hasEmbedded = embedded && Array.isArray(embedded.entries) && embedded.entries.length > 0;
-    const show = chat
-        && hasEmbedded
-        && chat.active_lorebook_embedded === true
-        && !chat.lorebook_notice_dismissed;
-    el.lorebookNotice.hidden = !show;
-    if (show && el.lorebookNoticeText) {
-        el.lorebookNoticeText.textContent =
-            `${char.name} has a lorebook — it's enabled by default for this chat.`;
-        const noticeChatId = chat.id;
-        noticeTimer = setTimeout(() => {
-            noticeTimer = null;
-            // Only dismiss if we're still on the same chat that triggered it.
-            if (state.activeChat?.id === noticeChatId) dismissLorebookNotice();
-        }, NOTICE_AUTO_DISMISS_MS);
-    }
-}
-
-export async function dismissLorebookNotice() {
-    if (noticeTimer) { clearTimeout(noticeTimer); noticeTimer = null; }
-    const chat = state.activeChat;
-    if (!chat) return;
-    el.lorebookNotice.hidden = true;
-    try {
-        const updated = await API.updateChat(chat.id, { lorebook_notice_dismissed: true });
-        state.activeChat = updated;
-        const idx = state.chats.findIndex(c => c.id === chat.id);
-        if (idx >= 0) state.chats[idx] = updated;
-    } catch (e) {
-        // Non-critical — the user just won't see it again until the server confirms.
-        console.warn('Failed to persist notice dismissal:', e);
-    }
 }

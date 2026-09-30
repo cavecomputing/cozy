@@ -18,7 +18,6 @@ def chat_to_dict(row):
     d = dict(row)
     d['active_lorebook_id'] = d.get('active_lorebook_id')
     d['active_lorebook_embedded'] = bool(d.get('active_lorebook_embedded') or 0)
-    d['lorebook_notice_dismissed'] = bool(d.get('lorebook_notice_dismissed') or 0)
     if 'summary_enabled' in d:
         d['summary_enabled'] = bool(d.get('summary_enabled') or 0)
         # Expose a structured companion to the stored JSON. The summary is written by
@@ -308,7 +307,7 @@ def update_chat(chat_id):
         # content is worker-owned and has its own endpoints under /summary.
         row = conn.execute(
             'SELECT id, name, active_lorebook_id, active_lorebook_embedded, '
-            'lorebook_notice_dismissed, author_note, summary_enabled '
+            'author_note, summary_enabled '
             'FROM chats WHERE id=?',
             (chat_id,),
         ).fetchone()
@@ -359,10 +358,6 @@ def update_chat(chat_id):
         if 'active_lorebook_id' in data or 'active_lorebook_embedded' in data:
             updates.extend(('active_lorebook_id=?', 'active_lorebook_embedded=?'))
             params.extend((cur_lb_id, cur_lb_embedded))
-
-        if 'lorebook_notice_dismissed' in data:
-            updates.append('lorebook_notice_dismissed=?')
-            params.append(1 if data['lorebook_notice_dismissed'] else 0)
 
         if 'author_note' in data:
             updates.append('author_note=?')

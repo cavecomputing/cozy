@@ -1032,7 +1032,6 @@ class TestFork:
         assert new_chat['character_id'] == sample_chat['character_id']
         assert new_chat['active_lorebook_embedded'] == sample_chat['active_lorebook_embedded']
         assert isinstance(new_chat['active_lorebook_embedded'], bool)
-        assert isinstance(new_chat['lorebook_notice_dismissed'], bool)
 
         msgs = client.get(f'/api/chats/{new_chat["id"]}/messages').get_json()
         assert len(msgs) == 2
@@ -1049,7 +1048,6 @@ class TestFork:
         chat_id = sample_chat['id']
         client.put(f'/api/chats/{chat_id}', json={
             'author_note': 'ALWAYS: the ship is named Kestrel.',
-            'lorebook_notice_dismissed': True,
         })
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'user', 'content': 'Hello',
@@ -1064,7 +1062,6 @@ class TestFork:
         ).get_json()
         new_chat = next(c for c in listed if c['id'] == forked['id'])
         assert new_chat['author_note'] == 'ALWAYS: the ship is named Kestrel.'
-        assert new_chat['lorebook_notice_dismissed'] is True
         # Summary state deliberately does not carry: the copies have new message
         # ids, so an unremapped watermark would retire the wrong history.
         assert not new_chat['summary_enabled']

@@ -140,7 +140,6 @@ class TestPerChatLorebookSelection:
         chat = r.get_json()
         assert chat['active_lorebook_id'] is None
         assert chat['active_lorebook_embedded'] is False
-        assert chat['lorebook_notice_dismissed'] is False
 
     def test_new_chat_auto_selects_embedded_book(self, client, sample_character):
         # Add an embedded book to the character
@@ -151,8 +150,6 @@ class TestPerChatLorebookSelection:
         chat = r.get_json()
         assert chat['active_lorebook_embedded'] is True
         assert chat['active_lorebook_id'] is None
-        # Notice has not been dismissed yet
-        assert chat['lorebook_notice_dismissed'] is False
 
     def test_update_chat_can_set_standalone_book(self, client, sample_chat):
         lb = client.post('/api/lorebooks', json={'name': 'LB1'}).get_json()
@@ -190,13 +187,6 @@ class TestPerChatLorebookSelection:
             'active_lorebook_id': 9999,
         })
         assert r.status_code == 404
-
-    def test_dismissing_notice_persists(self, client, sample_chat):
-        r = client.put(f'/api/chats/{sample_chat["id"]}', json={
-            'lorebook_notice_dismissed': True,
-        })
-        body = r.get_json()
-        assert body['lorebook_notice_dismissed'] is True
 
     def test_deleting_lorebook_clears_chat_reference(self, client, sample_chat):
         lb = client.post('/api/lorebooks', json={'name': 'LB4'}).get_json()

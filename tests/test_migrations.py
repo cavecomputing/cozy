@@ -447,7 +447,7 @@ class TestSchemaMigrationLedger:
             cols = {row['name'] for row in conn.execute('PRAGMA table_info(chats)')}
             assert 'active_lorebook_id' in cols
             assert 'active_lorebook_embedded' in cols
-            assert 'lorebook_notice_dismissed' in cols
+            assert 'lorebook_notice_dismissed' not in cols
             tables = {
                 row['name']
                 for row in conn.execute(
@@ -509,6 +509,7 @@ class TestSchemaMigrationLedger:
             assert 'archived' in columns('characters')
             assert 'archived_at' not in columns('characters')
             assert 'author_note' in columns('chats')
+            assert 'lorebook_notice_dismissed' not in columns('chats')
             assert 'settings_json' in columns('api_presets')
             assert 'post_history_content' in columns('system_prompts')
             assert 'description' in columns('system_prompts')

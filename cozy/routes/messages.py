@@ -63,11 +63,10 @@ def fork_chat(chat_id):
         # out of the fork's context.
         cur = conn.execute(
             'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded, '
-            'lorebook_notice_dismissed, author_note, persona_id, summary_enabled) '
-            'VALUES (?,?,?,?,?,?,?,?)',
+            'author_note, persona_id, summary_enabled) '
+            'VALUES (?,?,?,?,?,?,?)',
             (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'],
-             chat['lorebook_notice_dismissed'], chat['author_note'], chat['persona_id'],
-             chat['summary_enabled'])
+             chat['author_note'], chat['persona_id'], chat['summary_enabled'])
         )
         new_chat_id = cur.lastrowid
 

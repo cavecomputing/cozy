@@ -32,7 +32,7 @@ import {
     exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, initPromptVarsPanel,
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
-import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, renderLorebookNotice, dismissLorebookNotice, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
+import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
 import {
     loadRegexPresets, selectRegexPreset, createRegexPreset, deleteRegexPreset,
     addFilter, handleFilterListClick, handleFilterListInput,
@@ -985,9 +985,6 @@ function bindMemoryHandlers() {
         applySettingsSection('summaries', { drillIntoOnMobile: true });
     });
 
-    // Inline notice — dismiss
-    el.lorebookNoticeDismiss?.addEventListener('click', dismissLorebookNotice);
-
     // The picker shares the preset dropdown's keyboard and touch behavior.
     el.lorebookList?.addEventListener('change', () => {
         const [kind, id] = el.lorebookList.value.split(':');
@@ -1274,7 +1271,6 @@ async function init() {
     updateComposerState();
     renderLorebookList();
     renderLorebookFlyout();
-    renderLorebookNotice();
     updateContextMeter();
 
     bindFlyoutHandlers();

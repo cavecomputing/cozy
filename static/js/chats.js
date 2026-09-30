@@ -3,7 +3,7 @@ import { API } from './api.js';
 import { chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage, flushEdit } from './messages.js';
-import { renderLorebookFlyout, renderLorebookNotice } from './lorebooks.js';
+import { renderLorebookFlyout } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
 import { renderPersonaList, updateUserProfile } from './personas.js';
 import { updateContextViews } from './context-meter.js';
@@ -250,7 +250,6 @@ export async function selectChat(chat) {
     renderMessages();
     updateComposerState();
     renderLorebookFlyout();
-    renderLorebookNotice();
     updateContextViews();
     onChatSelected();
     savePrefs();

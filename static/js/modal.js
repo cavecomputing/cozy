@@ -2,7 +2,7 @@ import { state, el } from './state.js';
 import { API } from './api.js';
 import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, markUnusedVar, withBusy } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
-import { renderLorebookFlyout, renderLorebookList, renderLorebookNotice } from './lorebooks.js';
+import { renderLorebookFlyout, renderLorebookList } from './lorebooks.js';
 import { renderMessages } from './messages.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
 import { confirmDialog } from './confirm.js';
@@ -289,7 +289,6 @@ async function applyCharUpdate(char, isNew) {
         el.currentCharName.textContent = char.name;
         renderMessages();
         renderLorebookFlyout();
-        renderLorebookNotice();
         updateComposerState();
         updateContextViews();
     } else if (isNew) {

@@ -247,6 +247,18 @@ def _delete_summary_trigger_interval(conn):
     )
 
 
+def _drop_lorebook_notice_dismissed(conn):
+    """Drop the flag behind the retired "has a lorebook" banner.
+
+    The banner above the composer only repeated what the memory panel already
+    shows, the chat's active lorebook, so it went, and with it the per-chat
+    record of having dismissed it.
+    """
+    chat_cols = {row['name'] for row in conn.execute('PRAGMA table_info(chats)').fetchall()}
+    if 'lorebook_notice_dismissed' in chat_cols:
+        conn.execute('ALTER TABLE chats DROP COLUMN lorebook_notice_dismissed')
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -263,6 +275,7 @@ MIGRATIONS = (
     (13, 'backfill_stock_prompt_versions', _backfill_stock_prompt_versions),
     (14, 'merge_versioned_stock_prompt_titles', _merge_versioned_stock_prompt_titles),
     (15, 'delete_summary_trigger_interval', _delete_summary_trigger_interval),
+    (16, 'drop_lorebook_notice_dismissed', _drop_lorebook_notice_dismissed),
 )
 
 
@@ -326,7 +339,6 @@ def init_db():
                 updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
                 active_lorebook_id INTEGER DEFAULT NULL,
                 active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
-                lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0,
                 author_note TEXT NOT NULL DEFAULT '',
                 summary_enabled INTEGER NOT NULL DEFAULT 0,
                 summary_json TEXT NOT NULL DEFAULT '',

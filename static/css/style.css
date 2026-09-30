@@ -2,10 +2,10 @@
 
 :root {
     --sidebar-width: 240px;
-    /* Width of the chat column, shared by the messages, the composer, the token
-       meter and the lorebook notice so they all line up. Sized for the reading
-       measure: ~78 characters per line of message prose, near the top of the
-       comfortable 45–75 range for the long replies this app is built to read. */
+    /* Width of the chat column, shared by the messages, the composer and the
+       token meter so they all line up. Sized for the reading measure: ~78
+       characters per line of message prose, near the top of the comfortable
+       45–75 range for the long replies this app is built to read. */
     --chat-max-width: 44rem;
     /* Three transition speeds, in place of the nine that had accumulated
        between 0.1s and 0.4s. Fast is pointer feedback and popovers, base is a
@@ -5291,35 +5291,6 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── Lorebooks ──────────────────────────────────────────────────────────── */
-
-/* Inline notice above the composer */
-.lorebook-notice {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    max-width: var(--chat-max-width);
-    margin: 0 auto 0.5rem;
-    padding: 0.4rem 0.75rem;
-    background-color: var(--hover-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    font-size: var(--text-lg);
-    color: var(--text-secondary);
-    /* Parent #input-container is pointer-events:none (so the area between
-       the composer and the chat-scroll passes through clicks); restore
-       interactivity for the notice so its close button works. */
-    pointer-events: auto;
-}
-.lorebook-notice[hidden] { display: none !important; }
-.lorebook-notice svg { color: var(--accent-color); flex-shrink: 0; }
-.lorebook-notice span { flex: 1; }
-.lorebook-notice-dismiss {
-    flex-shrink: 0;
-    color: var(--text-secondary);
-    opacity: 0.7;
-}
-.lorebook-notice-dismiss:hover { opacity: 1; color: var(--text-color); }
 
 /* Active-lorebook flyout (next to composer) */
 .lorebook-flyout {
