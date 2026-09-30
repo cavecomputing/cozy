@@ -405,13 +405,6 @@ export const API = {
             fallback: 'Embed failed',
         });
     },
-    async extractCharacterLorebook(charId, clearEmbedded = false) {
-        const qs = clearEmbedded ? '?clear_embedded=1' : '';
-        return jsonRequest(`/api/characters/${charId}/extract-lorebook${qs}`, {
-            method: 'POST',
-            fallback: 'Extract failed',
-        });
-    },
     async importLorebook(file, name) {
         return formRequest('/api/lorebooks/import', { file, name }, 'Import failed');
     },

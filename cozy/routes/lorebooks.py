@@ -2,9 +2,9 @@
 
 Standalone lorebooks store the same V2 ``character_book`` JSON object that
 embedded lorebooks use, so the frontend resolver works on both without
-modification. The two cross-storage endpoints (embed / extract) shuttle that
-JSON between this table and a character card's PNG tEXt chunk via the existing
-character update path.
+modification. The embed endpoint moves that JSON from this table into a
+character card's PNG tEXt chunk via the existing character update path; the
+reverse move is done client-side with a create plus a character update.
 """
 
 import json
@@ -254,37 +254,6 @@ def embed_in_character(book_id, char_id):
             _detach_and_delete_lorebook(conn, book_id)
 
     return jsonify({'success': True, 'character_book': book})
-
-
-@lorebooks_bp.route('/api/characters/<int:char_id>/extract-lorebook', methods=['POST'])
-def extract_from_character(char_id):
-    clear_embedded = request.args.get('clear_embedded') == '1'
-    with get_db() as conn:
-        row, card = get_character_card(conn, char_id)
-        if not row:
-            return not_found('Character')
-        char_data = (card or {}).get('data', card or {})
-    book = normalize_character_book(char_data.get('character_book'))
-    if not isinstance(book, dict) or not book.get('entries'):
-        return jsonify({'error': 'This character has no embedded lorebook to extract'}), 400
-
-    # Use the embedded book's name, falling back to the character's name.
-    name = (book.get('name') or char_data.get('name') or 'Lorebook').strip()
-    book.setdefault('name', name)
-
-    with get_db() as conn:
-        cur = conn.execute(
-            'INSERT INTO lorebooks (name, book) VALUES (?, ?)',
-            (name, json.dumps(book))
-        )
-        new_row = conn.execute(
-            'SELECT * FROM lorebooks WHERE id=?', (cur.lastrowid,)
-        ).fetchone()
-
-    if clear_embedded:
-        set_character_book(char_id, None)
-
-    return jsonify(_full_dict(new_row)), 201
 
 
 # ── Import / export ────────────────────────────────────────────────────────

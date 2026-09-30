@@ -132,38 +132,6 @@ class TestEmbedAndExtract:
         updated_chat = next(item for item in chats if item['id'] == chat['id'])
         assert updated_chat['active_lorebook_id'] is None
 
-    def test_extract_creates_standalone_from_embedded(self, client, sample_character):
-        # Embed a book on the character
-        book = _make_book('Embedded book', entries=[
-            {'keys': ['hero'], 'content': 'Brave.', 'enabled': True}
-        ])
-        client.put(f'/api/characters/{sample_character["id"]}', json={'character_book': book})
-
-        r = client.post(f'/api/characters/{sample_character["id"]}/extract-lorebook')
-        assert r.status_code == 201
-        body = r.get_json()
-        assert body['name'] == 'Embedded book'
-        assert body['book']['entries'][0]['content'] == 'Brave.'
-
-        # Original character still has its embedded book
-        char_row = client.get(f'/api/characters/{sample_character["id"]}').get_json()
-        assert char_row['character_book']['entries'][0]['content'] == 'Brave.'
-
-    def test_extract_with_clear_empties_character_book(self, client, sample_character):
-        book = _make_book('Will clear', entries=[{'keys': ['k'], 'content': 'v'}])
-        client.put(f'/api/characters/{sample_character["id"]}', json={'character_book': book})
-
-        r = client.post(
-            f'/api/characters/{sample_character["id"]}/extract-lorebook?clear_embedded=1'
-        )
-        assert r.status_code == 201
-        char_row = client.get(f'/api/characters/{sample_character["id"]}').get_json()
-        assert char_row.get('character_book') in (None, {}, {'entries': []})
-
-    def test_extract_404_when_no_embedded_book(self, client, sample_character):
-        r = client.post(f'/api/characters/{sample_character["id"]}/extract-lorebook')
-        assert r.status_code == 400
-
 
 class TestPerChatLorebookSelection:
     def test_new_chat_without_embedded_book_starts_clean(self, client, sample_character):
@@ -305,10 +273,6 @@ class TestLorebookEdgeCases:
         r = client.post(f'/api/lorebooks/99999/embed-in-character/{sample_character["id"]}')
         assert r.status_code == 404
 
-    def test_extract_unknown_character_returns_404(self, client):
-        r = client.post('/api/characters/99999/extract-lorebook')
-        assert r.status_code == 404
-
     def test_chat_with_empty_character_book_does_not_auto_select(self, client, sample_character):
         """character_book = {} (no entries) shouldn't trigger embedded auto-select."""
         client.put(f'/api/characters/{sample_character["id"]}', json={
@@ -339,8 +303,12 @@ class TestLorebookEdgeCases:
 
 
 class TestEmbedExtractRoundtrip:
-    def test_byte_for_byte_round_trip_via_extract(self, client, sample_character):
-        """Embed → extract → re-embed must preserve every entry field."""
+    def test_round_trip_out_of_a_card_preserves_every_field(self, client, sample_character):
+        """Embed → move out to a standalone book must preserve every entry field.
+
+        The editor moves an embedded book out by creating a standalone book from
+        the card's character_book, so that is the path exercised here.
+        """
         original = _make_book('RT', entries=[
             {'keys': ['α'], 'secondary_keys': ['β'], 'content': 'γ',
              'enabled': True, 'constant': False, 'case_sensitive': True,
@@ -350,8 +318,9 @@ class TestEmbedExtractRoundtrip:
         ])
         # Step 1: embed via the character update path
         client.put(f'/api/characters/{sample_character["id"]}', json={'character_book': original})
-        # Step 2: extract back to a standalone row
-        r = client.post(f'/api/characters/{sample_character["id"]}/extract-lorebook')
+        embedded = client.get(f'/api/characters/{sample_character["id"]}').get_json()['character_book']
+        # Step 2: move it out to a standalone row
+        r = client.post('/api/lorebooks', json={'name': 'RT', 'book': embedded})
         body = r.get_json()
         # Compare every entry's relevant fields
         assert body['book']['entries'][0]['keys'] == ['α']
