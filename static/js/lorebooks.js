@@ -323,6 +323,20 @@ function clearEditor() {
     renderLorebookList();
 }
 
+/** A deleted character takes its embedded book with it, so drop both the book
+ *  and the character's Save target from the lorebook page. */
+export function forgetCharacterLorebook(charId) {
+    if (editing?.kind === 'embedded' && editing.id === charId) {
+        clearEditor();
+        return;
+    }
+    renderLorebookList();
+    const target = el.lorebookDestination?.querySelector(`option[value="embedded:${charId}"]`);
+    // A pending move to that character goes back to where the book already is.
+    if (target?.selected) fillDestinationOptions();
+    else target?.remove();
+}
+
 export async function newLorebook() {
     if (!(await canLeaveLorebook())) return;
     try {

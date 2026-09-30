@@ -4,6 +4,7 @@ import { confirmDialog } from './confirm.js';
 import { applyAvatar, AVATAR, compareCharacters, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages, flushEdit } from './messages.js';
+import { forgetCharacterLorebook } from './lorebooks.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHARACTER LIST
@@ -246,6 +247,7 @@ export async function deleteCharacter(charId, name) {
         await API.deleteCharacter(charId);
         showToast('Character deleted', 'success');
         state.characters = state.characters.filter(c => c.id !== charId);
+        forgetCharacterLorebook(charId);
         if (state.activeCharacter?.id === charId) {
             clearActiveCharacterState();
             const next = state.characters.find(c => !c.missing);
