@@ -371,6 +371,7 @@ export async function saveLorebook() {
     // What is being sent, so typing that lands while the request is out
     // still counts as unsaved.
     const sent = editorForm();
+    const sentRows = [...el.lorebookEntries.querySelectorAll('.lorebook-entry')];
 
     try {
         if (isStandalone && wantsStandalone) {
@@ -404,6 +405,12 @@ export async function saveLorebook() {
             if (toChar) toChar.character_book = book;
             editing = { kind: 'embedded', id: wantsEmbeddedCharId, original: book };
         }
+        // editing.original now holds the entries in the order they were sent, so
+        // each sent row maps onto its own position rather than the book as loaded.
+        // A row added since keeps -1; one deleted since is detached.
+        sentRows.forEach((row, i) => {
+            row.dataset.origIndex = String(i);
+        });
         showToast('Saved', 'success');
         renderLorebookList();
         renderLorebookFlyout();
