@@ -12,6 +12,7 @@ import { updateContextViews } from './context-meter.js';
 // `kind` is 'standalone' or 'embedded'. `id` is the lorebook id (standalone)
 // or the character id (embedded).
 let editing = null;
+let savedForm = '';   // the editor as loaded or last saved, for the unsaved-edits check
 const empty = () => ({
     name: '', description: '', scan_depth: 20, max_entries: 20,
     recursive_scanning: false, extensions: {}, entries: [],
@@ -140,6 +141,25 @@ function readEditor() {
         extensions: original.extensions && typeof original.extensions === 'object' ? original.extensions : {},
         entries,
     };
+}
+
+/** The editor's own inputs plus a pending move, as one comparable string.
+ *  Not readEditor(): that mixes in the stored book, which a save replaces. */
+function editorForm() {
+    const entries = [...el.lorebookEntries.querySelectorAll('.lorebook-entry')].map(readEntryRow);
+    return JSON.stringify([el.lorebookName.value, el.lorebookDescription.value, el.lorebookScanDepth.value,
+        el.lorebookMaxEntries.value, entries, el.lorebookDestination?.value]);
+}
+
+/** Resolves true when leaving the open book loses nothing, or the user agreed
+ *  to discard its unsaved edits — the same ask the character editor makes. */
+export async function canLeaveLorebook() {
+    if (!editing || editorForm() === savedForm) return true;
+    return confirmDialog({
+        title: 'Discard changes?',
+        message: 'This lorebook has unsaved edits. Opening another one loses them.',
+        confirmLabel: 'Discard',
+    });
 }
 
 function buildEntryRow(entry, idx, origIndex = -1) {
@@ -289,6 +309,7 @@ export async function selectLorebook(kind, id) {
         editing = { kind: 'embedded', id, original: book };
         loadIntoEditor(book);
     }
+    savedForm = editorForm();
     setEditorVisible(true);
     renderLorebookList();
 }
@@ -301,6 +322,7 @@ function clearEditor() {
 }
 
 export async function newLorebook() {
+    if (!(await canLeaveLorebook())) return;
     try {
         const created = await API.createLorebook({ name: 'New lorebook' });
         await loadLorebooks();
@@ -346,6 +368,9 @@ export async function saveLorebook() {
     const isStandalone = editing.kind === 'standalone';
     const wantsStandalone = dest === 'standalone';
     const wantsEmbeddedCharId = dest.startsWith('embedded:') ? parseInt(dest.slice(9), 10) : null;
+    // What is being sent, so typing that lands while the request is out
+    // still counts as unsaved.
+    const sent = editorForm();
 
     try {
         if (isStandalone && wantsStandalone) {
@@ -384,6 +409,7 @@ export async function saveLorebook() {
         renderLorebookFlyout();
         updateComposerState();
         fillDestinationOptions();
+        savedForm = sent;
         updateContextViews();
     } catch (e) {
         showToast('Save failed: ' + e.message);
@@ -499,6 +525,9 @@ export async function handleImportFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    // Asked once a file is picked, so the picker itself still opens straight
+    // from the click that asked for it.
+    if (!(await canLeaveLorebook())) return;
     try {
         const created = await API.importLorebook(file);
         await loadLorebooks();

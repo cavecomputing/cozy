@@ -32,7 +32,7 @@ import {
     exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, initPromptVarsPanel,
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
-import { loadLorebooks, renderLorebookList, selectLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
+import { loadLorebooks, renderLorebookList, selectLorebook, canLeaveLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
 import {
     loadRegexPresets, selectRegexPreset, createRegexPreset, deleteRegexPreset,
     addFilter, handleFilterListClick, handleFilterListInput,
@@ -986,9 +986,14 @@ function bindMemoryHandlers() {
     });
 
     // The picker shares the preset dropdown's keyboard and touch behavior.
-    el.lorebookList?.addEventListener('change', () => {
+    el.lorebookList?.addEventListener('change', async () => {
         const [kind, id] = el.lorebookList.value.split(':');
-        if (kind && id) selectLorebook(kind, Number(id));
+        if (!kind || !id) return;
+        // Ask only once the picker has finished moving focus, or the dialog
+        // opens with focus behind it (or, after a Tab, on Discard).
+        await new Promise(resolve => setTimeout(resolve));
+        if (await canLeaveLorebook()) selectLorebook(kind, Number(id));
+        else renderLorebookList();  // puts the picker back on the open book
     });
     document.getElementById('settings-lorebook-export').addEventListener('click', () => exportLorebook());
     document.getElementById('settings-lorebook-delete').addEventListener('click', () => deleteLorebook());
