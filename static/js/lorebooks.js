@@ -98,6 +98,8 @@ function setEditorVisible(visible) {
 function readEntryRow(row) {
     const get = sel => row.querySelector(sel);
     const csv = v => v ? v.split(',').map(s => s.trim()).filter(Boolean) : [];
+    // 0 is a real order (first in), so only a blank or unreadable field falls back.
+    const order = parseInt(get('[data-field="insertion_order"]').value, 10);
     return {
         keys: csv(get('[data-field="keys"]').value),
         secondary_keys: csv(get('[data-field="secondary_keys"]').value),
@@ -107,7 +109,7 @@ function readEntryRow(row) {
         constant: get('[data-field="constant"]').checked,
         selective: get('[data-field="selective"]').checked,
         case_sensitive: get('[data-field="case_sensitive"]').checked,
-        insertion_order: parseInt(get('[data-field="insertion_order"]').value, 10) || 100,
+        insertion_order: Number.isNaN(order) ? 100 : order,
     };
 }
 
