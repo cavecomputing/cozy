@@ -172,11 +172,11 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
 let savedTickTimer = null;
 
 /**
- * Flash the "Saved" tick in the settings header after an autosave.
+ * Flash the "Saved" tick in the settings footer after an autosave.
  *
  * Every settings page saves silently as you edit, so the tick is the only
- * confirmation any of them gives. It lives in the shared modal header, so one
- * copy serves all of them; call it wherever a page's own autosave succeeds.
+ * confirmation any of them gives. It lives in the footer the pages share, so
+ * one copy serves all of them; call it wherever a page's own autosave succeeds.
  */
 export function flashSettingsSavedTick() {
     if (!el.settingsSavedTick) return;

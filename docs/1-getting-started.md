@@ -41,12 +41,12 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
 5. If your server requires an **API key**, paste it into the **API key**
    field. Servers on your own computer usually need no key. Keys are stored
    in your data directory and hidden in API responses.
-6. Set the **Model**. Type the model name, or click the chevron button to
+6. Set the **Model**. Type the model name, or click **Browse** to
    list what the server reports and pick one from the list. If the list
    comes up empty, type the name by hand. Some servers do not provide a
    list, and that is normal.
-7. Click **Test** beside the preset picker. If the test succeeds, you are done with this
-   section. If it fails, see [Troubleshooting](4-troubleshooting.md).
+7. Click **Test connection** at the top of the page. If the test succeeds, you are done
+   with this section. If it fails, see [Troubleshooting](4-troubleshooting.md).
 8. Under **Context & generation**, set **Max context tokens** to the
    context size your server supports, and **Max response tokens** to the
    longest single reply you want to receive.
@@ -62,7 +62,7 @@ Only the samplers you turn on are sent to the server. The rest are
 ignored. If your model's documentation recommends specific values:
 
 1. Go to **Settings → API → Samplers**.
-2. Click the gear icon in the **Core samplers** header. A list called
+2. Click the gear icon in the **Samplers** header. A list called
    **Active samplers** opens.
 3. Turn on each sampler your model or server documentation names.
 4. Type in the recommended values.

@@ -72,7 +72,7 @@ And if you would like some more details on character cards, personas, etc, check
    your service, check its documentation for its OpenAI-compatible base URL.
 6. Under `Connection` enter an `API key` if your server requires one.
 7. Under `Connection` select or search for the `Model` identifier and test the connection.
-8. Set the `Context & generation` settings you would like to use. The sampler defaults below them
+8. Set the `Context & generation` settings you would like to use. The sampler defaults next to them
    work for most models, so there is nothing to change there unless your model's documentation
    says otherwise.
 9. Chat with the default character or create a new character by clicking the `+` icon in the top right of the character sidebar.

@@ -2367,6 +2367,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
        layouts inside it still fit — the sidebar and the nav column come out of
        that budget first. The @container rules further down read this. */
     container-type: inline-size;
+    --settings-nav-width: clamp(180px, 16vw, 230px);
+    --settings-gutter: clamp(var(--space-5), 2.5vw, 2.25rem);
 }
 
 .settings-body {
@@ -2382,14 +2384,14 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 .settings-nav {
-    width: 160px;
+    width: var(--settings-nav-width);
     flex-shrink: 0;
     border-right: 1px solid var(--line);
     overflow-y: auto;
-    padding: 0.4rem 0.55rem;
+    padding: var(--space-2) 0.875rem 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: var(--space-2);
 }
 
 /* The border is always there, transparent until active, so the raised card
@@ -2397,16 +2399,16 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .settings-nav-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-4);
     width: 100%;
-    padding: 0.45rem 0.6rem;
+    padding: 0.625rem var(--space-4);
     border: 1px solid transparent;
     background: transparent;
     border-radius: var(--radius);
     color: var(--fg);
     cursor: pointer;
     font: inherit;
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
     text-align: left;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease, box-shadow var(--motion-base) ease;
 }
@@ -2449,12 +2451,54 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin: 0;
 }
 
+/* On a desktop the nav is one full-height column, headed by the way back to
+   the chat and the Settings eyebrow, with the page scrolling beside it. The
+   header sits above the nav in the markup because the phone stacks them, so
+   here the body and shell step aside and the modal places all three. */
+@media (min-width: 769px) {
+    .settings-modal {
+        display: grid;
+        grid-template-columns: var(--settings-nav-width) minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+    .settings-modal > .panel-divider { display: none; }
+    :is(.settings-body, .settings-shell) { display: contents; }
+    .settings-modal > .modal-header {
+        grid-area: 1 / 1;
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-4);
+        height: auto;
+        min-height: 0;
+        padding: 1.25rem 0.875rem var(--space-2);
+        border-right: 1px solid var(--line);
+    }
+    .settings-nav { grid-area: 2 / 1; }
+    .settings-pane { grid-area: 1 / 2 / 3; }
+    #settings-title { padding: 0 var(--space-1) var(--space-2); border-bottom: 1px solid var(--line); }
+    #settings-close-btn {
+        order: -1;
+        align-self: flex-start;
+        gap: var(--space-2);
+        min-height: 0;
+        padding: 0 var(--space-1);
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        color: var(--fg-quiet);
+    }
+    #settings-close-btn:hover { background: none; color: var(--fg); }
+    .settings-close-x { display: none; }
+}
+@media (max-width: 768px) {
+    .settings-close-back { display: none; }
+}
+
 .settings-page-header {
-    padding: 0.85rem 1rem 0.65rem;
-    border-bottom: 1px solid var(--border-color);
+    padding: 1.75rem var(--settings-gutter) 1.25rem;
+    border-bottom: 1px solid transparent;
     background-color: var(--bg-color);
-    /* Group headers pin to the top of the scroll pane, so on long pages
-       (API above, Samplers below) the current group is always labeled. */
+    /* Page headers pin to the top of the scroll pane, so a long page keeps its
+       title and its header actions in reach. */
     position: sticky;
     top: 0;
     z-index: 5;
@@ -2466,25 +2510,34 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border-color: var(--line-soft);
 }
 
+/* The actions drop under the tagline once the pane is too narrow for both,
+   rather than squeezing the tagline into a column of single words. */
 .settings-page-header--with-action {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.85rem;
+    gap: var(--space-2) var(--space-5);
 }
 
 .settings-page-title {
+    flex: 1 1 20rem;
     min-width: 0;
 }
 
 .settings-page-header h3 {
     margin: 0;
     font-family: var(--font-mono);
+    font-size: var(--text-4xl);
+    font-weight: 700;
+    line-height: 1.2;
     color: var(--fg-heading);
 }
 
 .settings-page-header p {
-    margin: 0.25rem 0 0;
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xl);
+    line-height: 1.65;
     color: var(--fg-quiet);
     /* Measured in ch so the line length tracks the reader's font size rather
        than a fixed rem width. Replaces the rem caps that used to bound the
@@ -2496,8 +2549,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .settings-section-body {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 0.9rem 0.75rem 1rem;
+    gap: 1.25rem;
+    padding: 0 var(--settings-gutter) 1.75rem;
 }
 
 /* Measure is bounded on the prose that needs it — the page subtitle, the card
@@ -2507,97 +2560,84 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
    list of which sections opted out. Capping the text directly needs none of
    that bookkeeping, and a card is free to use the width its controls want. */
 
-/* API preset card: picker, connection, and context/generation in one box, so
-   the preset reads as a single unit. Two zones side by side on a wide pane —
-   connection takes the width its URLs want, context keeps a form measure so
-   its inline number rows never drift — folding to a stack via flex-wrap. */
-.preset-columns {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem 1.5rem;
-    align-items: stretch;
-    margin-top: 0.35rem;
-}
-.preset-connection {
-    flex: 999 1 26rem;
-    min-width: 0;
-}
-.preset-context {
-    flex: 1 1 15rem;
-    max-width: 26rem;
-    min-width: 0;
-}
-/* A labelled rule above a zone's rows. Type comes from the shared card-title
-   rule below; this only draws the rule. */
-.preset-subhead {
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--line);
-}
-/* The Active-samplers popover lives inside the subhead header — keep the
-   title's weight and colour from leaking into it. Its mono is wanted: it is a
-   menu, and menus read in mono. Row and footer sizes below still apply on top
-   of this reset. */
-.preset-subhead .sampler-popover {
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: normal;
-    color: var(--fg);
-    text-align: left;
-}
-/* The Active-samplers gear is taller than the title text — collapse its share
-   of the row height (click target unchanged) so the Core header matches the
-   other zone headers. */
-.preset-subhead .sampler-toolbar .icon-btn {
-    margin-top: -0.35rem;
-    margin-bottom: -0.35rem;
-}
-/* Connection rows sit label-left / field-right with no dividers: the label
-   holds a fixed column and the field takes the rest, so the two ends never
-   drift apart no matter how wide the panel gets. */
-.preset-connection .settings-row {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.preset-connection .settings-row + .settings-row {
-    border-top: 0;
-}
-.preset-connection .settings-row-label {
-    flex: 0 0 6.5rem;
-}
-/* .form-input is width:100% by default, which would force each field onto its
-   own line as a flex item — grow instead, inside the row beside its label. */
-.preset-connection .settings-row > .form-input,
-.preset-connection .settings-row > .settings-model-row {
-    flex: 1 1 10rem;
-    width: auto;
-    min-width: 0;
-}
 /* A raised card resting on the pane, as every box in the settings reads. */
 .settings-card {
     background-color: var(--surface-card);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     box-shadow: var(--shadow-card);
-    padding: var(--space-5);
+    padding: var(--space-6);
     min-width: 0;
 }
 
-/* The section-title rule: a hairline under the title, inside the padding. */
+/* Two cards side by side on a wide pane (Context and Samplers), each as tall
+   as the other; one column once the pane is too narrow for both. */
+.settings-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+/* The section title: the section's icon in the success green, the title in
+   mono, an optional "| qualifier", and the section's own controls pushed to
+   the right, all over a hairline. A description, where a card has one, wraps
+   onto a line of its own under the title. */
 .settings-card-header {
-    margin: 0 0 var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) 0.625rem;
+    margin: 0 0 var(--space-4);
+    padding-bottom: 0.625rem;
+    border-bottom: 1px solid var(--line);
+}
+.settings-card-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    color: var(--status-success);
+}
+.settings-card-suffix {
+    font-size: var(--text-xl);
+    color: var(--fg-quiet);
+}
+.settings-card-suffix::before {
+    content: "| " / "";
+}
+.settings-card-header > :is(.preset-select-row, .sampler-toolbar) {
+    margin-left: auto;
+}
+/* A picker in the title row keeps a usable width and leaves the title room;
+   below the width where both fit it drops to a full line of its own. */
+.settings-card-header > .preset-select-row {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+}
+.settings-card-header > .preset-select-row > .cozy-select {
+    flex: 0 1 17rem;
+    min-width: 12rem;
+}
+/* The gear may not set the title row's height, or the Samplers title would
+   sit lower than its neighbour's. On the toolbar, not the button, so the
+   popover still opens below the gear. */
+.settings-card-header > .sampler-toolbar {
+    margin-block: calc(-1 * var(--space-2));
+}
+
+/* A labelled rule above a sub-group of rows inside a card. */
+.preset-subhead {
     padding-bottom: var(--space-3);
     border-bottom: 1px solid var(--line);
 }
 
 /* ── Card titles ─────────────────────────────────────────────────────────
-   One rank for every box title: a settings card, a zone inside the API preset,
-   a sampler group, a lorebook panel, the prompt reference panel. Sentence case
-   in mono and the heading hue. Uppercase small-caps is a different job entirely — it
-   belongs to .section-label, which names app chrome, not content. */
+   One rank for every box title: a settings card, a sub-group inside one, a
+   sampler group, the prompt reference panel. Sentence case in mono and the
+   heading hue; a card's own title is set larger above.
+   Uppercase small-caps is a different job entirely — it belongs to
+   .section-label, which names app chrome, not content. */
 .settings-card-header h4,
 .preset-subhead,
-.lorebook-card-title,
 .sampler-group-header,
 .prompt-vars-title {
     display: flex;
@@ -2612,16 +2652,23 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     letter-spacing: 0;
     color: var(--fg-heading);
 }
+.settings-card-header h4 {
+    font-size: 1.125rem;
+    line-height: 1.25;
+}
 
+/* A full line under the title: capping its measure here would let it fit
+   beside the title instead of wrapping under it. */
 .settings-card-header p {
-    margin: 0.2rem 0 0;
+    flex-basis: 100%;
+    margin: 0;
     font-size: var(--text-sm);
     line-height: 1.4;
     color: var(--text-secondary);
-    max-width: 68ch;   /* the .settings-hint measure */
 }
 
-.settings-card-header code {
+.settings-card-header code,
+.settings-callout code {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     background: var(--code-bg);
@@ -2629,6 +2676,52 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border-radius: var(--radius-control);
     padding: 0.05rem 0.3rem;
     color: var(--fg-cool);
+}
+
+/* A field row: the label (with its hint under it, where it has one) in a
+   fixed column on the left, the control taking the rest, so every field in a
+   card starts on the same line however wide the card gets. */
+.settings-row.settings-row--field {
+    display: grid;
+    grid-template-columns: 10.5rem minmax(0, 1fr);
+    gap: var(--space-1) var(--space-5);
+    align-items: center;
+    padding: 0.625rem 0;
+}
+.settings-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+.settings-row-text > .settings-row-hint { margin: 0; }
+.settings-row--field > .form-input[type="number"] { width: 7.5rem; }
+.settings-row--field > .cozy-select { max-width: 20rem; }
+
+/* A note that sits on the page rather than in a card: a mono label, then the
+   sentence. The label is in the accent, the one hue every theme keeps legible
+   as small text on a raised surface; the danger hue fails that in most. */
+.settings-callout {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0.625rem 0.875rem;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: var(--text-md);
+    line-height: 1.5;
+    color: var(--fg);
+}
+.settings-callout-label {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fg-accent);
 }
 
 /* Prompt section: controls across the top, variables beside the editor. */
@@ -2644,10 +2737,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
        edit, and the variable list is what you consult while editing it. */
     grid-template-columns: minmax(0, 1fr) 240px;
     grid-template-rows: auto auto;
-    gap: 0.75rem;
     align-items: stretch;
     min-height: 0;
-    padding: 0.75rem;
 }
 
 .prompt-section-left {
@@ -2655,9 +2746,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 .prompt-section-controls {
     grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
 }
 .prompt-select-row,
 .preset-select-row {
@@ -2688,22 +2776,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .prompt-description-input {
     font-size: var(--text-md);
 }
-/* Description and version side by side, editable in advanced mode only. */
-.prompt-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-.prompt-meta-row .prompt-description-input {
-    flex: 1;
-    min-width: 0;
-}
-/* Scoped to the row on purpose: .form-input's own `width: 100%` weighs the
-   same and sits further down the file, so a bare .prompt-version-input would
-   lose the width and stretch across the row. */
+/* Scoped to the description and version rows on purpose: .form-input's own
+   `width: 100%` weighs the same and sits further down the file, so a bare
+   .prompt-version-input would lose the width and stretch across the row. */
 .prompt-meta-row .prompt-version-input {
-    flex: none;
-    width: 7rem;
+    width: 7.5rem;
 }
 /* Name plain, version as a pill, in both the trigger and the open menu. */
 .prompt-picker :is(.cozy-select-value, .cozy-select-option) {
@@ -2736,37 +2813,24 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     left: auto;
     right: 0;
 }
-/* Basic mode hides New/Rename/Delete, leaving Import/export at the head of the
-   row — where right-aligning a menu wider than its button hangs it off the
-   card. Keyed to those buttons being hidden, since they stay in the DOM and a
-   sibling selector would still see them. */
-.prompt-select-row:has(#settings-sysprompt-new[hidden]) .export-menu {
-    left: 0;
-    right: auto;
-}
 .prompt-header-actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-2);
     flex: none;
 }
-.prompt-builder-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 1px solid var(--line);
+/* Holds its width while it reads "Testing…", so the icons beside it stay put. */
+#settings-test-api {
+    min-width: 9.75rem;
+    justify-content: center;
 }
 .prompt-builder-tabs {
     display: flex;
     flex: 1;
     min-width: 0;
 }
-.prompt-builder-tabs .tab-btn {
-    padding: 0.25rem 0.55rem;
-}
 .prompt-rendered-btn {
     flex: none;
-    margin-bottom: 0.15rem;
 }
 .prompt-vars-panel {
     grid-column: 2;
@@ -2775,11 +2839,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     min-height: 0;
     overflow-y: auto;
 }
-/* The one card title in the cool hue: this panel is reference material beside
-   the editor, not a setting you change. */
 .prompt-vars-title {
     margin-bottom: var(--space-2);
-    color: var(--fg-cool);
 }
 .prompt-vars-title--sub {
     margin-top: 0.9rem;
@@ -2809,12 +2870,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    /* Trim the empty band above the tab strip: the tabs carry their own
-       0.25rem padding and the Variables panel starts at 0.5rem, so 0.25rem
-       here lines the tab text (and its ADV badge) up with the panel title. */
-    padding-top: 0.25rem;
     position: relative;
 }
 
@@ -2924,34 +2979,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     resize: none;
 }
 
-/* Full-width notice holding the editor's place while advanced configuration
-   is off, as a DS callout: a raised note with its mono label. */
+/* The callout holding the editor's place while advanced configuration is off. */
 .prompt-basic-hint {
     grid-column: 1 / -1;
     grid-row: 2;
-    display: flex;
-    align-items: baseline;
-    gap: 0.75rem;
-    padding: 0.625rem 0.875rem;
-    background-color: var(--surface-raised);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    font-size: var(--text-md);
-    line-height: 1.5;
-    color: var(--fg);
-}
-.prompt-basic-hint::before {
-    content: 'Note';
-    flex: none;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--fg-quiet);
-}
-.prompt-basic-hint p {
-    margin: 0;
 }
 .prompt-basic-hint-link {
     background: none;
@@ -3085,16 +3116,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--fg-quiet);
 }
 
-.about-credit + .about-credit {
-    margin-top: 0.85rem;
-}
-
 .about-credit h5 {
-    margin: 0 0 0.2rem;
-    font-family: var(--font-mono);
-    font-size: var(--text-md);
-    font-weight: 700;
-    color: var(--fg-heading);
+    margin: 0;
 }
 
 .about-credit p {
@@ -3113,12 +3136,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     --storage-other: var(--text-secondary);
 }
 
-/* Backup menu in the Storage header: hangs off the card's right edge so it
-   opens inward rather than over the card's border. */
+/* Backup menu at the right end of the Storage title row: hangs off the
+   card's right edge so it opens inward rather than over the card's border. */
 #about-backup-dropdown {
-    /* The header stacks on a narrow pane, where a stretched wrapper would
-       leave the menu at the far right of a left-aligned button. */
-    align-self: flex-start;
+    margin-left: auto;
 }
 
 #about-backup-dropdown .export-menu {
@@ -3429,26 +3450,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--fg-cool);
 }
 
-@media (max-width: 480px) {
-    .about-identity {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .about-link-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .about-storage-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .about-storage-tile-desc,
-    .about-storage-cache-body span {
-        white-space: normal;
-    }
-}
-
 .settings-help-vars {
     display: grid;
     grid-template-columns: max-content 1fr;
@@ -3669,21 +3670,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     justify-content: space-between;
 }
 
-/* Label sits inline with its control, e.g. "Theme  [dropdown]" */
-.settings-row--inline {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-}
-.settings-row--inline .cozy-select {
-    flex: 0 1 20rem;
-    min-width: 0;
-}
-.settings-row--inline > .form-input[type="number"] {
-    flex: 0 0 7rem;
-    min-width: 0;
-    text-align: right;
-}
 
 /* Numbers and versions are technical values, so they read in mono wherever a
    settings page asks for one. */
@@ -3691,18 +3677,19 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     font-family: var(--font-mono);
 }
 
-/* Sampler rows read as a value list: each label sits inline with its field
-   (mirrors .settings-row--inline, applied card-wide so every sampler — and
-   any future one — picks it up automatically). */
+/* Sampler rows are field rows with a narrower label column: the label, then
+   the slider and its value (applied card-wide so every sampler — and any
+   future one — picks it up automatically). The seed has no slider, so its
+   field sits at the right edge under the others' values. */
 .sampler-card .settings-row {
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
+    column-gap: var(--space-5);
 }
 .sampler-card .settings-row > .form-input:not(.settings-select) {
-    flex: 0 0 7rem;
-    min-width: 0;
-    text-align: right;
+    justify-self: end;
+    width: 7rem;
 }
 
 /* Slider + number pairs on sampler rows. The range input is injected by
@@ -3711,14 +3698,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .sampler-value-wrap {
     display: flex;
     align-items: center;
-    gap: 0.55rem;
-    flex: 0 1 13rem;
+    gap: 0.875rem;
     min-width: 0;
 }
 .sampler-value-wrap > .form-input[type="number"] {
-    flex: 0 0 5.25rem;
+    flex: 0 0 4.5rem;
     min-width: 0;
-    text-align: right;
 }
 .sampler-slider {
     flex: 1 1 auto;
@@ -3959,32 +3944,50 @@ input[type="checkbox"]:checked::after {
     animation: spin 0.8s linear infinite;
 }
 
-/* Test-connection checkmark sits at the right edge of the Connection title. */
-.settings-card-header #settings-test-api {
-    margin-left: auto;
+/* The foot of every page that saves as you type, pinned to the bottom of the
+   pane so the Saved tick is seen wherever the edit was made. The Lorebooks
+   editor saves on its button and About saves nothing, so neither shows it. */
+.settings-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--settings-gutter) var(--space-5);
+    background-color: var(--bg-color);
+    font-size: var(--text-sm);
+    color: var(--fg-quiet);
+}
+.settings-pane:has(> :is([data-section="lorebooks"], [data-section="about"]):not([hidden])) .settings-footer {
+    display: none;
 }
 
-/* Autosave confirmation in the settings header. Muted rather than the success
-   hue, which is too pale to read as text on the light themes' panels. */
+/* The autosave confirmation. The tick takes the success hue; the word stays
+   in the body colour, since the success hue is too pale to read as text on
+   the light themes' panels. */
 .settings-saved-tick {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
     font-family: var(--font-mono);
-    font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--fg-quiet);
+    color: var(--fg);
     opacity: 0;
     transition: opacity var(--motion-slow) ease;
     white-space: nowrap;
-    margin-right: 0.5rem;
     pointer-events: none;
+}
+.settings-saved-tick:not(:empty)::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    background-color: var(--status-success);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .settings-saved-tick.visible {
     opacity: 1;
-}
-
-/* Full width inside the preset card's sampler zone. */
-.sampler-card {
-    width: 100%;
 }
 
 /* Sub-section headers inside the combined sampler card. The core header
@@ -5148,12 +5151,17 @@ input[type="checkbox"]:checked::after {
         flex-direction: column;
         gap: 0.55rem;
     }
-    /* Prompt header carries only two small icon buttons — keep them inline,
-       top-right, and let the tagline wrap within the narrowed title column. */
+    /* A header's icon buttons stay inline, top-right, with the tagline wrapping
+       beside them; the API page's Test connection is too wide for that, so
+       there the actions drop under the tagline. */
     .settings-page-header--icons {
         flex-direction: row;
+        flex-wrap: wrap;
         align-items: flex-start;
         gap: 0.5rem;
+    }
+    .settings-page-header--icons .settings-page-title {
+        flex: 1 1 12rem;
     }
     .settings-page-header--icons .settings-page-title p {
         font-size: var(--text-sm);
@@ -5759,83 +5767,18 @@ input[type="checkbox"]:checked::after {
 /* Live only mid-run, so it should read as the one actionable control while busy. */
 .summary-cancel-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 
-/* Settings panel — responsive lorebook workspace */
-.lorebook-section-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-    padding: 0.6rem 0;
-}
-
-.lorebook-card {
-    background-color: var(--app-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    padding: 0.85rem 1rem;
-    margin: 0 0.6rem;
-}
-
-
-
+/* Settings panel — lorebook editor */
 .lorebook-entries-count {
     color: var(--fg-quiet);
     font-weight: 400;
     font-size: var(--text-md);
-    letter-spacing: 0;
-    margin-left: 0.3rem;
-    text-transform: none;
 }
 
-.lorebook-card--workspace {
-    padding: 0.85rem 1rem;
-}
-
-.lorebook-workspace-grid {
-    display: grid;
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-    grid-template-rows: auto auto auto minmax(280px, 1fr);
-    gap: 0.55rem 1rem;
-    align-items: stretch;
-}
-.lorebook-workspace-grid > .lorebook-col-header:nth-of-type(1) {
-    grid-column: 1;
-    grid-row: 1;
-}
-.lorebook-workspace-grid > .lorebook-col-header:nth-of-type(2) {
-    grid-column: 2;
-    grid-row: 1;
-}
-.lorebook-workspace-grid > .lorebook-col-header:nth-of-type(3) {
-    grid-column: 2;
-    grid-row: 3;
-    align-self: end;
-}
-.lorebook-col-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    min-height: 28px;
-    margin: 0;
-    padding: 0;
-}
-/* List pane owns the bordered panel; the footer buttons sit inside it so
-   New / Import read as part of the list rather than floating above it. */
-.lorebook-meta {
-    grid-column: 2;
-    grid-row: 2;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    min-width: 0;
-}
-.lorebook-meta[hidden] { display: none; }
-/* Name + Save share one row so the meta block reads as a compact card
-   instead of a stack of labeled rows. */
+/* Name + Save share one row, the button as tall as the field. */
 .lorebook-name-row {
     display: flex;
     gap: 0.5rem;
-    align-items: center;
+    align-items: stretch;
 }
 .lorebook-name-row .form-input {
     flex: 1;
@@ -5848,58 +5791,23 @@ input[type="checkbox"]:checked::after {
     min-height: 0;
     height: 3.6rem;
 }
-/* Fills the pane it stands in, so an unchosen lorebook does not look like a
-   stray note above a void. */
-.lorebook-empty-panel {
-    min-height: 9rem;
-}
 .lorebook-empty-panel[hidden] {
     display: none;
 }
 .lorebook-empty-panel span {
     max-width: 28rem;
 }
-#settings-lorebook-empty-meta {
-    grid-column: 2;
-    grid-row: 2;
-}
-#settings-lorebook-empty-entries {
-    grid-column: 2;
-    grid-row: 4;
-    min-height: 100%;
-}
-.lorebook-meta .lorebook-meta-row > .lorebook-entry-field-narrow {
-    flex-grow: 1;
-    flex-shrink: 1;
-}
-/* The destination select holds longer text ("Embed in …"), so it takes a
-   wider share of the tuning row. */
-.lorebook-meta .lorebook-meta-row > .lorebook-entry-field--wide {
-    flex-grow: 1.6;
-}
-/* Tuning labels are short — keep each on one line when the row wraps. */
-.lorebook-meta-row .lorebook-entry-field > span {
-    white-space: nowrap;
-}
-.lorebook-meta-row { display: flex; gap: 0.75rem; }
 .lorebook-entries {
-    grid-column: 2;
-    grid-row: 4;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    height: 100%;
-    max-height: 60vh;
-    overflow-y: auto;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    background-color: var(--app-bg);
 }
-/* Search sits between the Entries count and Add entry, taking the slack. */
+/* Search and Add entry sit right in the title row. The small basis lets them
+   share it with the title on a narrow pane; the search grows to its cap. */
 .lorebook-entry-search {
-    flex: 0 1 18rem;   /* shrinks on narrow headers, never grows to fill them */
+    flex: 1 1 8rem;
     min-width: 0;
+    margin-left: auto;
     padding: 0 0.5rem;
     font-size: var(--text-md);
 }
@@ -5911,7 +5819,7 @@ input[type="checkbox"]:checked::after {
 .lorebook-entry {
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 0.85rem 0.95rem;
+    padding: var(--space-4);
     background-color: var(--surface-inset);
     display: flex;
     flex-direction: column;
@@ -5919,11 +5827,15 @@ input[type="checkbox"]:checked::after {
 }
 .lorebook-entry-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
 }
+/* The move and delete buttons sit beside the keys until the entry is too
+   narrow for both, then drop to a line of their own. */
 .lorebook-entry-keys-wrap {
-    flex: 1;
+    flex: 1 1 12rem;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 0.35rem;
@@ -5949,87 +5861,22 @@ input[type="checkbox"]:checked::after {
     white-space: nowrap;
     cursor: pointer;
 }
-.lorebook-entry-row { display: flex; gap: 1rem; }
+/* Each field is a row of its own, label left as in a settings field row. The
+   label column gives back the entry's padding and border, so an entry's
+   controls start on the same line as the card's. */
+.lorebook-entry-row { display: contents; }
 .lorebook-entry-field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
+    display: grid;
+    grid-template-columns: calc(10.5rem - var(--space-4) - 1px) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-1) var(--space-5);
+    min-width: 0;
     font-size: var(--text-md);
-    flex: 1;
 }
-.lorebook-entry-field-narrow { flex: 0 0 auto; }
+.lorebook-entry-field-narrow > .form-input { width: 7.5rem; }
 .lorebook-entry-field span { color: var(--fg-quiet); }
 
-
-
-/* ── Lorebooks: mobile (placed AFTER desktop rules so it actually wins) ── */
-@media (max-width: 768px) {
-    .lorebook-section-body {
-        gap: 0.5rem;
-        padding: 0.4rem 0;
-    }
-    .lorebook-card,
-    .lorebook-card--workspace {
-        margin: 0;
-        padding: 0.7rem 0.8rem;
-    }
-
-    /* Stack the 3-column workspace into a single column */
-    .lorebook-workspace-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-    }
-    /* DOM order is [3 headers][pane][meta][entries]; rethread with `order`
-       so it reads header → list → header → meta → header → entries top-to-bottom. */
-    .lorebook-workspace-grid > .lorebook-col-header:nth-of-type(1) { order: 1; }
-    .lorebook-workspace-grid > .lorebook-col-header:nth-of-type(2) { order: 3; }
-    .lorebook-workspace-grid > #settings-lorebook-empty-meta       { order: 4; }
-    .lorebook-workspace-grid > #settings-lorebook-meta             { order: 4; }
-    .lorebook-workspace-grid > .lorebook-col-header:nth-of-type(3) { order: 5; }
-    .lorebook-workspace-grid > #settings-lorebook-empty-entries    { order: 6; }
-    .lorebook-workspace-grid > #settings-lorebook-entries          { order: 6; }
-
-    /* Entry editor: stack the two-column rows on narrow screens */
-    .lorebook-entry-row {
-        flex-direction: column;
-    }
-    .lorebook-entry-field-narrow {
-        flex: 1 1 auto;
-    }
-    .lorebook-meta-row {
-        flex-wrap: wrap;
-    }
-
-    .lorebook-col-header,
-    .lorebook-entry-header,
-    .lorebook-entry-keys-wrap {
-        flex-wrap: wrap;
-    }
-
-    .lorebook-entries {
-        max-height: none;
-        padding: 0.6rem;
-    }
-
-    /* Keep Name + Save on one row on mobile too — the pair is compact. */
-    .lorebook-name-row {
-        flex-wrap: nowrap;
-    }
-}
-
 /* ── Regex output filters ────────────────────────────────────────────────── */
-.settings-card-header--with-action {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-}
-
-.settings-card-header--with-action .btn {
-    flex: none;
-}
-
 .regex-filter-count {
     color: var(--fg-quiet);
     font-weight: 400;
@@ -6141,28 +5988,9 @@ input[type="checkbox"]:checked::after {
     overflow-wrap: anywhere;
 }
 
-.regex-test-field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    margin-top: 0.5rem;
-}
-
-/* The `display: flex` above outranks the UA's `[hidden] { display: none }`, so
-   the "As displayed" box needs this to actually hide. */
-.regex-test-field[hidden] {
-    display: none;
-}
-
-.regex-test-field > span {
-    color: var(--fg-quiet);
-    font-size: var(--text-sm);
-    font-weight: 500;
-}
-
 /* The shared .form-textarea min-height is sized for prompt editing; the sample
    box only needs a few lines. */
-.regex-test-field .form-textarea {
+#settings-regex-test-input {
     min-height: 0;
 }
 
@@ -6203,18 +6031,6 @@ input[type="checkbox"]:checked::after {
     .regex-filter-flag {
         min-height: 32px;
     }
-
-    .settings-card-header--with-action {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    /* Stacked, the trigger sits at the left edge, so the menu opens rightward
-       from it rather than hanging off the card. */
-    #about-backup-dropdown .export-menu {
-        left: 0;
-        right: auto;
-    }
 }
 
 /* ── Container queries ───────────────────────────────────────────────────
@@ -6233,20 +6049,22 @@ input[type="checkbox"]:checked::after {
     .prompt-vars-panel { grid-column: 1; grid-row: 3; }
 }
 
-/* Same container, one step narrower: the preset picker's row of actions wraps,
-   the paired summary fields stack, and sampler rows drop their sliders below
-   the label rather than squeezing them. */
+/* Same container, one step narrower: the preset picker's row of actions
+   wraps. */
 @container (max-width: 800px) {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
-    .summary-connection .settings-row { grid-template-columns: minmax(0, 1fr); }
-    .summary-connection .settings-row > :is(.form-input, .settings-model-row) {
-        grid-column: 1;
-        grid-row: auto;
-        width: 100%;
-    }
-    .sampler-card .settings-row { flex-wrap: wrap; }
-    .sampler-value-wrap { flex: 1 1 100%; }
+    .settings-card-header > .preset-select-row { flex-basis: 100%; }
+    .settings-card-header > .preset-select-row > .cozy-select { flex: 1 1 100%; }
+}
+
+/* The paired cards stack before their field rows get cramped, and the field
+   rows put the label over the control once a card is phone-narrow. */
+@container (max-width: 1060px) {
+    .settings-card-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 640px) {
+    .settings-row.settings-row--field { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
@@ -6273,27 +6091,18 @@ input[type="checkbox"]:checked::after {
    it extends, not by outranking them. */
 .modal-header { min-height: 48px; padding-inline: var(--space-5); flex-shrink: 0; }
 .settings-body { flex: 1; min-height: 0; overflow: hidden; padding: 0; }
-/* Floor stays above the widest row ("Regex" plus its ADV badge, ~156px). */
-.settings-nav { width: clamp(160px, 14vw, 200px); padding: var(--space-3) var(--space-3); gap: var(--space-1); }
-.settings-nav-item { min-height: 44px; padding: var(--space-3) var(--space-3); gap: var(--space-3); border-radius: var(--radius); }
+.settings-nav-item { min-height: 44px; }
 .settings-nav-item svg { width: 18px; height: 18px; }
-.settings-pane { scroll-padding-block: 80px var(--space-5); }
-.settings-page-header { padding: var(--space-4) var(--page-gutter) var(--space-3); border-color: transparent; }
-.settings-page-header h3 { font-size: var(--text-4xl); font-weight: 700; line-height: 1.15; }
-.settings-page-header p { font-size: var(--text-lg); line-height: 1.5; margin-top: var(--space-1); }
-.settings-section-body { padding: var(--space-2) var(--page-gutter) var(--space-5); gap: var(--space-4); }
+/* Clears the pinned page header and footer, so a field reached with Tab never
+   lands underneath either. */
+.settings-pane { scroll-padding-block: 10rem 3.5rem; }
 .settings-section-body { max-width: none; }
-.settings-card-header p { line-height: 1.4; margin-top: var(--space-1); }
 .settings-row { min-height: 52px; padding: var(--space-2) 0; margin-inline: 0; gap: var(--space-3); border-color: var(--line-soft); }
 .settings-hint { padding: var(--space-1) 0 var(--space-2); margin-inline: 0; max-width: 68ch; line-height: 1.45; }
 .settings-row > .cozy-select { flex-basis: 200px; }
 :is(.form-input, .form-textarea, .cozy-select-trigger) { min-width: 0; max-width: 100%; border-radius: var(--radius-control); }
 :is(.form-input, .cozy-select-trigger) { min-height: 38px; }
 .icon-btn { min-width: 32px; min-height: 32px; flex-shrink: 0; }
-.summary-connection .settings-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 2fr); gap: var(--space-1) var(--space-5); }
-.summary-connection .settings-row-label { grid-column: 1; align-self: end; }
-.summary-connection .settings-row-hint { grid-column: 1; align-self: start; margin: 0; line-height: 1.5; }
-.summary-connection .settings-row > :is(.form-input, .settings-model-row) { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 @media (max-width: 768px) {
     .settings-modal { width: 100%; max-width: 100%; height: var(--settings-viewport-height, 100dvh); }
     .modal-header { padding: calc(env(safe-area-inset-top, 0px) + var(--space-2)) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left)); }
@@ -6316,64 +6125,39 @@ input[type="checkbox"]:checked::after {
     input[type="checkbox"] { width: 44px; height: 26px; margin-block: 9px; flex-shrink: 0; }
     .settings-row:has(> input[type="checkbox"]) { position: relative; }
     .settings-row:has(> input[type="checkbox"]) > label::after { content: ''; position: absolute; right: 0; top: 50%; width: 44px; height: 44px; transform: translateY(-50%); }
-    .summary-connection .settings-row { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-1); }
-    .settings-row--inline > .form-input[type="number"] { flex-basis: 96px; }
     .settings-row > .cozy-select { flex-basis: 150px; }
 }
-@media (max-width: 768px) {
-    .summary-connection .settings-row > * { align-self: stretch; }
-}
-.api-preset-layout,
-.preset-columns { display: contents; }
-/* Each zone of the API preset is its own raised card, so all three read alike. */
-:is(.preset-connection, .preset-context, .preset-samplers) {
-    background: var(--surface-card); border: 1px solid var(--line); box-shadow: var(--shadow-card);
-    border-radius: var(--radius); padding: var(--space-5); margin: 0; max-width: none;
-}
-.preset-subhead .icon-btn { margin: calc(-1 * var(--space-2)) 0; }
-.preset-connection .settings-row + .settings-row { border-top: 1px solid var(--line-soft); }
-.preset-connection .settings-row-label { flex-basis: 160px; }
-.sampler-value-wrap { flex-basis: 320px; }
 .sampler-slider { min-height: 32px; }
-.sampler-subsection-header--advanced { margin-top: var(--space-5); }
 .sampler-popover { max-width: min(320px, calc(100vw - 66px)); }
 @media (max-width: 768px) {
     :is(.preset-select-row, .prompt-select-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { grid-column: 1 / -1; }
     :is(.preset-select-row, .prompt-select-row) > .icon-btn,
     .prompt-select-row .export-dropdown > .icon-btn { width: 100%; }
-    .preset-connection .settings-row { flex-direction: column; align-items: stretch; }
-    /* Named rather than `> *`, which loses to the desktop `> .form-input` rule
-       and keeps its 10rem basis — a 160px-tall field once the row is a column. */
-    .preset-connection .settings-row > :is(.settings-row-label, .form-input, .settings-model-row) { flex: auto; width: 100%; }
-    .sampler-card .settings-row { flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
-    .sampler-card .settings-row-label { flex: 1 1 120px; }
-    .sampler-value-wrap { flex: 1 1 100%; }
     .sampler-slider { min-height: 44px; }
+    /* Phone inputs are set at 16px, so the value needs the wider box to show
+       "0.05" whole. */
+    .sampler-value-wrap > .form-input[type="number"] { flex-basis: 5.25rem; }
     .sampler-popover-row { min-height: 44px; }
     .sampler-subsection-header { align-items: center; }
 }
-:is(.preset-connection, .preset-context) { flex: none; }
 .settings-action-label { font-family: var(--font-mono); font-weight: 600; font-size: var(--text-sm); line-height: 1.3; }
-/* The actions beside a picker are small ghost buttons, as tall as the picker:
-   an inset fill, a hairline edge that firms up under the pointer, and Delete's
-   icon in the danger hue. Only the icon: as text on the fill the hue drops
-   below 4.5:1 in most themes. */
-:is(.preset-select-row, .prompt-select-row) .icon-btn { width: auto; min-height: 38px; gap: var(--space-2); padding-inline: var(--space-3); background: var(--surface-quiet); border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--fg); }
-@media (hover: hover) { :is(.preset-select-row, .prompt-select-row) .icon-btn:hover:not(:disabled) { border-color: var(--fg-quiet); transform: translateY(-1px); } }
+/* The actions beside a picker, and a model field's Browse, are small ghost
+   buttons, as tall as the field beside them: an inset fill, a hairline edge
+   that firms up under the pointer, and Delete's icon in the danger hue. Only
+   the icon: as text on the fill the hue drops below 4.5:1 in most themes. */
+:is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn { width: auto; min-height: 38px; gap: var(--space-2); padding-inline: var(--space-3); background: var(--surface-quiet); border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--fg); }
+@media (hover: hover) { :is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn:hover:not(:disabled) { border-color: var(--fg-quiet); transform: translateY(-1px); } }
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
 .prompt-section-body { grid-template-columns: minmax(0, 1fr) 240px; grid-template-rows: auto auto; flex: none; align-items: stretch; }
-.prompt-section-right { grid-column: 1; min-height: 480px; padding: var(--space-3) var(--space-4) var(--space-4); }
+.prompt-section-right { grid-column: 1; min-height: 480px; }
 .prompt-section-right .form-textarea { min-height: 420px; max-height: none; resize: vertical; line-height: 1.65; }
-.prompt-builder-tabs .tab-btn { min-height: 40px; }
-.prompt-builder-bar { gap: var(--space-1); }
 .prompt-rendered-btn { width: auto; display: flex; gap: var(--space-2); padding: var(--space-3); color: var(--fg-cool); }
 /* A card's full padding would leave the longest variable chip no room. */
 .prompt-vars-panel { grid-column: 2; grid-row: 2; overflow: visible; max-height: none; padding-inline: var(--space-4); }
 .prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) { font-size: var(--text-xs); overflow-wrap: anywhere; }
 .prompt-vars-panel dt { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
 .prompt-vars-toggle { display: none; }
-.prompt-section-controls { gap: var(--space-3); }
 @container (max-width: 950px) {
     .prompt-section-body { grid-template-columns: minmax(0, 1fr); }
     .prompt-vars-panel { grid-column: 1; grid-row: 3; }
@@ -6385,42 +6169,20 @@ input[type="checkbox"]:checked::after {
     .prompt-section-right .form-textarea { min-height: 180px; height: clamp(180px, calc(var(--settings-viewport-height, 100dvh) * 0.45), 360px); background: var(--input-bg); border: 1px solid var(--line-soft); padding: var(--space-4); }
     .prompt-section-right .form-textarea:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 2px; }
     .prompt-vars-panel { flex: none; padding: 0; }
-    .prompt-vars-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 52px; border: 0; background: transparent; color: var(--fg-cool); font: 700 var(--text-xl)/1.3 var(--font-mono); padding: var(--space-4) var(--space-5); border-radius: var(--radius); }
-    #prompt-vars-content { padding: 0 var(--space-5) var(--space-5); }
+    .prompt-vars-toggle { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 52px; border: 0; background: transparent; color: var(--fg-heading); font: 700 1.125rem/1.25 var(--font-mono); padding: var(--space-4); border-radius: var(--radius); }
+    .prompt-vars-toggle > span { margin-left: auto; }
+    #prompt-vars-content { padding: 0 var(--space-4) var(--space-4); }
     .prompt-vars-toggle[aria-expanded="false"] + #prompt-vars-content { display: none; }
-    .prompt-vars-title:first-child { display: none; }
+    #prompt-vars-content > .settings-card-header { display: none; }
     .settings-action-label { font-size: var(--text-xs); }
     :is(.preset-select-row, .prompt-select-row) .icon-btn { min-height: var(--mobile-tap-target); padding-inline: var(--space-1); gap: var(--space-1); }
     .prompt-select-row .export-dropdown { grid-column: 1 / -1; }
-    .prompt-select-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .prompt-section-right .form-textarea { font-family: var(--font-mono); }
 @media (max-width: 768px) {
     .prompt-section-body { align-items: stretch; }
 }
-.lorebook-card { margin: 0; min-width: 0; }
-.lorebook-card--workspace { padding: 0; border: 0; background: transparent; }
-.lorebook-workspace-grid { display: flex; flex-direction: column; gap: var(--space-5); align-items: stretch; }
-.lorebook-region { min-width: 0; padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-card); box-shadow: var(--shadow-card); }
-.lorebook-col-header { padding-bottom: var(--space-4); margin-bottom: var(--space-4); min-height: 44px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-/* The lorebook workspace draws its own bordered regions, so the list and its
-   empty state drop the box the shared empty-state rule gives them — a box
-   inside a box reads as two objects where there is one. */
-:is(.lorebook-entries, .lorebook-empty-panel) { border: 0; padding: 0; background: transparent; min-height: 0; height: auto; max-height: none; overflow: visible; }
-.lorebook-empty-panel { padding: var(--space-5) 0; }
-#settings-lorebook-empty-entries { min-height: 0; }
-.lorebook-meta-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-.lorebook-entry-field--wide { grid-column: 1 / -1; }
-.lorebook-entry-field { min-width: 0; }
-.lorebook-meta-row .lorebook-entry-field > span { white-space: normal; }
-.lorebook-entry { padding: var(--space-4); }
-.lorebook-entry-row { flex-wrap: wrap; }
-.lorebook-entry-field-narrow { flex-basis: 110px; }
-.lorebook-entry-header { flex-wrap: wrap; }
-.lorebook-entry-keys-wrap { min-width: 0; flex: 1 1 100%; }
-.lorebook-entry-meta { flex-wrap: wrap; }
 @media (max-width: 768px) {
-    .lorebook-entry-field-narrow { flex-basis: auto; }
     .lorebook-entry-toggle { min-height: 44px; white-space: normal; }
 }
 .regex-filters { gap: var(--space-5); padding-top: var(--space-5); }
@@ -6428,8 +6190,6 @@ input[type="checkbox"]:checked::after {
 .regex-filter-row { gap: var(--space-5); }
 .regex-filter-field { gap: var(--space-2); }
 .regex-filter-meta { gap: var(--space-3) var(--space-5); }
-.regex-test-field { margin-top: var(--space-5); gap: var(--space-3); }
-.about-credit { padding-block: var(--space-5); }
 .about-credit p { max-width: none; line-height: 1.65; }
 .about-storage-cache { border: 0; background: transparent; padding-block: var(--space-5); }
 .about-link { min-height: 58px; }
@@ -6451,16 +6211,10 @@ input[type="checkbox"]:checked::after {
     input[type="checkbox"]::after { width: 18px; height: 18px; margin-top: -9px; }
     input[type="checkbox"]:checked::after { transform: translateX(18px); }
     .cozy-select-option { min-height: 44px; padding-block: var(--space-4); white-space: normal; overflow-wrap: anywhere; }
-    /* The header wraps to its own row here, so the search takes the full width. */
-    .lorebook-entry-search { flex: 1 1 100%; }
 }
 @container (max-width: 800px) {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
-    .summary-connection .settings-row { grid-template-columns: minmax(0, 1fr); }
-    .summary-connection .settings-row > :is(.form-input, .settings-model-row) { grid-column: 1; grid-row: auto; width: 100%; }
-    .sampler-card .settings-row { flex-wrap: wrap; }
-    .sampler-value-wrap { flex: 1 1 100%; }
 }
 @media (max-width: 768px) {
     #settings-flyout.modal-overlay,
@@ -6507,3 +6261,72 @@ input[type="checkbox"]:checked::after {
     .lorebook-picker .cozy-select-label { flex-basis: 100%; }
     .lorebook-picker .cozy-select-detail { max-width: 100%; flex: 1 1 110px; }
 }
+
+/* ── Settings · Prompt page ──────────────────────────────────────────────── */
+/* Import/export makes this picker row one button wider than the others, too
+   wide for its card just above the width where the shared rule wraps them.
+   The picker gives up width down to its 12rem floor first, then the row wraps
+   rather than running off the card. (On a phone the row is a grid.) */
+@media (min-width: 769px) {
+    .prompt-select-row { flex-wrap: wrap; }
+    .settings-card-header > .prompt-select-row > .cozy-select { flex: 1 1 12rem; max-width: 17rem; }
+}
+/* The editor's tab bar is its title row: the tabs set as the title, the
+   active one underlined on the header's hairline. The negative margin takes
+   back the header's bottom padding, which the tab carries itself so its
+   underline can reach that line. */
+.prompt-builder-tabs .tab-btn { padding: 0 var(--space-3) calc(0.625rem - 1px); margin-bottom: calc(-0.625rem - 1px); font-size: 1.125rem; font-weight: 700; line-height: 1.25; }
+.prompt-builder-tabs .tab-btn:first-child { padding-left: 0; }
+/* Like a title-row button elsewhere, Preview may not set the row's height. */
+.prompt-rendered-btn { margin-block: calc(-1 * var(--space-2)); }
+/* The smallest phones have no room for title-size tabs beside Preview's label. */
+@media (max-width: 359px) {
+    :is(.prompt-builder-bar > .settings-card-icon, .prompt-rendered-btn .settings-action-label) { display: none; }
+}
+
+/* ── Settings · Lorebooks page ───────────────────────────────────────────── */
+/* The picker takes the title row as the API preset picker does, only wider:
+   each option also carries its source and entry count. */
+.settings-card-header > .lorebook-picker { flex: 1 1 auto; justify-content: flex-end; margin-left: auto; }
+.settings-card-header > .lorebook-picker > .cozy-select { min-width: 12rem; max-width: 26rem; }
+/* The entry search's cap: here, after the shared rule that caps fields at 100%;
+   Add entry as tall as the search beside it. */
+.lorebook-entry-search { max-width: 18rem; }
+#settings-lorebook-add-entry { align-self: stretch; }
+/* The select needs about 20rem to keep its source and count beside the name,
+   so the actions drop under it at a wider pane than the API picker's do. */
+@container (max-width: 960px) {
+    .settings-card-header > .lorebook-picker { flex-basis: 100%; flex-wrap: wrap; }
+    .settings-card-header > .lorebook-picker > .cozy-select { flex-basis: 100%; max-width: none; }
+}
+/* Phone-narrow: Add entry stays in the title row and the search takes the
+   line under it; labels go over controls, and an entry's keys take a full
+   line with its move and delete buttons under them. */
+@container (max-width: 640px) {
+    .lorebook-entry-search { order: 1; flex-basis: 100%; max-width: none; }
+    #settings-lorebook-add-entry { margin-left: auto; }
+    .lorebook-entry-field { grid-template-columns: minmax(0, 1fr); }
+    .lorebook-entry-keys-wrap { flex-basis: 100%; }
+}
+
+/* ── Settings · Regex page ───────────────────────────────────────────────── */
+/* The Preset card is its title row and nothing else, so the row's rule would
+   underline an empty card. */
+[data-section="regex"] .settings-card-header:only-child { margin: 0; padding: 0; border: 0; }
+#settings-regex-add { margin-left: auto; }
+/* Import/export ends the picker row, so its menu opens leftward into the card. */
+#regex-io-menu { left: auto; right: 0; }
+/* "Import/export" overflows a third of a phone row, so on a phone it takes a
+   row of its own under New and Delete, as on the Prompt page. */
+@media (max-width: 768px) {
+    [data-section="regex"] .preset-select-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #regex-io-dropdown { grid-column: 1 / -1; }
+    #regex-io-dropdown > .icon-btn { width: 100%; }
+}
+
+/* ── Settings · About page ───────────────────────────────────────────────── */
+/* A credit is a field row: the name in the label column, the note beside it,
+   the name level with the note's first line. */
+.settings-row--field.about-credit { align-items: baseline; }
+/* The link tiles are boxes of their own, so the note under them needs room. */
+.about-link-grid + .settings-hint { padding-top: var(--space-4); }
