@@ -1260,26 +1260,6 @@ class TestErrorHandler:
         assert 'intentional test crash' not in str(body)
 
 
-# ── Settings: lorebook_scan_depth_override (added to whitelist) ───────────
-
-class TestLorebookOverrideInSettings:
-    def test_override_appears_in_settings_payload_after_write(self, client):
-        r = client.put('/api/settings', json={'lorebook_scan_depth_override': '15'})
-        assert r.status_code == 200
-        s = client.get('/api/settings').get_json()
-        assert s['lorebook_scan_depth_override'] == '15'
-
-    def test_always_inject_all_round_trips(self, client):
-        r = client.put('/api/settings', json={'lorebook_always_inject_all': '1'})
-        assert r.status_code == 200
-        s = client.get('/api/settings').get_json()
-        assert s['lorebook_always_inject_all'] == '1'
-        r = client.put('/api/settings', json={'lorebook_always_inject_all': '0'})
-        assert r.status_code == 200
-        s = client.get('/api/settings').get_json()
-        assert s['lorebook_always_inject_all'] == '0'
-
-
 class TestSettingsWhitelist:
     def test_unknown_key_is_ignored(self, client):
         r = client.put('/api/settings', json={'evil_injection': 'hacked'})

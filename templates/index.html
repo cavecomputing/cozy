@@ -235,7 +235,7 @@
                                     <label class="settings-row-label" for="settings-show-advanced-toggle">Show advanced configuration</label>
                                     <input type="checkbox" id="settings-show-advanced-toggle" aria-describedby="show-advanced-hint">
                                 </div>
-                                <p id="show-advanced-hint" class="settings-hint">Reveals the Regex tab, the prompt template editor, summary behavior settings, extra request parameters, and lorebook overrides.</p>
+                                <p id="show-advanced-hint" class="settings-hint">Reveals the Regex tab, the prompt template editor, summary behavior settings, and extra request parameters.</p>
                             </section>
                         </div>
                     </div>
@@ -659,25 +659,6 @@
                                     <div id="settings-lorebook-entries" class="lorebook-entries" hidden></div>                                    </section>
                                 </div>
                             </div>
-
-                            <section class="settings-card lorebook-card lorebook-card--global" id="lorebook-overrides-card">
-                                <header class="settings-card-header">
-                                    <h4>Global overrides <span class="advanced-badge" data-tip="Advanced configuration">ADV</span></h4>
-                                    <p>Replace each book's own scan settings on this install.</p>
-                                </header>
-                                <div class="settings-row settings-row--inline">
-                                    <label class="settings-row-label" for="settings-lorebook-scan-override">
-                                        Scan depth override
-                                    </label>
-                                    <input type="number" id="settings-lorebook-scan-override" class="form-input" step="1" min="0" max="500" value="0">
-                                </div>
-                                <div class="settings-row">
-                                    <label class="settings-row-label" for="settings-lorebook-always-inject-all">
-                                        Always inject all entries
-                                    </label>
-                                    <input type="checkbox" id="settings-lorebook-always-inject-all">
-                                </div>
-                            </section>
                         </div>
                     </div>
                     <div class="settings-section" data-section="summaries" hidden>
@@ -1523,15 +1504,6 @@ Flags    g</pre>
                         <div class="sampler-help-row"><dt>Scan depth</dt><dd>How many past messages Cozy checks for keywords. The default is 20. Only these last messages can select entries.</dd></div>
                         <div class="sampler-help-row"><dt>Max entries</dt><dd>The largest number of entries sent with one message. The default is 20. If more entries are selected, only the first ones by insertion order are sent. Two entries with identical text are sent once, not twice.</dd></div>
                         <div class="sampler-help-row"><dt>Saved in</dt><dd>Where the book is stored. Changing it and pressing <strong>Save</strong> moves the book there. See <strong>Where books are saved</strong> below.</dd></div>
-                    </dl>
-                </div>
-
-                <div class="sampler-help-section">
-                    <h3>Global overrides</h3>
-                    <p class="sampler-help-intro">These two settings replace the book settings above. They apply to every book on this install.</p>
-                    <dl class="sampler-help-list">
-                        <div class="sampler-help-row"><dt>Scan depth override</dt><dd><code>0</code> means no override. Each book uses its own scan depth. Any other number replaces every book's scan depth with that number.</dd></div>
-                        <div class="sampler-help-row"><dt>Always inject all entries</dt><dd>Checked: keyword checking is skipped. Every enabled entry is sent with every message. Insertion order and max entries still apply.</dd></div>
                     </dl>
                 </div>
 

@@ -30,8 +30,6 @@ export const state = {
     activePresetId:      null,
     settingsSection:     'general',
     lorebooks:           [],     // standalone DB lorebooks (summary list)
-    lorebookScanDepthOverride: 0,
-    lorebookAlwaysInjectAll: false,
     extraRequestParams: '',
     // Regex output filters — presets from the DB, plus the active preset's
     // filter list flattened out for the hot path in regex-filters.js.
@@ -212,8 +210,6 @@ export function initElements() {
         lorebookMarker:      document.getElementById('lorebook-marker'),
         lorebookFlyoutSelect: document.getElementById('lorebook-flyout-select'),
         lorebookManageBtn:   document.getElementById('lorebook-flyout-manage'),
-        lorebookScanOverride: document.getElementById('settings-lorebook-scan-override'),
-        lorebookAlwaysInjectAll: document.getElementById('settings-lorebook-always-inject-all'),
         lorebookList:        document.getElementById('settings-lorebook-list'),
         lorebookNew:         document.getElementById('settings-lorebook-new'),
         lorebookImport:      document.getElementById('settings-lorebook-import'),

@@ -16,7 +16,7 @@ import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
 import {
-    loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
+    loadLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
     flushLLMSettingsSave, applyAdvancedConfigurationVisibility,
     setAdvancedConfigurationVisible,
     browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
@@ -1001,20 +1001,6 @@ function bindMemoryHandlers() {
     el.lorebookImportFile?.addEventListener('change', handleImportFile);
     el.lorebookEntries?.addEventListener('click', handleEntriesClick);
     el.lorebookEntrySearch?.addEventListener('input', filterEntries);
-
-    // Scan-depth override — debounced save (mirrors sampler/context fields)
-    el.lorebookScanOverride?.addEventListener('change', () => {
-        const v = parseInt(el.lorebookScanOverride.value, 10) || 0;
-        state.lorebookScanDepthOverride = v;
-        saveLLMSettings({ lorebook_scan_depth_override: String(v) });
-    });
-
-    // Always-inject-all toggle
-    el.lorebookAlwaysInjectAll?.addEventListener('change', () => {
-        const on = !!el.lorebookAlwaysInjectAll.checked;
-        state.lorebookAlwaysInjectAll = on;
-        saveLLMSettings({ lorebook_always_inject_all: on ? '1' : '0' });
-    });
 }
 
 /**

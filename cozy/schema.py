@@ -259,6 +259,19 @@ def _drop_lorebook_notice_dismissed(conn):
         conn.execute('ALTER TABLE chats DROP COLUMN lorebook_notice_dismissed')
 
 
+def _delete_lorebook_global_overrides(conn):
+    """Remove the retired install-wide lorebook overrides.
+
+    Each book's own Scan depth and each entry's Always include already cover
+    what "Scan depth override" and "Always inject all entries" did, without
+    silently changing every book at once.
+    """
+    conn.execute(
+        'DELETE FROM settings WHERE key IN (?, ?)',
+        ('lorebook_scan_depth_override', 'lorebook_always_inject_all'),
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -276,6 +289,7 @@ MIGRATIONS = (
     (14, 'merge_versioned_stock_prompt_titles', _merge_versioned_stock_prompt_titles),
     (15, 'delete_summary_trigger_interval', _delete_summary_trigger_interval),
     (16, 'drop_lorebook_notice_dismissed', _drop_lorebook_notice_dismissed),
+    (17, 'delete_lorebook_global_overrides', _delete_lorebook_global_overrides),
 )
 
 

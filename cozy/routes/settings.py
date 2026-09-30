@@ -119,8 +119,6 @@ SETTINGS_KEYS = {
     'show_context_token_meter',
     'show_advanced_configuration',
     'context_max_tokens',
-    'lorebook_scan_depth_override',
-    'lorebook_always_inject_all',
     'extra_request_params',
     # Auto Summaries — configuration (per-chat enablement lives on the chat row)
     'summary_api_endpoint', 'summary_api_key', 'summary_api_model',

@@ -237,6 +237,22 @@ class TestSchemaMigrationLedger:
         ] == _registered_migrations()
         assert 'context_max_messages' not in client.get('/api/settings').get_json()
 
+    def test_lorebook_global_overrides_are_deleted(self, client):
+        with shared.get_db() as conn:
+            conn.execute(
+                "DELETE FROM schema_migrations WHERE name='delete_lorebook_global_overrides'"
+            )
+            conn.executemany(
+                'INSERT INTO settings (key, value) VALUES (?, ?)',
+                [('lorebook_scan_depth_override', '40'), ('lorebook_always_inject_all', '1')],
+            )
+
+        schema.init_db()
+
+        settings = client.get('/api/settings').get_json()
+        assert 'lorebook_scan_depth_override' not in settings
+        assert 'lorebook_always_inject_all' not in settings
+
     def test_unversioned_upgrade_adds_summary_to_legacy_default_prompt(self, stock_prompt):
         with shared.get_db() as conn:
             conn.execute('DROP TABLE schema_migrations')

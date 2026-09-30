@@ -385,10 +385,6 @@ function applySettingsToUI(s) {
     if (el.settingsAdvancedToggle) el.settingsAdvancedToggle.checked = state.showAdvancedConfiguration;
     state.extraRequestParams = s.extra_request_params || '';
     if (el.extraParams) el.extraParams.value = state.extraRequestParams;
-    state.lorebookScanDepthOverride = parseInt(s.lorebook_scan_depth_override || '0', 10) || 0;
-    if (el.lorebookScanOverride) el.lorebookScanOverride.value = String(state.lorebookScanDepthOverride);
-    state.lorebookAlwaysInjectAll = s.lorebook_always_inject_all === '1';
-    if (el.lorebookAlwaysInjectAll) el.lorebookAlwaysInjectAll.checked = state.lorebookAlwaysInjectAll;
     // Auto Summaries config
     state.summaryApiEndpoint = s.summary_api_endpoint || '';
     state.summaryApiKeySet   = s.summary_api_key_set || false;
@@ -408,8 +404,7 @@ function applySettingsToUI(s) {
 // Surfaces hidden unless "Show advanced configuration" is checked in the
 // General tab: the Regex tab (nav item and page), the Prompt template
 // editors + Variables help, the buttons that author a prompt, the Summaries
-// Behavior card, the Extra request parameters card, and the Lorebooks
-// global-overrides card.
+// Behavior card, and the Extra request parameters card.
 //
 // What survives on the Prompt page is what a reader needs: the picker, the
 // description as read-only text, and Import/export — someone handed a prompt
@@ -427,7 +422,6 @@ export function applyAdvancedConfigurationVisibility() {
         + ' #settings-sysprompt-delete,'
         + ' #summary-behavior-card,'
         + ' #extra-params-card,'
-        + ' #lorebook-overrides-card,'
         + ' .settings-nav-item[data-section="regex"]'
     ).forEach(node => { node.hidden = !visible; });
     // The basic-mode hint holds the editor's place while it is hidden.

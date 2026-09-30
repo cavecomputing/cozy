@@ -200,14 +200,6 @@ class TestPerChatLorebookSelection:
         assert target['active_lorebook_id'] is None
 
 
-class TestScanDepthOverrideSetting:
-    def test_setting_persists(self, client):
-        r = client.put('/api/settings', json={'lorebook_scan_depth_override': '40'})
-        assert r.status_code == 200
-        body = r.get_json()
-        assert body['lorebook_scan_depth_override'] == '40'
-
-
 class TestLorebookEdgeCases:
     """The corners flagged in the post-implementation sanity check."""
 

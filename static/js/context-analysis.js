@@ -342,13 +342,7 @@ function assembleMessages(selectedMessages, { summaryText = '' } = {}) {
     const prompt = state.systemPrompts.find(item => item.id === state.activeSystemPromptId);
 
     const activeBook = resolveActiveLorebook(state.activeChat, character, state.lorebooks);
-    const override = parseInt(state.lorebookScanDepthOverride, 10) || 0;
-    const bookForResolver = activeBook && override > 0
-        ? { ...activeBook, scan_depth: override }
-        : activeBook;
-    const lorebookContents = resolveLorebookEntries(bookForResolver, selectedMessages, {
-        alwaysInjectAll: state.lorebookAlwaysInjectAll,
-    });
+    const lorebookContents = resolveLorebookEntries(activeBook, selectedMessages);
     const lorebookText = lorebookContents.join('\n---\n');
 
     const context = makeTemplateContext(character, persona, lorebookText, summaryText);

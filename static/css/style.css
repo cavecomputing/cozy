@@ -5521,7 +5521,7 @@ input[type="checkbox"]:checked::after {
 /* Live only mid-run, so it should read as the one actionable control while busy. */
 .summary-cancel-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 
-/* Settings panel — global controls plus a responsive lorebook workspace */
+/* Settings panel — responsive lorebook workspace */
 .lorebook-section-body {
     display: flex;
     flex-direction: column;
@@ -5546,15 +5546,6 @@ input[type="checkbox"]:checked::after {
     letter-spacing: 0;
     margin-left: 0.3rem;
     text-transform: none;
-}
-
-.lorebook-card--global .settings-row {
-    padding-inline: 0;
-}
-
-.lorebook-card--global .settings-row--inline .form-input {
-    flex: 0 0 7rem;
-    width: 7rem;
 }
 
 .lorebook-card--workspace {
@@ -6063,7 +6054,6 @@ input[type="checkbox"]:checked::after {
 .settings-page-header p { max-width: 65ch; font-size: var(--text-md); line-height: 1.4; margin-top: var(--space-1); }
 .settings-section-body { padding: var(--space-2) var(--page-gutter) var(--space-5); gap: var(--space-4); }
 .settings-section-body { max-width: none; }
-#lorebook-overrides-card { max-width: none; }
 .settings-card,
 .lorebook-card { background: var(--surface-card); border-color: var(--line-soft); border-radius: var(--radius); padding: var(--space-4); min-width: 0; }
 .settings-card-header { margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0; padding: var(--space-3) var(--space-4); border-color: var(--line-soft); }
