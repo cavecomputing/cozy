@@ -1690,6 +1690,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 
 
 /* ── Chat flyout popover ─────────────────────────────────────────────────── */
+/* Floats over the chat, so it takes the lifted shadow rather than the card's. */
 .chat-flyout {
     position: absolute;
     /* 100% is #input-wrapper's padding box, so add its top border to reach the
@@ -1702,6 +1703,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
     z-index: 50;
     max-height: 240px;
     display: flex;
@@ -1713,8 +1715,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     display: none !important;
 }
 
-/* chat-flyout-header reuses .memory-card-header (accent icon + bold label +
-   full-width bottom border); the label flexes so the action buttons stay
+/* chat-flyout-header reuses .memory-card-header (section icon + eyebrow +
+   full-width hairline); the label flexes so the action buttons stay
    right-aligned. */
 .chat-flyout-header .section-label {
     flex: 1;
@@ -1728,6 +1730,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 
 .chat-flyout .chat-item {
     margin-bottom: 1px;
+    border-radius: var(--radius-control);
     font-size: var(--text-md);
     white-space: nowrap;
 }
@@ -1749,12 +1752,14 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     max-width: min(36vw, 28rem);
 }
 
+/* Ghost icon buttons: bare at rest, lit (quiet fill + hairline) when open. */
 .composer-context-btn {
     flex: 0 0 auto;
     max-width: none;
     gap: 0;
     padding: 0.5rem;
     border: 1px solid transparent;
+    border-radius: var(--radius-control);
     color: var(--text-secondary);
 }
 
@@ -1788,14 +1793,15 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin-left: auto;
     margin-right: auto;
     position: relative;
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
+    /* A raised card resting on the shell, like a character message. */
+    background-color: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-card);
     pointer-events: auto;
     /* Must beat .context-meter-segment's z-index: 1. The meter is not a stacking
        context, so its segments compete here directly, and the meter follows the
@@ -1807,10 +1813,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 #input-wrapper:focus-within {
-    border-color: color-mix(in srgb, var(--accent-color) 46%, var(--border-color));
+    border-color: color-mix(in srgb, var(--accent-color) 24%, var(--line));
     box-shadow:
-        var(--shadow-md),
-        0 0 0 2px color-mix(in srgb, var(--accent-color) 14%, transparent);
+        var(--shadow-card),
+        0 0 0 3px color-mix(in srgb, var(--accent-color) 12%, transparent);
 }
 
 .slash-command-menu {
@@ -1834,12 +1840,13 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .slash-command-item {
     width: 100%;
     border: 0;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     background: none;
     color: var(--text-color);
     cursor: pointer;
     display: grid;
     grid-template-columns: 5rem 1fr;
+    align-items: baseline;   /* the mono name and sans description share a line */
     gap: 0.6rem;
     padding: 0.45rem 0.55rem;
     text-align: left;
@@ -1860,6 +1867,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 
 .slash-command-name {
     color: var(--accent-color);
+    font-family: var(--font-mono);
     font-weight: 600;
 }
 
@@ -1882,12 +1890,12 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     resize: none;
     min-height: 24px;
     max-height: 200px;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 #user-input::placeholder {
-    color: var(--text-secondary);
-    opacity: 1;   /* Firefox dims placeholders by default; --text-secondary is already the quiet tier. */
+    color: var(--fg-quiet);
+    opacity: 1;   /* Firefox dims placeholders by default; --fg-quiet is already the quiet tier. */
     /* The textarea starts one row tall, so a placeholder that wraps has its
        second line cut in half. Truncate instead — a long character name can
        still outrun the box on a phone even without the slash hint. */
@@ -1911,7 +1919,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin: 0 auto var(--composer-meter-gap);
     padding: 0;
     color: var(--text-secondary);
-    font-size: var(--text-sm);
+    font-family: var(--font-mono);   /* the label is a token count */
+    font-size: var(--text-xs);
     line-height: 1;
 }
 
@@ -1925,14 +1934,15 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     height: 8px;
     overflow: hidden;
     border-radius: var(--radius-pill);
-    background-color: var(--border-color);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-color) 12%, transparent);
+    background-color: var(--surface-quiet);
 }
 
+/* The gap lets the track show through as a hairline between segments. */
 .context-token-meter-segments {
     position: absolute;
     inset: 0;
     display: flex;
+    gap: 1px;
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -1948,13 +1958,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex: 0 1 auto;
     padding: 0;
     border: 0;
-    border-right: 1px solid color-mix(in srgb, var(--bg-color) 46%, transparent);
     border-radius: 0;
     cursor: help;
     transition: filter var(--motion-fast) ease, opacity var(--motion-fast) ease;
 }
 
-.context-meter-segment:last-child { border-right: 0; }
 /* Message history doubles as a jump-to-context-window button. */
 .context-meter-segment--jump { cursor: pointer; }
 .context-meter-segment:hover,
@@ -1999,32 +2007,54 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     color: var(--danger-color, #c94a4a);
 }
 
+/* The primary button as an icon: accent fill on the card shadow, brightening
+   and lifting under the pointer like .btn-primary. */
 #send-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
+    background-color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    color: var(--btn-primary-color, white);
+    box-shadow: var(--shadow-card);
     cursor: pointer;
-    padding: 6px;
+    padding: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius);
-    transition: background-color var(--motion-base), color var(--motion-base), opacity var(--motion-base);
+    border-radius: var(--radius-control);
+    transition: background-color var(--motion-base), border-color var(--motion-base), color var(--motion-base),
+                opacity var(--motion-base), transform var(--motion-base), box-shadow var(--motion-base),
+                filter var(--motion-base);
     flex-shrink: 0;
 }
 
-#send-btn:hover {
-    color: var(--accent-color);
+@media (hover: hover) {
+    #send-btn:hover:not(:disabled) {
+        filter: brightness(1.08);
+        box-shadow: var(--shadow-lift);
+        transform: translateY(-1px);
+    }
+
+    /* The shared disabled hover near .icon-btn blanks the fill; a disabled send
+       keeps the same face as at rest, dimmed by the shared disabled state. */
+    #send-btn:disabled:hover {
+        background-color: var(--accent-color);
+        color: var(--btn-primary-color, white);
+    }
 }
 
+/* Stop reads as danger, outlined like .btn-danger, so the swap from the
+   accent-filled send is unmistakable mid-stream. */
 #send-btn.stop-mode {
+    background-color: transparent;
+    border-color: var(--danger-color);
     color: var(--danger-color);
+    box-shadow: none;
 }
 
 @media (hover: hover) {
     #send-btn.stop-mode:hover {
-        color: var(--danger-color);
-        background-color: var(--danger-bg-hover);
+        filter: none;
+        background-color: var(--danger-color);
+        color: var(--btn-danger-hover-color, white);
     }
 }
 
@@ -5170,42 +5200,23 @@ input[type="checkbox"]:checked::after {
         max-width: calc(100vw - 3rem);
     }
 
+    /* An edge-to-edge bar on the shell's own surface, set off by a hairline. */
     #input-container {
         padding: 0.45rem var(--mobile-inline-padding) calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
         border-top: 1px solid var(--border-color);
-        background-color: var(--app-bg);
+        background-color: var(--bg-color);
     }
 
     #input-wrapper {
         min-height: 52px;
         padding: 0.25rem 0.35rem;
         gap: 0.2rem;
-        border-radius: var(--radius);
     }
 
     .composer-context-controls {
         flex: 0 0 auto;
         max-width: none;
         gap: 0.1rem;
-    }
-
-    .composer-context-btn {
-        flex: 0 0 auto;
-        max-width: none;
-        gap: 0;
-        padding: 0.6rem;
-        border-color: transparent;
-        background: none;
-    }
-
-    .composer-context-btn[aria-expanded="true"] {
-        border-color: transparent;
-    }
-
-    @media (hover: hover) {
-        .composer-context-btn:hover {
-            border-color: transparent;
-        }
     }
 
     #user-input {
@@ -5248,7 +5259,6 @@ input[type="checkbox"]:checked::after {
     }
 
     .context-token-meter {
-        font-size: var(--text-xs);
         gap: 0.4rem;
     }
 
@@ -5279,7 +5289,6 @@ input[type="checkbox"]:checked::after {
         border-radius: var(--radius) var(--radius) 0 0;
         border-bottom: none;
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
-        box-shadow: var(--shadow-md);
         z-index: 320;
         animation: sheetUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -5402,6 +5411,7 @@ input[type="checkbox"]:checked::after {
 .lorebook-flyout-select {
     font-size: var(--text-lg);
 }
+/* A full-width ghost button, as .btn-secondary draws one. */
 .lorebook-flyout-manage {
     display: flex;
     align-items: center;
@@ -5410,22 +5420,28 @@ input[type="checkbox"]:checked::after {
     width: 100%;
     margin-top: 0.5rem;
     padding: 0.55rem 0.75rem;
-    background: none;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    color: var(--accent-color);
+    background-color: var(--surface-quiet);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    color: var(--fg);
     font-size: var(--text-md);
-    font-family: inherit;
+    font-family: var(--font-mono);
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color var(--motion-base) ease;
+    transition: border-color var(--motion-base) ease, transform var(--motion-base) ease;
 }
 .lorebook-flyout-manage svg { width: 15px; height: 15px; }
-@media (hover: hover) { .lorebook-flyout-manage:hover { background-color: var(--hover-bg); } }
+@media (hover: hover) {
+    .lorebook-flyout-manage:hover {
+        border-color: var(--fg-quiet);
+        transform: translateY(-1px);
+    }
+}
 
 #memory-flyout-btn { flex-shrink: 0; }
 
-/* Memory flyout — one panel with icon-headed sections (Author's Note +
-   active lorebook), separated by full-width dividers. No nested cards. */
+/* Memory flyout — one panel with icon-headed sections (Author's Note, active
+   lorebook, Auto Summary), separated by full-width dividers. No nested cards. */
 .memory-flyout {
     left: -1px;
     min-width: 300px;
@@ -5446,24 +5462,21 @@ input[type="checkbox"]:checked::after {
     padding: 0.6rem 0.85rem;
     border-bottom: 1px solid var(--border-color);
 }
+/* The label is a plain .section-label eyebrow. The icon beside it takes the
+   success hue, as the design system's section icons take its green, so icon
+   and label don't merge into one yellow mark. */
 .memory-card-icon {
     display: inline-flex;
     flex-shrink: 0;
-    color: var(--accent-color);
+    color: var(--status-success);
 }
 .memory-card-icon svg {
-    width: 17px;
-    height: 17px;
-}
-.memory-card-header .section-label {
-    color: var(--text-color);
-    font-weight: 700;
-    font-size: var(--text-sm);
-    letter-spacing: 0.06em;
+    width: 16px;
+    height: 16px;
 }
 /* Action buttons must not be what sets the row height, or the Chats and Auto
-   Summary headers stand 15px taller than the plain Author's Note one. The
-   negative block margin lets a 24px hit target sit inside the label's 18px row,
+   Summary headers stand taller than the plain Author's Note one. The negative
+   block margin lets a 24px hit target sit inside the 16px row the icon sets,
    eating into the header's own padding instead of adding to it. */
 .memory-card-header .icon-btn {
     width: 24px;
@@ -5516,10 +5529,10 @@ input[type="checkbox"]:checked::after {
     font-size: var(--text-lg);
 }
 .memory-authornote-counter {
-    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
     color: var(--text-secondary);
     text-align: right;
-    font-variant-numeric: tabular-nums;
 }
 .memory-authornote-hint {
     margin: 0;
@@ -5529,8 +5542,9 @@ input[type="checkbox"]:checked::after {
 }
 .memory-authornote-hint code {
     padding: 0.05rem 0.25rem;
-    border-radius: var(--radius);
-    background: var(--active-bg);
+    border-radius: var(--radius-control);
+    background: var(--surface-quiet);
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
 }
 
@@ -5538,8 +5552,10 @@ input[type="checkbox"]:checked::after {
 .memory-card-header input[type="checkbox"] {
     margin-left: 0.35rem;
 }
+/* A readout (counts, tokens, run state), so it sets in mono. */
 .summary-status {
-    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
     color: var(--text-secondary);
     line-height: 1.35;
     margin-bottom: 0.5rem;
@@ -5566,7 +5582,7 @@ input[type="checkbox"]:checked::after {
     background: none;
     border: none;
     padding: 0;
-    color: var(--accent-color);
+    color: var(--fg-cool);
     font: inherit;
     cursor: pointer;
     text-decoration: underline;
@@ -5579,12 +5595,14 @@ input[type="checkbox"]:checked::after {
     overflow-y: auto;
     margin-bottom: 0.6rem;
 }
+/* A muted mono label over its group, quieter than the header's eyebrow. */
 .summary-group-label {
+    font-family: var(--font-mono);
     font-size: var(--text-2xs);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.16em;
     color: var(--text-secondary);
-    font-weight: 600;
+    font-weight: 700;
     margin: 0.4rem 0 0.15rem;
 }
 .summary-group-label:first-child { margin-top: 0; }
@@ -5593,7 +5611,7 @@ input[type="checkbox"]:checked::after {
     align-items: baseline;
     gap: 0.4rem;
     padding: 0.2rem 0.15rem;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
 }
 .summary-line-text {
     font-size: var(--text-md);
@@ -5604,6 +5622,7 @@ input[type="checkbox"]:checked::after {
 /* Which messages one story entry covers. Quiet by design — provenance, not content. */
 .summary-line-range {
     flex: none;
+    font-family: var(--font-mono);
     font-size: var(--text-2xs);
     color: var(--text-secondary);
     white-space: nowrap;
