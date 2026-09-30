@@ -61,7 +61,7 @@
     --backdrop-bg:    rgba(0, 0, 0, 0.35);
 
     /* User-message bubble */
-    --user-msg-bg:              var(--accent-color);
+    --user-msg-bg:              var(--accent-text);   /* the raw lime is too pale under white text */
     --user-msg-color:           white;
     --user-msg-name-color:      rgba(255, 255, 255, 0.85);
     --user-action-color:        rgba(255, 255, 255, 0.9);

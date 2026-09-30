@@ -65,7 +65,7 @@
 
     /* User-message RP overrides */
     --user-dialogue-color:      #b8d4a0;
-    --user-em-color:            rgba(214, 153, 182, 0.9);
+    --user-em-color:            #f0c8da;
     --user-em-shadow:           0 0 8px rgba(214, 153, 182, 0.3);
     --user-strong-color:        #dbbc7f;
     --user-intense-color:       #e69875;
