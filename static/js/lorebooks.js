@@ -340,85 +340,93 @@ export async function newLorebook() {
     }
 }
 
-async function saveStandalone(book) {
-    const updated = await API.updateLorebook(editing.id, { name: book.name, book });
+async function saveStandalone(target, book) {
+    const updated = await API.updateLorebook(target.id, { name: book.name, book });
     await loadLorebooks();
-    editing.original = updated.book;
+    target.original = updated.book;
     return updated;
 }
 
-async function saveEmbedded(book) {
+async function saveEmbedded(target, book) {
     // Persist via the character update path, then refresh the in-memory char.
-    const updated = await API.updateCharacter(editing.id, { character_book: book });
-    const idx = state.characters.findIndex(c => c.id === editing.id);
+    const updated = await API.updateCharacter(target.id, { character_book: book });
+    const idx = state.characters.findIndex(c => c.id === target.id);
     if (idx >= 0) state.characters[idx] = updated;
-    if (state.activeCharacter?.id === editing.id) state.activeCharacter = updated;
-    editing.original = book;
+    if (state.activeCharacter?.id === target.id) state.activeCharacter = updated;
+    target.original = book;
     return updated;
 }
 
 export async function saveLorebook() {
-    if (!editing) return;
+    // Another book can be opened while the requests are out, so the save works
+    // on the book it started from and touches the editor only if that is
+    // still the one open.
+    const target = editing;
+    if (!target) return;
     const book = readEditor();
     if (!book.name) {
         showToast('Name is required');
         return;
     }
     // Destination conversion: if the user changed the dropdown, route
-    // accordingly and update `editing` in place.
+    // accordingly and note where the book lives afterwards.
     const dest = el.lorebookDestination?.value || 'standalone';
-    const isStandalone = editing.kind === 'standalone';
+    const isStandalone = target.kind === 'standalone';
     const wantsStandalone = dest === 'standalone';
     const wantsEmbeddedCharId = dest.startsWith('embedded:') ? parseInt(dest.slice(9), 10) : null;
     // What is being sent, so typing that lands while the request is out
     // still counts as unsaved.
     const sent = editorForm();
     const sentRows = [...el.lorebookEntries.querySelectorAll('.lorebook-entry')];
+    let saved = target;
 
     try {
         if (isStandalone && wantsStandalone) {
-            await saveStandalone(book);
-        } else if (!isStandalone && wantsEmbeddedCharId === editing.id) {
-            await saveEmbedded(book);
+            await saveStandalone(target, book);
+        } else if (!isStandalone && wantsEmbeddedCharId === target.id) {
+            await saveEmbedded(target, book);
         } else if (isStandalone && wantsEmbeddedCharId != null) {
             // Move standalone → embedded in the chosen character, then drop the row.
-            await API.embedLorebookInCharacter(editing.id, wantsEmbeddedCharId, true);
+            await API.embedLorebookInCharacter(target.id, wantsEmbeddedCharId, true);
             // Re-write entries from the editor (embed-in-character used the *saved* JSON).
             await API.updateCharacter(wantsEmbeddedCharId, { character_book: book });
             const charRefreshed = state.characters.find(c => c.id === wantsEmbeddedCharId);
             if (charRefreshed) charRefreshed.character_book = book;
             await loadLorebooks();
-            editing = { kind: 'embedded', id: wantsEmbeddedCharId, original: book };
+            saved = { kind: 'embedded', id: wantsEmbeddedCharId, original: book };
         } else if (!isStandalone && wantsStandalone) {
             // Move embedded → new standalone DB row, then clear the embedded one.
-            const char = state.characters.find(c => c.id === editing.id);
+            const char = state.characters.find(c => c.id === target.id);
             const created = await API.createLorebook({ name: book.name, book });
-            await API.updateCharacter(editing.id, { character_book: null });
+            await API.updateCharacter(target.id, { character_book: null });
             if (char) char.character_book = null;
             await loadLorebooks();
-            editing = { kind: 'standalone', id: created.id, original: book };
-        } else if (!isStandalone && wantsEmbeddedCharId !== editing.id && wantsEmbeddedCharId != null) {
+            saved = { kind: 'standalone', id: created.id, original: book };
+        } else if (!isStandalone && wantsEmbeddedCharId !== target.id && wantsEmbeddedCharId != null) {
             // Move from one character's card to another's.
             await API.updateCharacter(wantsEmbeddedCharId, { character_book: book });
-            await API.updateCharacter(editing.id, { character_book: null });
-            const fromChar = state.characters.find(c => c.id === editing.id);
+            await API.updateCharacter(target.id, { character_book: null });
+            const fromChar = state.characters.find(c => c.id === target.id);
             const toChar = state.characters.find(c => c.id === wantsEmbeddedCharId);
             if (fromChar) fromChar.character_book = null;
             if (toChar) toChar.character_book = book;
-            editing = { kind: 'embedded', id: wantsEmbeddedCharId, original: book };
+            saved = { kind: 'embedded', id: wantsEmbeddedCharId, original: book };
         }
-        // editing.original now holds the entries in the order they were sent, so
-        // each sent row maps onto its own position rather than the book as loaded.
-        // A row added since keeps -1; one deleted since is detached.
-        sentRows.forEach((row, i) => {
-            row.dataset.origIndex = String(i);
-        });
         showToast('Saved', 'success');
+        if (editing === target) {
+            editing = saved;
+            // editing.original now holds the entries in the order they were sent, so
+            // each sent row maps onto its own position rather than the book as loaded.
+            // A row added since keeps -1; one deleted since is detached.
+            sentRows.forEach((row, i) => {
+                row.dataset.origIndex = String(i);
+            });
+            fillDestinationOptions();
+            savedForm = sent;
+        }
         renderLorebookList();
         renderLorebookFlyout();
         updateComposerState();
-        fillDestinationOptions();
-        savedForm = sent;
         updateContextViews();
     } catch (e) {
         showToast('Save failed: ' + e.message);
