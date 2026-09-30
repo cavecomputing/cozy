@@ -63,9 +63,10 @@
     --user-msg-bg:              var(--accent-color);
     --user-msg-color:           white;
     --user-msg-name-color:      rgba(255, 255, 255, 0.85);
-    --user-action-color:        rgba(255, 255, 255, 0.5);
+    --user-action-color:        rgba(255, 255, 255, 0.9);
     --user-action-hover-bg:     rgba(255, 255, 255, 0.15);
     --user-action-hover-color:  white;
+    --user-focus-color:         white;   /* the accent ring can't show on an accent bubble */
 
     /* User-message RP overrides (colors on accent bubbles) */
     --user-dialogue-color:      rgba(255, 255, 255, 0.92);

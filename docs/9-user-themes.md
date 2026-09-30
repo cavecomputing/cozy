@@ -111,6 +111,8 @@ palette doesn't need them. Declare them when your palette does:
 - `--shell-shadow`, `--card-shadow`, `--lift-shadow`: the shadows under the
   app's outer frame, under cards, and under a lifted button. The defaults suit
   a dark palette; light themes soften them.
+- `--user-focus-color`: the focus ring inside a user message, for themes whose
+  user bubble is filled with the accent.
 
 Theme files are intended to override CSS variables. Direct component selectors
 may break when Cozy's interface changes.
