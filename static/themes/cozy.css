@@ -25,15 +25,15 @@
     /* Accent (yellow). Labels, active rows, focus and the primary button. */
     --accent-color:   #fabd2f;
     --accent-hover:   #fcca56;
-    --danger-color:   #fb4934;
-    --danger-bg-hover: rgba(251, 73, 52, 0.14);
+    --danger-color:   #fe8019;   /* orange — the palette has no red that reads on its raised surfaces */
+    --danger-bg-hover: rgba(254, 128, 25, 0.14);
     --success-color:  #8ec07c;
+    --cool-color:     #83a598;   /* blue — links, addresses, references */
 
     /* Elevation — the lifted shadow, for surfaces that genuinely float
        (flyouts, menus, toasts). */
     --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
     --accent-edit-bg:     rgba(250, 189, 47, 0.08);
-    --accent-border-light: rgba(250, 189, 47, 0.36);
     --input-shadow:       none;
     --input-focus-shadow: 0 0 0 3px rgba(250, 189, 47, 0.12);
 
@@ -50,7 +50,6 @@
     --rp-intense-color:   #fe8019;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  none;
     --rp-strike-opacity:  0.5;
-    --rp-hr-opacity:      0.3;
     --img-max-width:      100%;
     --code-bg:            #282828;
     --code-border:        #3c3836;
@@ -74,9 +73,6 @@
     --overlay-color:  #ebdbb2;
     --backdrop-bg:    rgba(17, 18, 19, 0.6);
 
-    /* Toasts */
-    --toast-color:    #1d2021;
-
     /* Context token meter — one Gruvbox hue per source. */
     --meter-system-prompt:    #fabd2f;
     --meter-character-card:   #d3869b;
@@ -98,7 +94,6 @@
     --user-msg-bg:              transparent;
     --user-msg-border:          #3c3836;
     --user-msg-color:           #ebdbb2;
-    --user-msg-divider:         #3c3836;
     --user-msg-name-color:      #ebdbb2;
     --user-action-color:        #a89984;
     --user-action-hover-bg:     #3c3836;
@@ -116,7 +111,7 @@
     --user-strike-opacity:      0.55;
     --user-strike-color:        #a89984;
     --user-blockquote-border:   #3c3836;
-    --user-blockquote-bg:       #32302f;
+    --user-blockquote-bg:       #1d2021;
     --user-blockquote-color:    #ebdbb2;
     --user-code-bg:             #282828;
     --user-code-color:          #83a598;

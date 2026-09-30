@@ -24,7 +24,6 @@
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.5);
     --accent-edit-bg:     rgba(215, 153, 33, 0.1);
-    --accent-border-light: rgba(215, 153, 33, 0.3);
     --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.3);
     --input-focus-shadow: 0 0 0 2px rgba(215, 153, 33, 0.25);
 
@@ -38,7 +37,6 @@
     --rp-intense-color:   #fe8019;   /* gruvbox orange — bold+italic intense */
     --rp-intense-shadow:  0 0 6px rgba(254, 128, 25, 0.25);
     --rp-strike-opacity:  0.5;
-    --rp-hr-opacity:      0.3;
     --img-max-width:      100%;
     --code-bg:            rgba(80, 73, 69, 0.5);
     --code-border:        rgba(80, 73, 69, 0.65);
@@ -57,13 +55,9 @@
     --overlay-color:  #ebdbb2;
     --backdrop-bg:    rgba(0, 0, 0, 0.5);
 
-    /* Toasts */
-    --toast-color:    #282828;
-
     /* User-message bubble (warm dark brown) */
     --user-msg-bg:              #4a3a20;
     --user-msg-color:           #ebdbb2;
-    --user-msg-divider:         rgba(235, 219, 178, 0.2);
     --user-msg-name-color:      rgba(235, 219, 178, 0.85);
     --user-action-color:        rgba(235, 219, 178, 0.5);
     --user-action-hover-bg:     rgba(235, 219, 178, 0.15);

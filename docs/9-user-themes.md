@@ -96,9 +96,21 @@ The complete current variable list is in
   `--meter-response-reserve`, `--meter-unused`)
 
 The meter needs nine colors that stay distinguishable from each other, more
-than a palette usually carries, so no built-in theme declares them and every
-theme falls back to a shared default set tuned for the dark signature theme.
-Declare them to retune the meter for a lighter or quieter palette.
+than a palette usually carries. The signature `cozy` theme declares its own
+set; every other built-in theme falls back to a shared default set tuned for a
+dark palette. Declare them to retune the meter for a lighter or quieter palette.
+
+A few more variables are optional hooks that `cozy.css` leaves out because its
+palette doesn't need them. Declare them when your palette does:
+
+- `--accent-text`: the accent as used for text (section labels, active rows,
+  focus rings). Set it to a deeper or lighter step of the accent when the
+  accent itself is too pale or too dark to read on your surfaces.
+- `--cool-color`: the hue for links, references and code. Without it Cozy
+  derives one from `--rp-action-color`.
+- `--shell-shadow`, `--card-shadow`, `--lift-shadow`: the shadows under the
+  app's outer frame, under cards, and under a lifted button. The defaults suit
+  a dark palette; light themes soften them.
 
 Theme files are intended to override CSS variables. Direct component selectors
 may break when Cozy's interface changes.
