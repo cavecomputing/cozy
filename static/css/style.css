@@ -321,26 +321,20 @@ select.settings-select:focus-visible {
 .panel-header .panel-title {
     flex: 1;
     text-align: center;
-    letter-spacing: 0.1em;
     line-height: 1.2;
 }
 
-/* Sidebar header: equal-width side zones keep the "Characters" title truly
-   centered in the header regardless of which side buttons are visible. The
-   title sizes to its content and sits between the two flexible zones. */
+/* Sidebar header: the "Characters" eyebrow reads from the left, lined up with
+   its hairline and the character cards under it, and takes the room between
+   the side zones — each zone only as wide as the buttons shown at this width. */
 .sidebar-header-side {
     display: flex;
     align-items: center;
-    flex: 1 1 0;
-    min-width: 0;
-}
-.sidebar-header-side--right {
-    justify-content: flex-end;
 }
 /* Uppercase text has no descenders, so a centred line box leaves it sitting
    about a pixel high next to the "+" button's symmetric glyph. Nudge it back. */
 .sidebar-header .panel-title {
-    flex: 0 0 auto;
+    text-align: left;
     transform: translateY(1px);
 }
 
@@ -358,6 +352,10 @@ select.settings-select:focus-visible {
     height: 1px;
     background-color: var(--border-color);
     margin: 0 1rem;
+}
+
+#sidebar > .panel-divider {
+    margin: 0 0.5rem;
 }
 
 #new-char-btn {
@@ -381,32 +379,40 @@ select.settings-select:focus-visible {
     margin-bottom: 1.5rem;
 }
 
+/* Names are mono, like every name in the app chrome. The border is there at
+   rest, transparent, so the active card's border doesn't nudge the row. */
 .char-item {
     position: relative;
     display: flex;
     align-items: center;
     gap: 0.25rem;
     padding: 0;
+    border: 1px solid transparent;
     border-radius: var(--radius);
     margin-bottom: 0.25rem;
-    transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease;
-    color: var(--text-secondary);
-    font-size: var(--text-xl);
+    transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease,
+                border-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
+    color: var(--fg-quiet);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
     font-weight: 500;
     min-width: 0;
 }
 
 @media (hover: hover) {
     .char-item:hover {
-        background-color: var(--hover-bg);
-        color: var(--text-color);
+        background-color: var(--surface-quiet);
+        color: var(--fg);
     }
 }
 
+/* The character on screen stands forward as a raised card. */
 .char-item.active {
-    background-color: var(--active-bg);
-    color: var(--accent-color);
-    font-weight: 600;
+    background-color: var(--surface-raised);
+    border-color: var(--line);
+    box-shadow: var(--shadow-card);
+    color: var(--fg);
+    font-weight: 700;
 }
 
 .char-item.missing {
@@ -432,6 +438,10 @@ select.settings-select:focus-visible {
     cursor: pointer;
     font: inherit;
     text-align: left;
+}
+
+.char-select-btn .avatar {
+    border: 1px solid var(--line);
 }
 
 /* A character row is disabled because its PNG is missing, and .char-item.missing
@@ -468,8 +478,8 @@ select.settings-select:focus-visible {
 /* While a row's menu is open the row keeps its hover look and its ⋯ stays
    pressed, so the menu still reads as that row's with the pointer on it. */
 .char-item:not(.active):has(.char-menu-btn[aria-expanded="true"]) {
-    background-color: var(--hover-bg);
-    color: var(--text-color);
+    background-color: var(--surface-quiet);
+    color: var(--fg);
 }
 
 .char-item-actions .char-menu-btn[aria-expanded="true"] {
@@ -511,7 +521,8 @@ select.settings-select:focus-visible {
 }
 
 /* "Archived (N)": heads the archived rows and folds them away. Typography
-   comes from .section-label. */
+   comes from .section-label; the hairline under it is the eyebrow's, as under
+   "Characters". */
 .char-archived-btn {
     display: flex;
     align-items: center;
@@ -520,9 +531,9 @@ select.settings-select:focus-visible {
     margin: 0.5rem 0 0.25rem;
     padding: 0.45rem 0.75rem;
     border: 0;
-    border-radius: var(--radius);
+    border-bottom: 1px solid var(--line);
+    border-radius: var(--radius-control) var(--radius-control) 0 0;
     background: none;
-    font-family: inherit;
     text-align: left;
     cursor: pointer;
 }
@@ -582,9 +593,9 @@ select.settings-select:focus-visible {
     align-items: center;
     gap: 0;
     padding: 0;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     font-size: var(--text-lg);
-    color: var(--text-secondary);
+    color: var(--fg);
     margin-bottom: 0.25rem;
     position: relative;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
@@ -593,18 +604,14 @@ select.settings-select:focus-visible {
 
 @media (hover: hover) {
     .chat-item:hover {
-        background-color: var(--hover-bg);
-        color: var(--text-color);
+        background-color: var(--surface-quiet);
     }
 }
 
 .chat-item.active {
-    background-color: var(--active-bg);
-    color: var(--accent-color);
-}
-
-.chat-item.active .chat-prefix {
-    color: var(--accent-color);
+    background-color: var(--surface-selected);
+    color: var(--fg-accent);
+    font-weight: 600;
 }
 
 .chat-select-btn {
@@ -615,7 +622,7 @@ select.settings-select:focus-visible {
     min-width: 0;
     padding: 0.5rem 0.4rem 0.5rem 0.75rem;
     border: 0;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     background: none;
     color: inherit;
     cursor: pointer;
@@ -623,9 +630,13 @@ select.settings-select:focus-visible {
     text-align: left;
 }
 
+/* The "#" is meta, mono and muted, as the mockup's row meta is — on the
+   active row too, so only the name takes the accent. */
 .chat-prefix {
-    color: var(--text-secondary);
+    color: var(--fg-quiet);
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
+    font-weight: 400;
     line-height: inherit;
     flex-shrink: 0;
 }
@@ -639,7 +650,8 @@ select.settings-select:focus-visible {
     white-space: nowrap;
 }
 
-/* Inline rename input — blends into the list item */
+/* Inline rename input — blends into the list item. The left padding clears
+   the mono "#" (0.6em of --text-sm) and the gap after it. */
 .chat-rename-input {
     flex: 1;
     min-width: 0;
@@ -648,9 +660,8 @@ select.settings-select:focus-visible {
     border-bottom: 1px solid var(--accent-color);
     outline: none;
     color: var(--text-color);
-    font-family: inherit;
-    font-size: var(--text-lg);
-    padding: 0.5rem 0.4rem 0.5rem 1.3rem;
+    font: inherit;
+    padding: 0.5rem 0.4rem 0.5rem 1.1rem;
     margin: 0 0 0 0.45rem;
     cursor: text;
 }
@@ -676,7 +687,7 @@ select.settings-select:focus-visible {
 .chat-item-actions .icon-btn,
 .char-item-actions .icon-btn {
     padding: 3px;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
 }
 
 .chat-item-actions .icon-btn {
@@ -699,15 +710,17 @@ select.settings-select:focus-visible {
     }
 }
 
+/* A rounded square, not a circle; initials are mono. */
 .avatar {
     width: 30px;
     height: 30px;
     background-color: var(--accent-color);
-    border-radius: 50%;
+    border-radius: var(--radius-control);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
+    font-family: var(--font-mono);
+    font-weight: 700;
     font-size: var(--text-sm);
     color: var(--avatar-text-color, white);
     flex-shrink: 0;
@@ -728,15 +741,15 @@ select.settings-select:focus-visible {
     background-color: var(--success-color);
 }
 
-/* User Profile Section — floating card, aligned with input wrapper */
+/* User Profile Section — a raised card at the foot of the rail */
 #user-profile-container {
     position: relative;
-    background-color: var(--bg-color);
+    background-color: var(--surface-raised);
     margin: 0 0.625rem 0.625rem;   /* matches sidebar's own outer margin */
-    padding: 0.2rem;
+    padding: var(--space-2);
     border-radius: var(--radius);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-md);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
     flex-shrink: 0;
 }
 
@@ -745,7 +758,7 @@ select.settings-select:focus-visible {
     align-items: center;
     gap: 0.6rem;
     padding: 0.45rem 0.6rem;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     cursor: pointer;
     transition: background var(--motion-base);
 }
@@ -771,29 +784,39 @@ select.settings-select:focus-visible {
 }
 
 .profile-settings-row {
-    border-top: 1px solid var(--border-color);
-    margin-top: 0.15rem;
-    padding-top: 0.15rem;
+    margin-top: var(--space-2);
 }
 
+/* A small ghost button, as .btn-secondary draws one. Its label wears
+   .section-label, so the eyebrow's caps, tracking and accent are undone here. */
 .profile-settings-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.35rem 0.6rem;
-    border: none;
-    background: none;
-    border-radius: var(--radius);
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--line);
+    background-color: var(--surface-quiet);
+    border-radius: var(--radius-control);
     cursor: pointer;
-    color: var(--text-secondary);
-    transition: background var(--motion-base), color var(--motion-base);
+    color: var(--fg);
+    transition: border-color var(--motion-base), transform var(--motion-base);
+}
+
+.profile-settings-btn .section-label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: normal;
+    text-transform: none;
+    color: inherit;
 }
 
 @media (hover: hover) {
     .profile-settings-btn:hover {
-        background-color: var(--hover-bg);
-        color: var(--text-color);
+        border-color: var(--fg-quiet);
+        transform: translateY(-1px);
     }
 }
 
@@ -899,7 +922,12 @@ select.settings-select:focus-visible {
     }
 }
 
-/* dropup-header now uses .panel-header */
+/* The "Switch Persona" eyebrow reads from the left, over its hairline. */
+#persona-dropup .panel-title {
+    text-align: left;
+    padding-left: 0.25rem;
+}
+
 #persona-list {
     display: flex;
     flex-direction: column;
@@ -912,7 +940,7 @@ select.settings-select:focus-visible {
     align-items: center;
     gap: 0.75rem;
     padding: 0.6rem;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     cursor: pointer;
     font-size: var(--text-xl);
     color: var(--text-color);
@@ -921,7 +949,7 @@ select.settings-select:focus-visible {
 
 @media (hover: hover) {
     .persona-option:hover {
-        background-color: var(--hover-bg);
+        background-color: var(--surface-quiet);
     }
 }
 
@@ -958,7 +986,7 @@ select.settings-select:focus-visible {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     margin: 0.35rem 0.25rem;
-    background-color: var(--hover-bg);
+    background-color: var(--surface-raised);
 }
 
 .persona-inline-form[hidden] {
@@ -1006,7 +1034,7 @@ select.settings-select:focus-visible {
     border-radius: 50%;
     background-color: var(--accent-color);
     color: var(--avatar-text-color, white);
-    border: 1.5px solid var(--hover-bg);
+    border: 1.5px solid var(--surface-raised);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1014,11 +1042,6 @@ select.settings-select:focus-visible {
 }
 
 /* Persona form inputs inherit from .form-input / .form-textarea */
-.persona-inline-form .form-input,
-.persona-inline-form .form-textarea {
-    background-color: var(--bg-color);
-}
-
 .persona-inline-form .form-input {
     flex: 1;
     min-width: 0;
@@ -1052,20 +1075,24 @@ select.settings-select:focus-visible {
     gap: 0.12rem;
 }
 
+/* The DS badge: a mono pill, its star standing in for the dot. Sunken rather
+   than the DS's inset fill, which is the selected row's own colour here. */
 .persona-default-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     width: fit-content;
-    padding: 0.08rem 0.35rem 0.08rem 0.25rem;
+    padding: 0.12rem 0.45rem 0.12rem 0.35rem;
+    border: 1px solid var(--line);
     border-radius: var(--radius-pill);
-    background-color: var(--active-bg);
-    color: var(--accent-color);
+    background-color: var(--surface-sunken);
+    color: var(--fg);
+    font-family: var(--font-mono);
     font-size: var(--text-2xs);
     font-weight: 700;
     line-height: 1;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.1em;
     flex-shrink: 0;
 }
 
@@ -1073,6 +1100,7 @@ select.settings-select:focus-visible {
     width: 11px;
     height: 11px;
     flex-shrink: 0;
+    color: var(--fg-accent);
 }
 
 .persona-name {
