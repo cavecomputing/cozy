@@ -11,11 +11,11 @@
        two read as one. */
     --app-bg:         #1d2021;
     --bg-color:       #282828;
-    --sidebar-bg:     #282828;
+    --sidebar-bg:     var(--bg-color);
     --char-msg-bg:    #32302f;
-    --hover-bg:       #3c3836;
-    --active-bg:      #3c3836;
-    --input-bg:       #1d2021;
+    --hover-bg:       var(--border-color);
+    --active-bg:      var(--hover-bg);
+    --input-bg:       var(--app-bg);
     --border-color:   #3c3836;
 
     /* Typography */
@@ -26,51 +26,47 @@
     --accent-color:   #fabd2f;
     --accent-hover:   #fcca56;
     --danger-color:   #fe8019;   /* orange — the palette has no red that reads on its raised surfaces */
-    --danger-bg-hover: rgba(254, 128, 25, 0.14);
+    --danger-bg-hover: color-mix(in srgb, var(--danger-color) 14%, transparent);
     --success-color:  #8ec07c;
     --cool-color:     #83a598;   /* blue — links, addresses, references */
 
     /* Elevation — the lifted shadow, for surfaces that genuinely float
        (flyouts, menus, toasts). */
     --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
-    --accent-edit-bg:     rgba(250, 189, 47, 0.08);
+    --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
     --input-shadow:       none;
     --input-focus-shadow: 0 0 0 3px rgba(250, 189, 47, 0.12);
 
     /* RP markdown — speech in the body colour, narration muted, emphasis in
        the accent and intense actions in orange. */
-    --rp-dialogue-color:  #ebdbb2;
+    --rp-dialogue-color:  var(--text-color);
     --rp-dialogue-weight: 400;
     --rp-dialogue-shadow: none;
-    --rp-action-color:    #a89984;   /* muted — italics/actions */
-    --rp-emphasis-color:  #fabd2f;   /* yellow — bold/strong emphasis */
-    --rp-quote-color:     #ebdbb2;   /* blockquotes/narration */
-    --rp-quote-bg:        #282828;
-    --rp-ooc-color:       #83a598;   /* blue — code/OOC text */
+    --rp-action-color:    var(--text-secondary);   /* muted — italics/actions */
+    --rp-emphasis-color:  var(--accent-color);   /* yellow — bold/strong emphasis */
+    --rp-quote-color:     var(--text-color);   /* blockquotes/narration */
+    --rp-quote-bg:        var(--bg-color);
+    --rp-ooc-color:       var(--cool-color);   /* blue — code/OOC text */
     --rp-intense-color:   #fe8019;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  none;
     --rp-strike-opacity:  0.5;
     --img-max-width:      100%;
-    --code-bg:            #282828;
-    --code-border:        #3c3836;
-    --pre-bg:             #1d2021;
-    --pre-border:         #3c3836;
+    --code-bg:            var(--bg-color);
+    --code-border:        var(--border-color);
+    --pre-bg:             var(--app-bg);
+    --pre-border:         var(--border-color);
 
     /* Avatars */
-    --avatar-text-color:  #1d2021;
+    --avatar-text-color:  var(--app-bg);
 
     /* Buttons */
-    --btn-primary-color:      #1d2021;
-    --btn-danger-hover-color: #1d2021;
-    --scroll-bottom-bg:       #fabd2f;
-    --scroll-bottom-color:    #1d2021;
-    --scroll-bottom-border:   #fabd2f;
-    --scroll-bottom-hover-bg: #fcca56;
-    --scroll-bottom-shadow:   0 1px 2px rgba(0, 0, 0, 0.30), 0 4px 12px rgba(0, 0, 0, 0.20);
+    --btn-primary-color:      var(--app-bg);
+    --btn-danger-hover-color: var(--app-bg);
+    --scroll-bottom-hover-bg: var(--accent-hover);
 
     /* Overlays & backdrops */
     --overlay-bg:     rgba(17, 18, 19, 0.72);
-    --overlay-color:  #ebdbb2;
+    --overlay-color:  var(--text-color);
     --backdrop-bg:    rgba(17, 18, 19, 0.6);
 
     /* Context token meter — one Gruvbox hue per source. */
@@ -83,7 +79,7 @@
     --meter-message-history:  #83a598;
     --meter-current-draft:    #689d6a;
     --meter-response-reserve: #fe8019;
-    --meter-unused:           #3c3836;
+    --meter-unused:           var(--border-color);
 
     /* The character's name in its message header: rose, the palette's
        character accent. */
@@ -92,35 +88,35 @@
     /* User message — outlined on the shell rather than filled, so the
        character's raised card is the one that stands forward. */
     --user-msg-bg:              transparent;
-    --user-msg-border:          #3c3836;
-    --user-msg-color:           #ebdbb2;
-    --user-msg-name-color:      #ebdbb2;
-    --user-action-color:        #a89984;
-    --user-action-hover-bg:     #3c3836;
-    --user-action-hover-color:  #ebdbb2;
+    --user-msg-border:          var(--border-color);
+    --user-msg-color:           var(--text-color);
+    --user-msg-name-color:      var(--text-color);
+    --user-action-color:        var(--text-secondary);
+    --user-action-hover-bg:     var(--hover-bg);
+    --user-action-hover-color:  var(--text-color);
 
     /* User-message RP overrides */
-    --user-dialogue-color:      #ebdbb2;
+    --user-dialogue-color:      var(--rp-dialogue-color);
     --user-dialogue-weight:     400;
     --user-dialogue-shadow:     none;
-    --user-em-color:            #a89984;
+    --user-em-color:            var(--rp-action-color);
     --user-em-shadow:           none;
-    --user-strong-color:        #fabd2f;
-    --user-intense-color:       #fe8019;
+    --user-strong-color:        var(--rp-emphasis-color);
+    --user-intense-color:       var(--rp-intense-color);
     --user-intense-shadow:      none;
     --user-strike-opacity:      0.55;
-    --user-strike-color:        #a89984;
-    --user-blockquote-border:   #3c3836;
-    --user-blockquote-bg:       #1d2021;
-    --user-blockquote-color:    #ebdbb2;
-    --user-code-bg:             #282828;
-    --user-code-color:          #83a598;
-    --user-code-border:         #3c3836;
-    --user-pre-bg:              #1d2021;
-    --user-pre-border:          #3c3836;
-    --user-heading-color:       #ebdbb2;
-    --user-h1-border:           #3c3836;
+    --user-strike-color:        var(--rp-action-color);
+    --user-blockquote-border:   var(--border-color);
+    --user-blockquote-bg:       var(--app-bg);
+    --user-blockquote-color:    var(--text-color);
+    --user-code-bg:             var(--code-bg);
+    --user-code-color:          var(--rp-ooc-color);
+    --user-code-border:         var(--code-border);
+    --user-pre-bg:              var(--pre-bg);
+    --user-pre-border:          var(--pre-border);
+    --user-heading-color:       var(--text-color);
+    --user-h1-border:           var(--border-color);
     --user-hr-mid-color:        #504945;
-    --user-editable-bg:         rgba(250, 189, 47, 0.06);
-    --editable-bg:              rgba(250, 189, 47, 0.06);
+    --user-editable-bg:         color-mix(in srgb, var(--accent-color) 6%, transparent);
+    --editable-bg:              color-mix(in srgb, var(--accent-color) 6%, transparent);
 }

@@ -22,7 +22,6 @@ Create `data/themes/my-theme.css`:
     --bg-color: #181d27;
     --sidebar-bg: #141923;
     --char-msg-bg: #202736;
-    --user-msg-bg: #384f78;
 
     --text-color: #edf1f7;
     --text-secondary: #9ca8ba;
@@ -34,7 +33,9 @@ Create `data/themes/my-theme.css`:
 ```
 
 The `@import` line loads Cozy's complete variable set. The declarations under
-`:root` replace only the values you want to change.
+`:root` replace only the values you want to change. Most of the rest of
+`cozy.css` (message text, code blocks, the user's message) is written in terms
+of these, so it follows your colours.
 
 The import must be the first rule in the file.
 
@@ -100,8 +101,9 @@ than a palette usually carries. The signature `cozy` theme declares its own
 set; every other built-in theme falls back to a shared default set tuned for a
 dark palette. Declare them to retune the meter for a lighter or quieter palette.
 
-A few more variables are optional hooks that `cozy.css` leaves out because its
-palette doesn't need them. Declare them when your palette does:
+A few more variables are optional hooks. Of these, `cozy.css` sets only
+`--cool-color`, so a theme importing it keeps Cozy's blue until it sets its own.
+Declare the others when your palette needs them:
 
 - `--accent-text`: the accent as used for text (section labels, active rows,
   focus rings). Set it to a deeper or lighter step of the accent when the
