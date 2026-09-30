@@ -43,7 +43,8 @@ The import must be the first rule in the file.
 
 1. Reload Cozy after creating the file.
 2. Open **Settings → General**.
-3. Select `my-theme` under **Theme**.
+3. Select **My Theme** under **Theme**. The picker shows each filename in
+   words, so `my-theme.css` reads as My Theme.
 
 The selection is saved in the current browser. Other browsers and devices keep
 their own selection.
@@ -97,9 +98,10 @@ The complete current variable list is in
   `--meter-response-reserve`, `--meter-unused`)
 
 The meter needs nine colors that stay distinguishable from each other, more
-than a palette usually carries. The signature `cozy` theme declares its own
-set; every other built-in theme falls back to a shared default set tuned for a
-dark palette. Declare them to retune the meter for a lighter or quieter palette.
+than a palette usually carries. The two signature themes, `cozy` and
+`cozy-light`, declare their own sets; every other built-in theme falls back to a
+shared default set tuned for a dark palette. Declare them to retune the meter
+for a lighter or quieter palette.
 
 A few more variables are optional hooks. Of these, `cozy.css` sets only
 `--cool-color`, so a theme importing it keeps Cozy's blue until it sets its own.

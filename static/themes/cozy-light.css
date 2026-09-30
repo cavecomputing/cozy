@@ -1,0 +1,120 @@
+/* Cozy Light — the cavecomputing palette on paper: Gruvbox light surfaces,
+   green for the primary button, a deepened yellow for labels and focus, blue
+   for addresses, orange for warnings. The light half of the design system,
+   laid out like cozy.css so the two stay easy to compare. */
+:root {
+    --radius-md: 10px;
+
+    /* Layout — the page behind the shell, the shell (the paper), raised cards
+       on it, and the inset wells. */
+    --app-bg:         #f9f5d7;
+    --bg-color:       #fbf1c7;
+    --sidebar-bg:     var(--bg-color);
+    --char-msg-bg:    #f2e5bc;
+    --hover-bg:       #ebdbb2;
+    --active-bg:      var(--hover-bg);
+    --input-bg:       var(--app-bg);
+    --border-color:   #e0d3ac;
+
+    /* Typography */
+    --text-color:     #3c3836;
+    --text-secondary: #665c54;
+
+    /* Accent — green fills (the primary button, toggles, sliders); the
+       palette's yellow reads only 3.3:1 on paper, so labels, active rows and
+       focus take it deepened. */
+    --accent-color:   #79740e;
+    --accent-hover:   #66620b;
+    --accent-text:    #8a5a0e;
+    --danger-color:   #af3a03;   /* orange, as in cozy.css */
+    --danger-bg-hover: color-mix(in srgb, var(--danger-color) 12%, transparent);
+    --success-color:  #427b58;
+    --cool-color:     #076678;   /* blue — links, addresses, references */
+
+    /* Elevation — soft shadows in the ink colour, never black on paper. */
+    --shadow-md:          0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
+    --shell-shadow:       0 1px 2px rgba(60, 56, 54, 0.10), 0 8px 24px rgba(60, 56, 54, 0.07);
+    --card-shadow:        0 1px 2px rgba(60, 56, 54, 0.07), 0 4px 12px rgba(60, 56, 54, 0.07);
+    --lift-shadow:        0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
+    --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
+    --input-shadow:       none;
+
+    /* RP markdown — speech in the body colour, narration muted, emphasis in
+       the label yellow and intense actions in orange. */
+    --rp-dialogue-color:  var(--text-color);
+    --rp-dialogue-weight: 400;
+    --rp-dialogue-shadow: none;
+    --rp-action-color:    var(--text-secondary);
+    --rp-emphasis-color:  var(--accent-text);
+    --rp-quote-color:     var(--text-color);
+    --rp-quote-bg:        var(--bg-color);
+    --rp-ooc-color:       var(--cool-color);
+    --rp-intense-color:   #af3a03;
+    --rp-intense-shadow:  none;
+    --rp-strike-opacity:  0.5;
+    --img-max-width:      100%;
+    --code-bg:            var(--bg-color);
+    --code-border:        var(--border-color);
+    --pre-bg:             var(--app-bg);
+    --pre-border:         var(--border-color);
+
+    /* Avatars and buttons — paper-coloured text on the green and aqua fills */
+    --avatar-text-color:      var(--bg-color);
+    --btn-primary-color:      var(--bg-color);
+    --btn-danger-hover-color: var(--bg-color);
+    --scroll-bottom-hover-bg: var(--accent-hover);
+
+    /* Overlays & backdrops */
+    --overlay-bg:     rgba(40, 40, 40, 0.6);
+    --overlay-color:  var(--bg-color);
+    --backdrop-bg:    rgba(60, 56, 54, 0.35);
+
+    /* Context token meter — the same sources as cozy.css, in the palette's
+       darker steps. */
+    --meter-system-prompt:    #b57614;
+    --meter-character-card:   #8f3f71;
+    --meter-persona:          #427b58;
+    --meter-lorebook:         #79740e;
+    --meter-author-note:      #d79921;
+    --meter-auto-summary:     #b16286;
+    --meter-message-history:  #076678;
+    --meter-current-draft:    #689d6a;
+    --meter-response-reserve: #af3a03;
+    --meter-unused:           var(--border-color);
+
+    --char-name-color:          #8f3f71;
+
+    /* User message — outlined on the shell, as in cozy.css. */
+    --user-msg-bg:              transparent;
+    --user-msg-border:          var(--border-color);
+    --user-msg-color:           var(--text-color);
+    --user-msg-name-color:      var(--text-color);
+    --user-action-color:        var(--text-secondary);
+    --user-action-hover-bg:     var(--hover-bg);
+    --user-action-hover-color:  var(--text-color);
+
+    /* User-message RP overrides */
+    --user-dialogue-color:      var(--rp-dialogue-color);
+    --user-dialogue-weight:     400;
+    --user-dialogue-shadow:     none;
+    --user-em-color:            var(--rp-action-color);
+    --user-em-shadow:           none;
+    --user-strong-color:        var(--rp-emphasis-color);
+    --user-intense-color:       var(--rp-intense-color);
+    --user-intense-shadow:      none;
+    --user-strike-opacity:      0.55;
+    --user-strike-color:        var(--rp-action-color);
+    --user-blockquote-border:   var(--border-color);
+    --user-blockquote-bg:       var(--app-bg);
+    --user-blockquote-color:    var(--text-color);
+    --user-code-bg:             var(--code-bg);
+    --user-code-color:          var(--rp-ooc-color);
+    --user-code-border:         var(--code-border);
+    --user-pre-bg:              var(--pre-bg);
+    --user-pre-border:          var(--pre-border);
+    --user-heading-color:       var(--text-color);
+    --user-h1-border:           var(--border-color);
+    --user-hr-mid-color:        #d5c4a1;
+    --user-editable-bg:         color-mix(in srgb, var(--accent-color) 6%, transparent);
+    --editable-bg:              color-mix(in srgb, var(--accent-color) 6%, transparent);
+}

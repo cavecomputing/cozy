@@ -24,7 +24,7 @@ export function renderThemePicker() {
     state.themes.forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
-        opt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+        opt.textContent = name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         opt.selected = state.theme === name;
         el.settingsThemeSelect.appendChild(opt);
     });
