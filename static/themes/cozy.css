@@ -1,112 +1,131 @@
-/* Cozy — Signature Theme (flat material: tonal navy surfaces, one saturated
-   accent, elevation carried by surface lightness rather than glow) */
+/* Cozy — Signature Theme (the cavecomputing palette: Gruvbox dark surfaces,
+   yellow for labels and focus, green for done, blue for addresses, orange for
+   warnings) */
 :root {
-    /* Corner radius. Material's larger container radius, applied through the
-       one --radius-md every bundled theme declares. */
-    --radius-md: 12px;
+    /* Corner radius for cards. Controls take 0.6 of it and the outer shell
+       1.4 (see --radius-control and --radius-shell in style.css). */
+    --radius-md: 10px;
 
-    /* Layout — five tonal steps. Depth reads as a lighter surface, not a
-       shadow, so nothing here needs a glow to sit "above" the page. */
-    --app-bg:         #10141d;
-    --bg-color:       #161c27;
-    --sidebar-bg:     #131924;
-    --char-msg-bg:    #1e2532;
-    --hover-bg:       #29313f;
-    --active-bg:      rgba(255, 196, 77, 0.16);
-    --input-bg:       #1a2029;
-    --border-color:   #303845;
+    /* Layout — the page behind the shell, the shell itself, raised cards on
+       it, and the inset wells. The sidebar shares the shell's surface so the
+       two read as one. */
+    --app-bg:         #1d2021;
+    --bg-color:       #282828;
+    --sidebar-bg:     #282828;
+    --char-msg-bg:    #32302f;
+    --hover-bg:       #3c3836;
+    --active-bg:      #3c3836;
+    --input-bg:       #1d2021;
+    --border-color:   #3c3836;
 
     /* Typography */
-    --text-color:     #e6e9ef;
-    --text-secondary: #a3acbb;
+    --text-color:     #ebdbb2;
+    --text-secondary: #a89984;
 
-    /* Accent (saturated amber). Flat and fully opaque — the theme's one
-       colour of emphasis, carrying active rows, headings and focus rings. */
-    --accent-color:   #ffc44d;
-    --accent-hover:   #ffd47a;
-    --danger-color:   #ef5350;
-    --danger-bg-hover: rgba(239, 83, 80, 0.16);
-    --success-color:  #66bb6a;
+    /* Accent (yellow). Labels, active rows, focus and the primary button. */
+    --accent-color:   #fabd2f;
+    --accent-hover:   #fcca56;
+    --danger-color:   #fb4934;
+    --danger-bg-hover: rgba(251, 73, 52, 0.14);
+    --success-color:  #8ec07c;
 
-    /* Elevation — a single tight material shadow for surfaces that genuinely
-       float (flyouts, modals, toasts). Everything else stays flat. */
-    --shadow-md:          0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.34);
-    --accent-edit-bg:     rgba(255, 196, 77, 0.10);
-    --accent-border-light: rgba(255, 196, 77, 0.36);
+    /* Elevation — the lifted shadow, for surfaces that genuinely float
+       (flyouts, menus, toasts). */
+    --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
+    --accent-edit-bg:     rgba(250, 189, 47, 0.08);
+    --accent-border-light: rgba(250, 189, 47, 0.36);
     --input-shadow:       none;
-    --input-focus-shadow: 0 0 0 2px rgba(255, 196, 77, 0.32);
+    --input-focus-shadow: 0 0 0 3px rgba(250, 189, 47, 0.12);
 
-    /* RP markdown accent colors — flat hues, no text glow */
-    --rp-dialogue-color:  #4fc3f7;   /* light blue — quoted dialogue */
-    --rp-dialogue-weight: 600;
+    /* RP markdown — speech in the body colour, narration muted, emphasis in
+       the accent and intense actions in orange. */
+    --rp-dialogue-color:  #ebdbb2;
+    --rp-dialogue-weight: 400;
     --rp-dialogue-shadow: none;
-    --rp-action-color:    #b39ddb;   /* muted violet — italics/actions */
-    --rp-emphasis-color:  #ffc44d;   /* amber — bold/strong emphasis */
-    --rp-quote-color:     #90a4ae;   /* blue grey — blockquotes/narration */
-    --rp-quote-bg:        rgba(144, 164, 174, 0.10);
-    --rp-ooc-color:       #8d97a6;   /* grey — code/OOC text */
-    --rp-intense-color:   #ff8a65;   /* deep orange — bold+italic intense actions */
+    --rp-action-color:    #a89984;   /* muted — italics/actions */
+    --rp-emphasis-color:  #fabd2f;   /* yellow — bold/strong emphasis */
+    --rp-quote-color:     #ebdbb2;   /* blockquotes/narration */
+    --rp-quote-bg:        #282828;
+    --rp-ooc-color:       #83a598;   /* blue — code/OOC text */
+    --rp-intense-color:   #fe8019;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  none;
     --rp-strike-opacity:  0.5;
     --rp-hr-opacity:      0.3;
     --img-max-width:      100%;
-    --code-bg:            rgba(48, 56, 69, 0.55);
-    --code-border:        rgba(48, 56, 69, 0.9);
-    --pre-bg:             #10141d;
-    --pre-border:         rgba(48, 56, 69, 0.9);
+    --code-bg:            #282828;
+    --code-border:        #3c3836;
+    --pre-bg:             #1d2021;
+    --pre-border:         #3c3836;
 
     /* Avatars */
-    --avatar-text-color:  #10141d;
+    --avatar-text-color:  #1d2021;
 
     /* Buttons */
-    --btn-primary-color:      #10141d;
-    --btn-danger-hover-color: #10141d;
-    --scroll-bottom-bg:       #ffc44d;
-    --scroll-bottom-color:    #10141d;
-    --scroll-bottom-border:   #ffc44d;
-    --scroll-bottom-hover-bg: #ffd47a;
-    --scroll-bottom-shadow:   0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.34);
+    --btn-primary-color:      #1d2021;
+    --btn-danger-hover-color: #1d2021;
+    --scroll-bottom-bg:       #fabd2f;
+    --scroll-bottom-color:    #1d2021;
+    --scroll-bottom-border:   #fabd2f;
+    --scroll-bottom-hover-bg: #fcca56;
+    --scroll-bottom-shadow:   0 1px 2px rgba(0, 0, 0, 0.30), 0 4px 12px rgba(0, 0, 0, 0.20);
 
     /* Overlays & backdrops */
-    --overlay-bg:     rgba(6, 9, 14, 0.72);
-    --overlay-color:  #e6e9ef;
-    --backdrop-bg:    rgba(6, 9, 14, 0.6);
+    --overlay-bg:     rgba(17, 18, 19, 0.72);
+    --overlay-color:  #ebdbb2;
+    --backdrop-bg:    rgba(17, 18, 19, 0.6);
 
     /* Toasts */
-    --toast-color:    #10141d;
+    --toast-color:    #1d2021;
 
-    /* User-message bubble — muted indigo, a tonal step above --char-msg-bg
-       rather than a second saturated colour competing with the amber accent */
-    --user-msg-bg:              #33406b;
-    --user-msg-color:           #eef1fb;
-    --user-msg-divider:         rgba(238, 241, 251, 0.24);
-    --user-msg-name-color:      rgba(238, 241, 251, 0.92);
-    --user-action-color:        rgba(238, 241, 251, 0.6);
-    --user-action-hover-bg:     rgba(238, 241, 251, 0.16);
-    --user-action-hover-color:  #eef1fb;
+    /* Context token meter — one Gruvbox hue per source. */
+    --meter-system-prompt:    #fabd2f;
+    --meter-character-card:   #d3869b;
+    --meter-persona:          #8ec07c;
+    --meter-lorebook:         #b8bb26;
+    --meter-author-note:      #d79921;
+    --meter-auto-summary:     #b16286;
+    --meter-message-history:  #83a598;
+    --meter-current-draft:    #689d6a;
+    --meter-response-reserve: #fe8019;
+    --meter-unused:           #3c3836;
 
-    /* User-message RP overrides (on indigo) */
-    --user-dialogue-color:      #a5dcff;
-    --user-dialogue-weight:     600;
+    /* The character's name in its message header: rose, the palette's
+       character accent. */
+    --char-name-color:          #d3869b;
+
+    /* User message — outlined on the shell rather than filled, so the
+       character's raised card is the one that stands forward. */
+    --user-msg-bg:              transparent;
+    --user-msg-border:          #3c3836;
+    --user-msg-color:           #ebdbb2;
+    --user-msg-divider:         #3c3836;
+    --user-msg-name-color:      #ebdbb2;
+    --user-action-color:        #a89984;
+    --user-action-hover-bg:     #3c3836;
+    --user-action-hover-color:  #ebdbb2;
+
+    /* User-message RP overrides */
+    --user-dialogue-color:      #ebdbb2;
+    --user-dialogue-weight:     400;
     --user-dialogue-shadow:     none;
-    --user-em-color:            #d8caf5;
+    --user-em-color:            #a89984;
     --user-em-shadow:           none;
-    --user-strong-color:        #ffd77a;
-    --user-intense-color:       #ffb191;
+    --user-strong-color:        #fabd2f;
+    --user-intense-color:       #fe8019;
     --user-intense-shadow:      none;
     --user-strike-opacity:      0.55;
-    --user-strike-color:        rgba(238, 241, 251, 0.6);
-    --user-blockquote-border:   rgba(238, 241, 251, 0.42);
-    --user-blockquote-bg:       rgba(238, 241, 251, 0.10);
-    --user-blockquote-color:    rgba(238, 241, 251, 0.92);
-    --user-code-bg:             rgba(238, 241, 251, 0.16);
-    --user-code-color:          rgba(238, 241, 251, 0.94);
-    --user-code-border:         rgba(238, 241, 251, 0.24);
-    --user-pre-bg:              rgba(9, 14, 26, 0.4);
-    --user-pre-border:          rgba(238, 241, 251, 0.22);
-    --user-heading-color:       #eef1fb;
-    --user-h1-border:           rgba(238, 241, 251, 0.32);
-    --user-hr-mid-color:        rgba(238, 241, 251, 0.42);
-    --user-editable-bg:         rgba(238, 241, 251, 0.14);
-    --editable-bg:              rgba(255, 196, 77, 0.07);
+    --user-strike-color:        #a89984;
+    --user-blockquote-border:   #3c3836;
+    --user-blockquote-bg:       #32302f;
+    --user-blockquote-color:    #ebdbb2;
+    --user-code-bg:             #282828;
+    --user-code-color:          #83a598;
+    --user-code-border:         #3c3836;
+    --user-pre-bg:              #1d2021;
+    --user-pre-border:          #3c3836;
+    --user-heading-color:       #ebdbb2;
+    --user-h1-border:           #3c3836;
+    --user-hr-mid-color:        #504945;
+    --user-editable-bg:         rgba(250, 189, 47, 0.06);
+    --editable-bg:              rgba(250, 189, 47, 0.06);
 }
