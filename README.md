@@ -25,8 +25,9 @@ expects.
 </p>
 
 > [!IMPORTANT]
-> Cozy changes frequently and is not a stable release. Back up your data before
-> updating. Downgrading to an older version is not supported.
+> Cozy is feature complete, not stable. The set of features is settled for now,
+> but the code still changes: fixes, polish, and tweaks to how things work. Back
+> up your data before updating. Downgrading to an older version is not supported.
 
 ## Quick start
 
@@ -148,6 +149,6 @@ Redistributions and derivative works must preserve the attribution in
 ---
 
 Howdy! This whole app is "vibe coded slop". If that bothers you...🤷   
-The code is going to see constant changes most of the time and I'm never going to call it stable. Though I'm currently trying to avoid breaking changes between versions and ensuring there are proper migrations to keep things stableish. If you try to checkout an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take a coding harness but then it completely replaced SillyTavern for my use. Maybe other people will like it?
+Cozy is feature complete, which isn't the same as stable. What it can do is pretty much set in stone (for now), so I'm not planning to add more, but the code will keep changing: bug fixes, polish, and changes to how existing things work. I'm still trying to avoid breaking changes and ship proper migrations to keep things stableish. If you try to checkout an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take a coding harness but then it completely replaced SillyTavern for my use. Maybe other people will like it?
 
 As an aside, I personally put a lot of weight in *ideas*. As such, I would super appreciate if you linked to this repo if you decide to fork this or use ideas from it. Other than that, go nuts and make cool things ❤️
