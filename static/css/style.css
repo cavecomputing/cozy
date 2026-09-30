@@ -2237,40 +2237,44 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 .settings-help-body p { margin: 0 0 0.6rem; color: var(--text-secondary); }
 .settings-help-body strong { color: var(--text-color); }
 .settings-help-body em { color: var(--text-color); font-style: italic; }
+/* The panel's lead note, as a callout: a raised card on the panel rather
+   than a tinted strip with an accent edge. */
 .prompt-help-callout {
     margin: 0 0 1rem !important;
-    padding: 0.7rem 0.85rem;
-    background: var(--accent-edit-bg, var(--code-bg));
-    border-left: 3px solid var(--accent-color, var(--border-color));
+    padding: 0.625rem 0.875rem;
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
-    color: var(--text-color) !important;
+    color: var(--fg) !important;
     font-size: var(--text-lg);
 }
 /* Prose heading. The reference panels put every h3 inside a
    .sampler-help-section, which restyles it as an uppercase box header. */
 .settings-help-body h3 {
     margin: 1.4rem 0 0.5rem;
+    font-family: var(--font-mono);
     font-size: var(--text-2xl);
-    color: var(--text-color);
-    font-weight: 600;
+    color: var(--fg-heading);
+    font-weight: 700;
     padding-bottom: 0.3rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--line);
 }
 .settings-help-body > h3:first-of-type { margin-top: 0.6rem; }
 .settings-help-body h4 {
     margin: 0.9rem 0 0.35rem;
+    font-family: var(--font-mono);
     font-size: var(--text-lg);
-    color: var(--text-color);
-    font-weight: 600;
+    color: var(--fg-heading);
+    font-weight: 700;
 }
 .settings-help-body code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-md);
     background: var(--code-bg);
     border: 1px solid var(--code-border);
-    border-radius: 4px;
+    border-radius: var(--radius-control);
     padding: 0.05rem 0.3rem;
-    color: var(--text-color);
+    color: var(--fg-cool);
 }
 .prompt-help-example {
     margin: 0.4rem 0 0.6rem;
@@ -2278,7 +2282,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     background: var(--pre-bg);
     border: 1px solid var(--pre-border);
     border-radius: var(--radius);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-md);
     line-height: 1.5;
     color: var(--text-color);
@@ -3426,10 +3430,11 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     margin-left: 0.35rem;
     padding-top: 1px;
     border-radius: 50%;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
+    border: 1px solid var(--line);
+    color: var(--fg-quiet);
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
-    font-weight: 600;
+    font-weight: 700;
     cursor: help;
     user-select: none;
     line-height: 1;
@@ -3468,14 +3473,14 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     width: max-content;
     max-width: 320px;
     padding: 0.5rem 0.65rem;
-    background: var(--bg-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
+    background: var(--surface-raised);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
     box-shadow: var(--shadow-md);
-    font-size: var(--text-md);
+    font-size: var(--text-sm);
     font-weight: 400;
-    line-height: 1.4;
+    line-height: 1.45;
     text-align: left;
     white-space: normal;
     pointer-events: none;
@@ -3487,10 +3492,15 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     opacity: 1;
 }
 
+/* Tips are HTML from data-tip; their code samples take the app's mono. */
+.help-tip-portal code {
+    font-family: var(--font-mono);
+}
+
 .prompt-preview-content {
     white-space: pre-wrap;
     word-break: break-word;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-md);
     line-height: 1.5;
     padding: 0.85rem 1rem;
@@ -3738,10 +3748,10 @@ input[type="checkbox"]:checked::after {
     max-height: 240px;
     overflow-y: auto;
     background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
-    padding: 0.25rem 0;
+    box-shadow: var(--shadow-md);
+    padding: 0.25rem;
     opacity: 1;
     transform: translateY(0);
     transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
@@ -3760,10 +3770,12 @@ input[type="checkbox"]:checked::after {
     text-align: left;
     background: transparent;
     border: 0;
-    padding: 0.4rem 0.7rem;
+    border-radius: var(--radius-control);
+    padding: 0.4rem 0.6rem;
     font: inherit;
-    font-size: var(--text-lg);
-    color: var(--text-color);
+    font-family: var(--font-mono);
+    font-size: var(--text-md);
+    color: var(--fg);
     cursor: pointer;
     /* Model identifiers are long, unspaced and vendor-prefixed. */
     overflow-wrap: anywhere;
@@ -3771,12 +3783,12 @@ input[type="checkbox"]:checked::after {
 
 @media (hover: hover) {
     .model-picker-item:hover {
-        background-color: var(--hover-bg);
+        background-color: var(--surface-quiet);
     }
 }
 
 .model-picker-item.active {
-    color: var(--accent-color);
+    color: var(--fg-accent);
     font-weight: 600;
 }
 
@@ -3838,9 +3850,9 @@ input[type="checkbox"]:checked::after {
     padding: 0.25rem;
     list-style: none;
     background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+    box-shadow: var(--shadow-md);
     opacity: 1;
     transform: translateY(0);
     transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
@@ -3853,23 +3865,23 @@ input[type="checkbox"]:checked::after {
 }
 .cozy-select-option {
     padding: 0.4rem 0.6rem;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     font-size: var(--text-lg);
-    color: var(--text-color);
+    color: var(--fg);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .cozy-select-option.active {
-    background-color: var(--hover-bg);
+    background-color: var(--surface-quiet);
 }
 .cozy-select-option.selected {
-    color: var(--accent-color);
+    color: var(--fg-accent);
     font-weight: 600;
 }
 .cozy-select-option.disabled {
-    color: var(--text-secondary);
+    color: var(--fg-quiet);
     font-style: italic;
     cursor: default;
 }
@@ -3887,9 +3899,10 @@ input[type="checkbox"]:checked::after {
 
 /* Autosave confirmation in the settings header. */
 .settings-saved-tick {
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-weight: 600;
+    color: var(--status-success);
     opacity: 0;
     transition: opacity var(--motion-slow) ease;
     white-space: nowrap;
@@ -4019,8 +4032,9 @@ input[type="checkbox"]:checked::after {
     z-index: 300;
     min-width: 152px;
     background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
     padding: 0.3rem;
     margin: 0;
     list-style: none;
@@ -4038,9 +4052,9 @@ input[type="checkbox"]:checked::after {
     padding: 0.45rem 0.7rem;
     background: none;
     border: none;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     font-size: var(--text-lg);
-    color: var(--text-color);
+    color: var(--fg);
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
@@ -4048,31 +4062,30 @@ input[type="checkbox"]:checked::after {
 
 @media (hover: hover) {
     .export-menu button:hover {
-        background-color: var(--hover-bg);
+        background-color: var(--surface-quiet);
     }
 }
 
 .export-menu-label {
-    padding: 0.3rem 0.7rem 0.15rem;
-    font-size: var(--text-xs);
-    font-weight: 600;
+    padding: 0.35rem 0.7rem 0.2rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
+    letter-spacing: 0.14em;
+    color: var(--fg-quiet);
 }
 
 .export-menu-sep {
     height: 1px;
     margin: 0.3rem 0.4rem;
-    background-color: var(--border-color);
+    background-color: var(--line);
 }
 
 /* The character rows' ⋯ menu. toggleCharMenu() places it from the row that
-   opened it and sets the corner it grows from. Unlike the other export menus
-   it floats clear of its panel, so it carries the flyouts' shadow. */
+   opened it and sets the corner it grows from. */
 .char-row-menu {
     min-width: 168px;
-    box-shadow: var(--shadow-md);
     animation: rowMenuIn var(--motion-fast) ease-out;
 }
 
@@ -4088,7 +4101,7 @@ input[type="checkbox"]:checked::after {
     width: 15px;
     height: 15px;
     flex-shrink: 0;
-    color: var(--text-secondary);
+    color: var(--fg-quiet);
 }
 
 .char-row-menu .export-menu-sep {
@@ -4097,7 +4110,7 @@ input[type="checkbox"]:checked::after {
 
 .char-row-menu .char-row-menu-danger,
 .char-row-menu .char-row-menu-danger svg {
-    color: var(--danger-color);
+    color: var(--status-danger);
 }
 
 @media (hover: hover) {
@@ -4135,15 +4148,18 @@ input[type="checkbox"]:checked::after {
     height: 100%;
     width: auto;
     aspect-ratio: 1;
+    font-family: var(--font-mono);
     font-size: var(--text-3xl);
-    border-radius: var(--radius);
+    font-weight: 700;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
     cursor: pointer;
 }
 
 .avatar-change-label {
     position: absolute;
     inset: 0;
-    border-radius: var(--radius);
+    border-radius: var(--radius-control);
     background: var(--overlay-bg, rgba(0, 0, 0, 0.45));
     color: var(--overlay-color, white);
     display: flex;
@@ -4179,7 +4195,7 @@ input[type="checkbox"]:checked::after {
     display: flex;
     gap: 0;
     padding: 0.35rem 0.75rem 0;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--line);
     flex-shrink: 0;
 }
 
@@ -4187,23 +4203,23 @@ input[type="checkbox"]:checked::after {
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
-    padding: 0.3rem 0.6rem;
-    font-family: inherit;
-    font-size: var(--text-md);
-    font-weight: 500;
-    color: var(--text-secondary);
+    padding: 0.35rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--fg-quiet);
     cursor: pointer;
     margin-bottom: -1px;
     transition: color var(--motion-base), border-color var(--motion-base);
 }
 
 .tab-btn:hover {
-    color: var(--text-color);
+    color: var(--fg);
 }
 
 .tab-btn.active {
-    color: var(--accent-color);
-    border-bottom-color: var(--accent-color);
+    color: var(--fg-accent);
+    border-bottom-color: var(--fg-accent);
 }
 
 /* ── Modal body ──────────────────────────────────────────────────────────── */
@@ -4239,7 +4255,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .form-label .required {
-    color: var(--danger-color);
+    color: var(--status-danger);
 }
 
 .form-label:has(.help-tip) {
@@ -4257,10 +4273,10 @@ input[type="checkbox"]:checked::after {
 .settings-select {
     width: 100%;
     background-color: var(--input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
     padding: 0.35rem 0.6rem;
-    color: var(--text-color);
+    color: var(--fg);
     font-family: inherit;
     font-size: var(--text-lg);
     line-height: 1.4;
@@ -4272,13 +4288,20 @@ input[type="checkbox"]:checked::after {
     transition: border-color var(--motion-base), box-shadow var(--motion-base);
 }
 
+/* Focus is an accent edge and a soft ring flat on the page: a field does not
+   lift, only buttons do. */
 .form-input:focus,
 .form-textarea:focus,
 .settings-select:focus {
     border-color: color-mix(in srgb, var(--accent-color) 46%, var(--border-color));
-    box-shadow:
-        var(--shadow-md),
-        0 0 0 2px color-mix(in srgb, var(--accent-color) 14%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 18%, transparent);
+}
+
+/* Firefox dims placeholders by default; --fg-quiet is already the quiet tier. */
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: var(--fg-quiet);
+    opacity: 1;
 }
 
 .form-textarea {
@@ -4289,7 +4312,7 @@ input[type="checkbox"]:checked::after {
 /* Opt-in monospace for fields holding code-ish text (regex patterns, samples),
    where character-level differences have to be legible. */
 .mono-input {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-md);
 }
 
@@ -4313,10 +4336,15 @@ input[type="checkbox"]:checked::after {
     gap: 0.5rem;
 }
 
+/* Each greeting is an inset card holding its field and its remove button. */
 .alt-greeting-item {
     display: flex;
     gap: 0.5rem;
     align-items: flex-start;
+    padding: var(--space-2);
+    background-color: var(--surface-inset);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
 }
 
 .alt-greeting-item .form-textarea {
@@ -4337,8 +4365,8 @@ input[type="checkbox"]:checked::after {
     align-items: center;
     gap: 0.4rem;
     background-color: var(--input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
     padding: 0.4rem 0.6rem;
     cursor: text;
     box-shadow: var(--input-shadow, none);
@@ -4348,9 +4376,7 @@ input[type="checkbox"]:checked::after {
 
 .tags-input-wrap:focus-within {
     border-color: color-mix(in srgb, var(--accent-color) 46%, var(--border-color));
-    box-shadow:
-        var(--shadow-md),
-        0 0 0 2px color-mix(in srgb, var(--accent-color) 14%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 18%, transparent);
 }
 
 .tags-chip-list {
@@ -4363,12 +4389,13 @@ input[type="checkbox"]:checked::after {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background-color: var(--active-bg);
-    color: var(--accent-color);
-    border-radius: var(--radius);
-    padding: 0.15rem 0.45rem;
-    font-size: var(--text-md);
-    font-weight: 500;
+    background-color: var(--surface-quiet);
+    color: var(--fg-quiet);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    padding: 0.1rem 0.45rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
 }
 
 .tag-chip-remove {
@@ -4576,7 +4603,7 @@ input[type="checkbox"]:checked::after {
     justify-content: space-between;
     gap: 0.35rem;
     padding: 0.45rem 0.75rem;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--line);
     flex-shrink: 0;
 }
 
@@ -4597,13 +4624,13 @@ input[type="checkbox"]:checked::after {
 
 .btn-danger {
     background-color: transparent;
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color);
+    color: var(--status-danger);
+    border: 1px solid var(--status-danger);
 }
 
 @media (hover: hover) {
     .btn-danger:hover:not(:disabled) {
-        background-color: var(--danger-color);
+        background-color: var(--status-danger);
         color: var(--btn-danger-hover-color, white);
     }
 }
@@ -4627,7 +4654,7 @@ input[type="checkbox"]:checked::after {
 .confirm-dialog {
     width: min(92vw, 380px);
     background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     padding: 1rem 1.1rem;
@@ -4638,9 +4665,10 @@ input[type="checkbox"]:checked::after {
 
 .confirm-title {
     margin: 0;
+    font-family: var(--font-mono);
     font-size: var(--text-2xl);
-    font-weight: 600;
-    color: var(--text-color);
+    font-weight: 700;
+    color: var(--fg-heading);
 }
 
 .confirm-message {
@@ -4678,33 +4706,44 @@ input[type="checkbox"]:checked::after {
 
 /* Toasts overlay whatever is beneath them — including the settings modal's
    close button — so the body stays click-through and only the action button
-   takes pointer events. */
+   takes pointer events. A toast is a raised callout in the body colour; its
+   kind is carried by the left edge alone, not by flooding the card. */
 .toast {
     pointer-events: none;
     padding: 0.6rem 1rem;
+    background-color: var(--surface-raised);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-left-width: 3px;
     border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
     font-size: var(--text-lg);
+    line-height: 1.45;
     animation: slideInRight 0.2s ease-out;
     max-width: 360px;
 }
 
-.toast.error   { background-color: var(--danger-color);  color: var(--toast-color, white); }
-.toast.success { background-color: var(--success-color); color: var(--toast-color, white); }
+.toast.error   { border-left-color: var(--status-danger); }
+.toast.success { border-left-color: var(--status-success); }
 
+/* The ghost button, in miniature. */
 .toast-action {
     pointer-events: auto;
     display: block;
-    margin-top: 0.45rem;
-    border: 1px solid currentColor;
-    border-radius: var(--radius);
-    background: transparent;
-    color: inherit;
+    margin-top: 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface-quiet);
+    color: var(--fg);
     font: inherit;
-    font-size: var(--text-md);
-    padding: 0.15rem 0.55rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    padding: 0.3rem 0.7rem;
     cursor: pointer;
+    transition: border-color var(--motion-base);
 }
-@media (hover: hover) { .toast-action:hover { background: rgba(255, 255, 255, 0.15); } }
+@media (hover: hover) { .toast-action:hover { border-color: var(--fg-quiet); } }
 
 @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
@@ -4947,7 +4986,7 @@ input[type="checkbox"]:checked::after {
         position: fixed !important;
         inset: 0 !important;
         margin-left: 0 !important;
-        background: var(--app-bg);
+        background: var(--bg-color);
         display: flex;
         align-items: stretch;
         justify-content: stretch;
