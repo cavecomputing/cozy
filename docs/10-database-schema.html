@@ -338,7 +338,7 @@
       <div class="facts">
         <span><b>11</b> tables</span>
         <span><b>3</b> indexes</span>
-        <span><b>17</b> migrations applied</span>
+        <span><b>18</b> migrations applied</span>
         <span><b>WAL</b> journal mode</span>
         <span><b>synchronous</b> = NORMAL</span>
         <span><b>foreign_keys</b> = ON per connection</span>
@@ -699,7 +699,7 @@
     </section>
 
     <section id="ledger">
-      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–17</span></div>
+      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–18</span></div>
       <p class="purpose">Ordered, and the order is the point: each runs once, in a serialized transaction, and a
         shipped entry is never renumbered, renamed or reordered.</p>
       <ol class="ledger">
@@ -720,6 +720,7 @@
         <li><span class="v">15</span><span class="n">delete_summary_trigger_interval</span><span class="d">Drop the retired message-count summary batch setting.</span></li>
         <li><span class="v">16</span><span class="n">drop_lorebook_notice_dismissed</span><span class="d">Drop <code>chats.lorebook_notice_dismissed</code>, left over from the retired "has a lorebook" banner.</span></li>
         <li><span class="v">17</span><span class="n">delete_lorebook_global_overrides</span><span class="d">Drop the retired install-wide lorebook Scan depth override and Always inject all entries settings.</span></li>
+        <li><span class="v">18</span><span class="n">retire_mirostat_and_typical_p</span><span class="d">Retire the Mirostat and Typical-P samplers, in the settings and every API preset; one that was on moves into <code>extra_request_params</code>.</span></li>
       </ol>
       <p class="note">Migrations 3–7 are the last to rewrite a prompt's text. The house prompt now ships as a
         file and a revision arrives as a <b>version bump</b> inside it; 14 only renames the rows left from when
@@ -749,7 +750,7 @@
     </section>
 
     <section id="version">
-      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 17</span></div>
+      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 18</span></div>
       <div class="prose">
         <p>There is no separate version number. The highest entry in the migration registry <strong>is</strong> the
           schema this build understands, and the highest row in a database's ledger is the schema that database is
@@ -766,7 +767,7 @@
         <code>thumbs/</code> cache is keyed by image content and rebuilt on demand, so it is left out.</p>
     </section>
 
-    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 17</footer>
+    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 18</footer>
   </main>
 </div>
 

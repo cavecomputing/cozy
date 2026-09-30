@@ -374,11 +374,6 @@
                                         <span>Advanced samplers</span>
                                     </header>
                                     <p id="sampler-advanced-empty" class="sampler-empty-state" hidden>No advanced samplers active. Enable one from Active samplers to show controls here.</p>
-                                    <!-- Typical-P -->
-                                    <div class="settings-row" data-sampler="typical_p">
-                                        <label class="settings-row-label" for="settings-sampler-typical-p">Typical-P</label>
-                                        <input type="number" id="settings-sampler-typical-p" class="form-input" step="0.01" min="0" max="1" value="1.0">
-                                    </div>
                                     <!-- Top-N Sigma -->
                                     <div class="settings-row" data-sampler="top_n_sigma">
                                         <label class="settings-row-label" for="settings-sampler-top-n-sigma">Top-N Sigma</label>
@@ -412,26 +407,6 @@
                                         <div class="settings-row">
                                             <label class="settings-row-label" for="settings-sampler-dry-penalty-last-n">Penalty last N</label>
                                             <input type="number" id="settings-sampler-dry-penalty-last-n" class="form-input" step="1" min="-1" max="4096" value="-1">
-                                        </div>
-                                    </div>
-                                    <!-- Mirostat -->
-                                    <div class="sampler-group" data-sampler="mirostat">
-                                        <div class="sampler-group-header">Mirostat</div>
-                                        <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-sampler-mirostat">Mode</label>
-                                            <select id="settings-sampler-mirostat" class="form-input settings-select">
-                                                <option value="0">0 — Disabled</option>
-                                                <option value="1">1 — Mirostat</option>
-                                                <option value="2">2 — Mirostat 2.0</option>
-                                            </select>
-                                        </div>
-                                        <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-sampler-mirostat-tau">Tau</label>
-                                            <input type="number" id="settings-sampler-mirostat-tau" class="form-input" step="0.1" min="0" max="20" value="5.0">
-                                        </div>
-                                        <div class="settings-row">
-                                            <label class="settings-row-label" for="settings-sampler-mirostat-eta">Eta</label>
-                                            <input type="number" id="settings-sampler-mirostat-eta" class="form-input" step="0.01" min="0" max="1" value="0.1">
                                         </div>
                                     </div>
                                     <!-- XTC -->
@@ -1427,10 +1402,6 @@ Flags    g</pre>
                     <p class="sampler-help-intro">Specialist tools for fine-tuning output. Each is off by default — enable one at a time and compare before stacking them.</p>
                     <dl class="sampler-help-list">
                         <div class="sampler-help-row">
-                            <dt>Typical-P</dt>
-                            <dd>Picks tokens whose surprisal is close to the average — keeps writing "typical" rather than chasing peaks. 1.0 = off. Try 0.9 for steadier prose.</dd>
-                        </div>
-                        <div class="sampler-help-row">
                             <dt>Top-N Sigma</dt>
                             <dd>Filters tokens by their distance from the mean (in standard deviations) of the model's logit scores. -1 = off. Newer alternative to Top-P/Min-P.</dd>
                         </div>
@@ -1445,10 +1416,6 @@ Flags    g</pre>
                         <div class="sampler-help-row">
                             <dt>DRY (Don't Repeat Yourself)</dt>
                             <dd>Penalises the model for echoing recent multi-word phrases verbatim. Good for fighting "looping" replies. <em>Multiplier</em> = strength; <em>Base</em> = exponent; <em>Allowed length</em> = ignore phrases shorter than this.</dd>
-                        </div>
-                        <div class="sampler-help-row">
-                            <dt>Mirostat</dt>
-                            <dd>Adaptive controller that targets a specific surprisal level (perplexity) instead of using fixed Top-P/Top-K. <em>Tau</em> = target surprisal; <em>Eta</em> = how fast it adapts. Modes: 0=off, 1=v1, 2=v2.</dd>
                         </div>
                         <div class="sampler-help-row">
                             <dt>XTC (Exclude Top Choices)</dt>

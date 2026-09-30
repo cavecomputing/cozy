@@ -3500,11 +3500,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     min-width: 0;
     text-align: right;
 }
-/* The mirostat mode picker is enhanced into a .cozy-select widget at runtime,
-   so size the wrapper (the native <select> is hidden inside it). */
-.sampler-card .settings-row > .cozy-select {
-    min-width: 0;
-}
 
 /* Slider + number pairs on sampler rows. The range input is injected by
    initSamplerSliders() from the number's own min/max/step, so the two can

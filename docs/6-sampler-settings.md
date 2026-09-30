@@ -35,12 +35,10 @@ Active samplers** to enable them.
 | Setting | Disabled value | Purpose |
 |---|---:|---|
 | Dynamic temperature | Range `0` | Adjusts temperature during generation. |
-| Typical-P | `1.0` | Keeps tokens with locally typical probability. |
 | Top-N Sigma | `-1` | Filters low-scoring tokens using a sigma threshold. |
 | Presence penalty | `0` | Discourages tokens that appeared at least once. |
 | Frequency penalty | `0` | Discourages tokens based on how often they appeared. |
 | DRY | Multiplier `0` | Penalizes repeated multi-token sequences. |
-| Mirostat | Mode `0` | Adjusts sampling toward a target surprise level. |
 | XTC | Probability `0` | Occasionally excludes high-probability choices. |
 | Seed | `-1` | Requests a random seed. |
 
@@ -61,6 +59,12 @@ If a request fails after enabling a sampler:
    supported range.
 
 Backend-specific JSON can be added under **Settings → API → Extra request parameters**.
+
+Mirostat and Typical-P are no longer in the sampler list. A server that still
+supports them takes them there, for example `{"mirostat": 2, "mirostat_tau": 5.0}`
+or `{"typical_p": 0.9}`. That card appears once **Show advanced configuration**
+is ticked in **Settings → General**. An install that had either switched on was
+moved there automatically, unless that field already held invalid JSON.
 
 ## Simple adjustments
 

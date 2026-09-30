@@ -7,6 +7,7 @@ a shipped entry must never be renumbered, renamed or reordered.
 """
 
 import json
+import math
 import os
 
 from cozy import shared
@@ -272,6 +273,102 @@ def _delete_lorebook_global_overrides(conn):
     )
 
 
+# Each retired sampler: the value of its first setting that switches it off,
+# and its settings as (setting, request parameter, type, default when unset).
+_RETIRED_SAMPLERS = {
+    'mirostat': (0, (
+        ('sampler_mirostat', 'mirostat', int, '0'),
+        ('sampler_mirostat_tau', 'mirostat_tau', float, '5.0'),
+        ('sampler_mirostat_eta', 'mirostat_eta', float, '0.1'),
+    )),
+    'typical_p': (1.0, (
+        ('sampler_typical_p', 'typical_p', float, '1.0'),
+    )),
+}
+
+
+def _fold_retired_samplers(values):
+    """Move a switched-on Mirostat or Typical-P into extra_request_params.
+
+    ``values`` maps setting keys to strings, which is what both the settings
+    table and a preset's settings_json hold. A sampler that was switched on and
+    doing something keeps being sent through extra parameters, which the
+    request already merges over the samplers; one left at its "off" value (mode
+    0, Typical-P 1.0) is simply dropped. A key the user already set in extra
+    parameters wins, as it did in the request. Extra parameters that were not a
+    JSON object were already ignored by the request, and are left alone.
+    """
+    raw_active = values.get('active_samplers')
+    # The page also reads an older format that listed sampler_* field keys.
+    active = [key.removeprefix('sampler_') for key in raw_active.split(',')] if raw_active else []
+    moved = {}
+    for group, (off, fields) in _RETIRED_SAMPLERS.items():
+        if group not in active:
+            continue
+        params = {}
+        for setting, param, cast, default in fields:
+            try:
+                number = float(values.get(setting) or default)
+            except ValueError:
+                continue
+            if math.isfinite(number):
+                params[param] = cast(number)
+        lead = params.get(fields[0][1])
+        if lead is not None and lead != off:
+            moved.update(params)
+    if moved:
+        raw_extra = values.get('extra_request_params') or ''
+        try:
+            extra = json.loads(raw_extra) if raw_extra.strip() else {}
+        except ValueError:
+            extra = None
+        if isinstance(extra, dict):
+            values['extra_request_params'] = json.dumps({**moved, **extra}, ensure_ascii=False)
+    if raw_active is not None:
+        values['active_samplers'] = ','.join(
+            key for key in raw_active.split(',')
+            if key.removeprefix('sampler_') not in _RETIRED_SAMPLERS
+        )
+    for _off, fields in _RETIRED_SAMPLERS.values():
+        for setting, *_rest in fields:
+            values.pop(setting, None)
+    return values
+
+
+def _retire_mirostat_and_typical_p(conn):
+    """Retire the Mirostat and Typical-P samplers, keeping any that were in use.
+
+    Min-P, DRY and XTC cover what both were for, so they left the sampler list.
+    The live settings and every API preset's snapshot are folded the same way;
+    see _fold_retired_samplers().
+    """
+    settings = {row['key']: row['value'] for row in conn.execute('SELECT key, value FROM settings')}
+    folded = _fold_retired_samplers(dict(settings))
+    for key in settings.keys() - folded.keys():
+        conn.execute('DELETE FROM settings WHERE key=?', (key,))
+    for key, value in folded.items():
+        if settings.get(key) != value:
+            conn.execute(
+                'INSERT INTO settings (key, value) VALUES (?, ?) '
+                'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+                (key, value),
+            )
+
+    for row in conn.execute('SELECT id, settings_json FROM api_presets').fetchall():
+        try:
+            snapshot = json.loads(row['settings_json'] or '{}')
+        except ValueError:
+            continue
+        if not isinstance(snapshot, dict):
+            continue
+        folded = _fold_retired_samplers(dict(snapshot))
+        if folded != snapshot:
+            conn.execute(
+                'UPDATE api_presets SET settings_json=? WHERE id=?',
+                (json.dumps(folded), row['id']),
+            )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -290,6 +387,7 @@ MIGRATIONS = (
     (15, 'delete_summary_trigger_interval', _delete_summary_trigger_interval),
     (16, 'drop_lorebook_notice_dismissed', _drop_lorebook_notice_dismissed),
     (17, 'delete_lorebook_global_overrides', _delete_lorebook_global_overrides),
+    (18, 'retire_mirostat_and_typical_p', _retire_mirostat_and_typical_p),
 )
 
 

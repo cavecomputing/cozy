@@ -11,7 +11,6 @@ export const SAMPLER_DEFAULTS = {
     sampler_top_p:              '0.95',
     sampler_top_k:              '0',
     sampler_min_p:              '0.05',
-    sampler_typical_p:          '1.0',
     sampler_top_n_sigma:        '-1',
     sampler_repetition_penalty: '1.0',
     sampler_repeat_last_n:      '64',
@@ -21,9 +20,6 @@ export const SAMPLER_DEFAULTS = {
     sampler_dry_base:           '1.75',
     sampler_dry_allowed_length: '2',
     sampler_dry_penalty_last_n: '-1',
-    sampler_mirostat:           '0',
-    sampler_mirostat_tau:       '5.0',
-    sampler_mirostat_eta:       '0.1',
     sampler_xtc_probability:    '0',
     sampler_xtc_threshold:      '0.1',
     sampler_max_tokens:         '512',
@@ -42,7 +38,6 @@ export const SAMPLER_FIELDS = {
     sampler_top_p:              'samplerTopP',
     sampler_top_k:              'samplerTopK',
     sampler_min_p:              'samplerMinP',
-    sampler_typical_p:          'samplerTypicalP',
     sampler_top_n_sigma:        'samplerTopNSigma',
     sampler_repetition_penalty: 'samplerRepPenalty',
     sampler_repeat_last_n:      'samplerRepeatLastN',
@@ -52,9 +47,6 @@ export const SAMPLER_FIELDS = {
     sampler_dry_base:           'samplerDryBase',
     sampler_dry_allowed_length: 'samplerDryAllowed',
     sampler_dry_penalty_last_n: 'samplerDryLastN',
-    sampler_mirostat:           'samplerMirostat',
-    sampler_mirostat_tau:       'samplerMirostatTau',
-    sampler_mirostat_eta:       'samplerMirostatEta',
     sampler_xtc_probability:    'samplerXtcProb',
     sampler_xtc_threshold:      'samplerXtcThresh',
     sampler_max_tokens:         'samplerMaxTokens',
@@ -67,13 +59,11 @@ export const SAMPLER_GROUPS = {
     top_p:              { label: 'Top-P',              fields: ['sampler_top_p'] },
     top_k:              { label: 'Top-K',              fields: ['sampler_top_k'] },
     min_p:              { label: 'Min-P',              fields: ['sampler_min_p'] },
-    typical_p:          { label: 'Typical-P',          fields: ['sampler_typical_p'] },
     top_n_sigma:        { label: 'Top-N Sigma',        fields: ['sampler_top_n_sigma'] },
     repetition_penalty: { label: 'Rep. Penalty',       fields: ['sampler_repetition_penalty', 'sampler_repeat_last_n'] },
     presence_penalty:   { label: 'Presence Penalty',   fields: ['sampler_presence_penalty'] },
     frequency_penalty:  { label: 'Frequency Penalty',  fields: ['sampler_frequency_penalty'] },
     dry:                { label: 'DRY',                fields: ['sampler_dry_multiplier', 'sampler_dry_base', 'sampler_dry_allowed_length', 'sampler_dry_penalty_last_n'] },
-    mirostat:           { label: 'Mirostat',           fields: ['sampler_mirostat', 'sampler_mirostat_tau', 'sampler_mirostat_eta'] },
     xtc:                { label: 'XTC',                fields: ['sampler_xtc_probability', 'sampler_xtc_threshold'] },
     seed:               { label: 'Seed',               fields: ['sampler_seed'] },
 };
@@ -94,7 +84,7 @@ export const CORE_GROUPS = new Set([
 
 export const INT_PARAMS = new Set([
     'max_tokens', 'top_k', 'repeat_last_n', 'dry_allowed_length',
-    'dry_penalty_last_n', 'mirostat', 'seed',
+    'dry_penalty_last_n', 'seed',
 ]);
 
 // Internal sampler key -> llama.cpp API parameter name (when they differ).

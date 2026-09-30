@@ -1,5 +1,6 @@
 """Database initialization and migration-ledger tests."""
 
+import json
 import os
 
 import pytest
@@ -252,6 +253,53 @@ class TestSchemaMigrationLedger:
         settings = client.get('/api/settings').get_json()
         assert 'lorebook_scan_depth_override' not in settings
         assert 'lorebook_always_inject_all' not in settings
+
+    def test_mirostat_and_typical_p_in_use_move_into_extra_params(self, client):
+        """A retired sampler that was on keeps being sent; one left off is dropped."""
+        live = {
+            'active_samplers': 'temperature,mirostat,typical_p',
+            'sampler_mirostat': '2',
+            'sampler_mirostat_tau': '6',
+            'sampler_mirostat_eta': '0.2',
+            'sampler_typical_p': '0.9',
+            'extra_request_params': '{"top_a": 0.5, "mirostat_eta": 0.3, "stop": ["«"]}',
+        }
+        # Switched on but at their "off" values, so there is nothing to keep.
+        preset = {
+            'active_samplers': 'min_p,mirostat,typical_p',
+            'sampler_mirostat': '0',
+            'sampler_typical_p': '1.0',
+            'extra_request_params': '',
+        }
+        with shared.get_db() as conn:
+            conn.execute(
+                "DELETE FROM schema_migrations WHERE name='retire_mirostat_and_typical_p'"
+            )
+            conn.executemany(
+                'INSERT INTO settings (key, value) VALUES (?, ?) '
+                'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+                live.items(),
+            )
+            conn.execute(
+                'INSERT INTO api_presets (name, settings_json) VALUES (?, ?)',
+                ('Local', json.dumps(preset)),
+            )
+
+        schema.init_db()
+
+        settings = client.get('/api/settings').get_json()
+        assert settings['active_samplers'] == 'temperature'
+        # The user's own extra parameter wins over the moved value, as it did in the request.
+        assert json.loads(settings['extra_request_params']) == {
+            'mirostat': 2, 'mirostat_tau': 6.0, 'mirostat_eta': 0.3,
+            'typical_p': 0.9, 'top_a': 0.5, 'stop': ['«'],
+        }
+        assert '«' in settings['extra_request_params']  # rewritten without \u escapes
+        assert not any(key in settings for key in (
+            'sampler_mirostat', 'sampler_mirostat_tau', 'sampler_mirostat_eta', 'sampler_typical_p',
+        ))
+        saved = next(p for p in client.get('/api/presets').get_json() if p['name'] == 'Local')
+        assert saved['settings'] == {'active_samplers': 'min_p', 'extra_request_params': ''}
 
     def test_unversioned_upgrade_adds_summary_to_legacy_default_prompt(self, stock_prompt):
         with shared.get_db() as conn:
