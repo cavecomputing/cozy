@@ -1637,6 +1637,12 @@ select.settings-select:focus-visible {
     }
 }
 
+/* A reply still being written has nothing to copy, edit or delete yet, so its
+   buttons wait for it to finish, on a phone too. Stop is the composer's. */
+body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-actions {
+    visibility: hidden;
+}
+
 
 /* Consecutive same-role messages are pulled a touch closer together */
 .message-container.character + .message-container.character,
