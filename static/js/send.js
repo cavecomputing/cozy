@@ -96,12 +96,18 @@ async function sendOnce(text) {
     // time quadratic in the reply length. `streamed` is still assigned on every
     // token: a Stop salvages that, not whatever happens to be on screen.
     let frame = 0;
+    // Reveal the reply toward what has arrived rather than all of it at once:
+    // each frame shows an eighth of the backlog, so the pace follows the stream,
+    // steady while tokens trickle and quicker when they burst.
+    let shown = 0;
     const drawStreamed = () => {
         frame = 0;
-        const parsed = parseThinkingContent(streamed);
+        shown += Math.max(1, Math.ceil((streamed.length - shown) / 8));
+        const parsed = parseThinkingContent(streamed.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
         renderMarkdown(contentEl, parsed.response, true);
         maybeScrollToBottom();
+        if (shown < streamed.length) frame = requestAnimationFrame(drawStreamed);
     };
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
@@ -118,6 +124,9 @@ async function sendOnce(text) {
             streamed = accumulated;
             if (!frame) frame = requestAnimationFrame(drawStreamed);
         }, signal);
+        // Let the reveal catch up before the finished reply takes its place, but
+        // not in a hidden tab, where frames stall and the save would wait on them.
+        while (frame && !signal.aborted && !document.hidden) await new Promise(requestAnimationFrame);
 
     } catch (err) {
         if (err.name !== 'AbortError') {
