@@ -5393,7 +5393,9 @@ input[type="checkbox"]:checked::after {
         width: auto;
         max-width: 100%;
         padding: 0.625rem 0.75rem;
-        font-size: var(--text-2xl);
+        /* Safari on a phone zooms into text under 16px when it takes focus,
+           as a message does when Edit starts, and stays zoomed after. */
+        font-size: 16px;
         border-radius: var(--radius);
     }
 
@@ -5856,6 +5858,13 @@ input[type="checkbox"]:checked::after {
     resize: vertical;
     min-height: 4.5rem;
     font-size: var(--text-lg);
+}
+/* The rest of the fields a phone would zoom into (see .message's phone rule);
+   the composer and the settings fields are 16px there already. */
+@media (max-width: 768px) {
+    :is(#author-note-input, .chat-rename-input, .tags-text-input, .alt-greeting-item .form-textarea) {
+        font-size: 16px;
+    }
 }
 .memory-authornote-counter {
     font-family: var(--font-mono);
