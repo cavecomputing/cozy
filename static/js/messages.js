@@ -422,16 +422,13 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     message.dataset.swipes = JSON.stringify(msgSwipes);
     message.dataset.activeSwipeIndex = activeSwipeIndex;
 
-    const headerDivider = document.createElement('div');
-    headerDivider.className = 'msg-header-divider';
-
     const content = document.createElement('div');
     content.className = 'message-content';
 
     const parsed = parseThinkingContent(text);
     renderMarkdown(content, parsed.hasThinking ? parsed.response : text, role !== 'user');
 
-    msgBody.append(msgHeader, headerDivider, content);
+    msgBody.append(msgHeader, content);
 
     if (parsed.hasThinking) renderThinkingBlock(msgBody, parsed);
     message.append(avatarDiv, msgBody);

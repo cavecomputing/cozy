@@ -1353,12 +1353,6 @@ select.settings-select:focus-visible {
     opacity: 1;
 }
 
-/* The header sits straight on the prose, as in the design; messages.js still
-   builds the rule, so it is hidden here. */
-.msg-header-divider {
-    display: none;
-}
-
 .message.user .msg-name {
     color: var(--user-msg-name-color, rgba(255, 255, 255, 0.85));
 }
