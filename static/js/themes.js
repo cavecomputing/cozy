@@ -16,8 +16,9 @@ export async function loadThemeList() {
         const r = await fetch('/api/themes');
         state.themes = await r.json();
         // A saved theme whose file is gone (a retired built-in, a deleted
-        // user theme) would leave the page unstyled, so show the default.
-        if (!state.themes.includes(state.theme)) applyTheme('cozy');
+        // user theme) would leave the page unstyled, so show the default,
+        // keeping a light theme light.
+        if (!state.themes.includes(state.theme)) applyTheme(state.theme.endsWith('-light') ? 'cozy-light' : 'cozy');
     } catch { state.themes = ['cozy']; }
 }
 
