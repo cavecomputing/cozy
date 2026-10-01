@@ -598,6 +598,13 @@ export function startEditing(messageEl) {
     const contentDiv = messageEl.querySelector('.message-content');
     const actionsBar = messageEl.closest('.message-wrapper').querySelector('.msg-actions');
 
+    // A user bubble is only as wide as its text and its buttons, and editing
+    // swaps both, so it would narrow or widen and slide everything in it
+    // sideways. Hold the width it had until editing ends.
+    if (messageEl.classList.contains('user')) {
+        messageEl.style.width = `${messageEl.getBoundingClientRect().width}px`;
+    }
+
     // Show raw markdown for editing — response only, thinking stays in its block
     messageEl.dataset.originalText = messageEl.dataset.rawText;
     messageEl.classList.add('editing');
@@ -661,6 +668,7 @@ export function finishEditing(save) {
         : originalText;
 
     messageEl.classList.remove('editing');
+    messageEl.style.width = '';
     contentDiv.removeAttribute('contenteditable');
     contentDiv.removeEventListener('keydown', messageEl._editHandler);
     delete messageEl._editHandler;

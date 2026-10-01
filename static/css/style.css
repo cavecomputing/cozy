@@ -5411,6 +5411,13 @@ input[type="checkbox"]:checked::after {
         min-height: 32px;
     }
 
+    /* Its buttons are already full tap height, and the pill's padding made the
+       row 2px taller than the Save and Cancel that replace it while editing,
+       which lifted the text beneath by as much. */
+    .swipe-nav {
+        padding-block: 0;
+    }
+
     .message.user .msg-actions {
         justify-content: flex-end;
     }
