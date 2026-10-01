@@ -1210,11 +1210,20 @@ function bindScrollHandlers() {
             && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
     }, { passive: true });
 
-    // Auto-scroll detection on chat scroll area
+    // Reaching the bottom starts the follow and moving up ends it. Nothing
+    // else does: a reply that grows past the fold between a draw and this
+    // event, or a browser that settles its own scroll late, leaves the view
+    // short of the bottom without the reader having asked to stop. A move up
+    // that ends flush with the bottom is the view clamping to content that
+    // shrank, not the reader.
+    let lastScrollTop = el.chatHistory.scrollTop;
     el.chatHistory.addEventListener('scroll', () => {
-        const atBottom =
-            el.chatHistory.scrollHeight - el.chatHistory.scrollTop - el.chatHistory.clientHeight < 60;
-        state.autoScroll = atBottom;
+        const { scrollTop, scrollHeight, clientHeight } = el.chatHistory;
+        const fromBottom = scrollHeight - scrollTop - clientHeight;
+        const atBottom = fromBottom < 60;
+        if (scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
+        else if (atBottom) state.autoScroll = true;
+        lastScrollTop = scrollTop;
         el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
         drawOlderSoon();
     });

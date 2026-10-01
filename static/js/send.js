@@ -61,7 +61,6 @@ async function sendOnce(text) {
 
     el.userInput.value = '';
     autoResize(el.userInput);
-    state.autoScroll = true;
 
     // The reply belongs to the chat that was open when the request went out —
     // switching chats mid-stream must not redirect it into the new one.
