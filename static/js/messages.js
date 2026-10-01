@@ -667,12 +667,6 @@ export function finishEditing(save) {
             : editedResponse)
         : originalText;
 
-    messageEl.classList.remove('editing');
-    messageEl.style.width = '';
-    contentDiv.removeAttribute('contenteditable');
-    contentDiv.removeEventListener('keydown', messageEl._editHandler);
-    delete messageEl._editHandler;
-
     // Persist edit to backend
     if (save) {
         const id = messageEl.dataset.msgId;
@@ -712,6 +706,16 @@ export function finishEditing(save) {
         contentDiv, finalParsed.hasThinking ? finalParsed.response : rawText, role !== 'user'
     );
     delete messageEl.dataset.originalText;
+
+    // Only now leave the editor. Its raw text held in pre-wrap is what keeps
+    // the message its full height; dropping that first collapsed the raw text
+    // for a moment, and at the bottom of the chat the scroll position clamped
+    // up to the shorter message and stayed there once the render grew it back.
+    messageEl.classList.remove('editing');
+    messageEl.style.width = '';
+    contentDiv.removeAttribute('contenteditable');
+    contentDiv.removeEventListener('keydown', messageEl._editHandler);
+    delete messageEl._editHandler;
 
     // Restore the correct toolbar (preserve swipe state)
     const swipes = JSON.parse(messageEl.dataset.swipes || '[]');
