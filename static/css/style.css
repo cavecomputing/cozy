@@ -4929,6 +4929,12 @@ input[type="checkbox"]:checked::after {
     from { opacity: 0; transform: translateY(6px); }
 }
 
+/* Streamed reply text fades in as it arrives; createTextFader() in messages.js
+   applies it with its own duration and delay. */
+@keyframes streamFade {
+    from { opacity: 0; }
+}
+
 /* ── Thinking block (collapsible) ───────────────────────────────────────── */
 .thinking-block {
     margin-bottom: 0.4rem;

@@ -41,6 +41,50 @@ export function renderMarkdown(targetEl, rawText, applyDisplay = false) {
     targetEl.innerHTML = DOMPurify.sanitize(marked.parse(resolved));
 }
 
+/** How long a stretch of streamed text takes to fade in. */
+export const STREAM_FADE_MS = 400;
+
+/**
+ * Fade in the text each streaming draw adds. A draw rebuilds the whole bubble,
+ * so the fade can't live on the nodes themselves: the fader remembers how far
+ * the text reached at each draw and when, and wraps the stretches still fading
+ * on every draw, each with its animation started that long ago so it carries on
+ * from where the last draw left it.
+ */
+export function createTextFader() {
+    const reveals = [{ end: 0, at: 0 }];
+    return contentEl => {
+        const now = performance.now();
+        const texts = [];
+        let length = 0;
+        const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            texts.push([node, length]);
+            length += node.length;
+        }
+        if (length > reveals.at(-1).end) reveals.push({ end: length, at: now });
+        while (reveals.length > 1 && now - reveals[1].at >= STREAM_FADE_MS) reveals.shift();
+
+        // Back to front, so splitting a node leaves the offsets before it intact.
+        for (let i = texts.length - 1; i >= 0; i--) {
+            const [node, start] = texts[i];
+            for (let k = reveals.length - 1; k >= 1; k--) {
+                const from = Math.max(reveals[k - 1].end, start);
+                const to = Math.min(reveals[k].end, start + node.length);
+                if (from >= to) continue;
+                const stretch = node.splitText(from - start);
+                if (to - from < stretch.length) stretch.splitText(to - from);
+                // Whitespace between blocks can sit where a span can't, in a list or table.
+                if (!/\S/.test(stretch.data)) continue;
+                const span = document.createElement('span');
+                span.style.animation = `streamFade ${STREAM_FADE_MS}ms ease-out ${reveals[k].at - now}ms both`;
+                stretch.replaceWith(span);
+                span.append(stretch);
+            }
+        }
+    };
+}
+
 /** Find the state.messages entry matching a message element (by DB id, then fallback to text). */
 export function findStateMsg(swipes, msgEl) {
     const id = msgEl.dataset.msgId;
@@ -117,11 +161,13 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     // bubble survives the stream, so a queued draw must also be cancelled: it
     // would otherwise repaint the unfiltered stream over the saved swipe.
     let frame = 0;
+    const fadeIn = createTextFader();
     const drawStreamed = () => {
         frame = 0;
         const parsed = parseThinkingContent(streamed);
         renderThinkingBlock(msgBody, parsed);
         renderMarkdown(contentEl, parsed.response, true);
+        fadeIn(contentEl);
         maybeScrollToBottom();
     };
     // The memory update and the reply can be pointed at different endpoints, so
@@ -157,6 +203,8 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
         cancelAnimationFrame(frame);
     }
 
+    // Let the last words finish fading before the swipe is drawn plain.
+    if (!regenSignal.aborted) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
     // Filter before rendering so the swipe on screen matches the one stored.
     newContent = applyOutputFilters(newContent);
     const parsed = parseThinkingContent(newContent);
