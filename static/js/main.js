@@ -865,13 +865,8 @@ function bindChatHandlers() {
         }
     });
     document.addEventListener('keydown', e => {
-        if (e.key !== 'Escape') return;
-        if (llm.abortController) {
-            e.preventDefault();
-            e.stopPropagation();
-            stopGeneration();
-            return;
-        }
+        // An edit or a rename that took Esc for itself has had it.
+        if (e.key !== 'Escape' || e.defaultPrevented) return;
         if (settingsSubmodal) {
             e.preventDefault();
             closeSettingsSubmodal(settingsSubmodal);
@@ -894,6 +889,17 @@ function bindChatHandlers() {
         // the user's place over a dropdown they only wanted to dismiss.
         if (closeOpenSettingsMenu()) {
             e.preventDefault();
+            return;
+        }
+        // A panel over the chat goes before a running reply does: pressed to
+        // close Settings, Esc used to cut the reply short and leave it open.
+        const panelOpen = !el.settingsFlyout.hidden || !el.chatFlyout.hidden
+            || el.memoryFlyout?.hidden === false || el.personaDropup.classList.contains('show')
+            || !document.getElementById('char-modal').hidden || el.sidebar.classList.contains('mobile-open');
+        if (llm.abortController && !panelOpen) {
+            e.preventDefault();
+            e.stopPropagation();
+            stopGeneration();
             return;
         }
         Flyouts.closeAllExcept(null);
