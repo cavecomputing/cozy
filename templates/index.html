@@ -132,8 +132,8 @@
                     <input type="text" id="pf-tagline" class="form-input" placeholder="Tagline (shown below name)">
                     <textarea id="pf-description" class="form-textarea pf-textarea" rows="2" placeholder="Description (sent to LLM)"></textarea>
                     <div class="pf-buttons">
-                        <button id="pf-cancel" class="btn btn-secondary btn-sm">Cancel</button>
-                        <button id="pf-save" class="btn btn-primary btn-sm">Save</button>
+                        <button id="pf-cancel" class="btn btn-secondary btn-sm"><span>Cancel</span></button>
+                        <button id="pf-save" class="btn btn-primary btn-sm"><span>Save</span></button>
                     </div>
                 </div>
             </div>
@@ -501,8 +501,8 @@
                                                     <span class="settings-action-label">Import/export</span>
                                                 </button>
                                                 <ul class="export-menu" id="sysprompt-io-menu" hidden role="menu">
-                                                    <li><button id="settings-sysprompt-import" role="menuitem">Import from JSON…</button></li>
-                                                    <li><button id="settings-sysprompt-export" role="menuitem">Export as JSON</button></li>
+                                                    <li><button id="settings-sysprompt-import" role="menuitem"><span>Import from JSON…</span></button></li>
+                                                    <li><button id="settings-sysprompt-export" role="menuitem"><span>Export as JSON</span></button></li>
                                                 </ul>
                                             </div>
                                             <input type="file" id="settings-sysprompt-import-file" accept="application/json,.json" hidden>
@@ -529,8 +529,8 @@
                                 <div class="prompt-builder-bar settings-card-header">
                                     <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                     <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
-                                        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system">System</button>
-                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history">User</button>
+                                        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system"><span>System</span></button>
+                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history"><span>User</span></button>
                                     </div>
                                     <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both templates filled in" aria-label="Preview both templates filled in" aria-expanded="false" aria-controls="prompt-rendered-flyout">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
@@ -552,7 +552,7 @@
                                 </div>
                             </div>
                                 <div class="prompt-vars-panel settings-card">
-                                    <button id="prompt-vars-toggle" class="prompt-vars-toggle" type="button" aria-expanded="false" aria-controls="prompt-vars-content"><svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg>Variables <span aria-hidden="true">⌄</span></button>
+                                    <button id="prompt-vars-toggle" class="prompt-vars-toggle" type="button" aria-expanded="false" aria-controls="prompt-vars-content"><svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg><span>Variables</span> <span aria-hidden="true">⌄</span></button>
                                     <div id="prompt-vars-content">
                                         <header class="settings-card-header">
                                             <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg>
@@ -634,7 +634,7 @@
                                         <label class="settings-row-label" for="settings-lorebook-name">Name</label>
                                         <div class="lorebook-name-row">
                                             <input type="text" id="settings-lorebook-name" class="form-input" placeholder="Lorebook name…" aria-label="Lorebook name">
-                                            <button id="settings-lorebook-save" class="btn btn-primary btn-sm">Save</button>
+                                            <button id="settings-lorebook-save" class="btn btn-primary btn-sm"><span>Save</span></button>
                                         </div>
                                     </div>
                                     <div class="settings-row settings-row--field">
@@ -672,7 +672,7 @@
                                         placeholder="Search keys and comments…" aria-label="Search entries" hidden>
                                     <button id="settings-lorebook-add-entry" class="btn btn-secondary btn-sm" hidden>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                        Add entry
+                                        <span>Add entry</span>
                                     </button>
                                 </header>
                                 <div id="settings-lorebook-empty-entries" class="lorebook-empty-panel">
@@ -776,8 +776,8 @@
                                                 <span class="settings-action-label">Import/export</span>
                                             </button>
                                             <ul class="export-menu" id="regex-io-menu" hidden role="menu">
-                                                <li><button id="settings-regex-import" role="menuitem">Import from JSON…</button></li>
-                                                <li><button id="settings-regex-export" role="menuitem">Export as JSON</button></li>
+                                                <li><button id="settings-regex-import" role="menuitem"><span>Import from JSON…</span></button></li>
+                                                <li><button id="settings-regex-export" role="menuitem"><span>Export as JSON</span></button></li>
                                             </ul>
                                         </div>
                                         <input type="file" id="settings-regex-import-file" accept="application/json,.json" hidden>
@@ -790,7 +790,7 @@
                                     <h4>Filters <span id="settings-regex-count" class="regex-filter-count"></span></h4>
                                     <button id="settings-regex-add" class="btn btn-secondary btn-sm">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                        Add filter
+                                        <span>Add filter</span>
                                     </button>
                                     <p>Run top to bottom — each filter sees the previous one's output.</p>
                                 </header>
@@ -861,12 +861,12 @@
                                     <div class="export-dropdown" id="about-backup-dropdown">
                                         <button id="about-backup-btn" class="btn btn-secondary btn-sm export-trigger-btn" aria-haspopup="true" aria-expanded="false">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                            Backup
+                                            <span>Backup</span>
                                             <svg class="export-trigger-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </button>
                                         <ul class="export-menu" id="about-backup-menu" hidden role="menu">
-                                            <li><button id="about-backup-export" role="menuitem">Download backup&hellip;</button></li>
-                                            <li><button id="about-backup-restore" role="menuitem">Restore from backup&hellip;</button></li>
+                                            <li><button id="about-backup-export" role="menuitem"><span>Download backup&hellip;</span></button></li>
+                                            <li><button id="about-backup-restore" role="menuitem"><span>Restore from backup&hellip;</span></button></li>
                                         </ul>
                                         <input type="file" id="about-backup-file" accept="application/zip,.zip" hidden>
                                     </div>
@@ -956,16 +956,16 @@
                         <div class="export-dropdown" id="export-dropdown-wrap">
                             <button id="export-card-btn" class="btn btn-secondary btn-sm export-trigger-btn" aria-haspopup="true" aria-expanded="false">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                Import/Export
+                                <span>Import/Export</span>
                                 <svg class="export-trigger-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </button>
                             <ul class="export-menu" id="export-menu" hidden role="menu">
                                 <li class="export-menu-label" id="export-menu-export-label" role="presentation">Export</li>
-                                <li data-export-item><button data-fmt="json" role="menuitem">JSON (.json)</button></li>
-                                <li data-export-item><button data-fmt="png" role="menuitem">PNG (.png)</button></li>
+                                <li data-export-item><button data-fmt="json" role="menuitem"><span>JSON (.json)</span></button></li>
+                                <li data-export-item><button data-fmt="png" role="menuitem"><span>PNG (.png)</span></button></li>
                                 <li class="export-menu-sep" id="export-menu-sep" role="separator"></li>
                                 <li class="export-menu-label" role="presentation">Import</li>
-                                <li><button data-action="import" role="menuitem">From file (.json / .png)</button></li>
+                                <li><button data-action="import" role="menuitem"><span>From file (.json / .png)</span></button></li>
                             </ul>
                             <input type="file" id="import-file-input" accept=".json,.png" hidden>
                         </div>
@@ -992,10 +992,10 @@
                     </div>
                 </div>
                 <div class="modal-tabs" role="tablist">
-                    <button class="tab-btn active" data-tab="basic" role="tab" aria-selected="true">Basic</button>
-                    <button class="tab-btn" data-tab="messages" role="tab" aria-selected="false">Messages</button>
-                    <button class="tab-btn" data-tab="advanced" role="tab" aria-selected="false">Advanced</button>
-                    <button class="tab-btn" data-tab="metadata" role="tab" aria-selected="false">Metadata</button>
+                    <button class="tab-btn active" data-tab="basic" role="tab" aria-selected="true"><span>Basic</span></button>
+                    <button class="tab-btn" data-tab="messages" role="tab" aria-selected="false"><span>Messages</span></button>
+                    <button class="tab-btn" data-tab="advanced" role="tab" aria-selected="false"><span>Advanced</span></button>
+                    <button class="tab-btn" data-tab="metadata" role="tab" aria-selected="false"><span>Metadata</span></button>
                 </div>
                 <div class="modal-body">
                     <div class="tab-panel active" id="tab-basic" role="tabpanel">
@@ -1022,7 +1022,7 @@
                             <div id="alt-greetings-list" class="alt-greetings-list"></div>
                             <button type="button" id="add-greeting-btn" class="btn btn-secondary btn-sm add-btn">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                Add Greeting
+                                <span>Add Greeting</span>
                             </button>
                         </div>
                         <div class="form-group">
@@ -1066,11 +1066,11 @@
                 </div>
                 <div class="modal-footer">
                     <div class="modal-footer-left">
-                        <button type="button" id="modal-delete-btn" class="btn btn-danger" hidden>Delete</button>
+                        <button type="button" id="modal-delete-btn" class="btn btn-danger" hidden><span>Delete</span></button>
                     </div>
                     <div class="modal-footer-right">
-                        <button type="button" id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
-                        <button type="button" id="modal-save-btn" class="btn btn-primary">Save</button>
+                        <button type="button" id="modal-cancel-btn" class="btn btn-secondary"><span>Cancel</span></button>
+                        <button type="button" id="modal-save-btn" class="btn btn-primary"><span>Save</span></button>
                     </div>
                 </div>
             </div>
@@ -1101,7 +1101,7 @@
                 <div class="empty-state-icon" aria-hidden="true">💬</div>
                 <h2 id="empty-state-title">No character selected</h2>
                 <p id="empty-state-text">Select a character to start chatting, or create a new one.</p>
-                <button class="btn btn-primary" id="empty-new-char-btn">Create Character</button>
+                <button class="btn btn-primary" id="empty-new-char-btn"><span>Create Character</span></button>
             </div>
             <button id="scroll-to-bottom-btn" class="scroll-to-bottom-btn" title="Scroll to bottom" aria-label="Scroll to bottom">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1159,7 +1159,7 @@
                             <select id="lorebook-flyout-select" class="settings-select lorebook-flyout-select" aria-label="Active lorebook"></select>
                             <button id="lorebook-flyout-manage" class="lorebook-flyout-manage">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                Manage lorebooks…
+                                <span>Manage lorebooks…</span>
                             </button>
                         </div>
                     </section>

@@ -308,6 +308,25 @@ select.settings-select:focus-visible {
     cursor: not-allowed;
 }
 
+/* Centre button labels on their capitals. A line box centres the font's whole
+   ascent and descent, and capitals and digits never reach into the descent,
+   so labels sat one to two pixels above centre. Trimming a label to cap height
+   and baseline centres it; the trimmed space goes back as padding, so no box
+   changes size. Only a label in its own span can be trimmed: bare text in a
+   flex button is an anonymous box, and a span that is itself a flex row
+   passes on to its own spans. The message header's name and time get the
+   same treatment so they stay level with the swipe counter beside them, and
+   the two padded pills add the space to their own padding. Browsers without
+   trimming keep the plain line box. */
+@supports (text-box: trim-both cap alphabetic) {
+    :where(button, .swipe-nav, .cozy-select-value, .msg-header, .persona-default-badge, .tag-chip) > :where(span:not(:has(*))) {
+        text-box: trim-both cap alphabetic;
+        padding-block: calc((1lh - 1cap) / 2);
+    }
+    button > .advanced-badge { padding-block: calc(0.05rem + (1lh - 1cap) / 2); }
+    :is(.prompt-picker, .lorebook-picker) .cozy-select-value > .cozy-select-badge { padding-block: calc(var(--space-1) + (1lh - 1cap) / 2); }
+}
+
 .icon-btn svg,
 .msg-action-btn svg,
 .swipe-btn svg {
@@ -801,7 +820,7 @@ select.settings-select:focus-visible {
     justify-content: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.35rem 0.7rem;
+    padding: var(--space-2) 0.7rem;   /* whole pixels, or the label rounds a pixel high */
     border: 1px solid var(--line);
     background-color: var(--surface-quiet);
     border-radius: var(--radius-control);
@@ -2783,7 +2802,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     width: 7.5rem;
 }
 /* Name plain, version as a pill, in both the trigger and the open menu. */
-.prompt-picker :is(.cozy-select-value, .cozy-select-option) {
+.prompt-picker :is(.cozy-select-value:has(> *), .cozy-select-option) {
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -4259,6 +4278,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .tab-btn {
+    display: inline-flex;   /* so the label span is a block that can be trimmed */
+    align-items: center;
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
@@ -4459,11 +4480,15 @@ input[type="checkbox"]:checked::after {
     border: none;
     color: inherit;
     cursor: pointer;
+    display: inline-flex;
     padding: 0;
-    font-size: var(--text-xl);
-    line-height: 1;
     opacity: 0.7;
     transition: opacity var(--motion-base);
+}
+
+.tag-chip-remove svg {
+    width: 10px;
+    height: 10px;
 }
 
 .tag-chip-remove:hover {
@@ -6250,7 +6275,7 @@ input[type="checkbox"]:checked::after {
 /* Lorebook picker: the shared preset row lays it out; these rules only style
    the character and entry-count detail carried on each option. The source
    wears the prompt picker's badge. */
-.lorebook-picker :is(.cozy-select-value, .cozy-select-option) { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); white-space: normal; }
+.lorebook-picker :is(.cozy-select-value:has(> *), .cozy-select-option) { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); white-space: normal; }
 .lorebook-picker .cozy-select-label { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 .lorebook-picker .cozy-select-detail { flex: 0 1 auto; max-width: 40%; overflow-wrap: anywhere; }
 .lorebook-picker :is(.cozy-select-detail, .cozy-select-count) { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 400; }

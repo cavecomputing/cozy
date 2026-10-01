@@ -19,7 +19,7 @@ export function createTagEditor({ chipList, textInput, wrap }) {
         tags.forEach((tag, idx) => {
             const chip = document.createElement('span');
             chip.className = 'tag-chip';
-            chip.innerHTML = `${sanitize(tag)}<button type="button" class="tag-chip-remove" title="Remove tag" aria-label="Remove tag">×</button>`;
+            chip.innerHTML = `<span>${sanitize(tag)}</span><button type="button" class="tag-chip-remove" title="Remove tag" aria-label="Remove tag">${icons.CANCEL}</button>`;
             chip.querySelector('.tag-chip-remove').addEventListener('click', () => {
                 tags.splice(idx, 1);
                 render();
