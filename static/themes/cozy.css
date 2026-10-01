@@ -87,10 +87,10 @@
        character accent. */
     --char-name-color:          #d3869b;
 
-    /* User message — outlined on the shell rather than filled, so the
-       character's raised card is the one that stands forward. */
-    --user-msg-bg:              transparent;
-    --user-msg-border:          var(--border-color);
+    /* User message — the raised bubble; the character's reply is plain prose
+       on the shell. */
+    --user-msg-bg:              var(--char-msg-bg);
+    --user-msg-border:          transparent;
     --user-msg-color:           var(--text-color);
     --user-msg-name-color:      var(--text-color);
     --user-action-color:        var(--text-secondary);

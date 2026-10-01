@@ -1372,11 +1372,25 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     border-color: var(--user-msg-border, transparent);
 }
 
-/* The character's reply is the raised card; the user's stays on the shell. */
+/* The character's reply is plain prose on the shell, its text on the column's
+   edge, until editing frames it; the user's message is the bubble, set to the
+   right. */
 .message.character {
-    background-color: var(--char-msg-bg);
     color: var(--text-color);
-    box-shadow: var(--shadow-card);
+    border-color: transparent;
+}
+
+.message.character:not(.editing) {
+    padding-inline: 0;
+}
+
+.message-container.user {
+    justify-content: flex-end;
+}
+
+.message-container.user .message-wrapper {
+    width: auto;
+    max-width: min(80%, 34rem);
 }
 
 /* The accent border of a focused field, so the card keeps its shadow. */

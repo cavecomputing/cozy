@@ -85,9 +85,9 @@
 
     --char-name-color:          #8f3f71;
 
-    /* User message — outlined on the shell, as in cozy.css. */
-    --user-msg-bg:              transparent;
-    --user-msg-border:          var(--border-color);
+    /* User message — the raised bubble, as in cozy.css. */
+    --user-msg-bg:              var(--char-msg-bg);
+    --user-msg-border:          transparent;
     --user-msg-color:           var(--text-color);
     --user-msg-name-color:      var(--text-color);
     --user-action-color:        var(--text-secondary);
