@@ -5358,16 +5358,51 @@ input[type="checkbox"]:checked::after {
         max-width: min(86%, 34rem);
     }
 
+    /* Full width even for a one-word reply, so its row of buttons fits. */
     .message-container.character .message-wrapper {
+        width: 100%;
         max-width: 100%;
     }
 
+    /* A phone has no width to give an avatar column, so the avatar joins the
+       name and time on one line and the text runs the full width beneath.
+       The body and header boxes step aside so their pieces land on this grid:
+       the header line first, then thinking and text, then the buttons as a
+       row of their own under the text, where they close the message off
+       instead of parting its name from its words. */
     .message {
+        display: grid;
+        grid-template-columns: auto minmax(0, auto) minmax(0, 1fr);
+        align-items: center;
+        gap: var(--space-2) var(--space-3);
         width: auto;
         max-width: 100%;
         padding: 0.625rem 0.75rem;
         font-size: var(--text-2xl);
         border-radius: var(--radius);
+    }
+
+    .message.user {
+        grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    }
+
+    .msg-body,
+    .msg-header {
+        display: contents;
+    }
+
+    .msg-name,
+    .msg-time {
+        grid-row: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .thinking-block,
+    .message-content,
+    .msg-actions {
+        grid-column: 1 / -1;
     }
 
     .message.user {
@@ -5380,34 +5415,38 @@ input[type="checkbox"]:checked::after {
     }
 
     .message .avatar {
-        width: 34px;
-        height: 34px;
+        grid-row: 1;
+        align-self: center;
+        width: 28px;
+        height: 28px;
+        font-size: var(--text-2xs);
+    }
+
+    /* A tapped avatar grows to the card picture; it takes the header line to
+       itself and the name and time drop beneath it. */
+    .message .avatar.avatar-expanded {
+        grid-column: 1 / -1;
+    }
+    .message:has(.avatar-expanded) :is(.msg-name, .msg-time) {
+        grid-row: 2;
     }
 
     .message.user .avatar {
         display: none;
     }
 
-    .msg-header {
-        gap: 0.25rem 0.45rem;
-    }
-
     .msg-time {
         font-size: var(--text-xs);
     }
 
-    /* On the narrowest phones a character's full row of tap targets is wider
-       than the card; it wraps rather than spilling past the edge. */
-    /* A row of its own, always: editing swaps in fewer buttons, and a row that
-       only wrapped when full would close up and lift the text beneath it. */
+    /* Under the text, on the text's edge; last in the grid's order. On the
+       narrowest phones a character's full row of tap targets is wider than
+       the card, so it wraps rather than spilling past the edge. */
     .msg-actions {
-        flex-basis: 100%;
-        width: auto;
-        max-width: 100%;
+        order: 1;
+        margin-left: 0;
         flex-wrap: wrap;
-        justify-content: flex-end;
         gap: 0.15rem;
-        order: 0;
     }
 
     .msg-action-btn,
@@ -5423,8 +5462,12 @@ input[type="checkbox"]:checked::after {
         padding-block: 0;
     }
 
+    /* The bubble's buttons keep to its right edge, the icons' own inset
+       lining them up with the text above. */
     .message.user .msg-actions {
         justify-content: flex-end;
+        margin-left: auto;
+        margin-right: -6px;
     }
 
     .message-content pre {
