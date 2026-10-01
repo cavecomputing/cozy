@@ -31,11 +31,12 @@
     --success-color:  #427b58;
     --cool-color:     #076678;   /* blue — links, addresses, references */
 
-    /* Elevation — soft shadows in the ink colour, never black on paper. */
-    --shadow-md:          0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
+    /* Elevation in the ink colour, never black on paper: hard and offset for
+       what floats or lifts, soft for the shell and resting cards. */
+    --shadow-md:          5px 5px 0 rgba(60, 56, 54, 0.20);
     --shell-shadow:       0 1px 2px rgba(60, 56, 54, 0.10), 0 8px 24px rgba(60, 56, 54, 0.07);
     --card-shadow:        0 1px 2px rgba(60, 56, 54, 0.07), 0 4px 12px rgba(60, 56, 54, 0.07);
-    --lift-shadow:        0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
+    --lift-shadow:        5px 5px 0 rgba(60, 56, 54, 0.20);
     --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
     --input-shadow:       none;
 

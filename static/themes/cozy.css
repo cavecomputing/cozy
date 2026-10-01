@@ -30,9 +30,11 @@
     --success-color:  #8ec07c;
     --cool-color:     #83a598;   /* blue — links, addresses, references */
 
-    /* Elevation — the lifted shadow, for surfaces that genuinely float
-       (flyouts, menus, toasts). */
-    --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
+    /* Elevation — a hard offset shadow with no blur for what floats (flyouts,
+       menus, toasts, the editor) and for a button lifted under the pointer;
+       the shell and resting cards keep the soft defaults. */
+    --lift-shadow:        5px 5px 0 rgba(0, 0, 0, 0.50);
+    --shadow-md:          5px 5px 0 rgba(0, 0, 0, 0.50);
     --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
     --input-shadow:       none;
     --input-focus-shadow: 0 0 0 3px rgba(250, 189, 47, 0.12);
