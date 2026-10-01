@@ -2868,6 +2868,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 .prompt-picker .cozy-select-label {
     min-width: 0;
+    margin-right: auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2875,7 +2876,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 /* The same badge carries the lorebook picker's source. */
 :is(.prompt-picker, .lorebook-picker) .cozy-select-badge {
     flex: none;
-    margin-left: auto;
     padding: var(--space-1) var(--space-2);
     border: 1px solid var(--line);
     border-radius: var(--radius-control);
@@ -5290,6 +5290,11 @@ input[type="checkbox"]:checked::after {
         opacity: 0.5;
         font-size: var(--text-3xl);
     }
+    /* The ADV badge already takes the row's slack; split with the chevron,
+       it would float mid-row. */
+    .settings-nav-item:has(> .advanced-badge)::after {
+        margin-left: 0;
+    }
     /* List view (default on mobile open) — hide pane */
     .settings-shell:not(.in-detail) .settings-pane { display: none; }
     /* Detail view — hide nav, show pane */
@@ -6378,7 +6383,7 @@ input[type="checkbox"]:checked::after {
     .prompt-section-right .form-textarea:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 2px; }
     .prompt-vars-panel { flex: none; padding: 0; }
     .prompt-vars-toggle { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 52px; border: 0; background: transparent; color: var(--fg-heading); font: 700 1.125rem/1.25 var(--font-mono); padding: var(--space-4); border-radius: var(--radius); }
-    .prompt-vars-toggle > span { margin-left: auto; }
+    .prompt-vars-toggle > span:last-child { margin-left: auto; }
     #prompt-vars-content { padding: 0 var(--space-4) var(--space-4); }
     .prompt-vars-toggle[aria-expanded="false"] + #prompt-vars-content { display: none; }
     #prompt-vars-content > .settings-card-header { display: none; }
