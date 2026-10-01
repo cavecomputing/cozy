@@ -1214,7 +1214,7 @@ select.settings-select:focus-visible {
 
 .scroll-to-bottom-btn {
     position: absolute;
-    bottom: calc(var(--composer-height, 0px) + 0.5rem);
+    bottom: 0.5rem;
     right: 1.25rem;
     width: 34px;
     height: 34px;
@@ -1268,11 +1268,9 @@ select.settings-select:focus-visible {
     #chat-scroll { scrollbar-gutter: stable both-edges; }
 }
 
-/* The composer floats over the foot of the chat (main.js measures it), so the
-   last message can scroll clear of it. */
-#chat-scroll {
-    padding-bottom: var(--composer-height, 0px);
-    scroll-padding-bottom: var(--composer-height, 0px);
+body:has(#context-token-meter:not([hidden])) #chat-scroll {
+    padding-bottom: 0.35rem;
+    scroll-padding-bottom: 0.35rem;
 }
 
 .message-container {
@@ -1724,13 +1722,10 @@ select.settings-select:focus-visible {
     user-select: none;
 }
 
-/* Floating input: over the chat's foot, the messages scrolling on under it. */
+/* Floating Input */
 #input-container {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 5;
+    flex-shrink: 0;
+    position: relative;
     padding: 0.625rem;
     background: none;
     pointer-events: none;
@@ -1986,8 +1981,6 @@ select.settings-select:focus-visible {
     max-width: var(--chat-max-width);
     margin: 0 auto var(--composer-meter-gap);
     padding: 0;
-    background-color: var(--bg-color);   /* messages scroll under it */
-    box-shadow: 0 0 0 var(--composer-meter-gap) var(--bg-color);
     color: var(--text-secondary);
     font-family: var(--font-mono);   /* the label is a token count */
     font-size: var(--text-xs);
@@ -5277,8 +5270,8 @@ input[type="checkbox"]:checked::after {
 
     #chat-scroll {
         border-radius: 0;
-        padding: 0.6rem 0 calc(var(--composer-height, 0px) + 0.25rem);
-        scroll-padding-bottom: calc(var(--composer-height, 0px) + 1rem);
+        padding: 0.6rem 0 0.25rem;
+        scroll-padding-bottom: 1rem;
     }
 
     .message-container.user {

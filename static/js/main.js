@@ -1228,15 +1228,6 @@ async function init() {
     setSummaryBudgetChangeHandler(updateContextViews);
     initTooltips();
     initContextMeter();
-    // The composer floats over the chat, so the scroller pads its foot by the
-    // composer's height, and holds its view steady as the composer grows.
-    let composerHeight = 0;
-    new ResizeObserver(() => {
-        const height = el.inputContainer.offsetHeight;
-        el.inputContainer.parentElement.style.setProperty('--composer-height', `${height}px`);
-        el.chatHistory.scrollTop += height - composerHeight;
-        composerHeight = height;
-    }).observe(el.inputContainer);
     // Lift the pinned settings header off the cards once the pane scrolls.
     el.settingsPane?.addEventListener('scroll', () => {
         el.settingsPane.classList.toggle('has-scrolled', el.settingsPane.scrollTop > 0);
