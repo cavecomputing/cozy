@@ -1617,6 +1617,8 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 /* With a mouse, a message's buttons wait for it to be pointed at, except on
    the newest reply, whose swipes are the ones in reach. Opacity rather than
    display, so the header keeps its height and nothing shifts on hover.
+   Keyboard focus shows a bar too, but not the focus a click leaves on the
+   button, which would hold the bar up after the pointer has moved on.
    Touch screens have no hover and keep every bar showing. */
 @media (hover: hover) {
     .msg-actions {
@@ -1624,7 +1626,7 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
         transition: opacity var(--motion-base);
     }
     .message-container:hover .msg-actions,
-    .message-container:focus-within .msg-actions,
+    .message-container:has(:focus-visible) .msg-actions,
     .message.editing .msg-actions,
     .message-container.character:last-child .msg-actions {
         opacity: 1;
