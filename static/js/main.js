@@ -1032,9 +1032,10 @@ function flashCopied(btn) {
 function bindMessageHandlers() {
     bindHeldActions();
     el.chatHistory.addEventListener('click', async e => {
-        // A held bar's buttons put it away, bar the swipe arrows; Edit's own
-        // Save and Cancel then show in the message's row (see bindHeldActions).
-        if (e.target.closest('.msg-actions button:not(.swipe-btn)')) closeHeldActions();
+        // A held bar's buttons put it away, bar the swipe arrows and Copy, whose
+        // tick shows on the bar; Edit's own Save and Cancel then show in the
+        // message's row (see bindHeldActions).
+        if (e.target.closest('.msg-actions button:not(.swipe-btn, .copy-msg-btn)')) closeHeldActions();
         const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
         if (avatar) {
             if (avatar.classList.contains('avatar-expanded')) {
