@@ -11,7 +11,7 @@
        between 0.1s and 0.4s. Fast is pointer feedback and popovers, base is a
        colour or border settling into a new state, slow is something moving
        across the screen. Spinners, the context-boundary flash and the typing
-       bounce keep their own timings: those are periods and attention cues,
+       dots keep their own timings: those are periods and attention cues,
        not state changes. */
     --motion-fast: 0.12s;
     --motion-base: 0.18s;
@@ -4876,15 +4876,30 @@ input[type="checkbox"]:checked::after {
     height: 6px;
     border-radius: 50%;
     background-color: var(--text-secondary);
-    animation: bounce 1.2s infinite ease-in-out;
+    animation: dotPulse 1.4s infinite ease-in-out;
 }
 
 .message-loading span:nth-child(2) { animation-delay: 0.2s; }
 .message-loading span:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes bounce {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
-    40%           { transform: scale(1); opacity: 1; }
+/* The dots breathe rather than pop in and out of nothing. */
+@keyframes dotPulse {
+    0%, 80%, 100% { opacity: 0.25; }
+    40%           { opacity: 1; }
+}
+
+/* A new message eases in: the user's as it is sent, a reply as its waiting
+   placeholder appears. The finished reply replaces that placeholder with the
+   same text, so it doesn't fade a second time. Opening a chat fades at most
+   its last message, and only when that one is the user's. */
+.message-container.user:last-child,
+.message-container.user:has(+ .message-container .message-loading),
+.message-container:has(.message-loading) {
+    animation: messageIn var(--motion-slow) ease-out;
+}
+
+@keyframes messageIn {
+    from { opacity: 0; transform: translateY(6px); }
 }
 
 /* ── Thinking block (collapsible) ───────────────────────────────────────── */
