@@ -4216,23 +4216,21 @@ input[type="checkbox"]:checked::after {
     flex-shrink: 0;
 }
 
-/* The avatar spans the name column exactly — its top on the "Name" label, its
-   bottom on the input — by stretching to the row and taking its width from that
-   height. The wrap must carry `align-self` and the square must be the wrap's
-   child: sizing a flex *item* this way is circular (the row's width pass runs
-   before the stretch height is known), which once left the "?" placeholder
-   resolved to the glyph's width with the square overflowing the name field. */
+/* An explicit square, as tall as the "Name" label and input together, with its
+   foot on the input's. Not one stretched to the row and given its width from
+   that height: the row's width pass runs before the stretch height is known, so
+   the wrap can resolve to the "?" glyph's width and the square then spills over
+   the name field (see .pf-avatar-wrap). */
 .modal-avatar-wrap {
     position: relative;
     flex: 0 0 auto;
-    align-self: stretch;
+    align-self: flex-end;
     display: flex;
 }
 
 .modal-avatar {
-    height: 100%;
-    width: auto;
-    aspect-ratio: 1;
+    width: 54px;
+    height: 54px;
     font-family: var(--font-mono);
     font-size: var(--text-3xl);
     font-weight: 700;
