@@ -1415,8 +1415,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 
 /* Markdown typography inside bubbles — RP-enhanced styles */
 .message-content img          { max-width: var(--img-max-width, 300px); height: auto; display: block; border-radius: var(--radius); }
-/* Wider than the 0.6em gap between lines, so a paragraph break reads as one. */
-.message-content p            { margin: 0 0 0.8em; }
+/* A full blank line, the space the same break takes in the raw text, so a
+   message doesn't grow at every paragraph when Edit swaps the one for the
+   other. */
+.message-content p            { margin: 0 0 1lh; }
 .message-content p:last-child { margin-bottom: 0; }
 .message-content a            { color: inherit; text-decoration: underline; opacity: 0.85; }
 .message-content a:hover      { opacity: 1; }
