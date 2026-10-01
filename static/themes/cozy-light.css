@@ -40,10 +40,10 @@
     --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
     --input-shadow:       none;
 
-    /* RP markdown — speech in the body colour, narration muted, emphasis in
+    /* RP markdown — speech in aqua, narration muted, emphasis in
        the label yellow and intense actions in orange. */
-    --rp-dialogue-color:  var(--text-color);
-    --rp-dialogue-weight: 400;
+    --rp-dialogue-color:  #376b4b;   /* aqua, darkened to read on the bubble */
+    --rp-dialogue-weight: 500;
     --rp-dialogue-shadow: none;
     --rp-action-color:    var(--text-secondary);
     --rp-emphasis-color:  var(--accent-text);
@@ -96,7 +96,7 @@
 
     /* User-message RP overrides */
     --user-dialogue-color:      var(--rp-dialogue-color);
-    --user-dialogue-weight:     400;
+    --user-dialogue-weight:     var(--rp-dialogue-weight);
     --user-dialogue-shadow:     none;
     --user-em-color:            var(--rp-action-color);
     --user-em-shadow:           none;

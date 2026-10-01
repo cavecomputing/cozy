@@ -39,10 +39,10 @@
     --input-shadow:       none;
     --input-focus-shadow: 0 0 0 3px rgba(250, 189, 47, 0.12);
 
-    /* RP markdown — speech in the body colour, narration muted, emphasis in
+    /* RP markdown — speech in aqua, narration muted, emphasis in
        the accent and intense actions in orange. */
-    --rp-dialogue-color:  var(--text-color);
-    --rp-dialogue-weight: 400;
+    --rp-dialogue-color:  #8ec07c;   /* aqua */
+    --rp-dialogue-weight: 500;
     --rp-dialogue-shadow: none;
     --rp-action-color:    var(--text-secondary);   /* muted — italics/actions */
     --rp-emphasis-color:  var(--accent-color);   /* yellow — bold/strong emphasis */
@@ -99,7 +99,7 @@
 
     /* User-message RP overrides */
     --user-dialogue-color:      var(--rp-dialogue-color);
-    --user-dialogue-weight:     400;
+    --user-dialogue-weight:     var(--rp-dialogue-weight);
     --user-dialogue-shadow:     none;
     --user-em-color:            var(--rp-action-color);
     --user-em-shadow:           none;
