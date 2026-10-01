@@ -5523,10 +5523,6 @@ input[type="checkbox"]:checked::after {
         }
     }
 
-    .message-content pre {
-        max-width: calc(100vw - 3rem);
-    }
-
     /* An edge-to-edge bar on the shell's own surface; the chat fades into it. */
     #input-container {
         padding: 0.45rem var(--mobile-inline-padding) calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
