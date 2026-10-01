@@ -1256,6 +1256,13 @@ select.settings-select:focus-visible {
     gap: var(--space-4);
     border-radius: var(--radius);
     min-height: 0;
+    /* Messages fade out where they meet the composer instead of being cut off,
+       so the two read as one surface. The padding lets the newest message rest
+       above the fade once scrolled to the bottom. */
+    --chat-fade: var(--space-6);
+    padding-bottom: var(--chat-fade);
+    scroll-padding-bottom: var(--chat-fade);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--chat-fade)), transparent);
 }
 
 /* The composer below sits outside this scroller, so a scrollbar here would
@@ -1266,11 +1273,6 @@ select.settings-select:focus-visible {
    is the 44rem column plus room for two thin scrollbars. */
 @container (min-width: 45.5rem) {
     #chat-scroll { scrollbar-gutter: stable both-edges; }
-}
-
-body:has(#context-token-meter:not([hidden])) #chat-scroll {
-    padding-bottom: 0.35rem;
-    scroll-padding-bottom: 0.35rem;
 }
 
 .message-container {
@@ -5337,8 +5339,7 @@ input[type="checkbox"]:checked::after {
     #chat-scroll {
         gap: var(--space-6);
         border-radius: 0;
-        padding: 0.6rem 0 0.25rem;
-        scroll-padding-bottom: 1rem;
+        padding-top: 0.6rem;
     }
 
     .message-container.user {
@@ -5511,10 +5512,9 @@ input[type="checkbox"]:checked::after {
         max-width: calc(100vw - 3rem);
     }
 
-    /* An edge-to-edge bar on the shell's own surface, set off by a hairline. */
+    /* An edge-to-edge bar on the shell's own surface; the chat fades into it. */
     #input-container {
         padding: 0.45rem var(--mobile-inline-padding) calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
-        border-top: 1px solid var(--border-color);
         background-color: var(--bg-color);
     }
 
