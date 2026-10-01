@@ -723,6 +723,10 @@ export function finishEditing(save) {
     messageEl.classList.remove('editing');
     messageEl.style.width = '';
     contentDiv.removeAttribute('contenteditable');
+    // Chrome lets go of the text once it can't be edited; Safari may not, and
+    // focus left on it holds the message's buttons up (the hover rule's
+    // :focus-visible case in style.css).
+    contentDiv.blur();
     contentDiv.removeEventListener('keydown', messageEl._editHandler);
     delete messageEl._editHandler;
 
