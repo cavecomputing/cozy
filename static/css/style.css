@@ -1614,6 +1614,23 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     flex-shrink: 0;
 }
 
+/* With a mouse, a message's buttons wait for it to be pointed at, except on
+   the newest reply, whose swipes are the ones in reach. Opacity rather than
+   display, so the header keeps its height and nothing shifts on hover.
+   Touch screens have no hover and keep every bar showing. */
+@media (hover: hover) {
+    .msg-actions {
+        opacity: 0;
+        transition: opacity var(--motion-base);
+    }
+    .message-container:hover .msg-actions,
+    .message-container:focus-within .msg-actions,
+    .message.editing .msg-actions,
+    .message-container.character:last-child .msg-actions {
+        opacity: 1;
+    }
+}
+
 
 /* Consecutive same-role messages are pulled a touch closer together */
 .message-container.character + .message-container.character,
