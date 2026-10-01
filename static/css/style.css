@@ -4172,8 +4172,10 @@ input[type="checkbox"]:checked::after {
 }
 
 /* The character rows' ⋯ menu. toggleCharMenu() places it from the row that
-   opened it and sets the corner it grows from. */
+   opened it and sets the corner it grows from. It outranks the settings and
+   character-editor panels (500), which open beside the same sidebar. */
 .char-row-menu {
+    z-index: 550;
     min-width: 144px;
     animation: rowMenuIn var(--motion-fast) ease-out;
 }
