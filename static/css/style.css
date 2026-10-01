@@ -1345,7 +1345,7 @@ select.settings-select:focus-visible {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     white-space: nowrap;
-    opacity: 0.65;
+    opacity: 0.75;
 }
 
 .message.character .msg-time {
