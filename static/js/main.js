@@ -1024,7 +1024,11 @@ function flashCopied(btn) {
 }
 
 function bindMessageHandlers() {
+    bindHeldActions();
     el.chatHistory.addEventListener('click', async e => {
+        // A held bar's buttons put it away, bar the swipe arrows; Edit's own
+        // Save and Cancel then show in the message's row (see bindHeldActions).
+        if (e.target.closest('.msg-actions button:not(.swipe-btn)')) closeHeldActions();
         const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
         if (avatar) {
             if (avatar.classList.contains('avatar-expanded')) {
@@ -1122,6 +1126,50 @@ function bindMessageHandlers() {
             await handleSwipeAction(msgEl, isPrev);
         }
     });
+}
+
+// On a touch phone a message's buttons stay hidden until it is pressed and
+// held (the CSS in style.css's phone block decides which rows hide). The bar
+// opens just above the finger, or below it when the finger is too near the top
+// of the transcript for the bar to fit above.
+const HOLD_MS = 450;
+const heldQuery = window.matchMedia('(max-width: 768px) and (hover: none)');
+let heldContainer = null;
+
+function closeHeldActions() {
+    heldContainer?.classList.remove('actions-open');
+    heldContainer = null;
+}
+
+function bindHeldActions() {
+    let timer = 0;
+    let start = null;
+    document.addEventListener('touchstart', e => {
+        clearTimeout(timer);
+        if (heldContainer && !heldContainer.querySelector('.msg-actions').contains(e.target)) closeHeldActions();
+        const container = e.target.closest('#chat-scroll .message-container');
+        const bar = container?.querySelector('.msg-actions');
+        if (!heldQuery.matches || !bar || getComputedStyle(bar).display !== 'none'
+            || e.target.closest('button, a, .avatar, [contenteditable="true"], [contenteditable="plaintext-only"]')) return;
+        const { clientX, clientY } = e.touches[0];
+        start = { clientX, clientY };
+        timer = setTimeout(() => {
+            container.classList.add('actions-open');
+            heldContainer = container;
+            const message = container.querySelector('.message');
+            const fingerY = start.clientY - message.getBoundingClientRect().top;
+            const room = start.clientY - el.chatHistory.getBoundingClientRect().top;
+            const above = room > bar.offsetHeight + 24;
+            bar.style.top = `${above ? fingerY - bar.offsetHeight - 16 : fingerY + 24}px`;
+        }, HOLD_MS);
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        const t = e.touches[0];
+        if (start && Math.hypot(t.clientX - start.clientX, t.clientY - start.clientY) > 10) clearTimeout(timer);
+    }, { passive: true });
+    document.addEventListener('touchend', () => clearTimeout(timer), { passive: true });
+    document.addEventListener('touchcancel', () => clearTimeout(timer), { passive: true });
+    el.chatHistory.addEventListener('scroll', closeHeldActions, { passive: true });
 }
 
 function bindComposerHandlers() {

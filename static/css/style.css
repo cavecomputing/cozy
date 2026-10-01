@@ -5470,6 +5470,43 @@ input[type="checkbox"]:checked::after {
         margin-right: -6px;
     }
 
+    /* A touch phone keeps a message's buttons out of sight until it is
+       pressed and held, as chat apps do; the bar then floats at the finger
+       (bindMessageHandlers in main.js places it). The newest reply keeps its
+       row, its swipes being the ones in reach, and an edit keeps Save and
+       Cancel. Holding would otherwise start a text selection, so the text
+       isn't selectable outside an edit; Copy takes the whole message. */
+    @media (hover: none) {
+        .message:not(.editing) {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        .msg-actions {
+            display: none;
+        }
+        .message-container.character:last-child .msg-actions,
+        .message.editing .msg-actions {
+            display: flex;
+        }
+        .message-container.actions-open .msg-actions {
+            display: flex;
+            position: absolute;
+            z-index: 20;
+            left: 0;
+            margin: 0;
+            padding: var(--space-1);
+            background-color: var(--surface-raised);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+        }
+        .message-container.user.actions-open .msg-actions {
+            left: auto;
+            right: 0;
+        }
+    }
+
     .message-content pre {
         max-width: calc(100vw - 3rem);
     }
