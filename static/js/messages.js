@@ -507,6 +507,10 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
     const p = role === 'user' ? (persona || state.activePersona) : null;
     const { container, message } = buildMessageEl(role, text, isGreeting, timestamp, swipes, activeSwipeIndex, persona, msgId);
     el.chatHistory.appendChild(container);
+    // Scroll before the save rather than after it. The browser paints while
+    // the request is out, and a finished reply that came out taller than its
+    // stream (an output filter, say) would sit pushed below the fold until then.
+    if (role === 'user') scrollToBottom(); else maybeScrollToBottom();
 
     if (persist && state.activeChat) {
         const personaId = (role === 'user' && p) ? p.id : null;
@@ -527,7 +531,6 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
         }
     }
 
-    if (role === 'user') scrollToBottom(); else maybeScrollToBottom();
     updateContextViews();
     return container;
 }
