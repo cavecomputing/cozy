@@ -146,11 +146,14 @@ async function sendOnce(text) {
         cancelAnimationFrame(frame);
     }
 
-    loadingContainer.remove();
     // appendMessage persists against whatever chat is active now, so a reply
     // that outlived its chat has to be dropped rather than misfiled.
-    if (state.activeChat?.id !== chatId) return;
+    if (state.activeChat?.id !== chatId) {
+        loadingContainer.remove();
+        return;
+    }
     if (!reply) {
+        loadingContainer.remove();
         // Nothing salvaged. A stop is silent and a failure already toasted; a
         // stream that simply completed empty is worth saying out loud, since
         // otherwise the message POST answers with an opaque 400.
@@ -160,7 +163,14 @@ async function sendOnce(text) {
     // Regex filters rewrite the reply before it is persisted, so the corrected
     // text is what gets saved, shown, and read back into context next turn.
     reply = applyOutputFilters(reply);
-    await appendMessage('character', reply, true);
+    // The finished reply goes in before the stream comes out. Taking the
+    // stream out first shrinks the transcript by a whole reply for a moment,
+    // and a browser that paints or settles its scroll in that moment leaves
+    // the view stranded up where it clamped.
+    const saving = appendMessage('character', reply, true);
+    loadingContainer.remove();
+    maybeScrollToBottom();
+    await saving;
     // Fold any history displaced by the new reply in the background. The
     // next send's preflight waits for this job if it is still running.
     maybeTriggerSummary();
