@@ -1373,14 +1373,10 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
 }
 
 /* The character's reply is plain prose on the shell, its text on the column's
-   edge, until editing frames it; the user's message is the bubble, set to the
-   right. */
+   edge; the user's message is the bubble, set to the right. */
 .message.character {
     color: var(--text-color);
     border-color: transparent;
-}
-
-.message.character:not(.editing) {
     padding-inline: 0;
 }
 
@@ -1393,9 +1389,17 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     max-width: min(80%, 34rem);
 }
 
-/* The accent border of a focused field, so the card keeps its shadow. */
+/* The accent border of a focused field, so the card keeps its shadow. A reply
+   has no padding to frame, so its frame is an outline standing off the text:
+   unlike padding, it moves nothing as editing starts. */
 .message.editing {
     border-color: var(--accent-color);
+}
+
+.message.character.editing {
+    border-color: transparent;
+    outline: 1px solid var(--accent-color);
+    outline-offset: var(--space-2);
 }
 
 .message.editing .message-content[contenteditable] {
@@ -5360,7 +5364,10 @@ input[type="checkbox"]:checked::after {
 
     /* On the narrowest phones a character's full row of tap targets is wider
        than the card; it wraps rather than spilling past the edge. */
+    /* A row of its own, always: editing swaps in fewer buttons, and a row that
+       only wrapped when full would close up and lift the text beneath it. */
     .msg-actions {
+        flex-basis: 100%;
         width: auto;
         max-width: 100%;
         flex-wrap: wrap;
