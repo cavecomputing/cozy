@@ -4912,11 +4912,15 @@ input[type="checkbox"]:checked::after {
 }
 
 /* A new message eases in: the user's as it is sent, a reply as its waiting
-   placeholder appears. The finished reply replaces that placeholder with the
-   same text, so it doesn't fade a second time. Opening a chat fades at most
-   its last message, and only when that one is the user's. */
+   placeholder appears. The placeholder is marked .streaming for its whole life,
+   not just while its dots show, since a model's first reasoning token replaces
+   the dots at once and would cut the fade short. The finished reply replaces
+   that placeholder with the same text, so it doesn't fade a second time.
+   Opening a chat fades at most its last message, and only when that one is the
+   user's. */
 .message-container.user:last-child,
-.message-container.user:has(+ .message-container .message-loading),
+.message-container.user:has(+ .message-container.streaming),
+.message-container.streaming,
 .message-container:has(.message-loading) {
     animation: messageIn var(--motion-slow) ease-out;
 }

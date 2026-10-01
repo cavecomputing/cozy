@@ -80,6 +80,7 @@ async function sendOnce(text) {
 
     // Create loading bubble (not persisted)
     const loadingContainer = await appendMessage('character', '', false);
+    loadingContainer.classList.add('streaming');
     const loadingMsg = loadingContainer.querySelector('.message');
     const contentEl = loadingMsg.querySelector('.message-content');
     const msgBody = loadingMsg.querySelector('.msg-body');
