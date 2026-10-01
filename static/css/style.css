@@ -1760,6 +1760,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 }
 
+/* A new swipe answers the end of the chat, so only the newest reply's arrow
+   makes one (see handleSwipeAction); on an older reply it reads as spent. */
+#chat-scroll > .message-container:not(:last-child) .swipe-generate {
+    opacity: 0.5;
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
 .swipe-counter {
     font-family: var(--font-mono);
     font-size: var(--text-sm);

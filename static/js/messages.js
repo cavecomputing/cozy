@@ -106,6 +106,7 @@ function updateSwipeNav(msgEl, swipes, idx, isGreeting) {
     const next = nav.querySelector('.swipe-next');
     next.disabled = isGreeting && atEnd;
     next.title = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
+    next.classList.toggle('swipe-generate', atEnd && !isGreeting);
 }
 
 /**
@@ -264,6 +265,9 @@ export async function handleSwipeAction(msgEl, isPrev) {
     const isGreeting = msgEl.dataset.isGreeting === 'true';
 
     if (!isPrev && idx >= swipes.length - 1 && !isGreeting) {
+        // A new swipe answers the end of the chat (generateResponse leaves out
+        // only its last message), so only the newest reply can have one.
+        if (findStateMsg(swipes, msgEl) !== state.messages.at(-1)) return;
         const generatedIdx = await generateSwipe(msgEl, swipes, idx);
         if (generatedIdx == null) return;
         idx = generatedIdx;
@@ -286,6 +290,10 @@ export async function regenerateLastAssistantMessage() {
     const last = [...state.messages].reverse().find(m => m.role === 'character');
     if (!last?.id) {
         showToast('No assistant message to retry yet');
+        return;
+    }
+    if (last !== state.messages.at(-1)) {
+        showToast('Your last message has no reply yet. Press Send to get one.');
         return;
     }
     const msgEl = el.chatHistory.querySelector(`.message.character[data-msg-id="${last.id}"]`);
@@ -344,11 +352,9 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
         counter.className = 'swipe-counter';
         counter.textContent = `${idx}/${swipeCount}`;
 
-        nav.append(
-            buildSwipeButton('prev', 'Previous', idx <= 1),
-            counter,
-            buildSwipeButton('next', nextTitle, nextDisabled),
-        );
+        const next = buildSwipeButton('next', nextTitle, nextDisabled);
+        next.classList.toggle('swipe-generate', atEnd && !isGreeting);
+        nav.append(buildSwipeButton('prev', 'Previous', idx <= 1), counter, next);
         bar.append(nav);
     }
     appendMessageActionButtons(bar);

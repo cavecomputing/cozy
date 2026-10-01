@@ -206,6 +206,9 @@ function swipeLast(isPrev) {
     if (!isPrev && idx >= swipes.length - 1 && msgEl.dataset.isGreeting === 'true') {
         return showToast('No more greetings');
     }
+    if (!isPrev && idx >= swipes.length - 1 && last !== state.messages.at(-1)) {
+        return showToast('Your last message has no reply yet. Press Send to get one.');
+    }
     handleSwipeAction(msgEl, isPrev);
 }
 
