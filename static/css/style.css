@@ -5332,7 +5332,10 @@ input[type="checkbox"]:checked::after {
         padding: 0 var(--mobile-inline-padding);
     }
 
+    /* Messages sit further apart than a reply's paragraphs (1lh), or a
+       reply's last paragraph reads as the start of the next message. */
     #chat-scroll {
+        gap: var(--space-6);
         border-radius: 0;
         padding: 0.6rem 0 0.25rem;
         scroll-padding-bottom: 1rem;
