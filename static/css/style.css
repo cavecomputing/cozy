@@ -6272,12 +6272,14 @@ input[type="checkbox"]:checked::after {
 }
 
 /* The paired cards stack before their field rows get cramped, and the field
-   rows put the label over the control once a card is phone-narrow. */
+   rows put the label over the control once a card is phone-narrow, when the
+   storage table's two columns would also run each title into its size. */
 @container (max-width: 1060px) {
     .settings-card-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @container (max-width: 640px) {
     .settings-row.settings-row--field { grid-template-columns: minmax(0, 1fr); }
+    .about-storage-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
