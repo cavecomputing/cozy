@@ -1209,6 +1209,7 @@ select.settings-select:focus-visible {
     padding: 0 0.625rem;
     min-height: 0;
     position: relative;
+    container-type: inline-size;   /* for the scrollbar gutter on #chat-scroll */
 }
 
 .scroll-to-bottom-btn {
@@ -1255,6 +1256,16 @@ select.settings-select:focus-visible {
     gap: var(--space-4);
     border-radius: var(--radius);
     min-height: 0;
+}
+
+/* The composer below sits outside this scroller, so a scrollbar here would
+   centre the messages a half-scrollbar left of it. A gutter on both sides
+   keeps the two columns on one centre line, scrolling or not, but only once
+   the column is capped: on a narrower pane the messages fill the width, and
+   two gutters would inset both of their edges from the composer's. 45.5rem
+   is the 44rem column plus room for two thin scrollbars. */
+@container (min-width: 45.5rem) {
+    #chat-scroll { scrollbar-gutter: stable both-edges; }
 }
 
 body:has(#context-token-meter:not([hidden])) #chat-scroll {
