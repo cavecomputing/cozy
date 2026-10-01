@@ -16,7 +16,6 @@
 
     /* Accent  (Solarized blue / cyan / red / green) */
     --accent-color:   #268bd2;
-    --accent-hover:   #2aa198;
     --danger-color:   #dc322f;
     --danger-bg-hover: rgba(220, 50, 47, 0.18);
     --success-color:  #a1b500;

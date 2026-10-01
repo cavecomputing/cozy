@@ -35,7 +35,6 @@
     --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
     --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
     --input-shadow:       none;
-    --input-focus-shadow: 0 0 0 3px rgba(250, 189, 47, 0.12);
 
     /* RP markdown — speech in aqua, narration muted, emphasis in
        the accent and intense actions in orange. */

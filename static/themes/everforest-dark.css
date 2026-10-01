@@ -16,7 +16,6 @@
 
     /* Accent */
     --accent-color:   #a7c080;
-    --accent-hover:   #83c092;
     --danger-color:   #e67e80;
     --danger-bg-hover: rgba(230, 126, 128, 0.15);
     --success-color:  #a7c080;
@@ -25,7 +24,6 @@
     --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.45);
     --accent-edit-bg:     rgba(167, 192, 128, 0.08);
     --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.25);
-    --input-focus-shadow: 0 0 0 2px rgba(167, 192, 128, 0.22);
 
     /* RP markdown accent colors */
     --rp-dialogue-color:  #a7c080;   /* everforest green — quoted dialogue */
