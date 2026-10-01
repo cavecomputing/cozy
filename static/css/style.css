@@ -2759,7 +2759,6 @@ body:has(#context-token-meter:not([hidden])) #chat-scroll {
     display: flex;
     flex-direction: column;
     flex: 1;
-    min-height: 0;
 }
 .prompt-section-body {
     display: grid;
