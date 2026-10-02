@@ -230,6 +230,36 @@ function setSamplerPopoverOpen(open) {
     el.samplerConfigureBtn.setAttribute('aria-expanded', String(open));
 }
 
+/**
+ * Close the innermost thing open inside Settings, if anything is: Esc and Back
+ * both peel these before they touch the panel that holds them. Returns true
+ * when one went.
+ */
+function closeInnerLayer() {
+    if (settingsSubmodal) {
+        closeSettingsSubmodal(settingsSubmodal);
+        return true;
+    }
+    if (!el.settingsFlyout.hidden && el.samplerPopover?.hidden === false) {
+        setSamplerPopoverOpen(false);
+        el.samplerConfigureBtn.focus();
+        return true;
+    }
+    if (el.promptRenderedFlyout?.hidden === false) {
+        closeRenderedPrompts();
+        return true;
+    }
+    // Last layer before the whole panel: a model picker or an import/export
+    // menu open inside Settings used to drop straight through to
+    // closeAllExcept(), which shut the whole flyout and lost the user's place
+    // over a dropdown they only wanted to dismiss.
+    return closeOpenSettingsMenu();
+}
+
+const panelOpen = () => !el.settingsFlyout.hidden || !el.chatFlyout.hidden
+    || el.memoryFlyout?.hidden === false || el.personaDropup.classList.contains('show')
+    || !document.getElementById('char-modal').hidden || el.sidebar.classList.contains('mobile-open');
+
 function blurSettingsFlyoutFocus() {
     if (el.settingsFlyout.contains(document.activeElement)) {
         document.activeElement.blur();
@@ -380,6 +410,60 @@ function bindSidebarHandlers() {
         if (e.key === 'Escape' && el.sidebar.classList.contains('mobile-open')) {
             closeMobileSidebar();
         }
+    });
+}
+
+// On a touch device the system's Back (a swipe in from the screen edge on iOS,
+// the back gesture or button on Android) would leave Cozy while a panel sits
+// over the chat. While any panel is up Cozy keeps one history entry standing
+// for it, so Back spends that entry closing the panel instead; a drilled-down
+// Settings page goes back a level at a time. The entry is dropped again when
+// the last panel closes some other way, so the history stays as it was.
+// Elsewhere there is no entry: the browser's Back leaves, as it always has.
+const coarsePointer = window.matchMedia('(pointer: coarse)');
+let backEntry = false;        // the current history entry is Cozy's own
+let ownBacksPending = 0;      // history.back() calls of Cozy's own yet to land
+
+const confirmOpen = () => !!document.querySelector('.confirm-overlay:not([hidden])');
+
+function syncBackEntry() {
+    if (!coarsePointer.matches) return;
+    const open = panelOpen() || confirmOpen();
+    if (open && !backEntry) {
+        history.pushState({ cozyPanel: true }, '');
+        backEntry = true;
+    } else if (!open && backEntry) {
+        backEntry = false;
+        ownBacksPending += 1;
+        history.back();
+    }
+}
+
+function goBack() {
+    if (confirmOpen()) {
+        document.querySelector('.confirm-overlay .confirm-cancel').click();
+    } else if (closeInnerLayer()) {
+        // a sub-panel or menu inside Settings went
+    } else if (!el.settingsFlyout.hidden && el.settingsShell.classList.contains('in-detail')) {
+        exitSettingsDetail();
+    } else {
+        closeMobileSidebar();
+        Flyouts.closeAllExcept(null);
+    }
+}
+
+function bindBackButton() {
+    window.addEventListener('popstate', () => {
+        if (ownBacksPending) {
+            ownBacksPending -= 1;
+        } else if (backEntry) {
+            backEntry = false;
+            goBack();
+            syncBackEntry();   // whatever is still open gets a fresh entry
+        }
+    });
+    new MutationObserver(syncBackEntry).observe(document.body, {
+        subtree: true, attributes: true, attributeFilter: ['hidden', 'class'],
     });
 }
 
@@ -874,36 +958,13 @@ function bindChatHandlers() {
     document.addEventListener('keydown', e => {
         // An edit or a rename that took Esc for itself has had it.
         if (e.key !== 'Escape' || e.defaultPrevented) return;
-        if (settingsSubmodal) {
-            e.preventDefault();
-            closeSettingsSubmodal(settingsSubmodal);
-            return;
-        }
-        if (!el.settingsFlyout.hidden && el.samplerPopover?.hidden === false) {
-            e.preventDefault();
-            setSamplerPopoverOpen(false);
-            el.samplerConfigureBtn.focus();
-            return;
-        }
-        if (el.promptRenderedFlyout?.hidden === false) {
-            e.preventDefault();
-            closeRenderedPrompts();
-            return;
-        }
-        // Last layer before the fall-through: a model picker or an
-        // import/export menu open inside Settings used to drop straight
-        // through to closeAllExcept(), which shut the whole flyout and lost
-        // the user's place over a dropdown they only wanted to dismiss.
-        if (closeOpenSettingsMenu()) {
+        if (closeInnerLayer()) {
             e.preventDefault();
             return;
         }
         // A panel over the chat goes before a running reply does: pressed to
         // close Settings, Esc used to cut the reply short and leave it open.
-        const panelOpen = !el.settingsFlyout.hidden || !el.chatFlyout.hidden
-            || el.memoryFlyout?.hidden === false || el.personaDropup.classList.contains('show')
-            || !document.getElementById('char-modal').hidden || el.sidebar.classList.contains('mobile-open');
-        if (llm.abortController && !panelOpen) {
+        if (llm.abortController && !panelOpen()) {
             e.preventDefault();
             e.stopPropagation();
             stopGeneration();
@@ -1353,6 +1414,7 @@ async function init() {
     bindFlyoutHandlers();
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
+    bindBackButton();
     bindSettingsHandlers();
     initStorageStats();
     bindBackupHandlers();

@@ -203,6 +203,12 @@ On a phone, Settings opens as a list. Tap a section to open its page, and
 tap the back arrow to return to the list. In the Prompt editor,
 **Variables** opens a list of everything the template can use.
 
+On a phone or tablet, the system's Back (the swipe in from the screen edge on
+an iPhone, the back gesture or button on Android) closes whatever is open over
+the chat — the character list, Settings, the chat or memory sheet, a question
+Cozy is asking — instead of leaving Cozy. Inside Settings it goes back one
+step at a time, from a page to the list and then out.
+
 Cozy saves most changes immediately. If a page has a **Save** button,
 click it, or your change is lost.
 
