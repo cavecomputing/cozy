@@ -1289,6 +1289,13 @@ function bindScrollHandlers() {
 // ═══════════════════════════════════════════════════════════════════════════
 async function init() {
     initElements();
+    // Enter and Esc also confirm and cancel Japanese, Chinese or Korean input
+    // while a word is being composed. Those belong to the input method, so no
+    // handler may send, save or close on them. Safari reports the confirming
+    // Enter with isComposing already false, but keyCode 229.
+    window.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === 'Escape') && (e.isComposing || e.keyCode === 229)) e.stopPropagation();
+    }, true);
     setSummaryBudgetChangeHandler(updateContextViews);
     initTooltips();
     initContextMeter();
