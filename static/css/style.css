@@ -1166,7 +1166,9 @@ select.settings-select:focus-visible {
 }
 
 .persona-option:hover .persona-edit-btn,
-.persona-option:hover .persona-delete-btn {
+.persona-option:hover .persona-delete-btn,
+.persona-option:focus-within .persona-edit-btn,
+.persona-option:focus-within .persona-delete-btn {
     opacity: 1;
 }
 
