@@ -2480,7 +2480,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .settings-body {
-    padding: 0;
     display: flex;
     flex-direction: column;
 }
@@ -2840,11 +2839,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 .prompt-section-body {
     display: grid;
-    /* Editor first, reference column second: the template is what you came to
-       edit, and the variable list is what you consult while editing it. */
-    grid-template-columns: minmax(0, 1fr) 240px;
-    grid-template-rows: auto auto;
-    align-items: stretch;
     min-height: 0;
 }
 
@@ -2941,8 +2935,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     flex: none;
 }
 .prompt-vars-panel {
-    grid-column: 2;
-    grid-row: 2;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -2972,7 +2964,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-weight: 600;
 }
 .prompt-section-right {
-    grid-column: 1;
     grid-row: 2;
     flex: 1;
     min-width: 0;
@@ -3083,8 +3074,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .prompt-section-right .form-textarea {
     flex: 1;
     width: 100%;
-    min-height: 0;
-    resize: none;
 }
 
 /* The callout holding the editor's place while advanced configuration is off. */
@@ -3124,18 +3113,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     line-height: 1.4;
 }
 
-/* Template tags run long and carry no spaces to break at. */
-.prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) {
-    overflow-wrap: anywhere;
-}
-
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .prompt-section-body {
         display: flex;
         flex-direction: column;
     }
     .prompt-section-left {
-        display: flex;
         flex-direction: column;
         gap: 0.5rem;
         width: auto;
@@ -3150,17 +3133,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .prompt-vars-panel {
         max-height: 200px;
     }
-    .prompt-section-right {
-        flex: 1;
-        min-height: 12rem;
-    }
     /* The editor card and the textarea both draw a same-coloured border a
        few px apart, which reads as the field "bleeding" over the card edge
        on narrow screens. Flush the textarea into the card so the card is the
        only frame, with the text aligned to the tabs above it. */
     .prompt-section-right .form-textarea {
         border-color: transparent;
-        background: transparent;
         padding-left: 0;
         padding-right: 0;
     }
@@ -3177,8 +3155,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-size: var(--text-sm);
     color: var(--fg-quiet);
     margin: 0;
-    padding: 0.25rem 0.6rem 0.3rem;
-    max-width: 68ch;
 }
 
 /* ── About page ─────────────────────────────────────────────────────────── */
@@ -3231,7 +3207,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .about-credit p {
     margin: 0;
     font-size: var(--text-sm);
-    line-height: 1.5;
     color: var(--fg-quiet);
 }
 
@@ -3419,7 +3394,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-top: 0.55rem;
     padding: 0.55rem 0.6rem;
     background-color: color-mix(in srgb, var(--bg-color) 76%, transparent);
-    border: 1px dashed var(--border-color);
     border-radius: var(--radius);
 }
 
@@ -3725,11 +3699,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .settings-row {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.45rem 0.6rem;
-    /* A settings row is a tap target on every device, not only under the
-       mobile breakpoint — a touch laptop is a wide viewport with fingers. */
-    min-height: 52px;
 }
 
 .settings-row[hidden] { display: none; }
@@ -3942,8 +3911,6 @@ input[type="checkbox"]:checked::after {
     font-size: var(--text-md);
     color: var(--fg);
     cursor: pointer;
-    /* Model identifiers are long, unspaced and vendor-prefixed. */
-    overflow-wrap: anywhere;
 }
 
 @media (hover: hover) {
@@ -5224,7 +5191,6 @@ input[type="checkbox"]:checked::after {
     .modal-header {
         min-height: var(--mobile-header-height);
         height: auto;
-        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.5rem 0.35rem;
     }
 
     .modal-body {
@@ -5261,36 +5227,16 @@ input[type="checkbox"]:checked::after {
     }
 
     /* ── Settings: iOS-style drill-down ────────────────────────────────── */
-    /* iOS shrinks the visual viewport for the keyboard without resizing the
-       layout viewport, so 100dvh leaves the modal's footer under the keyboard.
-       main.js measures visualViewport and publishes it as this custom property;
-       the fallback is what non-iOS browsers use. */
-    .settings-modal {
-        width: 100%;
-        max-width: 100%;
-        height: var(--settings-viewport-height, 100dvh);
-    }
-    .about-build { overflow-wrap: anywhere; }
-    .cozy-select-option {
-        min-height: 44px;
-        padding-block: 12px;
-        white-space: normal;
-        overflow-wrap: anywhere;
-    }
     .settings-shell { position: relative; overflow: hidden; }
     .settings-nav,
     .settings-pane {
         width: 100%;
         flex-shrink: 0;
     }
-    .settings-nav { border-right: 0; padding: 0.45rem 0.6rem calc(env(safe-area-inset-bottom, 0px) + 0.75rem); }
+    .settings-nav { border-right: 0; }
     .settings-nav-item {
-        min-height: 52px;
         padding: var(--space-3) 0.8rem;
         font-size: var(--text-2xl);
-    }
-    .settings-page-header {
-        padding: 0.85rem var(--mobile-inline-padding) 0.65rem;
     }
     .settings-page-header--with-action {
         flex-direction: column;
@@ -5318,9 +5264,6 @@ input[type="checkbox"]:checked::after {
     }
     .settings-card {
         padding: var(--space-4);
-    }
-    .sampler-popover {
-        max-width: calc(100vw - 1.5rem);
     }
     .settings-nav-item::after {
         content: '›';
@@ -6135,15 +6078,12 @@ input[type="checkbox"]:checked::after {
 .regex-filters {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
 }
 
 /* A filter is an inset card inside the Filters card, like a lorebook entry. */
 .regex-filter {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.7rem 0.8rem;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--surface-inset);
@@ -6169,7 +6109,6 @@ input[type="checkbox"]:checked::after {
 
 .regex-filter-row {
     display: flex;
-    gap: 0.5rem;
 }
 
 .regex-filter-field {
@@ -6177,7 +6116,6 @@ input[type="checkbox"]:checked::after {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
 }
 
 .regex-filter-field > span {
@@ -6194,7 +6132,6 @@ input[type="checkbox"]:checked::after {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.35rem 1.25rem;
 }
 
 .regex-filter-flags-label {
@@ -6277,10 +6214,6 @@ input[type="checkbox"]:checked::after {
         width: var(--mobile-tap-target);
         height: var(--mobile-tap-target);
     }
-
-    .regex-filter-flag {
-        min-height: 32px;
-    }
 }
 
 /* ── Container queries ───────────────────────────────────────────────────
@@ -6290,23 +6223,6 @@ input[type="checkbox"]:checked::after {
    one. `.settings-modal` declares the container; see container-type there.
    Placed after every rule they rearrange — a container query carries no
    extra specificity, so it only wins by coming last. */
-/* Against the pane, not the viewport: the editor and its Variables column are
-   side by side only while the pane is wide enough for both, and the pane is
-   the viewport minus the sidebar and the settings nav. A viewport breakpoint
-   would fold this at the wrong moment on every screen but one. */
-@container (max-width: 950px) {
-    .prompt-section-body { grid-template-columns: minmax(0, 1fr); }
-    .prompt-vars-panel { grid-column: 1; grid-row: 3; }
-}
-
-/* Same container, one step narrower: the preset picker's row of actions
-   wraps. */
-@container (max-width: 800px) {
-    :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
-    :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
-    .settings-card-header > .preset-select-row { flex-basis: 100%; }
-    .settings-card-header > .preset-select-row > .cozy-select { flex: 1 1 100%; }
-}
 
 /* The paired cards stack before their field rows get cramped, and the field
    rows put the label over the control once a card is phone-narrow, when the
@@ -6349,6 +6265,8 @@ input[type="checkbox"]:checked::after {
    lands underneath either. */
 .settings-pane { scroll-padding-block: 10rem 3.5rem; }
 .settings-section-body { max-width: none; }
+/* A settings row is a tap target on every device, not only under the
+   mobile breakpoint — a touch laptop is a wide viewport with fingers. */
 .settings-row { min-height: 44px; padding: var(--space-2) 0; margin-inline: 0; gap: var(--space-3); border-color: var(--line-soft); }
 .settings-hint { padding: var(--space-1) 0 var(--space-2); margin-inline: 0; max-width: 68ch; line-height: 1.45; }
 .settings-row > .cozy-select { flex-basis: 200px; }
@@ -6356,6 +6274,10 @@ input[type="checkbox"]:checked::after {
 :is(.form-input, .cozy-select-trigger) { min-height: 34px; }
 .icon-btn { min-width: 32px; min-height: 32px; flex-shrink: 0; }
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
+    /* iOS shrinks the visual viewport for the keyboard without resizing the
+       layout viewport, so 100dvh leaves the modal's footer under the keyboard.
+       main.js measures visualViewport and publishes it as this custom property;
+       the fallback is what non-iOS browsers use. */
     .settings-modal { width: 100%; max-width: 100%; height: var(--settings-viewport-height, 100dvh); }
     .modal-header { padding: calc(env(safe-area-inset-top, 0px) + var(--space-2)) var(--space-4) var(--space-2); }
     .settings-nav { width: 100%; padding: var(--space-4) var(--space-5); }
@@ -6401,15 +6323,22 @@ input[type="checkbox"]:checked::after {
 :is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn { width: auto; min-height: 34px; gap: var(--space-2); padding-inline: var(--space-3); background: var(--surface-quiet); border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--fg); }
 @media (hover: hover) { :is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn:hover:not(:disabled) { border-color: var(--fg-quiet); transform: translateY(-1px); } }
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
+/* Editor first, reference column second: the template is what you came to
+   edit, and the variable list is what you consult while editing it. */
 .prompt-section-body { grid-template-columns: minmax(0, 1fr) 240px; grid-template-rows: auto auto; flex: none; align-items: stretch; }
 .prompt-section-right { grid-column: 1; min-height: 480px; }
 .prompt-section-right .form-textarea { min-height: 420px; max-height: none; resize: vertical; line-height: 1.65; }
 .prompt-rendered-btn { width: auto; display: flex; gap: var(--space-2); padding: var(--space-3); color: var(--fg-cool); }
 /* A card's full padding would leave the longest variable chip no room. */
 .prompt-vars-panel { grid-column: 2; grid-row: 2; overflow: visible; max-height: none; padding-inline: var(--space-4); }
+/* Template tags run long and carry no spaces to break at. */
 .prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) { font-size: var(--text-xs); overflow-wrap: anywhere; }
 .prompt-vars-panel dt { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
 .prompt-vars-toggle { display: none; }
+/* Against the pane, not the viewport: the editor and its Variables column are
+   side by side only while the pane is wide enough for both, and the pane is
+   the viewport minus the sidebar and the settings nav. A viewport breakpoint
+   would fold this at the wrong moment on every screen but one. */
 @container (max-width: 950px) {
     .prompt-section-body { grid-template-columns: minmax(0, 1fr); }
     .prompt-vars-panel { grid-column: 1; grid-row: 3; }
@@ -6464,9 +6393,13 @@ input[type="checkbox"]:checked::after {
     input[type="checkbox"]:checked::after { transform: translateX(18px); }
     .cozy-select-option { min-height: 44px; padding-block: var(--space-4); white-space: normal; overflow-wrap: anywhere; }
 }
+/* Same container as the editor's fold above, one step narrower: the preset
+   picker's row of actions wraps. */
 @container (max-width: 800px) {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
+    .settings-card-header > .preset-select-row { flex-basis: 100%; }
+    .settings-card-header > .preset-select-row > .cozy-select { flex: 1 1 100%; }
 }
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     #settings-flyout.modal-overlay,
@@ -6490,6 +6423,7 @@ input[type="checkbox"]:checked::after {
     .settings-submodal .icon-btn { min-width: 44px; min-height: 44px; }
 }
 
+/* Model identifiers are long, unspaced and vendor-prefixed. */
 .model-picker-item { overflow-wrap: anywhere; }
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .model-picker-item { min-height: 44px; }
