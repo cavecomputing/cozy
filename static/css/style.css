@@ -5470,10 +5470,28 @@ input[type="checkbox"]:checked::after {
         gap: 0.15rem;
     }
 
+    /* At the 44px touch minimum a character's row no longer fits a 320px phone
+       and the swipe pill swells, so the buttons stay 32px and their hit area
+       grows to the full touch height instead, as in the Auto Summary header.
+       Vertical only: the buttons sit 2.4px apart. */
     .msg-action-btn,
     .swipe-btn {
+        position: relative;
         min-width: 32px;
         min-height: 32px;
+    }
+    .msg-action-btn::after,
+    .swipe-btn::after {
+        content: '';
+        position: absolute;
+        inset: calc((32px - var(--mobile-tap-target)) / 2) 0;
+    }
+
+    /* Likewise the jump button, which floats clear of everything else. */
+    .scroll-to-bottom-btn::after {
+        content: '';
+        position: absolute;
+        inset: calc((34px - var(--mobile-tap-target)) / 2);
     }
 
     /* Its buttons are already full tap height, and the pill's padding made the
