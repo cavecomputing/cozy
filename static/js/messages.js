@@ -4,6 +4,7 @@ import {
     applyAvatar, AVATAR, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode, beginGeneration, endGeneration,
+    branchesAt, displayChatName,
 } from './utils.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
@@ -390,6 +391,30 @@ function setEditedLabel(msgEl, editedAt) {
     label.title = editedAt ? `Edited ${formatStamp(editedAt)}` : '';
 }
 
+/** The button under a message that other chats branch at, or null: it opens the next of them. */
+function buildBranchPill(msgId) {
+    const branches = branchesAt(state.chats, state.activeChat?.id, msgId);
+    if (!branches.length) return null;
+    const at = branches.findIndex(b => b.chatId === state.activeChat.id);
+    const next = state.chats.find(c => c.id === branches[(at + 1) % branches.length].chatId);
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'branch-pill';
+    pill.title = `Branch ${at + 1} of ${branches.length}. Next: ${displayChatName(next)}`;
+    pill.setAttribute('aria-label', `Branch ${at + 1} of ${branches.length}, open the next one: ${displayChatName(next)}`);
+    pill.innerHTML = `${icons.FORK}<span>${at + 1}/${branches.length}</span>`;
+    return pill;
+}
+
+/** Redraw the branch pills on screen, for when the chat list changes under an open chat. */
+export function refreshBranchPills() {
+    el.chatHistory.querySelectorAll('.branch-pill').forEach(pill => pill.remove());
+    el.chatHistory.querySelectorAll('.message[data-msg-id]').forEach(msgEl => {
+        const pill = buildBranchPill(Number(msgEl.dataset.msgId));
+        if (pill) msgEl.querySelector('.msg-body').append(pill);
+    });
+}
+
 /** Build a message DOM element (pure DOM construction, no side effects). */
 function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes = null, activeSwipeIndex = 0, persona = null, msgId = null) {
     const char = state.activeCharacter;
@@ -446,6 +471,8 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     msgBody.append(msgHeader, content);
 
     if (parsed.hasThinking) renderThinkingBlock(msgBody, parsed);
+    const branchPill = msgId && buildBranchPill(msgId);
+    if (branchPill) msgBody.append(branchPill);
     message.append(avatarDiv, msgBody);
     wrapper.append(message);
     setEditedLabel(message, msgSwipes[activeSwipeIndex]?.edited_at);
@@ -502,6 +529,22 @@ export function drawOlderMessages() {
     // anchoring have already compensated by now, and adding the height again
     // would throw the reader a page down.
     scroller.scrollTop += (anchor?.getBoundingClientRect().top ?? 0) - anchorTop;
+    return true;
+}
+
+/**
+ * Scroll message `id` to `offset` px below the top of the transcript, drawing
+ * older pages down to it first. False when this chat has no such message.
+ */
+export function revealMessage(id, offset = 0) {
+    const scroller = el.chatHistory;
+    const drawn = () => scroller.querySelector(`.message[data-msg-id="${id}"]`);
+    while (!drawn() && drawOlderMessages()) { /* next page */ }
+    const msgEl = drawn();
+    if (!msgEl) return false;
+    scroller.scrollTop += msgEl.getBoundingClientRect().top - scroller.getBoundingClientRect().top - offset;
+    // As jumpToContextBoundary: an arriving token must not pull the view back down.
+    state.autoScroll = false;
     return true;
 }
 

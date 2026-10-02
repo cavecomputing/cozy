@@ -395,6 +395,25 @@ export function compareCharacters(a, b) {
         || nameCollator.compare(a.name, b.name) || a.id - b.id;
 }
 
+/**
+ * The chats that branch at one message, each with the message to land on: the
+ * chat the forks were cut from, then the forks in list order. Empty when
+ * nothing branches there. A message either is where this chat was itself cut
+ * from its parent, so its branches are the parent's, or is one that forks were
+ * cut from. A parent that has since been deleted has no branches to offer.
+ */
+export function branchesAt(chats, chatId, msgId) {
+    const here = chats.find(c => c.id === chatId);
+    const cutHere = here?.fork_msg_id === msgId && chats.some(c => c.id === here.parent_chat_id);
+    const rootId = cutHere ? here.parent_chat_id : chatId;
+    const rootMsgId = cutHere ? here.parent_msg_id : msgId;
+    const forks = chats.filter(c => c.parent_chat_id === rootId
+        && c.parent_msg_id === rootMsgId && c.fork_msg_id);
+    return forks.length
+        ? [{ chatId: rootId, msgId: rootMsgId }, ...forks.map(c => ({ chatId: c.id, msgId: c.fork_msg_id }))]
+        : [];
+}
+
 // Server-side thumbnail tiers (see thumbs.py). SM covers every circular
 // avatar; LG supplies the expanded message avatar.
 export const AVATAR = { SM: 128, LG: 1024 };

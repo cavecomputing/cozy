@@ -10,7 +10,7 @@ import {
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection } from './characters.js';
-import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats } from './chats.js';
+import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
@@ -1199,6 +1199,8 @@ function bindMessageHandlers() {
         } else if (e.target.closest('.swipe-prev') || e.target.closest('.swipe-next')) {
             const isPrev = !!e.target.closest('.swipe-prev');
             await handleSwipeAction(msgEl, isPrev);
+        } else if (e.target.closest('.branch-pill')) {
+            await withBusy(e.target.closest('.branch-pill'), null, () => switchBranch(msgEl));
         }
     });
 }

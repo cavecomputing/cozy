@@ -56,6 +56,16 @@ def fork_chat(chat_id):
 
         name = default_chat_name()
 
+        # Where the fork hangs: on this chat at this message, unless this chat is
+        # itself a fork cut at this very message, in which case the new one joins
+        # it as a sibling so the branches that meet at a message stay one group.
+        # (A parent that has since been deleted no longer counts.)
+        parent_chat_id, parent_msg_id = chat_id, msg_id
+        if chat['fork_msg_id'] == msg_id and chat['parent_chat_id'] and conn.execute(
+            'SELECT 1 FROM chats WHERE id=?', (chat['parent_chat_id'],)
+        ).fetchone():
+            parent_chat_id, parent_msg_id = chat['parent_chat_id'], chat['parent_msg_id']
+
         # A fork continues the same conversation, so per-chat settings come with it.
         # The Author's Note especially: it is user-written text the docs point at for
         # anything that must always be remembered, and losing it here was silent.
@@ -64,10 +74,11 @@ def fork_chat(chat_id):
         # out of the fork's context.
         cur = conn.execute(
             'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded, '
-            'author_note, persona_id, summary_enabled) '
-            'VALUES (?,?,?,?,?,?,?)',
+            'author_note, persona_id, summary_enabled, parent_chat_id, parent_msg_id) '
+            'VALUES (?,?,?,?,?,?,?,?,?)',
             (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'],
-             chat['author_note'], chat['persona_id'], chat['summary_enabled'])
+             chat['author_note'], chat['persona_id'], chat['summary_enabled'],
+             parent_chat_id, parent_msg_id)
         )
         new_chat_id = cur.lastrowid
 
@@ -95,6 +106,10 @@ def fork_chat(chat_id):
                     'INSERT INTO message_swipes (message_id, content, created_at, edited_at) VALUES (?,?,?,?)',
                     (old_to_new[s['message_id']], s['content'], s['created_at'], s['edited_at'])
                 )
+
+        # The fork's own copy of the message it was cut at, where its branch
+        # pill goes; the parent's is parent_msg_id.
+        conn.execute('UPDATE chats SET fork_msg_id=? WHERE id=?', (old_to_new[msg_id], new_chat_id))
 
         summary_json, watermark = fork_summary(
             chat['summary_json'], chat['summary_up_to_msg_id'], msg_id, old_to_new

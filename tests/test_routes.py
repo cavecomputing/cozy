@@ -1095,6 +1095,73 @@ class TestFork:
         copied = client.get(f'/api/chats/{forked["id"]}/messages').get_json()[0]
         assert copied['swipes'][0]['edited_at'] is not None
 
+    def _chat_with_two_replies(self, client, chat_id):
+        """Message ids of a reply and a later reply in *chat_id*."""
+        replies = []
+        for text in ('First reply', 'Second reply'):
+            client.post(f'/api/chats/{chat_id}/messages', json={'role': 'user', 'content': 'Go on'})
+            replies.append(client.post(f'/api/chats/{chat_id}/messages', json={
+                'role': 'character', 'content': text,
+            }).get_json()['id'])
+        return replies
+
+    def _copy_of(self, client, chat_id, content):
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        return next(m['id'] for m in listed if m['content'] == content)
+
+    def test_fork_remembers_where_it_was_cut(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+
+        assert fork['parent_chat_id'] == chat_id
+        assert fork['parent_msg_id'] == first
+        assert fork['fork_msg_id'] == self._copy_of(client, fork['id'], 'First reply')
+        assert fork['fork_msg_id'] != first
+        original = client.get(f'/api/characters/{sample_chat["character_id"]}/chats').get_json()[0]
+        assert original['parent_chat_id'] is None
+        assert original['fork_msg_id'] is None
+
+    def test_forking_at_the_fork_point_makes_a_sibling(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+
+        again = client.post(
+            f'/api/chats/{fork["id"]}/fork?message_id={fork["fork_msg_id"]}'
+        ).get_json()
+
+        assert again['parent_chat_id'] == chat_id
+        assert again['parent_msg_id'] == first
+        assert again['fork_msg_id'] == self._copy_of(client, again['id'], 'First reply')
+
+    def test_forking_further_on_hangs_the_fork_on_this_chat(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+        later = client.post(f'/api/chats/{fork["id"]}/messages', json={
+            'role': 'character', 'content': 'Only in the fork',
+        }).get_json()['id']
+
+        deeper = client.post(f'/api/chats/{fork["id"]}/fork?message_id={later}').get_json()
+
+        assert deeper['parent_chat_id'] == fork['id']
+        assert deeper['parent_msg_id'] == later
+
+    def test_forking_at_the_fork_point_of_an_orphan_hangs_on_it(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+        client.delete(f'/api/chats/{chat_id}')
+
+        again = client.post(
+            f'/api/chats/{fork["id"]}/fork?message_id={fork["fork_msg_id"]}'
+        ).get_json()
+
+        assert again['parent_chat_id'] == fork['id']
+        assert again['parent_msg_id'] == fork['fork_msg_id']
+
     def test_fork_carries_per_chat_settings(self, client, sample_chat):
         """A fork continues the same conversation, so its settings come with it.
 

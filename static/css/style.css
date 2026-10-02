@@ -268,6 +268,7 @@ body::before {
 .icon-btn:active,
 .msg-action-btn:active,
 .swipe-btn:active,
+.branch-pill:active,
 .scroll-to-bottom-btn:active,
 #send-btn:active {
     transform: scale(0.95);
@@ -1381,6 +1382,38 @@ select.settings-select:focus-visible {
 .message.character :is(.msg-time, .msg-edited) {
     color: var(--fg-quiet);
     opacity: 1;
+}
+
+/* Under a message that other chats branch at; it opens the next of them. It
+   sits under the text rather than in the header so a phone's line of name and
+   time keeps its room. */
+.branch-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: var(--space-2);
+    padding: 0.1rem 0.45rem;
+    background: none;
+    color: var(--fg-quiet);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: color var(--motion-base), border-color var(--motion-base), transform var(--motion-fast);
+}
+
+.branch-pill svg {
+    width: 0.9em;
+    height: 0.9em;
+    flex: none;
+}
+
+@media (hover: hover) {
+    .branch-pill:hover {
+        color: var(--fg);
+        border-color: var(--fg-quiet);
+    }
 }
 
 .message.user .msg-name {
@@ -5400,8 +5433,14 @@ input[type="checkbox"]:checked::after {
 
     .thinking-block,
     .message-content,
+    .branch-pill,
     .msg-actions {
         grid-column: 1 / -1;
+    }
+
+    .branch-pill {
+        justify-self: start;
+        margin-top: 0;
     }
 
     .message.user {
@@ -5464,6 +5503,18 @@ input[type="checkbox"]:checked::after {
         content: '';
         position: absolute;
         inset: calc((32px - var(--mobile-tap-target)) / 2) 0;
+    }
+
+    /* The branch pill is a button too small to hit on a phone, so it gets the
+       same grown hit area, wider as well since nothing sits beside it. */
+    .branch-pill {
+        position: relative;
+        min-height: 28px;
+    }
+    .branch-pill::after {
+        content: '';
+        position: absolute;
+        inset: calc((28px - var(--mobile-tap-target)) / 2) -8px;
     }
 
     /* Likewise the jump button, which floats clear of everything else. */
