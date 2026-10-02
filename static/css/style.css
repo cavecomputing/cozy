@@ -3206,12 +3206,17 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-quiet);
 }
 
-/* Local storage: proportional overview plus exact, readable figures. */
+/* Local storage: proportional overview plus exact, readable figures. Palette
+   names alias each other differently per theme (Cozy's emphasis is its
+   accent, Everforest's success is its accent), so a theme that tunes the
+   context meter lends the hues it gave the same things there: the database is
+   mostly message history. Other themes take palette colours that stay apart
+   in each of them. */
 .about-storage-card {
-    --storage-database: var(--accent-color);
-    --storage-characters: var(--success-color, #73a878);
-    --storage-personas: var(--fg-cool);
-    --storage-themes: var(--rp-emphasis-color, #b98a45);
+    --storage-database: var(--meter-message-history, var(--accent-color));
+    --storage-characters: var(--meter-character-card, var(--rp-quote-color));
+    --storage-personas: var(--meter-persona, var(--fg-cool));
+    --storage-themes: var(--rp-emphasis-color);
     --storage-other: var(--text-secondary);
 }
 
