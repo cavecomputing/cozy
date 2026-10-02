@@ -524,8 +524,8 @@ select.settings-select:focus-visible {
 /* A favorited row keeps its star visible at rest; the ⋯ still appears
    only on hover or focus, or while its menu is open, like any other row.
    (Desktop only — on touch the whole group stays visible, see the
-   max-width block.) */
-@media (min-width: 769px) {
+   (hover: none) block after the persona rows.) */
+@media (min-width: 769px) and (hover: hover) {
     .char-item.pinned .char-item-actions {
         display: flex;
     }
@@ -1170,6 +1170,24 @@ select.settings-select:focus-visible {
 .persona-option:focus-within .persona-edit-btn,
 .persona-option:focus-within .persona-delete-btn {
     opacity: 1;
+}
+
+/* Nothing hovers on a touch screen, a tablet's as much as a phone's, so there
+   the rows' actions show at rest, as they do in a phone-narrow window. */
+@media (max-width: 768px), (hover: none) {
+    .char-item-actions {
+        display: flex;
+    }
+
+    .chat-item-actions {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .persona-edit-btn,
+    .persona-delete-btn {
+        opacity: 1;
+    }
 }
 
 /* Selected as the active chat row is: the selected fill and a bold accent name. */
@@ -5682,21 +5700,6 @@ input[type="checkbox"]:checked::after {
 
     .chat-flyout .chat-rename-input {
         padding-left: 1.1rem;
-    }
-
-    /* ── Action buttons: always visible (no hover on touch) ─────────── */
-    .char-item-actions {
-        display: flex;
-    }
-
-    .chat-item-actions {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    .persona-edit-btn,
-    .persona-delete-btn {
-        opacity: 1;
     }
 
     .form-input,
