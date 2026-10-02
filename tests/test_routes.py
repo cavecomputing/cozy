@@ -581,6 +581,48 @@ class TestMessages:
         edited = next(m for m in listed if m['id'] == msg['id'])
         assert [s['content'] for s in edited['swipes']] == ['First take', 'Edited']
 
+    def test_edit_marks_only_the_swipe_whose_text_changed(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
+
+        client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Second take, reworded', 'update_swipe': True, 'swipe_index': 1,
+        })
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        swipes = next(m for m in listed if m['id'] == msg['id'])['swipes']
+        assert swipes[0]['edited_at'] is None
+        assert swipes[1]['edited_at'] is not None
+
+    def test_saving_an_edit_without_changing_the_text_does_not_mark_it(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Same text',
+        }).get_json()
+
+        client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Same text', 'update_swipe': True, 'swipe_index': 0,
+        })
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        assert next(m for m in listed if m['id'] == msg['id'])['swipes'][0]['edited_at'] is None
+
+    def test_picking_a_swipe_does_not_mark_it_edited(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
+
+        client.put(f'/api/messages/{msg["id"]}', json={'content': 'First take'})
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        swipes = next(m for m in listed if m['id'] == msg['id'])['swipes']
+        assert [s['edited_at'] for s in swipes] == [None, None]
+
     def test_swipe_selection_without_flag_leaves_swipes_alone(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
@@ -1038,6 +1080,87 @@ class TestFork:
         assert msgs[0]['content'] == 'Hello'
         assert msgs[1]['content'] == 'Hey!'
         assert len(msgs[1]['swipes']) == 2
+
+    def test_fork_keeps_the_edited_mark(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'As generated',
+        }).get_json()
+        client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'As rewritten', 'update_swipe': True, 'swipe_index': 0,
+        })
+
+        forked = client.post(f'/api/chats/{chat_id}/fork?message_id={msg["id"]}').get_json()
+
+        copied = client.get(f'/api/chats/{forked["id"]}/messages').get_json()[0]
+        assert copied['swipes'][0]['edited_at'] is not None
+
+    def _chat_with_two_replies(self, client, chat_id):
+        """Message ids of a reply and a later reply in *chat_id*."""
+        replies = []
+        for text in ('First reply', 'Second reply'):
+            client.post(f'/api/chats/{chat_id}/messages', json={'role': 'user', 'content': 'Go on'})
+            replies.append(client.post(f'/api/chats/{chat_id}/messages', json={
+                'role': 'character', 'content': text,
+            }).get_json()['id'])
+        return replies
+
+    def _copy_of(self, client, chat_id, content):
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        return next(m['id'] for m in listed if m['content'] == content)
+
+    def test_fork_remembers_where_it_was_cut(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+
+        assert fork['parent_chat_id'] == chat_id
+        assert fork['parent_msg_id'] == first
+        assert fork['fork_msg_id'] == self._copy_of(client, fork['id'], 'First reply')
+        assert fork['fork_msg_id'] != first
+        original = client.get(f'/api/characters/{sample_chat["character_id"]}/chats').get_json()[0]
+        assert original['parent_chat_id'] is None
+        assert original['fork_msg_id'] is None
+
+    def test_forking_at_the_fork_point_makes_a_sibling(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+
+        again = client.post(
+            f'/api/chats/{fork["id"]}/fork?message_id={fork["fork_msg_id"]}'
+        ).get_json()
+
+        assert again['parent_chat_id'] == chat_id
+        assert again['parent_msg_id'] == first
+        assert again['fork_msg_id'] == self._copy_of(client, again['id'], 'First reply')
+
+    def test_forking_further_on_hangs_the_fork_on_this_chat(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+        later = client.post(f'/api/chats/{fork["id"]}/messages', json={
+            'role': 'character', 'content': 'Only in the fork',
+        }).get_json()['id']
+
+        deeper = client.post(f'/api/chats/{fork["id"]}/fork?message_id={later}').get_json()
+
+        assert deeper['parent_chat_id'] == fork['id']
+        assert deeper['parent_msg_id'] == later
+
+    def test_forking_at_the_fork_point_of_an_orphan_hangs_on_it(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        first, _ = self._chat_with_two_replies(client, chat_id)
+        fork = client.post(f'/api/chats/{chat_id}/fork?message_id={first}').get_json()
+        client.delete(f'/api/chats/{chat_id}')
+
+        again = client.post(
+            f'/api/chats/{fork["id"]}/fork?message_id={fork["fork_msg_id"]}'
+        ).get_json()
+
+        assert again['parent_chat_id'] == fork['id']
+        assert again['parent_msg_id'] == fork['fork_msg_id']
 
     def test_fork_carries_per_chat_settings(self, client, sample_chat):
         """A fork continues the same conversation, so its settings come with it.

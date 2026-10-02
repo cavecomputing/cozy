@@ -3,7 +3,7 @@ import {
     autoResize, showToast, showApiNotice, maybeScrollToBottom,
     setSendButtonMode, updateComposerState, beginGeneration, endGeneration,
 } from './utils.js';
-import { appendMessage, renderMarkdown } from './messages.js';
+import { appendMessage, renderMarkdown, createTextFader, STREAM_FADE_MS } from './messages.js';
 import { generateResponse } from './request-builder.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
@@ -61,7 +61,6 @@ async function sendOnce(text) {
 
     el.userInput.value = '';
     autoResize(el.userInput);
-    state.autoScroll = true;
 
     // The reply belongs to the chat that was open when the request went out —
     // switching chats mid-stream must not redirect it into the new one.
@@ -81,6 +80,7 @@ async function sendOnce(text) {
 
     // Create loading bubble (not persisted)
     const loadingContainer = await appendMessage('character', '', false);
+    loadingContainer.classList.add('streaming');
     const loadingMsg = loadingContainer.querySelector('.message');
     const contentEl = loadingMsg.querySelector('.message-content');
     const msgBody = loadingMsg.querySelector('.msg-body');
@@ -96,12 +96,20 @@ async function sendOnce(text) {
     // time quadratic in the reply length. `streamed` is still assigned on every
     // token: a Stop salvages that, not whatever happens to be on screen.
     let frame = 0;
+    // Reveal the reply toward what has arrived rather than all of it at once:
+    // each frame shows an eighth of the backlog, so the pace follows the stream,
+    // steady while tokens trickle and quicker when they burst.
+    let shown = 0;
+    const fadeIn = createTextFader();
     const drawStreamed = () => {
         frame = 0;
-        const parsed = parseThinkingContent(streamed);
+        shown += Math.max(1, Math.ceil((streamed.length - shown) / 8));
+        const parsed = parseThinkingContent(streamed.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
         renderMarkdown(contentEl, parsed.response, true);
+        fadeIn(contentEl);
         maybeScrollToBottom();
+        if (shown < streamed.length) frame = requestAnimationFrame(drawStreamed);
     };
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
@@ -118,6 +126,11 @@ async function sendOnce(text) {
             streamed = accumulated;
             if (!frame) frame = requestAnimationFrame(drawStreamed);
         }, signal);
+        // Let the reveal catch up before the finished reply takes its place, but
+        // not in a hidden tab, where frames stall and the save would wait on them.
+        while (frame && !signal.aborted && !document.hidden) await new Promise(requestAnimationFrame);
+        // And for the last words to finish fading in, so they don't pop.
+        if (!signal.aborted && !document.hidden) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
 
     } catch (err) {
         if (err.name !== 'AbortError') {
@@ -138,11 +151,14 @@ async function sendOnce(text) {
         cancelAnimationFrame(frame);
     }
 
-    loadingContainer.remove();
     // appendMessage persists against whatever chat is active now, so a reply
     // that outlived its chat has to be dropped rather than misfiled.
-    if (state.activeChat?.id !== chatId) return;
+    if (state.activeChat?.id !== chatId) {
+        loadingContainer.remove();
+        return;
+    }
     if (!reply) {
+        loadingContainer.remove();
         // Nothing salvaged. A stop is silent and a failure already toasted; a
         // stream that simply completed empty is worth saying out loud, since
         // otherwise the message POST answers with an opaque 400.
@@ -152,7 +168,14 @@ async function sendOnce(text) {
     // Regex filters rewrite the reply before it is persisted, so the corrected
     // text is what gets saved, shown, and read back into context next turn.
     reply = applyOutputFilters(reply);
-    await appendMessage('character', reply, true);
+    // The finished reply goes in before the stream comes out. Taking the
+    // stream out first shrinks the transcript by a whole reply for a moment,
+    // and a browser that paints or settles its scroll in that moment leaves
+    // the view stranded up where it clamped.
+    const saving = appendMessage('character', reply, true);
+    loadingContainer.remove();
+    maybeScrollToBottom();
+    await saving;
     // Fold any history displaced by the new reply in the background. The
     // next send's preflight waits for this job if it is still running.
     maybeTriggerSummary();

@@ -401,7 +401,11 @@
       </div>
       <p class="note"><b>Deleting a lorebook</b> clears matching <code>chats.active_lorebook_id</code> in application
         code, because nothing in the schema will. A deleted persona leaves <code>persona_id</code> pointing nowhere
-        by design — old messages keep the name they were written under.</p>
+        by design — old messages keep the name they were written under. Likewise a fork's
+        <code>parent_chat_id</code> and the message ids beside it are never cleared. Once the parent chat is
+        gone the fork is an ordinary chat with no branch pill; a message that is gone only costs the pill its
+        landing place, so switching opens that chat at its newest message. Ids are never reused, so a stale
+        one cannot point at something else.</p>
     </section>
 
     <p class="empty" id="empty">No column matches that.</p>
@@ -454,6 +458,9 @@
           <tr><td class="c-name">summary_status</td><td class="c-type">TEXT</td><td class="c-def">'idle'</td><td class="c-note"><code>idle</code>, <code>running</code>, or <code>error</code>.</td></tr>
           <tr><td class="c-name">summary_status_detail</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Progress or error text shown in the memory panel.</td></tr>
           <tr><td class="c-name">persona_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Persona speaking this chat. No declared FK.</td></tr>
+          <tr><td class="c-name">parent_chat_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">For a fork, the chat it was cut from; <code>NULL</code> for any other chat. No declared FK. A fork made at the message this chat was itself cut at names that chat's parent instead, so branches that meet at one message share a parent and a <code>parent_msg_id</code>.</td></tr>
+          <tr><td class="c-name">parent_msg_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">The message in the parent the fork was cut at. No declared FK.</td></tr>
+          <tr><td class="c-name">fork_msg_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">This chat's own copy of that message: where its branch pill sits, and where the other branches land when switching to it. No declared FK.</td></tr>
         </tbody>
       </table></div>
       <details><summary>CREATE TABLE</summary><pre>CREATE TABLE chats (
@@ -471,6 +478,9 @@
     summary_status TEXT NOT NULL DEFAULT 'idle',
     summary_status_detail TEXT NOT NULL DEFAULT '',
     persona_id INTEGER DEFAULT NULL,
+    parent_chat_id INTEGER DEFAULT NULL,
+    parent_msg_id INTEGER DEFAULT NULL,
+    fork_msg_id INTEGER DEFAULT NULL,
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 )</pre></details>
     </section>
@@ -511,6 +521,7 @@
           <tr><td class="c-name ref">message_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>messages.id</code>, ON DELETE CASCADE.</td></tr>
           <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">The variant's text.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation; also the swipe order.</td></tr>
+          <tr><td class="c-name">edited_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">When an edit last changed this variant's text, <code>NULL</code> if none has. Saving the same text or picking a swipe leaves it alone. Shown as the message's <em>(edited)</em> label, and a fork copies it.</td></tr>
         </tbody>
       </table></div>
       <details><summary>CREATE TABLE</summary><pre>CREATE TABLE message_swipes (
@@ -518,6 +529,7 @@
     message_id INTEGER NOT NULL,
     content    TEXT    NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    edited_at  DATETIME DEFAULT NULL,
     FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
 )</pre></details>
     </section>

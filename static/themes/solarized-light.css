@@ -16,17 +16,18 @@
 
     /* Accent */
     --accent-color:   #268bd2;
-    --accent-hover:   #1a6fa8;
     --danger-color:   #dc322f;
     --danger-bg-hover: rgba(220, 50, 47, 0.1);
     --success-color:  #859900;
+    --accent-text:    #1a6a9e;   /* the blue deepened to read as label text */
 
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(0,0,0,0.15);
+    --shell-shadow:       0 1px 2px rgba(0, 0, 0, 0.10), 0 8px 24px rgba(0, 0, 0, 0.07);
+    --card-shadow:        0 1px 2px rgba(0, 0, 0, 0.07), 0 4px 12px rgba(0, 0, 0, 0.07);
+    --lift-shadow:        0 2px 4px rgba(0, 0, 0, 0.09), 0 12px 26px rgba(0, 0, 0, 0.13);
     --accent-edit-bg:     rgba(38, 139, 210, 0.08);
-    --accent-border-light: rgba(38, 139, 210, 0.3);
     --input-shadow:       inset 0 1px 3px rgba(0, 43, 54, 0.09);
-    --input-focus-shadow: 0 0 0 2px rgba(38, 139, 210, 0.18);
 
     /* RP markdown accent colors */
     --rp-dialogue-color:  #3d8b2d;   /* forest green — quoted dialogue */
@@ -38,7 +39,6 @@
     --rp-intense-color:   #dc322f;   /* red — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(220, 50, 47, 0.25);
     --rp-strike-opacity:  0.45;
-    --rp-hr-opacity:      0.25;
     --img-max-width:      100%;
     --code-bg:            rgba(88, 110, 117, 0.12);
     --code-border:        rgba(88, 110, 117, 0.22);
@@ -57,17 +57,14 @@
     --overlay-color:  white;
     --backdrop-bg:    rgba(0, 0, 0, 0.35);
 
-    /* Toasts */
-    --toast-color:    white;
-
     /* User-message bubble */
     --user-msg-bg:              var(--accent-color);
     --user-msg-color:           white;
-    --user-msg-divider:         rgba(255, 255, 255, 0.2);
     --user-msg-name-color:      rgba(255, 255, 255, 0.85);
-    --user-action-color:        rgba(255, 255, 255, 0.5);
+    --user-action-color:        rgba(255, 255, 255, 0.9);
     --user-action-hover-bg:     rgba(255, 255, 255, 0.15);
     --user-action-hover-color:  white;
+    --user-focus-color:         white;   /* the accent ring can't show on an accent bubble */
 
     /* User-message RP overrides (colors on accent bubbles) */
     --user-dialogue-color:      rgba(255, 255, 255, 0.92);

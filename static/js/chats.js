@@ -1,8 +1,8 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
-import { chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs } from './utils.js';
+import { chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs, branchesAt } from './utils.js';
 import { confirmDialog } from './confirm.js';
-import { renderMessages, appendMessage, flushEdit } from './messages.js';
+import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills } from './messages.js';
 import { renderLorebookFlyout } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
 import { renderPersonaList, updateUserProfile } from './personas.js';
@@ -114,6 +114,7 @@ export function startChatRename(li, chat) {
                 li.dataset.chatId = updated.id;
                 newButton.setAttribute('aria-label', `Select chat ${displayChatName(updated)}`);
                 updateComposerState();
+                refreshBranchPills();
                 showToast('Chat renamed', 'success');
             } catch (err) {
                 const restoredButton = buildChatSelectButton(chat);
@@ -253,6 +254,26 @@ export async function selectChat(chat) {
     updateContextViews();
     onChatSelected();
     savePrefs();
+    // Land in the composer, ready to type, as chat apps do on a switch and at
+    // startup. Not on touch shells, where focusing throws up the keyboard over
+    // the conversation before the user has asked for it.
+    if (!el.userInput.disabled && !window.matchMedia('(pointer: coarse)').matches) {
+        el.userInput.focus({ preventScroll: true });
+    }
+}
+
+/**
+ * Open the next chat that branches at this message, keeping the message where
+ * it sits on screen so the page appears to turn rather than jump.
+ */
+export async function switchBranch(msgEl) {
+    const branches = branchesAt(state.chats, state.activeChat?.id, Number(msgEl.dataset.msgId));
+    if (!branches.length) return;
+    const at = branches.findIndex(b => b.chatId === state.activeChat.id);
+    const next = branches[(at + 1) % branches.length];
+    const offset = msgEl.getBoundingClientRect().top - el.chatHistory.getBoundingClientRect().top;
+    await selectChat(state.chats.find(c => c.id === next.chatId));
+    revealMessage(next.msgId, offset);
 }
 
 export async function createNewChat(autoSelect = true, silent = false) {
@@ -318,6 +339,7 @@ export async function deleteChat(chatId) {
             }
         }
         renderChats();
+        refreshBranchPills();
         showToast('Chat deleted', 'success');
     } catch (err) {
         showToast('Could not delete chat: ' + err.message, 'error');

@@ -4,6 +4,7 @@ import {
     applyAvatar, AVATAR, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode, beginGeneration, endGeneration,
+    branchesAt, displayChatName,
 } from './utils.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
@@ -41,6 +42,50 @@ export function renderMarkdown(targetEl, rawText, applyDisplay = false) {
     targetEl.innerHTML = DOMPurify.sanitize(marked.parse(resolved));
 }
 
+/** How long a stretch of streamed text takes to fade in. */
+export const STREAM_FADE_MS = 400;
+
+/**
+ * Fade in the text each streaming draw adds. A draw rebuilds the whole bubble,
+ * so the fade can't live on the nodes themselves: the fader remembers how far
+ * the text reached at each draw and when, and wraps the stretches still fading
+ * on every draw, each with its animation started that long ago so it carries on
+ * from where the last draw left it.
+ */
+export function createTextFader() {
+    const reveals = [{ end: 0, at: 0 }];
+    return contentEl => {
+        const now = performance.now();
+        const texts = [];
+        let length = 0;
+        const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            texts.push([node, length]);
+            length += node.length;
+        }
+        if (length > reveals.at(-1).end) reveals.push({ end: length, at: now });
+        while (reveals.length > 1 && now - reveals[1].at >= STREAM_FADE_MS) reveals.shift();
+
+        // Back to front, so splitting a node leaves the offsets before it intact.
+        for (let i = texts.length - 1; i >= 0; i--) {
+            const [node, start] = texts[i];
+            for (let k = reveals.length - 1; k >= 1; k--) {
+                const from = Math.max(reveals[k - 1].end, start);
+                const to = Math.min(reveals[k].end, start + node.length);
+                if (from >= to) continue;
+                const stretch = node.splitText(from - start);
+                if (to - from < stretch.length) stretch.splitText(to - from);
+                // Whitespace between blocks can sit where a span can't, in a list or table.
+                if (!/\S/.test(stretch.data)) continue;
+                const span = document.createElement('span');
+                span.style.animation = `streamFade ${STREAM_FADE_MS}ms ease-out ${reveals[k].at - now}ms both`;
+                stretch.replaceWith(span);
+                span.append(stretch);
+            }
+        }
+    };
+}
+
 /** Find the state.messages entry matching a message element (by DB id, then fallback to text). */
 export function findStateMsg(swipes, msgEl) {
     const id = msgEl.dataset.msgId;
@@ -62,6 +107,7 @@ function updateSwipeNav(msgEl, swipes, idx, isGreeting) {
     const next = nav.querySelector('.swipe-next');
     next.disabled = isGreeting && atEnd;
     next.title = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
+    next.classList.toggle('swipe-generate', atEnd && !isGreeting);
 }
 
 /**
@@ -117,12 +163,18 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     // bubble survives the stream, so a queued draw must also be cancelled: it
     // would otherwise repaint the unfiltered stream over the saved swipe.
     let frame = 0;
+    // Revealed toward what has arrived, at the pace send.js sets.
+    let shown = 0;
+    const fadeIn = createTextFader();
     const drawStreamed = () => {
         frame = 0;
-        const parsed = parseThinkingContent(streamed);
+        shown += Math.max(1, Math.ceil((streamed.length - shown) / 8));
+        const parsed = parseThinkingContent(streamed.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
         renderMarkdown(contentEl, parsed.response, true);
+        fadeIn(contentEl);
         maybeScrollToBottom();
+        if (shown < streamed.length) frame = requestAnimationFrame(drawStreamed);
     };
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
@@ -136,6 +188,10 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
             streamed = accumulated;
             if (!frame) frame = requestAnimationFrame(drawStreamed);
         }, regenSignal);
+        // Let the reveal catch up and the last words finish fading before the
+        // swipe is drawn plain, as send.js does.
+        while (frame && !regenSignal.aborted && !document.hidden) await new Promise(requestAnimationFrame);
+        if (!regenSignal.aborted && !document.hidden) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
     } catch (err) {
         if (err.name !== 'AbortError') {
             console.error('Regen error:', err);
@@ -210,6 +266,9 @@ export async function handleSwipeAction(msgEl, isPrev) {
     const isGreeting = msgEl.dataset.isGreeting === 'true';
 
     if (!isPrev && idx >= swipes.length - 1 && !isGreeting) {
+        // A new swipe answers the end of the chat (generateResponse leaves out
+        // only its last message), so only the newest reply can have one.
+        if (findStateMsg(swipes, msgEl) !== state.messages.at(-1)) return;
         const generatedIdx = await generateSwipe(msgEl, swipes, idx);
         if (generatedIdx == null) return;
         idx = generatedIdx;
@@ -222,6 +281,7 @@ export async function handleSwipeAction(msgEl, isPrev) {
     }
 
     updateSwipeNav(msgEl, swipes, idx, isGreeting);
+    setEditedLabel(msgEl, swipes[idx]?.edited_at);
 }
 
 export async function regenerateLastAssistantMessage() {
@@ -232,6 +292,10 @@ export async function regenerateLastAssistantMessage() {
     const last = [...state.messages].reverse().find(m => m.role === 'character');
     if (!last?.id) {
         showToast('No assistant message to retry yet');
+        return;
+    }
+    if (last !== state.messages.at(-1)) {
+        showToast('Your last message has no reply yet. Press Send to get one.');
         return;
     }
     const msgEl = el.chatHistory.querySelector(`.message.character[data-msg-id="${last.id}"]`);
@@ -290,11 +354,9 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
         counter.className = 'swipe-counter';
         counter.textContent = `${idx}/${swipeCount}`;
 
-        nav.append(
-            buildSwipeButton('prev', 'Previous', idx <= 1),
-            counter,
-            buildSwipeButton('next', nextTitle, nextDisabled),
-        );
+        const next = buildSwipeButton('next', nextTitle, nextDisabled);
+        next.classList.toggle('swipe-generate', atEnd && !isGreeting);
+        nav.append(buildSwipeButton('prev', 'Previous', idx <= 1), counter, next);
         bar.append(nav);
     }
     appendMessageActionButtons(bar);
@@ -312,6 +374,45 @@ function buildEditActions() {
         iconButton('msg-action-btn cancel-msg-btn', 'Cancel (Esc)', 'Cancel message edit', icons.CANCEL),
     );
     return bar;
+}
+
+/** A database timestamp (UTC, no zone marker) as the reader's local date and time. */
+function formatStamp(utc) {
+    return (utc ? new Date(utc + 'Z') : new Date()).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+    });
+}
+
+/** Show "(edited)" while the swipe on screen is one the reader has rewritten. */
+function setEditedLabel(msgEl, editedAt) {
+    const label = msgEl.querySelector('.msg-edited');
+    label.hidden = !editedAt;
+    label.title = editedAt ? `Edited ${formatStamp(editedAt)}` : '';
+}
+
+/** The button under a message that other chats branch at, or null: it opens the next of them. */
+function buildBranchPill(msgId) {
+    const branches = branchesAt(state.chats, state.activeChat?.id, msgId);
+    if (!branches.length) return null;
+    const at = branches.findIndex(b => b.chatId === state.activeChat.id);
+    const next = state.chats.find(c => c.id === branches[(at + 1) % branches.length].chatId);
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'branch-pill';
+    pill.title = `Branch ${at + 1} of ${branches.length}. Next: ${displayChatName(next)}`;
+    pill.setAttribute('aria-label', `Branch ${at + 1} of ${branches.length}, open the next one: ${displayChatName(next)}`);
+    pill.innerHTML = `${icons.FORK}<span>${at + 1}/${branches.length}</span>`;
+    return pill;
+}
+
+/** Redraw the branch pills on screen, for when the chat list changes under an open chat. */
+export function refreshBranchPills() {
+    el.chatHistory.querySelectorAll('.branch-pill').forEach(pill => pill.remove());
+    el.chatHistory.querySelectorAll('.message[data-msg-id]').forEach(msgEl => {
+        const pill = buildBranchPill(Number(msgEl.dataset.msgId));
+        if (pill) msgEl.querySelector('.msg-body').append(pill);
+    });
 }
 
 /** Build a message DOM element (pure DOM construction, no side effects). */
@@ -350,20 +451,16 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
         : (char?.name || 'Character');
     const msgTime = document.createElement('span');
     msgTime.className = 'msg-time';
-    const ts = timestamp ? new Date(timestamp + 'Z') : new Date();
-    msgTime.textContent = ts.toLocaleString(undefined, {
-        month: 'short', day: 'numeric', year: 'numeric',
-        hour: 'numeric', minute: '2-digit'
-    });
+    msgTime.textContent = formatStamp(timestamp);
+    const msgEdited = document.createElement('span');
+    msgEdited.className = 'msg-edited';
+    msgEdited.textContent = '(edited)';
     const msgSwipes = swipes || [{ content: text }];
     const actions = buildMsgActions(role, msgSwipes.length, activeSwipeIndex, isGreeting);
-    msgHeader.append(msgName, msgTime, actions);
+    msgHeader.append(msgName, msgTime, msgEdited, actions);
 
     message.dataset.swipes = JSON.stringify(msgSwipes);
     message.dataset.activeSwipeIndex = activeSwipeIndex;
-
-    const headerDivider = document.createElement('div');
-    headerDivider.className = 'msg-header-divider';
 
     const content = document.createElement('div');
     content.className = 'message-content';
@@ -371,11 +468,14 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     const parsed = parseThinkingContent(text);
     renderMarkdown(content, parsed.hasThinking ? parsed.response : text, role !== 'user');
 
-    msgBody.append(msgHeader, headerDivider, content);
+    msgBody.append(msgHeader, content);
 
     if (parsed.hasThinking) renderThinkingBlock(msgBody, parsed);
+    const branchPill = msgId && buildBranchPill(msgId);
+    if (branchPill) msgBody.append(branchPill);
     message.append(avatarDiv, msgBody);
     wrapper.append(message);
+    setEditedLabel(message, msgSwipes[activeSwipeIndex]?.edited_at);
 
     if (isGreeting) {
         message.dataset.isGreeting = 'true';
@@ -429,6 +529,22 @@ export function drawOlderMessages() {
     // anchoring have already compensated by now, and adding the height again
     // would throw the reader a page down.
     scroller.scrollTop += (anchor?.getBoundingClientRect().top ?? 0) - anchorTop;
+    return true;
+}
+
+/**
+ * Scroll message `id` to `offset` px below the top of the transcript, drawing
+ * older pages down to it first. False when this chat has no such message.
+ */
+export function revealMessage(id, offset = 0) {
+    const scroller = el.chatHistory;
+    const drawn = () => scroller.querySelector(`.message[data-msg-id="${id}"]`);
+    while (!drawn() && drawOlderMessages()) { /* next page */ }
+    const msgEl = drawn();
+    if (!msgEl) return false;
+    scroller.scrollTop += msgEl.getBoundingClientRect().top - scroller.getBoundingClientRect().top - offset;
+    // As jumpToContextBoundary: an arriving token must not pull the view back down.
+    state.autoScroll = false;
     return true;
 }
 
@@ -507,6 +623,11 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
     const p = role === 'user' ? (persona || state.activePersona) : null;
     const { container, message } = buildMessageEl(role, text, isGreeting, timestamp, swipes, activeSwipeIndex, persona, msgId);
     el.chatHistory.appendChild(container);
+    // Scroll before the save rather than after it. The browser paints while
+    // the request is out, and a finished reply that came out taller than its
+    // stream (an output filter, say) would sit pushed below the fold until then.
+    // A message sent while scrolled up stays put too, like its reply.
+    maybeScrollToBottom();
 
     if (persist && state.activeChat) {
         const personaId = (role === 'user' && p) ? p.id : null;
@@ -527,7 +648,6 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
         }
     }
 
-    if (role === 'user') scrollToBottom(); else maybeScrollToBottom();
     updateContextViews();
     return container;
 }
@@ -545,6 +665,13 @@ export function startEditing(messageEl) {
     flushEdit();
     const contentDiv = messageEl.querySelector('.message-content');
     const actionsBar = messageEl.closest('.message-wrapper').querySelector('.msg-actions');
+
+    // A user bubble is only as wide as its text and its buttons, and editing
+    // swaps both, so it would narrow or widen and slide everything in it
+    // sideways. Hold the width it had until editing ends.
+    if (messageEl.classList.contains('user')) {
+        messageEl.style.width = `${messageEl.getBoundingClientRect().width}px`;
+    }
 
     // Show raw markdown for editing — response only, thinking stays in its block
     messageEl.dataset.originalText = messageEl.dataset.rawText;
@@ -574,7 +701,7 @@ export function startEditing(messageEl) {
         // Match the composer: on touch shells Enter is the on-screen keyboard's
         // line-break key, not a submit shortcut; desktop keeps Enter-to-save.
         if (e.key === 'Enter' && !e.shiftKey && !window.matchMedia('(pointer: coarse)').matches) { e.preventDefault(); finishEditing(true); }
-        if (e.key === 'Escape') finishEditing(false);
+        if (e.key === 'Escape') { e.preventDefault(); finishEditing(false); }
     };
     contentDiv.addEventListener('keydown', handler);
     messageEl._editHandler = handler;
@@ -608,11 +735,6 @@ export function finishEditing(save) {
             : editedResponse)
         : originalText;
 
-    messageEl.classList.remove('editing');
-    contentDiv.removeAttribute('contenteditable');
-    contentDiv.removeEventListener('keydown', messageEl._editHandler);
-    delete messageEl._editHandler;
-
     // Persist edit to backend
     if (save) {
         const id = messageEl.dataset.msgId;
@@ -620,17 +742,22 @@ export function finishEditing(save) {
             ? state.messages.find(m => String(m.id) === String(id))
             : state.messages.find(m => m.text === originalText);
 
-        // Sync the active swipe so swiping away and back keeps the edit
+        // Sync the active swipe so swiping away and back keeps the edit. Saving
+        // the text unchanged is not an edit, as the server agrees.
         const editSwipes = JSON.parse(messageEl.dataset.swipes || '[]');
         const editIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
+        const editedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const rewritten = swipe => ({
+            ...swipe, content: rawText, ...(rawText !== originalText && { edited_at: editedAt }),
+        });
         if (editSwipes[editIdx]) {
-            editSwipes[editIdx] = { ...editSwipes[editIdx], content: rawText };
+            editSwipes[editIdx] = rewritten(editSwipes[editIdx]);
             messageEl.dataset.swipes = JSON.stringify(editSwipes);
         }
         if (stateMsg) {
             stateMsg.text = rawText;
             if (stateMsg.swipes?.[editIdx]) {
-                stateMsg.swipes[editIdx] = { ...stateMsg.swipes[editIdx], content: rawText };
+                stateMsg.swipes[editIdx] = rewritten(stateMsg.swipes[editIdx]);
             }
             if (stateMsg.id) {
                 API.updateMessage(stateMsg.id, rawText, true, editIdx).catch(err => {
@@ -653,11 +780,32 @@ export function finishEditing(save) {
     );
     delete messageEl.dataset.originalText;
 
+    // Only now leave the editor. Its raw text held in pre-wrap is what keeps
+    // the message its full height; dropping that first collapsed the raw text
+    // for a moment, and at the bottom of the chat the scroll position clamped
+    // up to the shorter message and stayed there once the render grew it back.
+    messageEl.classList.remove('editing');
+    messageEl.style.width = '';
+    contentDiv.removeAttribute('contenteditable');
+    // Back to the composer, as Slack and Discord do when an edit ends; a touch
+    // shell just lets go, since focusing the composer throws up the keyboard.
+    // Either way focus leaves the text: Safari may otherwise keep it, and a
+    // focused message holds its buttons up (the hover rule's :focus-visible
+    // case in style.css).
+    if (!el.userInput.disabled && !window.matchMedia('(pointer: coarse)').matches) {
+        el.userInput.focus({ preventScroll: true });
+    } else {
+        contentDiv.blur();
+    }
+    contentDiv.removeEventListener('keydown', messageEl._editHandler);
+    delete messageEl._editHandler;
+
     // Restore the correct toolbar (preserve swipe state)
     const swipes = JSON.parse(messageEl.dataset.swipes || '[]');
     const activeIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
     const isGreeting = messageEl.dataset.isGreeting === 'true';
     actionsBar.replaceChildren(...buildMsgActions(role, swipes.length, activeIdx, isGreeting).childNodes);
+    setEditedLabel(messageEl, swipes[activeIdx]?.edited_at);
 
     state.currentEdit = null;
     updateContextBoundary();

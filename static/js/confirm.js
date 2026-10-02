@@ -22,8 +22,8 @@ function build() {
             <input type="text" class="form-input confirm-input" id="confirm-input"
                    autocomplete="off" spellcheck="false" hidden>
             <div class="confirm-actions">
-                <button type="button" class="btn btn-secondary confirm-cancel">Cancel</button>
-                <button type="button" class="btn confirm-accept"></button>
+                <button type="button" class="btn btn-secondary confirm-cancel"><span>Cancel</span></button>
+                <button type="button" class="btn confirm-accept"><span></span></button>
             </div>
         </div>`;
     document.body.appendChild(overlay);
@@ -114,9 +114,9 @@ export function confirmDialog({
     const msgEl = overlay.querySelector('.confirm-message');
     msgEl.textContent = message;
     msgEl.hidden = !message;
-    overlay.querySelector('.confirm-cancel').textContent = cancelLabel;
+    overlay.querySelector('.confirm-cancel span').textContent = cancelLabel;
     const accept = overlay.querySelector('.confirm-accept');
-    accept.textContent = confirmLabel;
+    accept.querySelector('span').textContent = confirmLabel;
     accept.disabled = false;
     accept.classList.toggle('btn-danger', danger);
     accept.classList.toggle('btn-primary', !danger);
@@ -159,10 +159,10 @@ export function promptDialog({
     const msgEl = overlay.querySelector('.confirm-message');
     msgEl.textContent = message;
     msgEl.hidden = !message;
-    overlay.querySelector('.confirm-cancel').textContent = cancelLabel;
+    overlay.querySelector('.confirm-cancel span').textContent = cancelLabel;
 
     const accept = overlay.querySelector('.confirm-accept');
-    accept.textContent = confirmLabel;
+    accept.querySelector('span').textContent = confirmLabel;
     accept.disabled = !value.trim();
     accept.classList.remove('btn-danger');
     accept.classList.add('btn-primary');

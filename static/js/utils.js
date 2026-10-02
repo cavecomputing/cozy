@@ -5,10 +5,12 @@ import { state, el, llm, SEND_SVG, STOP_SVG } from './state.js';
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * The shell breakpoint. Below it the sidebar, the modals and the composer
- * flyouts all switch to their mobile arrangement.
+ * The shell breakpoint: a phone-narrow window, or a touch screen too short for
+ * the desktop shell, as a phone on its side is. There the sidebar, the modals
+ * and the composer flyouts all switch to their mobile arrangement. Every phone
+ * block in style.css repeats it.
  */
-export const MOBILE_SHELL_QUERY = '(max-width: 768px)';
+export const MOBILE_SHELL_QUERY = '(max-width: 768px), (max-height: 500px) and (hover: none)';
 export function autoResize(textarea) {
     textarea.style.height = 'auto';
     textarea.style.height = (textarea.scrollHeight + 2) + 'px';
@@ -172,11 +174,11 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
 let savedTickTimer = null;
 
 /**
- * Flash the "Saved" tick in the settings header after an autosave.
+ * Flash the "Saved" tick in the settings footer after an autosave.
  *
  * Every settings page saves silently as you edit, so the tick is the only
- * confirmation any of them gives. It lives in the shared modal header, so one
- * copy serves all of them; call it wherever a page's own autosave succeeds.
+ * confirmation any of them gives. It lives in the footer the pages share, so
+ * one copy serves all of them; call it wherever a page's own autosave succeeds.
  */
 export function flashSettingsSavedTick() {
     if (!el.settingsSavedTick) return;
@@ -391,6 +393,25 @@ const nameCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric
 export function compareCharacters(a, b) {
     return (a.archived - b.archived) || (b.pinned - a.pinned)
         || nameCollator.compare(a.name, b.name) || a.id - b.id;
+}
+
+/**
+ * The chats that branch at one message, each with the message to land on: the
+ * chat the forks were cut from, then the forks in list order. Empty when
+ * nothing branches there. A message either is where this chat was itself cut
+ * from its parent, so its branches are the parent's, or is one that forks were
+ * cut from. A parent that has since been deleted has no branches to offer.
+ */
+export function branchesAt(chats, chatId, msgId) {
+    const here = chats.find(c => c.id === chatId);
+    const cutHere = here?.fork_msg_id === msgId && chats.some(c => c.id === here.parent_chat_id);
+    const rootId = cutHere ? here.parent_chat_id : chatId;
+    const rootMsgId = cutHere ? here.parent_msg_id : msgId;
+    const forks = chats.filter(c => c.parent_chat_id === rootId
+        && c.parent_msg_id === rootMsgId && c.fork_msg_id);
+    return forks.length
+        ? [{ chatId: rootId, msgId: rootMsgId }, ...forks.map(c => ({ chatId: c.id, msgId: c.fork_msg_id }))]
+        : [];
 }
 
 // Server-side thumbnail tiers (see thumbs.py). SM covers every circular

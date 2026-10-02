@@ -16,15 +16,15 @@
 
     /* Accent  (Solarized blue / cyan / red / green) */
     --accent-color:   #268bd2;
-    --accent-hover:   #2aa198;
     --danger-color:   #dc322f;
     --danger-bg-hover: rgba(220, 50, 47, 0.18);
     --success-color:  #a1b500;
+    --accent-text:    #80bde8;   /* the blue lightened to read as label text */
+    --cool-color:     #b0b5ea;   /* violet — links, addresses, references */
 
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.45);
     --accent-edit-bg:     rgba(38, 139, 210, 0.1);
-    --accent-border-light: rgba(38, 139, 210, 0.3);
 
     /* RP markdown accent colors (lifted for contrast) */
     --rp-dialogue-color:  #87c05a;   /* soft green — quoted dialogue */
@@ -36,7 +36,6 @@
     --rp-intense-color:   #e05a20;   /* brighter orange — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(224, 90, 32, 0.22);
     --rp-strike-opacity:  0.5;
-    --rp-hr-opacity:      0.3;
     --img-max-width:      100%;
     --code-bg:            rgba(101, 123, 131, 0.18);
     --code-border:        rgba(101, 123, 131, 0.25);
@@ -55,13 +54,9 @@
     --overlay-color:  #fdf6e3;
     --backdrop-bg:    rgba(0, 0, 0, 0.45);
 
-    /* Toasts */
-    --toast-color:    #fdf6e3;
-
     /* User-message bubble (darkened solarized blue, not raw accent) */
     --user-msg-bg:              #164f69;
     --user-msg-color:           #fdf6e3;
-    --user-msg-divider:         rgba(253, 246, 227, 0.25);
     --user-msg-name-color:      rgba(253, 246, 227, 0.9);
     --user-action-color:        rgba(253, 246, 227, 0.6);
     --user-action-hover-bg:     rgba(253, 246, 227, 0.2);

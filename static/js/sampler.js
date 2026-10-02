@@ -136,7 +136,11 @@ export function renderSamplerPopover() {
     resetBtn.className = 'sampler-reset-btn';
     resetBtn.textContent = 'Reset to defaults';
     resetBtn.addEventListener('click', resetActiveSamplers);
-    footer.appendChild(resetBtn);
+    const doneBtn = document.createElement('button');
+    doneBtn.type = 'button';
+    doneBtn.className = 'sampler-done-btn';
+    doneBtn.textContent = 'Done';
+    footer.append(resetBtn, doneBtn);
     pop.append(rows, footer);
 }
 

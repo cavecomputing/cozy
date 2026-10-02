@@ -16,7 +16,6 @@
 
     /* Accent */
     --accent-color:   #a7c080;
-    --accent-hover:   #83c092;
     --danger-color:   #e67e80;
     --danger-bg-hover: rgba(230, 126, 128, 0.15);
     --success-color:  #a7c080;
@@ -24,9 +23,7 @@
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.45);
     --accent-edit-bg:     rgba(167, 192, 128, 0.08);
-    --accent-border-light: rgba(167, 192, 128, 0.3);
     --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.25);
-    --input-focus-shadow: 0 0 0 2px rgba(167, 192, 128, 0.22);
 
     /* RP markdown accent colors */
     --rp-dialogue-color:  #a7c080;   /* everforest green — quoted dialogue */
@@ -38,7 +35,6 @@
     --rp-intense-color:   #e69875;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(230, 152, 117, 0.25);
     --rp-strike-opacity:  0.5;
-    --rp-hr-opacity:      0.3;
     --img-max-width:      100%;
     --code-bg:            rgba(71, 82, 88, 0.5);
     --code-border:        rgba(71, 82, 88, 0.65);
@@ -57,21 +53,17 @@
     --overlay-color:  #d3c6aa;
     --backdrop-bg:    rgba(0, 0, 0, 0.45);
 
-    /* Toasts */
-    --toast-color:    #2d353b;
-
     /* User-message bubble */
     --user-msg-bg:              #4a5e3a;
     --user-msg-color:           #d3c6aa;
-    --user-msg-divider:         rgba(211, 198, 170, 0.2);
     --user-msg-name-color:      rgba(211, 198, 170, 0.85);
-    --user-action-color:        rgba(211, 198, 170, 0.5);
+    --user-action-color:        rgba(211, 198, 170, 0.8);
     --user-action-hover-bg:     rgba(211, 198, 170, 0.15);
     --user-action-hover-color:  #d3c6aa;
 
     /* User-message RP overrides */
     --user-dialogue-color:      #b8d4a0;
-    --user-em-color:            rgba(214, 153, 182, 0.9);
+    --user-em-color:            #f0c8da;
     --user-em-shadow:           0 0 8px rgba(214, 153, 182, 0.3);
     --user-strong-color:        #dbbc7f;
     --user-intense-color:       #e69875;

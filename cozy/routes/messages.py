@@ -23,6 +23,7 @@ def _swipe_to_dict(row):
         'id': row['id'],
         'content': row['content'],
         'created_at': row['created_at'],
+        'edited_at': row['edited_at'],
     }
 
 
@@ -55,6 +56,16 @@ def fork_chat(chat_id):
 
         name = default_chat_name()
 
+        # Where the fork hangs: on this chat at this message, unless this chat is
+        # itself a fork cut at this very message, in which case the new one joins
+        # it as a sibling so the branches that meet at a message stay one group.
+        # (A parent that has since been deleted no longer counts.)
+        parent_chat_id, parent_msg_id = chat_id, msg_id
+        if chat['fork_msg_id'] == msg_id and chat['parent_chat_id'] and conn.execute(
+            'SELECT 1 FROM chats WHERE id=?', (chat['parent_chat_id'],)
+        ).fetchone():
+            parent_chat_id, parent_msg_id = chat['parent_chat_id'], chat['parent_msg_id']
+
         # A fork continues the same conversation, so per-chat settings come with it.
         # The Author's Note especially: it is user-written text the docs point at for
         # anything that must always be remembered, and losing it here was silent.
@@ -63,10 +74,11 @@ def fork_chat(chat_id):
         # out of the fork's context.
         cur = conn.execute(
             'INSERT INTO chats (character_id, name, active_lorebook_id, active_lorebook_embedded, '
-            'author_note, persona_id, summary_enabled) '
-            'VALUES (?,?,?,?,?,?,?)',
+            'author_note, persona_id, summary_enabled, parent_chat_id, parent_msg_id) '
+            'VALUES (?,?,?,?,?,?,?,?,?)',
             (chat['character_id'], name, chat['active_lorebook_id'], chat['active_lorebook_embedded'],
-             chat['author_note'], chat['persona_id'], chat['summary_enabled'])
+             chat['author_note'], chat['persona_id'], chat['summary_enabled'],
+             parent_chat_id, parent_msg_id)
         )
         new_chat_id = cur.lastrowid
 
@@ -91,9 +103,13 @@ def fork_chat(chat_id):
             ).fetchall()
             for s in swipes:
                 conn.execute(
-                    'INSERT INTO message_swipes (message_id, content, created_at) VALUES (?,?,?)',
-                    (old_to_new[s['message_id']], s['content'], s['created_at'])
+                    'INSERT INTO message_swipes (message_id, content, created_at, edited_at) VALUES (?,?,?,?)',
+                    (old_to_new[s['message_id']], s['content'], s['created_at'], s['edited_at'])
                 )
+
+        # The fork's own copy of the message it was cut at, where its branch
+        # pill goes; the parent's is parent_msg_id.
+        conn.execute('UPDATE chats SET fork_msg_id=? WHERE id=?', (old_to_new[msg_id], new_chat_id))
 
         summary_json, watermark = fork_summary(
             chat['summary_json'], chat['summary_up_to_msg_id'], msg_id, old_to_new
@@ -121,7 +137,7 @@ def list_messages(chat_id):
         if rows:
             swipes = conn.execute(
                 '''
-                SELECT s.id, s.message_id, s.content, s.created_at
+                SELECT s.id, s.message_id, s.content, s.created_at, s.edited_at
                 FROM message_swipes s
                 JOIN messages m ON m.id = s.message_id
                 WHERE m.chat_id=?
@@ -185,7 +201,7 @@ def list_swipes(msg_id):
         if not conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone():
             return not_found('Message')
         rows = conn.execute(
-            'SELECT id, content, created_at FROM message_swipes WHERE message_id=? ORDER BY id ASC',
+            'SELECT id, content, created_at, edited_at FROM message_swipes WHERE message_id=? ORDER BY id ASC',
             (msg_id,)
         ).fetchall()
         return jsonify([dict(r) for r in rows])
@@ -260,10 +276,14 @@ def update_message(msg_id):
                     'ORDER BY id ASC LIMIT 1',
                     (msg_id, row['content']),
                 ).fetchone()
+            # Saved unchanged, an edit is not an edit: the swipe is only marked
+            # when its text actually differs from what it held.
             if target:
                 conn.execute(
-                    'UPDATE message_swipes SET content=? WHERE id=?',
-                    (content, target['id']),
+                    'UPDATE message_swipes SET content=?, '
+                    'edited_at=CASE WHEN content=? THEN edited_at ELSE CURRENT_TIMESTAMP END '
+                    'WHERE id=?',
+                    (content, content, target['id']),
                 )
         return jsonify({'success': True})
 

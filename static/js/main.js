@@ -10,7 +10,7 @@ import {
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection } from './characters.js';
-import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats } from './chats.js';
+import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
@@ -230,6 +230,36 @@ function setSamplerPopoverOpen(open) {
     el.samplerConfigureBtn.setAttribute('aria-expanded', String(open));
 }
 
+/**
+ * Close the innermost thing open inside Settings, if anything is: Esc and Back
+ * both peel these before they touch the panel that holds them. Returns true
+ * when one went.
+ */
+function closeInnerLayer() {
+    if (settingsSubmodal) {
+        closeSettingsSubmodal(settingsSubmodal);
+        return true;
+    }
+    if (!el.settingsFlyout.hidden && el.samplerPopover?.hidden === false) {
+        setSamplerPopoverOpen(false);
+        el.samplerConfigureBtn.focus();
+        return true;
+    }
+    if (el.promptRenderedFlyout?.hidden === false) {
+        closeRenderedPrompts();
+        return true;
+    }
+    // Last layer before the whole panel: a model picker or an import/export
+    // menu open inside Settings used to drop straight through to
+    // closeAllExcept(), which shut the whole flyout and lost the user's place
+    // over a dropdown they only wanted to dismiss.
+    return closeOpenSettingsMenu();
+}
+
+const panelOpen = () => !el.settingsFlyout.hidden || !el.chatFlyout.hidden
+    || el.memoryFlyout?.hidden === false || el.personaDropup.classList.contains('show')
+    || !document.getElementById('char-modal').hidden || el.sidebar.classList.contains('mobile-open');
+
 function blurSettingsFlyoutFocus() {
     if (el.settingsFlyout.contains(document.activeElement)) {
         document.activeElement.blur();
@@ -345,6 +375,86 @@ function bindSheetBackdropHandlers() {
     sync();
 }
 
+// A panel dragged toward the edge it came from follows the finger, then either
+// carries on out or springs back. The drawer goes left, and can be taken
+// anywhere since a vertical touch on it is the list's to scroll (the browser
+// takes that one over and cancels ours); a sheet goes down, from its grabber.
+// Touch and pen only: a mouse has the buttons.
+const DRAG_SLOP_PX = 8;            // before it is a drag at all
+const DRAG_CLOSE_PX = 80;          // far enough to mean it
+const DRAG_FLICK_PX_PER_MS = 0.5;  // or quick enough to mean it from less
+
+function bindDragToClose(panel, handle, { vertical, close, backdrop, when = () => true }) {
+    const toward = vertical ? 1 : -1;   // which way along the axis is out
+    const axis = vertical ? 'Y' : 'X';
+    let drag = null;                    // the touch being followed
+
+    const settle = away => {
+        panel.style.transition = 'transform var(--motion-base) ease-out';
+        panel.style.transform = `translate${axis}(${away ? toward * 100 : 0}%)`;
+        if (backdrop) {
+            backdrop.style.transition = 'opacity var(--motion-base)';
+            backdrop.style.opacity = away ? 0 : 1;
+        }
+        setTimeout(() => {
+            if (away) close();
+            panel.style.transition = panel.style.transform = '';
+            if (backdrop) backdrop.style.transition = backdrop.style.opacity = '';
+        }, 180);
+    };
+
+    handle.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' || !when()) return;
+        drag = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp, dist: 0, live: false };
+    });
+
+    handle.addEventListener('pointermove', e => {
+        if (e.pointerId !== drag?.id) return;
+        const dist = toward * (vertical ? e.clientY - drag.y : e.clientX - drag.x);
+        if (!drag.live) {
+            if (dist < DRAG_SLOP_PX) return;
+            drag.live = true;
+            handle.setPointerCapture(e.pointerId);
+            panel.style.transition = 'none';
+            if (backdrop) backdrop.style.transition = 'none';
+        }
+        drag.dist = Math.max(0, dist);
+        panel.style.transform = `translate${axis}(${toward * drag.dist}px)`;
+        if (backdrop) {
+            backdrop.style.opacity = 1 - Math.min(1, drag.dist / (vertical ? panel.offsetHeight : panel.offsetWidth));
+        }
+    });
+
+    const release = e => {
+        if (e.pointerId !== drag?.id) return;
+        const { live, dist, at } = drag;
+        drag = null;
+        if (!live) return;
+        const flicked = dist > 20 && dist / (e.timeStamp - at) > DRAG_FLICK_PX_PER_MS;
+        settle(e.type === 'pointerup' && (dist > DRAG_CLOSE_PX || flicked));
+    };
+    handle.addEventListener('pointerup', release);
+    handle.addEventListener('pointercancel', release);
+    handle.addEventListener('lostpointercapture', release);   // closed from under the finger
+}
+
+function bindSwipeToClose() {
+    bindDragToClose(el.sidebar, el.sidebar, {
+        vertical: false,
+        close: closeMobileSidebar,
+        backdrop: el.mobileBackdrop,
+        when: () => el.sidebar.classList.contains('mobile-open'),
+    });
+    const sheetBackdrop = document.getElementById('sheet-backdrop');
+    for (const sheet of [el.chatFlyout, el.memoryFlyout].filter(Boolean)) {
+        bindDragToClose(sheet, sheet.querySelector('.sheet-grabber'), {
+            vertical: true,
+            close: () => Flyouts.closeAllExcept(null),
+            backdrop: sheetBackdrop,
+        });
+    }
+}
+
 function bindFlyoutHandlers() {
     // Register flyouts so only one is open at a time
     Flyouts.register('settings', () => {
@@ -380,6 +490,60 @@ function bindSidebarHandlers() {
         if (e.key === 'Escape' && el.sidebar.classList.contains('mobile-open')) {
             closeMobileSidebar();
         }
+    });
+}
+
+// On a touch device the system's Back (a swipe in from the screen edge on iOS,
+// the back gesture or button on Android) would leave Cozy while a panel sits
+// over the chat. While any panel is up Cozy keeps one history entry standing
+// for it, so Back spends that entry closing the panel instead; a drilled-down
+// Settings page goes back a level at a time. The entry is dropped again when
+// the last panel closes some other way, so the history stays as it was.
+// Elsewhere there is no entry: the browser's Back leaves, as it always has.
+const coarsePointer = window.matchMedia('(pointer: coarse)');
+let backEntry = false;        // the current history entry is Cozy's own
+let ownBacksPending = 0;      // history.back() calls of Cozy's own yet to land
+
+const confirmOpen = () => !!document.querySelector('.confirm-overlay:not([hidden])');
+
+function syncBackEntry() {
+    if (!coarsePointer.matches) return;
+    const open = panelOpen() || confirmOpen();
+    if (open && !backEntry) {
+        history.pushState({ cozyPanel: true }, '');
+        backEntry = true;
+    } else if (!open && backEntry) {
+        backEntry = false;
+        ownBacksPending += 1;
+        history.back();
+    }
+}
+
+function goBack() {
+    if (confirmOpen()) {
+        document.querySelector('.confirm-overlay .confirm-cancel').click();
+    } else if (closeInnerLayer()) {
+        // a sub-panel or menu inside Settings went
+    } else if (!el.settingsFlyout.hidden && el.settingsShell.classList.contains('in-detail')) {
+        exitSettingsDetail();
+    } else {
+        closeMobileSidebar();
+        Flyouts.closeAllExcept(null);
+    }
+}
+
+function bindBackButton() {
+    window.addEventListener('popstate', () => {
+        if (ownBacksPending) {
+            ownBacksPending -= 1;
+        } else if (backEntry) {
+            backEntry = false;
+            goBack();
+            syncBackEntry();   // whatever is still open gets a fresh entry
+        }
+    });
+    new MutationObserver(syncBackEntry).observe(document.body, {
+        subtree: true, attributes: true, attributeFilter: ['hidden', 'class'],
     });
 }
 
@@ -690,6 +854,13 @@ function bindSettingsHandlers() {
         e.stopPropagation();
         setSamplerPopoverOpen(el.samplerPopover.hidden);
     });
+    // On a phone the list fills the screen, leaving little outside it to tap,
+    // so it has a Done button there (style.css hides it elsewhere).
+    el.samplerPopover?.addEventListener('click', e => {
+        if (!e.target.closest('.sampler-done-btn')) return;
+        setSamplerPopoverOpen(false);
+        el.samplerConfigureBtn.focus();
+    });
     document.addEventListener('click', (e) => {
         if (el.samplerPopover && !el.samplerPopover.hidden
             && !el.samplerPopover.contains(e.target)
@@ -865,35 +1036,18 @@ function bindChatHandlers() {
         }
     });
     document.addEventListener('keydown', e => {
-        if (e.key !== 'Escape') return;
-        if (llm.abortController) {
+        // An edit or a rename that took Esc for itself has had it.
+        if (e.key !== 'Escape' || e.defaultPrevented) return;
+        if (closeInnerLayer()) {
+            e.preventDefault();
+            return;
+        }
+        // A panel over the chat goes before a running reply does: pressed to
+        // close Settings, Esc used to cut the reply short and leave it open.
+        if (llm.abortController && !panelOpen()) {
             e.preventDefault();
             e.stopPropagation();
             stopGeneration();
-            return;
-        }
-        if (settingsSubmodal) {
-            e.preventDefault();
-            closeSettingsSubmodal(settingsSubmodal);
-            return;
-        }
-        if (!el.settingsFlyout.hidden && el.samplerPopover?.hidden === false) {
-            e.preventDefault();
-            setSamplerPopoverOpen(false);
-            el.samplerConfigureBtn.focus();
-            return;
-        }
-        if (el.promptRenderedFlyout?.hidden === false) {
-            e.preventDefault();
-            closeRenderedPrompts();
-            return;
-        }
-        // Last layer before the fall-through: a model picker or an
-        // import/export menu open inside Settings used to drop straight
-        // through to closeAllExcept(), which shut the whole flyout and lost
-        // the user's place over a dropdown they only wanted to dismiss.
-        if (closeOpenSettingsMenu()) {
-            e.preventDefault();
             return;
         }
         Flyouts.closeAllExcept(null);
@@ -1024,7 +1178,12 @@ function flashCopied(btn) {
 }
 
 function bindMessageHandlers() {
+    bindHeldActions();
     el.chatHistory.addEventListener('click', async e => {
+        // A held bar's buttons put it away, bar the swipe arrows and Copy, whose
+        // tick shows on the bar; Edit's own Save and Cancel then show in the
+        // message's row (see bindHeldActions).
+        if (e.target.closest('.msg-actions button:not(.swipe-btn, .copy-msg-btn)')) closeHeldActions();
         const avatar = e.target.closest('.message-container .avatar[data-has-image="true"]');
         if (avatar) {
             if (avatar.classList.contains('avatar-expanded')) {
@@ -1120,8 +1279,54 @@ function bindMessageHandlers() {
         } else if (e.target.closest('.swipe-prev') || e.target.closest('.swipe-next')) {
             const isPrev = !!e.target.closest('.swipe-prev');
             await handleSwipeAction(msgEl, isPrev);
+        } else if (e.target.closest('.branch-pill')) {
+            await withBusy(e.target.closest('.branch-pill'), null, () => switchBranch(msgEl));
         }
     });
+}
+
+// On a touch phone a message's buttons stay hidden until it is pressed and
+// held (the CSS in style.css's phone block decides which rows hide). The bar
+// opens just above the finger, or below it when the finger is too near the top
+// of the transcript for the bar to fit above.
+const HOLD_MS = 450;
+const heldQuery = window.matchMedia('(max-width: 768px) and (hover: none), (max-height: 500px) and (hover: none)');
+let heldContainer = null;
+
+function closeHeldActions() {
+    heldContainer?.classList.remove('actions-open');
+    heldContainer = null;
+}
+
+function bindHeldActions() {
+    let timer = 0;
+    let start = null;
+    document.addEventListener('touchstart', e => {
+        clearTimeout(timer);
+        if (heldContainer && !heldContainer.querySelector('.msg-actions').contains(e.target)) closeHeldActions();
+        const container = e.target.closest('#chat-scroll .message-container');
+        const bar = container?.querySelector('.msg-actions');
+        if (!heldQuery.matches || !bar || getComputedStyle(bar).display !== 'none'
+            || e.target.closest('button, a, .avatar, [contenteditable="true"], [contenteditable="plaintext-only"]')) return;
+        const { clientX, clientY } = e.touches[0];
+        start = { clientX, clientY };
+        timer = setTimeout(() => {
+            container.classList.add('actions-open');
+            heldContainer = container;
+            const message = container.querySelector('.message');
+            const fingerY = start.clientY - message.getBoundingClientRect().top;
+            const room = start.clientY - el.chatHistory.getBoundingClientRect().top;
+            const above = room > bar.offsetHeight + 24;
+            bar.style.top = `${above ? fingerY - bar.offsetHeight - 16 : fingerY + 24}px`;
+        }, HOLD_MS);
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        const t = e.touches[0];
+        if (start && Math.hypot(t.clientX - start.clientX, t.clientY - start.clientY) > 10) clearTimeout(timer);
+    }, { passive: true });
+    document.addEventListener('touchend', () => clearTimeout(timer), { passive: true });
+    document.addEventListener('touchcancel', () => clearTimeout(timer), { passive: true });
+    el.chatHistory.addEventListener('scroll', closeHeldActions, { passive: true });
 }
 
 function bindComposerHandlers() {
@@ -1210,11 +1415,20 @@ function bindScrollHandlers() {
             && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
     }, { passive: true });
 
-    // Auto-scroll detection on chat scroll area
+    // Reaching the bottom starts the follow and moving up ends it. Nothing
+    // else does: a reply that grows past the fold between a draw and this
+    // event, or a browser that settles its own scroll late, leaves the view
+    // short of the bottom without the reader having asked to stop. A move up
+    // that ends flush with the bottom is the view clamping to content that
+    // shrank, not the reader.
+    let lastScrollTop = el.chatHistory.scrollTop;
     el.chatHistory.addEventListener('scroll', () => {
-        const atBottom =
-            el.chatHistory.scrollHeight - el.chatHistory.scrollTop - el.chatHistory.clientHeight < 60;
-        state.autoScroll = atBottom;
+        const { scrollTop, scrollHeight, clientHeight } = el.chatHistory;
+        const fromBottom = scrollHeight - scrollTop - clientHeight;
+        const atBottom = fromBottom < 60;
+        if (scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
+        else if (atBottom) state.autoScroll = true;
+        lastScrollTop = scrollTop;
         el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
         drawOlderSoon();
     });
@@ -1225,6 +1439,21 @@ function bindScrollHandlers() {
 // ═══════════════════════════════════════════════════════════════════════════
 async function init() {
     initElements();
+    // Enter and Esc also confirm and cancel Japanese, Chinese or Korean input
+    // while a word is being composed. Those belong to the input method, so no
+    // handler may send, save or close on them. Safari reports the confirming
+    // Enter with isComposing already false, but keyCode 229.
+    window.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === 'Escape') && (e.isComposing || e.keyCode === 229)) e.stopPropagation();
+    }, true);
+    // A link in a reply would take Cozy's own tab, and the chat with it, so
+    // every rendered link opens in a new one.
+    DOMPurify.addHook('afterSanitizeAttributes', node => {
+        if (node.tagName === 'A' && node.hasAttribute('href')) {
+            node.setAttribute('target', '_blank');
+            node.setAttribute('rel', 'noopener noreferrer');
+        }
+    });
     setSummaryBudgetChangeHandler(updateContextViews);
     initTooltips();
     initContextMeter();
@@ -1267,6 +1496,8 @@ async function init() {
     bindFlyoutHandlers();
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
+    bindSwipeToClose();
+    bindBackButton();
     bindSettingsHandlers();
     initStorageStats();
     bindBackupHandlers();
@@ -1309,11 +1540,5 @@ init().then(() => {
         const drop = () => loader.remove();
         loader.addEventListener('transitionend', drop, { once: true });
         setTimeout(drop, 600);
-    }
-    // Land in the composer on desktop, ready to type into the restored chat.
-    // Skipped on touch shells, where focusing throws up the keyboard over the
-    // conversation before the user has asked for it.
-    if (!el.userInput.disabled && !window.matchMedia('(pointer: coarse)').matches) {
-        el.userInput.focus({ preventScroll: true });
     }
 });

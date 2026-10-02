@@ -16,17 +16,19 @@
 
     /* Accent (soft rose primary, lilac secondary) */
     --accent-color:   #d48aa0;
-    --accent-hover:   #c07a90;
     --danger-color:   #d47070;
     --danger-bg-hover: rgba(212, 112, 112, 0.12);
     --success-color:  #7db88a;
+    --accent-text:    #9c4f69;   /* the rose deepened to read as label text */
+    --cool-color:     #6a58a0;   /* violet — links, addresses, references */
 
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(60, 50, 80, 0.12);
+    --shell-shadow:       0 1px 2px rgba(60, 50, 80, 0.10), 0 8px 24px rgba(60, 50, 80, 0.07);
+    --card-shadow:        0 1px 2px rgba(60, 50, 80, 0.07), 0 4px 12px rgba(60, 50, 80, 0.07);
+    --lift-shadow:        0 2px 4px rgba(60, 50, 80, 0.09), 0 12px 26px rgba(60, 50, 80, 0.13);
     --accent-edit-bg:     rgba(212, 138, 160, 0.08);
-    --accent-border-light: rgba(212, 138, 160, 0.25);
     --input-shadow:       inset 0 1px 3px rgba(60, 50, 80, 0.06);
-    --input-focus-shadow: 0 0 0 2px rgba(212, 138, 160, 0.2);
 
     /* RP markdown accent colors */
     --rp-dialogue-color:  #5a9e6a;   /* soft green — quoted dialogue */
@@ -38,7 +40,6 @@
     --rp-intense-color:   #c06878;   /* dusty rose — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(192, 104, 120, 0.2);
     --rp-strike-opacity:  0.45;
-    --rp-hr-opacity:      0.25;
     --img-max-width:      100%;
     --code-bg:            rgba(160, 148, 180, 0.12);
     --code-border:        rgba(160, 148, 180, 0.22);
@@ -49,7 +50,7 @@
     --avatar-text-color:  #ffffff;
 
     /* Buttons */
-    --btn-primary-color:      #ffffff;
+    --btn-primary-color:      #3e3450;
     --btn-danger-hover-color: #ffffff;
 
     /* Overlays & backdrops */
@@ -57,15 +58,11 @@
     --overlay-color:  #3e3450;
     --backdrop-bg:    rgba(50, 40, 65, 0.4);
 
-    /* Toasts */
-    --toast-color:    #ffffff;
-
     /* User-message bubble (soft rose) */
     --user-msg-bg:              #e8c8d4;
     --user-msg-color:           #3e3450;
-    --user-msg-divider:         rgba(62, 52, 80, 0.2);
     --user-msg-name-color:      rgba(62, 52, 80, 0.85);
-    --user-action-color:        rgba(62, 52, 80, 0.5);
+    --user-action-color:        rgba(62, 52, 80, 0.8);
     --user-action-hover-bg:     rgba(62, 52, 80, 0.12);
     --user-action-hover-color:  #3e3450;
 
