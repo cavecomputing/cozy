@@ -58,9 +58,10 @@
     --pre-bg:             var(--app-bg);
     --pre-border:         var(--border-color);
 
-    /* Avatars and buttons — paper-coloured text on the green and aqua fills */
-    --avatar-text-color:      var(--bg-color);
-    --btn-primary-color:      var(--bg-color);
+    /* Avatars and buttons — white text on the green and aqua fills, where
+       the paper colour reads under the 4.5:1 small text needs */
+    --avatar-text-color:      #fff;
+    --btn-primary-color:      #fff;
     --btn-danger-hover-color: var(--bg-color);
     --scroll-bottom-hover-bg: var(--accent-hover);
 
