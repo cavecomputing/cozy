@@ -1296,6 +1296,14 @@ async function init() {
     window.addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === 'Escape') && (e.isComposing || e.keyCode === 229)) e.stopPropagation();
     }, true);
+    // A link in a reply would take Cozy's own tab, and the chat with it, so
+    // every rendered link opens in a new one.
+    DOMPurify.addHook('afterSanitizeAttributes', node => {
+        if (node.tagName === 'A' && node.hasAttribute('href')) {
+            node.setAttribute('target', '_blank');
+            node.setAttribute('rel', 'noopener noreferrer');
+        }
+    });
     setSummaryBudgetChangeHandler(updateContextViews);
     initTooltips();
     initContextMeter();
