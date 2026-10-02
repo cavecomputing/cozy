@@ -899,7 +899,7 @@ select.settings-select:focus-visible {
 /* Persona flyout — on desktop, flies out to the right of the sidebar like
    the settings modal, anchored to the user-profile area at the bottom.
    On mobile, falls back to the original in-sidebar pop-up-from-bottom behavior. */
-@media (min-width: 769px) {
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     #persona-dropup.dropup-content {
         position: absolute;
         left: 100%;
@@ -2341,7 +2341,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    have more room to breathe. Desktop-only: the ID selector outranks the
    mobile breakpoint's `.modal-overlay > .modal { width: 100% }`, so an
    unscoped rule would cap the modal at 460px on 461-768px viewports. */
-@media (min-width: 769px) {
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     #char-modal > .modal {
         width: 460px;
     }
@@ -2360,7 +2360,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    and the body rule is what lets them scroll. Desktop-only width: on mobile
    `.modal-overlay > .modal` takes over and fills the screen. */
 .settings-submodal { z-index: 600; }
-@media (min-width: 769px) {
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     .settings-submodal .modal { width: calc(var(--shell-pane-width) / 2); max-width: 90vw; }
 }
 .settings-submodal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
@@ -2439,7 +2439,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* Mobile-only drill-down back arrow — never show on desktop */
-@media (min-width: 769px) {
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     #settings-back-btn { display: none; }
 }
 
@@ -2563,7 +2563,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    the chat and the Settings eyebrow, with the page scrolling beside it. The
    header sits above the nav in the markup because the phone stacks them, so
    here the body and shell step aside and the modal places all three. */
-@media (min-width: 769px) {
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     .settings-modal {
         display: grid;
         grid-template-columns: var(--settings-nav-width) minmax(0, 1fr);
@@ -2597,7 +2597,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     #settings-close-btn:hover { background: none; color: var(--fg); }
     .settings-close-x { display: none; }
 }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .settings-close-back { display: none; }
 }
 
@@ -3129,7 +3129,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     overflow-wrap: anywhere;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .prompt-section-body {
         display: flex;
         flex-direction: column;
@@ -4738,7 +4738,7 @@ input[type="checkbox"]:checked::after {
 .sampler-help-list--urls .sampler-help-row { grid-template-columns: minmax(140px, max-content) 1fr; }
 .sampler-help-list--urls .sampler-help-row dt { min-width: 0; }
 .sampler-help-list--urls .sampler-help-row dt code { overflow-wrap: anywhere; }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .sampler-help-row { grid-template-columns: 1fr; }
     .sampler-help-list--urls .sampler-help-row { grid-template-columns: 1fr; }
     .sampler-help-row dt { margin-bottom: 0.1rem; }
@@ -5062,15 +5062,18 @@ input[type="checkbox"]:checked::after {
     to   { transform: translateY(0); opacity: 1; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .mobile-only { display: flex; }
     .desktop-only {
         display: none !important;
     }
 
+    /* Edge to edge, except where a phone on its side has its notch and
+       rounded corners: the side insets are zero upright. The drawer, sheets and
+       modals below sit on the viewport, not the body, so each clears them too. */
     body {
         width: 100%;
-        padding: 0;
+        padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
         overscroll-behavior: auto;
         touch-action: manipulation;
     }
@@ -5109,6 +5112,7 @@ input[type="checkbox"]:checked::after {
         width: min(88vw, 360px);
         max-width: 100vw;
         margin: 0;
+        padding-left: env(safe-area-inset-left, 0px);
         border-radius: 0;
         border-width: 0 1px 0 0;
         z-index: 100;
@@ -5204,7 +5208,7 @@ input[type="checkbox"]:checked::after {
         display: flex;
         align-items: stretch;
         justify-content: stretch;
-        padding: 0;
+        padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
         z-index: 200;
         animation: none;
     }
@@ -5662,7 +5666,7 @@ input[type="checkbox"]:checked::after {
         max-height: min(60dvh, 440px);
         border-radius: var(--radius) var(--radius) 0 0;
         border-bottom: none;
-        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
+        padding: 0 env(safe-area-inset-right, 0px) calc(env(safe-area-inset-bottom, 0px) + 0.35rem) env(safe-area-inset-left, 0px);
         z-index: 320;
         animation: sheetUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -5865,7 +5869,7 @@ input[type="checkbox"]:checked::after {
    padding was wasting. Vertical only: the buttons sit 2.4px apart in the Auto
    Summary header, so widening them would have neighbours stealing each
    other's taps. */
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .memory-card-header .icon-btn { position: relative; }
     .memory-card-header .icon-btn::after {
         content: '';
@@ -5893,7 +5897,7 @@ input[type="checkbox"]:checked::after {
 }
 /* The rest of the fields a phone would zoom into (see .message's phone rule);
    the composer and the settings fields are 16px there already. */
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     :is(#author-note-input, .chat-rename-input, .tags-text-input, .alt-greeting-item .form-textarea) {
         font-size: 16px;
     }
@@ -6263,7 +6267,7 @@ input[type="checkbox"]:checked::after {
     border-color: color-mix(in srgb, var(--fg-accent) 46%, var(--line));
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     /* Find and Replace stop being readable side by side well before this. */
     .regex-filter-row {
         flex-direction: column;
@@ -6351,9 +6355,9 @@ input[type="checkbox"]:checked::after {
 :is(.form-input, .form-textarea, .cozy-select-trigger) { min-width: 0; max-width: 100%; border-radius: var(--radius-control); }
 :is(.form-input, .cozy-select-trigger) { min-height: 34px; }
 .icon-btn { min-width: 32px; min-height: 32px; flex-shrink: 0; }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .settings-modal { width: 100%; max-width: 100%; height: var(--settings-viewport-height, 100dvh); }
-    .modal-header { padding: calc(env(safe-area-inset-top, 0px) + var(--space-2)) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left)); }
+    .modal-header { padding: calc(env(safe-area-inset-top, 0px) + var(--space-2)) var(--space-4) var(--space-2); }
     .settings-nav { width: 100%; padding: var(--space-4) var(--space-5); }
     .settings-nav-item { min-height: 44px; }
     #settings-flyout:has(.in-detail) #settings-close-btn { display: none; }
@@ -6364,7 +6368,7 @@ input[type="checkbox"]:checked::after {
     .settings-page-header h3 { display: none; }
     .settings-page-header p { margin: 0; font-size: var(--text-lg); }
     .settings-pane { scroll-padding-block: var(--space-5); }
-    .settings-section-body { gap: var(--space-4); padding-inline: max(var(--space-5), env(safe-area-inset-left)) max(var(--space-5), env(safe-area-inset-right)); }
+    .settings-section-body { gap: var(--space-4); padding-inline: var(--space-5); }
     .settings-row { min-height: 52px; }
     :is(.icon-btn, .btn, .tab-btn, .cozy-select-trigger, .export-menu button) { min-height: 44px; min-width: 44px; }
     :is(.form-input, .form-textarea, .cozy-select-trigger) { font-size: 16px; }
@@ -6377,7 +6381,7 @@ input[type="checkbox"]:checked::after {
 }
 .sampler-slider { min-height: 32px; }
 .sampler-popover { max-width: min(320px, calc(100vw - 66px)); }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     :is(.preset-select-row, .prompt-select-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { grid-column: 1 / -1; }
     :is(.preset-select-row, .prompt-select-row) > .icon-btn,
@@ -6410,7 +6414,7 @@ input[type="checkbox"]:checked::after {
     .prompt-section-body { grid-template-columns: minmax(0, 1fr); }
     .prompt-vars-panel { grid-column: 1; grid-row: 3; }
 }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .prompt-builder-tabs .tab-btn { min-height: 44px; }
     .prompt-section-left { display: contents; }
     .prompt-section-right { flex: none; min-height: 0; }
@@ -6428,10 +6432,10 @@ input[type="checkbox"]:checked::after {
     .prompt-select-row .export-dropdown { grid-column: 1 / -1; }
 }
 .prompt-section-right .form-textarea { font-family: var(--font-mono); }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .prompt-section-body { align-items: stretch; }
 }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .lorebook-entry-toggle { min-height: 44px; white-space: normal; }
 }
 .regex-filters { gap: var(--space-4); padding-top: var(--space-3); }
@@ -6443,7 +6447,7 @@ input[type="checkbox"]:checked::after {
 .about-storage-cache { border: 0; background: transparent; padding-block: var(--space-4); }
 .about-link-title { color: var(--fg-cool); text-decoration: underline; text-underline-offset: 3px; }
 .about-storage-summary { padding-top: var(--space-4); flex-wrap: wrap; }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .regex-filter-header { flex-wrap: wrap; }
     .regex-filter-name { flex-basis: 100%; }
     .regex-filter-flag { min-height: 44px; gap: var(--space-3); }
@@ -6464,7 +6468,7 @@ input[type="checkbox"]:checked::after {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
 }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     #settings-flyout.modal-overlay,
     .settings-submodal.modal-overlay { top: var(--settings-viewport-top, 0px); bottom: auto; height: var(--settings-viewport-height, 100dvh); }
     .settings-submodal > .modal { height: 100%; }
@@ -6476,8 +6480,8 @@ input[type="checkbox"]:checked::after {
 :is(.regex-filter-flag, .lorebook-entry-toggle) { min-height: 32px; }
 .sampler-popover { max-height: min(420px, 55dvh); overflow-y: auto; }
 .sampler-done-btn { display: none; }
-@media (max-width: 768px) {
-    .sampler-popover { position: fixed; top: calc(80px + env(safe-area-inset-top, 0px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); left: 16px; right: 16px; width: auto; min-width: 0; max-width: none; max-height: none; }
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
+    .sampler-popover { position: fixed; top: calc(80px + env(safe-area-inset-top, 0px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); width: auto; min-width: 0; max-width: none; max-height: none; }
     .sampler-popover-footer { display: flex; }
     .sampler-done-btn { display: block; min-height: 44px; padding: 0 0.6rem; background: none; border: 0; border-radius: var(--radius-control); color: var(--fg-accent); font: 600 var(--text-md) var(--font-mono); cursor: pointer; }
     :is(.regex-filter-flag, .lorebook-entry-toggle) { min-height: 44px; }
@@ -6487,14 +6491,14 @@ input[type="checkbox"]:checked::after {
 }
 
 .model-picker-item { overflow-wrap: anywhere; }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .model-picker-item { min-height: 44px; }
     .prompt-basic-hint-link { min-height: 44px; padding: var(--space-3); }
 }
 
 /* In the two-column workspace the reference sets the row height; both editors
    fill that same row, so changing tabs never changes the panel's height. */
-@media (min-width: 769px) {
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     .prompt-section-right .form-textarea { resize: none; }
 }
 
@@ -6508,7 +6512,7 @@ input[type="checkbox"]:checked::after {
 .lorebook-picker .cozy-select-count { white-space: nowrap; margin-left: auto; font-family: var(--font-mono); }
 .lorebook-picker .cozy-select-menu { max-height: min(320px, 45dvh); overscroll-behavior: contain; }
 .lorebook-picker .cozy-select-option { padding: var(--space-2) var(--space-3); }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .lorebook-picker .cozy-select-label { flex-basis: 100%; }
     .lorebook-picker .cozy-select-detail { max-width: 100%; flex: 1 1 110px; }
 }
@@ -6518,7 +6522,7 @@ input[type="checkbox"]:checked::after {
    wide for its card just above the width where the shared rule wraps them.
    The picker gives up width down to its 12rem floor first, then the row wraps
    rather than running off the card. (On a phone the row is a grid.) */
-@media (min-width: 769px) {
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     .prompt-select-row { flex-wrap: wrap; }
     .settings-card-header > .prompt-select-row > .cozy-select { flex: 1 1 12rem; max-width: 17rem; }
 }
@@ -6569,7 +6573,7 @@ input[type="checkbox"]:checked::after {
 #regex-io-menu { left: auto; right: 0; }
 /* "Import/export" overflows a third of a phone row, so on a phone it takes a
    row of its own under New and Delete, as on the Prompt page. */
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (hover: none) {
     [data-section="regex"] .preset-select-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #regex-io-dropdown { grid-column: 1 / -1; }
     #regex-io-dropdown > .icon-btn { width: 100%; }

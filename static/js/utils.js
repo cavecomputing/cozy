@@ -5,10 +5,12 @@ import { state, el, llm, SEND_SVG, STOP_SVG } from './state.js';
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * The shell breakpoint. Below it the sidebar, the modals and the composer
- * flyouts all switch to their mobile arrangement.
+ * The shell breakpoint: a phone-narrow window, or a touch screen too short for
+ * the desktop shell, as a phone on its side is. There the sidebar, the modals
+ * and the composer flyouts all switch to their mobile arrangement. Every phone
+ * block in style.css repeats it.
  */
-export const MOBILE_SHELL_QUERY = '(max-width: 768px)';
+export const MOBILE_SHELL_QUERY = '(max-width: 768px), (max-height: 500px) and (hover: none)';
 export function autoResize(textarea) {
     textarea.style.height = 'auto';
     textarea.style.height = (textarea.scrollHeight + 2) + 'px';

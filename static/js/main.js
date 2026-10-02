@@ -1147,7 +1147,7 @@ function bindMessageHandlers() {
 // opens just above the finger, or below it when the finger is too near the top
 // of the transcript for the bar to fit above.
 const HOLD_MS = 450;
-const heldQuery = window.matchMedia('(max-width: 768px) and (hover: none)');
+const heldQuery = window.matchMedia('(max-width: 768px) and (hover: none), (max-height: 500px) and (hover: none)');
 let heldContainer = null;
 
 function closeHeldActions() {
