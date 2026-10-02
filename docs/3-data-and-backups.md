@@ -65,7 +65,7 @@ Stop Cozy before copying its data.
 Docker:
 
 ```bash
-docker compose -f docker/docker-compose.yml down
+docker compose -f docker/compose.yml down
 ```
 
 Python:
@@ -93,7 +93,7 @@ For Python, set `COZY_DATA_DIR` before starting Cozy. See
 [Advanced setup](2-advanced-setup.md#use-a-different-data-directory).
 
 For Docker, change the left side of the volume mapping in
-`docker/docker-compose.yml`:
+`docker/compose.yml`:
 
 ```yaml
 volumes:

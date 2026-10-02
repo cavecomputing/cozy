@@ -21,7 +21,7 @@ example on a server.
 ### Start
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker/compose.yml up -d --build
 ```
 
 Then open <http://localhost:5001> in your browser.
@@ -33,13 +33,13 @@ after you close the terminal.
 ### Check that it is running
 
 ```bash
-docker compose -f docker/docker-compose.yml ps
+docker compose -f docker/compose.yml ps
 ```
 
 ### Read the logs
 
 ```bash
-docker compose -f docker/docker-compose.yml logs -f
+docker compose -f docker/compose.yml logs -f
 ```
 
 New log lines appear as they happen. Press `Ctrl+C` to stop watching.
@@ -48,7 +48,7 @@ Cozy keeps running.
 ### Stop
 
 ```bash
-docker compose -f docker/docker-compose.yml down
+docker compose -f docker/compose.yml down
 ```
 
 This removes the container. It does not delete your `data/` folder. Your
@@ -60,12 +60,12 @@ You rarely need this. It opens a command line inside the running
 container:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec cozypub /bin/sh
+docker compose -f docker/compose.yml exec cozypub /bin/sh
 ```
 
 ### Use a different port
 
-The default mapping in `docker/docker-compose.yml` is:
+The default mapping in `docker/compose.yml` is:
 
 ```yaml
 ports:
@@ -106,8 +106,8 @@ Linux, if your account has different IDs, Cozy cannot write to `data/`
 and fails. Build the image with your own IDs instead:
 
 ```bash
-docker compose -f docker/docker-compose.yml build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
-docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/compose.yml build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
+docker compose -f docker/compose.yml up -d
 ```
 
 ## Python
@@ -197,7 +197,7 @@ Docker:
 
 ```bash
 git pull
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker/compose.yml up -d --build
 ```
 
 Python:

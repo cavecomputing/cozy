@@ -82,7 +82,7 @@ uv run pytest tests/test_characters.py        # one file
 uv run pytest tests/test_characters.py::test_name -x   # one test, stop on fail
 
 # Docker (run from repository root; localhost port 5001)
-docker compose -f docker/docker-compose.yml up --build
+docker compose -f docker/compose.yml up --build
 ```
 
 Production (Docker) runs gunicorn with the `gthread` worker class — required because `/api/llm/chat` streams SSE and the default sync worker buffers responses.

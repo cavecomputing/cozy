@@ -7,8 +7,8 @@ Check whether it is running.
 Docker:
 
 ```bash
-docker compose -f docker/docker-compose.yml ps
-docker compose -f docker/docker-compose.yml logs -f
+docker compose -f docker/compose.yml ps
+docker compose -f docker/compose.yml logs -f
 ```
 
 Python: read the terminal where `uv run app.py` is running.
@@ -27,9 +27,9 @@ Python, pass `--port` — see
 On Linux, rebuild the image with your UID and GID:
 
 ```bash
-docker compose -f docker/docker-compose.yml down
-docker compose -f docker/docker-compose.yml build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
-docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/compose.yml down
+docker compose -f docker/compose.yml build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
+docker compose -f docker/compose.yml up -d
 ```
 
 ## No models appear

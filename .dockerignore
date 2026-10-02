@@ -19,5 +19,5 @@ tests
 data
 docs
 docker/Dockerfile
-docker/docker-compose.yml
+docker/compose.yml
 .gitignore
