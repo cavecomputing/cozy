@@ -253,6 +253,12 @@ export async function selectChat(chat) {
     updateContextViews();
     onChatSelected();
     savePrefs();
+    // Land in the composer, ready to type, as chat apps do on a switch and at
+    // startup. Not on touch shells, where focusing throws up the keyboard over
+    // the conversation before the user has asked for it.
+    if (!el.userInput.disabled && !window.matchMedia('(pointer: coarse)').matches) {
+        el.userInput.focus({ preventScroll: true });
+    }
 }
 
 export async function createNewChat(autoSelect = true, silent = false) {

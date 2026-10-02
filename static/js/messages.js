@@ -723,10 +723,16 @@ export function finishEditing(save) {
     messageEl.classList.remove('editing');
     messageEl.style.width = '';
     contentDiv.removeAttribute('contenteditable');
-    // Chrome lets go of the text once it can't be edited; Safari may not, and
-    // focus left on it holds the message's buttons up (the hover rule's
-    // :focus-visible case in style.css).
-    contentDiv.blur();
+    // Back to the composer, as Slack and Discord do when an edit ends; a touch
+    // shell just lets go, since focusing the composer throws up the keyboard.
+    // Either way focus leaves the text: Safari may otherwise keep it, and a
+    // focused message holds its buttons up (the hover rule's :focus-visible
+    // case in style.css).
+    if (!el.userInput.disabled && !window.matchMedia('(pointer: coarse)').matches) {
+        el.userInput.focus({ preventScroll: true });
+    } else {
+        contentDiv.blur();
+    }
     contentDiv.removeEventListener('keydown', messageEl._editHandler);
     delete messageEl._editHandler;
 
