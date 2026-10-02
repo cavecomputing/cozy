@@ -1370,14 +1370,15 @@ select.settings-select:focus-visible {
 /* Faded rather than --fg-quiet so it stays legible on a theme's filled user
    bubble too. A character's card is never filled, so it takes the muted tone,
    which a faded body colour falls short of on several themes' cards. */
-.msg-time {
+.msg-time,
+.msg-edited {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     white-space: nowrap;
     opacity: 0.75;
 }
 
-.message.character .msg-time {
+.message.character :is(.msg-time, .msg-edited) {
     color: var(--fg-quiet);
     opacity: 1;
 }
@@ -5389,7 +5390,8 @@ input[type="checkbox"]:checked::after {
     }
 
     .msg-name,
-    .msg-time {
+    .msg-time,
+    .msg-edited {
         grid-row: 1;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -5424,7 +5426,7 @@ input[type="checkbox"]:checked::after {
     .message .avatar.avatar-expanded {
         grid-column: 1 / -1;
     }
-    .message:has(.avatar-expanded) :is(.msg-name, .msg-time) {
+    .message:has(.avatar-expanded) :is(.msg-name, .msg-time, .msg-edited) {
         grid-row: 2;
     }
 
@@ -5432,7 +5434,8 @@ input[type="checkbox"]:checked::after {
         display: none;
     }
 
-    .msg-time {
+    .msg-time,
+    .msg-edited {
         font-size: var(--text-xs);
     }
 

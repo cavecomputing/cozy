@@ -280,6 +280,7 @@ export async function handleSwipeAction(msgEl, isPrev) {
     }
 
     updateSwipeNav(msgEl, swipes, idx, isGreeting);
+    setEditedLabel(msgEl, swipes[idx]?.edited_at);
 }
 
 export async function regenerateLastAssistantMessage() {
@@ -374,6 +375,21 @@ function buildEditActions() {
     return bar;
 }
 
+/** A database timestamp (UTC, no zone marker) as the reader's local date and time. */
+function formatStamp(utc) {
+    return (utc ? new Date(utc + 'Z') : new Date()).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+    });
+}
+
+/** Show "(edited)" while the swipe on screen is one the reader has rewritten. */
+function setEditedLabel(msgEl, editedAt) {
+    const label = msgEl.querySelector('.msg-edited');
+    label.hidden = !editedAt;
+    label.title = editedAt ? `Edited ${formatStamp(editedAt)}` : '';
+}
+
 /** Build a message DOM element (pure DOM construction, no side effects). */
 function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes = null, activeSwipeIndex = 0, persona = null, msgId = null) {
     const char = state.activeCharacter;
@@ -410,14 +426,13 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
         : (char?.name || 'Character');
     const msgTime = document.createElement('span');
     msgTime.className = 'msg-time';
-    const ts = timestamp ? new Date(timestamp + 'Z') : new Date();
-    msgTime.textContent = ts.toLocaleString(undefined, {
-        month: 'short', day: 'numeric', year: 'numeric',
-        hour: 'numeric', minute: '2-digit'
-    });
+    msgTime.textContent = formatStamp(timestamp);
+    const msgEdited = document.createElement('span');
+    msgEdited.className = 'msg-edited';
+    msgEdited.textContent = '(edited)';
     const msgSwipes = swipes || [{ content: text }];
     const actions = buildMsgActions(role, msgSwipes.length, activeSwipeIndex, isGreeting);
-    msgHeader.append(msgName, msgTime, actions);
+    msgHeader.append(msgName, msgTime, msgEdited, actions);
 
     message.dataset.swipes = JSON.stringify(msgSwipes);
     message.dataset.activeSwipeIndex = activeSwipeIndex;
@@ -433,6 +448,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     if (parsed.hasThinking) renderThinkingBlock(msgBody, parsed);
     message.append(avatarDiv, msgBody);
     wrapper.append(message);
+    setEditedLabel(message, msgSwipes[activeSwipeIndex]?.edited_at);
 
     if (isGreeting) {
         message.dataset.isGreeting = 'true';
@@ -683,17 +699,22 @@ export function finishEditing(save) {
             ? state.messages.find(m => String(m.id) === String(id))
             : state.messages.find(m => m.text === originalText);
 
-        // Sync the active swipe so swiping away and back keeps the edit
+        // Sync the active swipe so swiping away and back keeps the edit. Saving
+        // the text unchanged is not an edit, as the server agrees.
         const editSwipes = JSON.parse(messageEl.dataset.swipes || '[]');
         const editIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
+        const editedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const rewritten = swipe => ({
+            ...swipe, content: rawText, ...(rawText !== originalText && { edited_at: editedAt }),
+        });
         if (editSwipes[editIdx]) {
-            editSwipes[editIdx] = { ...editSwipes[editIdx], content: rawText };
+            editSwipes[editIdx] = rewritten(editSwipes[editIdx]);
             messageEl.dataset.swipes = JSON.stringify(editSwipes);
         }
         if (stateMsg) {
             stateMsg.text = rawText;
             if (stateMsg.swipes?.[editIdx]) {
-                stateMsg.swipes[editIdx] = { ...stateMsg.swipes[editIdx], content: rawText };
+                stateMsg.swipes[editIdx] = rewritten(stateMsg.swipes[editIdx]);
             }
             if (stateMsg.id) {
                 API.updateMessage(stateMsg.id, rawText, true, editIdx).catch(err => {
@@ -741,6 +762,7 @@ export function finishEditing(save) {
     const activeIdx = parseInt(messageEl.dataset.activeSwipeIndex || '0', 10);
     const isGreeting = messageEl.dataset.isGreeting === 'true';
     actionsBar.replaceChildren(...buildMsgActions(role, swipes.length, activeIdx, isGreeting).childNodes);
+    setEditedLabel(messageEl, swipes[activeIdx]?.edited_at);
 
     state.currentEdit = null;
     updateContextBoundary();

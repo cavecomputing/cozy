@@ -23,6 +23,7 @@ def _swipe_to_dict(row):
         'id': row['id'],
         'content': row['content'],
         'created_at': row['created_at'],
+        'edited_at': row['edited_at'],
     }
 
 
@@ -91,8 +92,8 @@ def fork_chat(chat_id):
             ).fetchall()
             for s in swipes:
                 conn.execute(
-                    'INSERT INTO message_swipes (message_id, content, created_at) VALUES (?,?,?)',
-                    (old_to_new[s['message_id']], s['content'], s['created_at'])
+                    'INSERT INTO message_swipes (message_id, content, created_at, edited_at) VALUES (?,?,?,?)',
+                    (old_to_new[s['message_id']], s['content'], s['created_at'], s['edited_at'])
                 )
 
         summary_json, watermark = fork_summary(
@@ -121,7 +122,7 @@ def list_messages(chat_id):
         if rows:
             swipes = conn.execute(
                 '''
-                SELECT s.id, s.message_id, s.content, s.created_at
+                SELECT s.id, s.message_id, s.content, s.created_at, s.edited_at
                 FROM message_swipes s
                 JOIN messages m ON m.id = s.message_id
                 WHERE m.chat_id=?
@@ -185,7 +186,7 @@ def list_swipes(msg_id):
         if not conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone():
             return not_found('Message')
         rows = conn.execute(
-            'SELECT id, content, created_at FROM message_swipes WHERE message_id=? ORDER BY id ASC',
+            'SELECT id, content, created_at, edited_at FROM message_swipes WHERE message_id=? ORDER BY id ASC',
             (msg_id,)
         ).fetchall()
         return jsonify([dict(r) for r in rows])
@@ -260,10 +261,14 @@ def update_message(msg_id):
                     'ORDER BY id ASC LIMIT 1',
                     (msg_id, row['content']),
                 ).fetchone()
+            # Saved unchanged, an edit is not an edit: the swipe is only marked
+            # when its text actually differs from what it held.
             if target:
                 conn.execute(
-                    'UPDATE message_swipes SET content=? WHERE id=?',
-                    (content, target['id']),
+                    'UPDATE message_swipes SET content=?, '
+                    'edited_at=CASE WHEN content=? THEN edited_at ELSE CURRENT_TIMESTAMP END '
+                    'WHERE id=?',
+                    (content, content, target['id']),
                 )
         return jsonify({'success': True})
 

@@ -511,6 +511,7 @@
           <tr><td class="c-name ref">message_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>messages.id</code>, ON DELETE CASCADE.</td></tr>
           <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">The variant's text.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation; also the swipe order.</td></tr>
+          <tr><td class="c-name">edited_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">When an edit last changed this variant's text, <code>NULL</code> if none has. Saving the same text or picking a swipe leaves it alone. Shown as the message's <em>(edited)</em> label, and a fork copies it.</td></tr>
         </tbody>
       </table></div>
       <details><summary>CREATE TABLE</summary><pre>CREATE TABLE message_swipes (
@@ -518,6 +519,7 @@
     message_id INTEGER NOT NULL,
     content    TEXT    NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    edited_at  DATETIME DEFAULT NULL,
     FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
 )</pre></details>
     </section>

@@ -542,6 +542,12 @@ class TestSchemaMigrationLedger:
                     active_lorebook_embedded INTEGER NOT NULL DEFAULT 0,
                     lorebook_notice_dismissed INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE message_swipes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    message_id INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
                 CREATE TABLE api_presets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL UNIQUE,
@@ -574,6 +580,7 @@ class TestSchemaMigrationLedger:
             assert 'archived_at' not in columns('characters')
             assert 'author_note' in columns('chats')
             assert 'lorebook_notice_dismissed' not in columns('chats')
+            assert 'edited_at' in columns('message_swipes')
             assert 'settings_json' in columns('api_presets')
             assert 'post_history_content' in columns('system_prompts')
             assert 'description' in columns('system_prompts')

@@ -476,6 +476,7 @@ def init_db():
                 message_id INTEGER NOT NULL,
                 content    TEXT    NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                edited_at  DATETIME DEFAULT NULL,
                 FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
             );
 
@@ -577,6 +578,10 @@ def init_db():
             conn.execute("ALTER TABLE chats ADD COLUMN summary_status_detail TEXT NOT NULL DEFAULT ''")
         if chat_cols and 'persona_id' not in chat_cols:
             conn.execute('ALTER TABLE chats ADD COLUMN persona_id INTEGER DEFAULT NULL')
+
+        swipe_cols = [c[1] for c in conn.execute('PRAGMA table_info(message_swipes)').fetchall()]
+        if swipe_cols and 'edited_at' not in swipe_cols:
+            conn.execute('ALTER TABLE message_swipes ADD COLUMN edited_at DATETIME DEFAULT NULL')
 
         # A server restart kills any in-flight summary thread; clear stale state so
         # a chat isn't stuck showing "running" forever. Partial progress is safe:

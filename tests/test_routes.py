@@ -581,6 +581,48 @@ class TestMessages:
         edited = next(m for m in listed if m['id'] == msg['id'])
         assert [s['content'] for s in edited['swipes']] == ['First take', 'Edited']
 
+    def test_edit_marks_only_the_swipe_whose_text_changed(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
+
+        client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Second take, reworded', 'update_swipe': True, 'swipe_index': 1,
+        })
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        swipes = next(m for m in listed if m['id'] == msg['id'])['swipes']
+        assert swipes[0]['edited_at'] is None
+        assert swipes[1]['edited_at'] is not None
+
+    def test_saving_an_edit_without_changing_the_text_does_not_mark_it(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Same text',
+        }).get_json()
+
+        client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Same text', 'update_swipe': True, 'swipe_index': 0,
+        })
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        assert next(m for m in listed if m['id'] == msg['id'])['swipes'][0]['edited_at'] is None
+
+    def test_picking_a_swipe_does_not_mark_it_edited(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
+
+        client.put(f'/api/messages/{msg["id"]}', json={'content': 'First take'})
+
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        swipes = next(m for m in listed if m['id'] == msg['id'])['swipes']
+        assert [s['edited_at'] for s in swipes] == [None, None]
+
     def test_swipe_selection_without_flag_leaves_swipes_alone(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
@@ -1038,6 +1080,20 @@ class TestFork:
         assert msgs[0]['content'] == 'Hello'
         assert msgs[1]['content'] == 'Hey!'
         assert len(msgs[1]['swipes']) == 2
+
+    def test_fork_keeps_the_edited_mark(self, client, sample_chat):
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'As generated',
+        }).get_json()
+        client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'As rewritten', 'update_swipe': True, 'swipe_index': 0,
+        })
+
+        forked = client.post(f'/api/chats/{chat_id}/fork?message_id={msg["id"]}').get_json()
+
+        copied = client.get(f'/api/chats/{forked["id"]}/messages').get_json()[0]
+        assert copied['swipes'][0]['edited_at'] is not None
 
     def test_fork_carries_per_chat_settings(self, client, sample_chat):
         """A fork continues the same conversation, so its settings come with it.
