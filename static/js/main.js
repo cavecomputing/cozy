@@ -375,6 +375,86 @@ function bindSheetBackdropHandlers() {
     sync();
 }
 
+// A panel dragged toward the edge it came from follows the finger, then either
+// carries on out or springs back. The drawer goes left, and can be taken
+// anywhere since a vertical touch on it is the list's to scroll (the browser
+// takes that one over and cancels ours); a sheet goes down, from its grabber.
+// Touch and pen only: a mouse has the buttons.
+const DRAG_SLOP_PX = 8;            // before it is a drag at all
+const DRAG_CLOSE_PX = 80;          // far enough to mean it
+const DRAG_FLICK_PX_PER_MS = 0.5;  // or quick enough to mean it from less
+
+function bindDragToClose(panel, handle, { vertical, close, backdrop, when = () => true }) {
+    const toward = vertical ? 1 : -1;   // which way along the axis is out
+    const axis = vertical ? 'Y' : 'X';
+    let drag = null;                    // the touch being followed
+
+    const settle = away => {
+        panel.style.transition = 'transform var(--motion-base) ease-out';
+        panel.style.transform = `translate${axis}(${away ? toward * 100 : 0}%)`;
+        if (backdrop) {
+            backdrop.style.transition = 'opacity var(--motion-base)';
+            backdrop.style.opacity = away ? 0 : 1;
+        }
+        setTimeout(() => {
+            if (away) close();
+            panel.style.transition = panel.style.transform = '';
+            if (backdrop) backdrop.style.transition = backdrop.style.opacity = '';
+        }, 180);
+    };
+
+    handle.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' || !when()) return;
+        drag = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp, dist: 0, live: false };
+    });
+
+    handle.addEventListener('pointermove', e => {
+        if (e.pointerId !== drag?.id) return;
+        const dist = toward * (vertical ? e.clientY - drag.y : e.clientX - drag.x);
+        if (!drag.live) {
+            if (dist < DRAG_SLOP_PX) return;
+            drag.live = true;
+            handle.setPointerCapture(e.pointerId);
+            panel.style.transition = 'none';
+            if (backdrop) backdrop.style.transition = 'none';
+        }
+        drag.dist = Math.max(0, dist);
+        panel.style.transform = `translate${axis}(${toward * drag.dist}px)`;
+        if (backdrop) {
+            backdrop.style.opacity = 1 - Math.min(1, drag.dist / (vertical ? panel.offsetHeight : panel.offsetWidth));
+        }
+    });
+
+    const release = e => {
+        if (e.pointerId !== drag?.id) return;
+        const { live, dist, at } = drag;
+        drag = null;
+        if (!live) return;
+        const flicked = dist > 20 && dist / (e.timeStamp - at) > DRAG_FLICK_PX_PER_MS;
+        settle(e.type === 'pointerup' && (dist > DRAG_CLOSE_PX || flicked));
+    };
+    handle.addEventListener('pointerup', release);
+    handle.addEventListener('pointercancel', release);
+    handle.addEventListener('lostpointercapture', release);   // closed from under the finger
+}
+
+function bindSwipeToClose() {
+    bindDragToClose(el.sidebar, el.sidebar, {
+        vertical: false,
+        close: closeMobileSidebar,
+        backdrop: el.mobileBackdrop,
+        when: () => el.sidebar.classList.contains('mobile-open'),
+    });
+    const sheetBackdrop = document.getElementById('sheet-backdrop');
+    for (const sheet of [el.chatFlyout, el.memoryFlyout].filter(Boolean)) {
+        bindDragToClose(sheet, sheet.querySelector('.sheet-grabber'), {
+            vertical: true,
+            close: () => Flyouts.closeAllExcept(null),
+            backdrop: sheetBackdrop,
+        });
+    }
+}
+
 function bindFlyoutHandlers() {
     // Register flyouts so only one is open at a time
     Flyouts.register('settings', () => {
@@ -1416,6 +1496,7 @@ async function init() {
     bindFlyoutHandlers();
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
+    bindSwipeToClose();
     bindBackButton();
     bindSettingsHandlers();
     initStorageStats();

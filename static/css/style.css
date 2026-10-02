@@ -1884,6 +1884,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     display: none !important;
 }
 
+/* The pull-down handle of a phone's bottom sheet; there is none on a popover. */
+.sheet-grabber {
+    display: none;
+}
+
 /* chat-flyout-header reuses .memory-card-header (section icon + eyebrow +
    full-width hairline); the label flexes so the action buttons stay
    right-aligned. */
@@ -5120,6 +5125,9 @@ input[type="checkbox"]:checked::after {
         transform: translateX(-100%);
         visibility: hidden;
         pointer-events: none;
+        /* Its list scrolls up and down as the browser does it; a drag to the
+           left is Cozy's, to close the drawer (bindDragToClose in main.js). */
+        touch-action: pan-y;
         transition: transform var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-md);
     }
@@ -5143,8 +5151,11 @@ input[type="checkbox"]:checked::after {
         padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.5rem 0.35rem;
     }
 
+    /* The drawer's own pan-y (above) stops at the nearest scroller, which is
+       this list, so it needs the same to leave a leftward drag to Cozy. */
     .sidebar-scrollable {
         padding: 0.5rem 0.6rem 0.4rem;
+        touch-action: pan-y;
     }
 
     .char-list {
@@ -5678,15 +5689,24 @@ input[type="checkbox"]:checked::after {
         max-height: min(60dvh, 440px);
     }
 
-    /* Drag-handle pill — purely visual affordance; dismiss is backdrop tap */
-    .chat-flyout::before {
-        content: '';
+    /* Drag-handle pill: pull the sheet down to dismiss it, or tap the
+       backdrop. Its own element, so that a touch on it can be refused to the
+       page's scrolling and the drag be Cozy's (bindDragToClose in main.js). */
+    .sheet-grabber {
+        display: flex;
         flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        height: 1.5rem;
+        touch-action: none;
+    }
+
+    .sheet-grabber::before {
+        content: '';
         width: 2.25rem;
         height: 4px;
         border-radius: var(--radius-pill);
         background: var(--border-color);
-        margin: 0.45rem auto 0.15rem;
     }
 
     .chat-flyout .chat-list {
