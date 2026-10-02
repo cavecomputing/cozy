@@ -172,6 +172,10 @@ body {
     padding: calc(var(--shell-gap) + 1px);
     overflow: hidden;
     overscroll-behavior: none;
+    /* Touch browsers flash a grey box over whatever takes a tap, which for the
+       transcript and the lists (they delegate their clicks) can be the whole
+       of it. Buttons answer a press themselves (see .icon-btn:active). */
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* The shell: one surface behind the sidebar and the main pane. Drawn here so
@@ -261,11 +265,16 @@ body::before {
     }
 }
 
-.icon-btn:active {
+.icon-btn:active,
+.msg-action-btn:active,
+.swipe-btn:active,
+.scroll-to-bottom-btn:active,
+#send-btn:active {
     transform: scale(0.95);
 }
 
 .icon-btn:disabled,
+.swipe-btn:disabled,
 #send-btn:disabled {
     transform: none;   /* cancel the :active press */
 }
