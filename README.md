@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Cozy" width="300">
+  <img src="static/favicon.svg" alt="Cozy" width="128">
 </p>
 
 <p align="center">
