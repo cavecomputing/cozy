@@ -659,6 +659,7 @@ export function loadAuthorNote() {
     if (!el.authorNoteInput) return;
     const chat = state.activeChat;
     el.authorNoteInput.value = chat?.author_note || '';
+    el.authorNoteInput.dataset.chatId = chat?.id ?? '';
     el.authorNoteInput.disabled = !chat;
     updateAuthorNoteCounter();
     markUnusedVar(el.authorNoteMarker, 'author_note');
@@ -675,11 +676,16 @@ export function updateAuthorNoteCounter() {
 async function saveAuthorNote() {
     const chat = state.activeChat;
     if (!chat) return;
-    const value = el.authorNoteInput?.value || '';
+    // The box only shows this chat's note once loadAuthorNote has run for it.
+    // Flushes also fire from unrelated flyouts, and before that the box is stale
+    // or empty, so saving it would overwrite this chat's note.
+    if (el.authorNoteInput?.dataset.chatId !== String(chat.id)) return;
+    const value = el.authorNoteInput.value;
     if (value === (chat.author_note || '')) return;  // no-op when unchanged
     try {
         const updated = await API.updateChat(chat.id, { author_note: value });
-        state.activeChat = updated;
+        // The user may have moved to another chat while this was in flight.
+        if (state.activeChat?.id === chat.id) state.activeChat = updated;
         const idx = state.chats.findIndex(c => c.id === chat.id);
         if (idx >= 0) state.chats[idx] = updated;
         updateContextViews();

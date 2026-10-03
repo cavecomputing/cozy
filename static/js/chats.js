@@ -3,7 +3,7 @@ import { API } from './api.js';
 import { chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs, branchesAt } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills } from './messages.js';
-import { renderLorebookFlyout } from './lorebooks.js';
+import { renderLorebookFlyout, loadAuthorNote, flushAuthorNote } from './lorebooks.js';
 import { restoreDraft, saveDraft } from './drafts.js';
 import { renderPersonaList, updateUserProfile } from './personas.js';
 import { updateContextViews } from './context-meter.js';
@@ -160,12 +160,14 @@ export async function loadChats(charId) {
 export async function selectChat(chat) {
     saveDraft();
     flushEdit();
+    flushAuthorNote();
     // A bare abort, not stopGeneration(): leaving a chat discards the partial
     // reply. It belongs to the chat we're leaving, but persistence targets the
     // chat we're entering, so there is nowhere safe to put it.
     if (llm.abortController) llm.abortController.abort();
 
     state.activeChat = chat;
+    loadAuthorNote();
     restoreDraft();
     updateComposerState();
 
