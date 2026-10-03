@@ -5076,27 +5076,28 @@ input[type="checkbox"]:checked::after {
 
     /* The shell keeps its frame gap, measured from the safe area instead of
        the screen edge so it clears the notch, the status bar and the home
-       indicator (all zero in a plain upright tab). The body's padding already
-       clears them, so the header and composer below add none of their own. The
-       drawer, sheets and modals sit on the viewport, not the body, so each
-       clears them itself. */
+       indicator (all zero in a plain upright tab). Every full-screen view (the
+       drawer, the sheets, the modals) fills this same box rather than the
+       viewport, so the frame never goes away, and since the box already clears
+       the insets none of them add their own. */
+    :root {
+        --frame-top:    calc(var(--shell-gap) + env(safe-area-inset-top, 0px));
+        --frame-right:  calc(var(--shell-gap) + env(safe-area-inset-right, 0px));
+        --frame-bottom: calc(var(--shell-gap) + env(safe-area-inset-bottom, 0px));
+        --frame-left:   calc(var(--shell-gap) + env(safe-area-inset-left, 0px));
+    }
+
     body {
         width: 100%;
         padding:
-            calc(var(--shell-gap) + 1px + env(safe-area-inset-top, 0px))
-            calc(var(--shell-gap) + 1px + env(safe-area-inset-right, 0px))
-            calc(var(--shell-gap) + 1px + env(safe-area-inset-bottom, 0px))
-            calc(var(--shell-gap) + 1px + env(safe-area-inset-left, 0px));
+            calc(var(--frame-top) + 1px) calc(var(--frame-right) + 1px)
+            calc(var(--frame-bottom) + 1px) calc(var(--frame-left) + 1px);
         overscroll-behavior: auto;
         touch-action: manipulation;
     }
 
     body::before {
-        inset:
-            calc(var(--shell-gap) + env(safe-area-inset-top, 0px))
-            calc(var(--shell-gap) + env(safe-area-inset-right, 0px))
-            calc(var(--shell-gap) + env(safe-area-inset-bottom, 0px))
-            calc(var(--shell-gap) + env(safe-area-inset-left, 0px));
+        inset: var(--frame-top) var(--frame-right) var(--frame-bottom) var(--frame-left);
     }
 
     body.mobile-drawer-open {
@@ -5119,17 +5120,16 @@ input[type="checkbox"]:checked::after {
     /* ── Sidebar: off-screen drawer ────────────────────────────────── */
     #sidebar {
         position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
+        top: var(--frame-top);
+        left: var(--frame-left);
+        bottom: var(--frame-bottom);
         width: min(88vw, 360px);
         max-width: 100vw;
         margin: 0;
-        padding-left: env(safe-area-inset-left, 0px);
-        border-radius: 0;
-        border-width: 0 1px 0 0;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-shell);
         z-index: 100;
-        transform: translateX(-100%);
+        transform: translateX(calc(-100% - var(--frame-left)));
         visibility: hidden;
         pointer-events: none;
         /* Its list scrolls up and down as the browser does it; a drag to the
@@ -5155,7 +5155,7 @@ input[type="checkbox"]:checked::after {
     .sidebar-header {
         height: auto;
         min-height: var(--mobile-header-height);
-        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) 0.5rem 0.35rem;
+        padding: 0.35rem 0.5rem;
     }
 
     /* The drawer's own pan-y (above) stops at the nearest scroller, which is
@@ -5193,7 +5193,7 @@ input[type="checkbox"]:checked::after {
     }
 
     #user-profile-container {
-        margin: 0 0.6rem calc(env(safe-area-inset-bottom, 0px) + 0.6rem);
+        margin: 0 0.6rem 0.6rem;
     }
 
     #persona-dropup.dropup-content {
@@ -5221,13 +5221,16 @@ input[type="checkbox"]:checked::after {
     /* ── Modal overlays: full-screen on mobile ─────────────────────── */
     .modal-overlay {
         position: fixed !important;
-        inset: 0 !important;
+        inset: var(--frame-top) var(--frame-right) var(--frame-bottom) var(--frame-left) !important;
         margin-left: 0 !important;
         background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-shell);
+        box-shadow: var(--shadow-shell);
+        overflow: hidden;
         display: flex;
         align-items: stretch;
         justify-content: stretch;
-        padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
         z-index: 200;
         animation: none;
     }
@@ -5235,7 +5238,7 @@ input[type="checkbox"]:checked::after {
     .modal-overlay > .modal {
         width: 100%;
         max-width: 100%;
-        height: 100dvh;
+        height: 100%;
         border-radius: 0;
         border: none;
     }
@@ -5251,7 +5254,7 @@ input[type="checkbox"]:checked::after {
 
     .modal-footer {
         align-items: stretch;
-        padding: 0.55rem var(--mobile-inline-padding) calc(env(safe-area-inset-bottom, 0px) + 0.55rem);
+        padding: 0.55rem var(--mobile-inline-padding);
     }
 
     .modal-footer-left,
@@ -5275,7 +5278,7 @@ input[type="checkbox"]:checked::after {
     #char-modal.modal-overlay,
     #prompt-preview-modal.modal-overlay,
     #prompt-help-modal.modal-overlay {
-        bottom: 0 !important;
+        bottom: var(--frame-bottom) !important;
     }
 
     /* ── Settings: iOS-style drill-down ────────────────────────────────── */
@@ -5674,16 +5677,15 @@ input[type="checkbox"]:checked::after {
 
     .chat-flyout {
         position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        left: var(--frame-left);
+        right: var(--frame-right);
+        bottom: var(--frame-bottom);
         width: auto;
         min-width: 0;
         max-width: none;
         max-height: min(60dvh, 440px);
-        border-radius: var(--radius) var(--radius) 0 0;
-        border-bottom: none;
-        padding: 0 env(safe-area-inset-right, 0px) calc(env(safe-area-inset-bottom, 0px) + 0.35rem) env(safe-area-inset-left, 0px);
+        border-radius: var(--radius) var(--radius) calc(var(--radius-shell) - 1px) calc(var(--radius-shell) - 1px);
+        padding: 0 0 0.35rem;
         z-index: 320;
         animation: sheetUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -5692,7 +5694,7 @@ input[type="checkbox"]:checked::after {
        later in the file — re-assert the sheet geometry with higher specificity. */
     .chat-flyout.lorebook-flyout,
     .chat-flyout.memory-flyout {
-        left: 0;
+        left: var(--frame-left);
         min-width: 0;
         max-width: none;
         max-height: min(60dvh, 440px);
@@ -6362,7 +6364,7 @@ input[type="checkbox"]:checked::after {
        main.js measures visualViewport and publishes it as this custom property;
        the fallback is what non-iOS browsers use. */
     .settings-modal { width: 100%; max-width: 100%; height: var(--settings-viewport-height, 100dvh); }
-    .modal-header { padding: calc(env(safe-area-inset-top, 0px) + var(--space-2)) var(--space-4) var(--space-2); }
+    .modal-header { padding: var(--space-2) var(--space-4); }
     .settings-nav { width: 100%; padding: var(--space-4) var(--space-5); }
     .settings-nav-item { min-height: 44px; }
     #settings-flyout:has(.in-detail) #settings-close-btn { display: none; }
@@ -6486,9 +6488,9 @@ input[type="checkbox"]:checked::after {
 }
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     #settings-flyout.modal-overlay,
-    .settings-submodal.modal-overlay { top: var(--settings-viewport-top, 0px); bottom: auto; height: var(--settings-viewport-height, 100dvh); }
+    .settings-submodal.modal-overlay { top: var(--settings-viewport-top, 0px); bottom: auto; height: calc(var(--settings-viewport-height, 100dvh) - var(--frame-top) - var(--frame-bottom)); }
     .settings-submodal > .modal { height: 100%; }
-    .settings-submodal .modal-body { padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px)); }
+    .settings-submodal .modal-body { padding-bottom: var(--space-5); }
     .sampler-reset-btn { min-height: 44px; }
     .prompt-vars-panel dt code { display: inline-flex; align-items: center; min-height: 44px; }
 }
