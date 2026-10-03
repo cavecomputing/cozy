@@ -13,11 +13,11 @@ docker compose -f docker/compose.yml logs -f
 
 Python: read the terminal where `uv run app.py` is running.
 
-The default address is <http://localhost:5001>.
+The default address is <http://localhost:5000>.
 
-## Port 5001 is already in use
+## Port 5000 is already in use
 
-Stop the program using port 5001 or change Cozy's port. Under Docker, change the
+Stop the program using port 5000 or change Cozy's port. Under Docker, change the
 port mapping — see [Use a different port](2-advanced-setup.md#use-a-different-port). Under
 Python, pass `--port` — see
 [Use a different address or port](2-advanced-setup.md#use-a-different-address-or-port).

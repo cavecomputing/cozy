@@ -69,7 +69,7 @@ buries the real diff under noise.
 ## Run / test
 
 ```bash
-# Dev server (Flask, 127.0.0.1:5001; --host / --port to override). --debug adds
+# Dev server (Flask, 127.0.0.1:5000; --host / --port to override). --debug adds
 # auto-reload and the debugger; it is opt-in because users run this same command.
 uv run app.py --debug
 
@@ -81,7 +81,7 @@ uv run pytest                                 # full suite
 uv run pytest tests/test_characters.py        # one file
 uv run pytest tests/test_characters.py::test_name -x   # one test, stop on fail
 
-# Docker (run from repository root; localhost port 5001)
+# Docker (run from repository root; localhost port 5000)
 docker compose -f docker/compose.yml up --build
 ```
 

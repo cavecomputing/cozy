@@ -134,7 +134,7 @@ defaults.seed_default_regex_presets()
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A cozy roleplay frontend.")
     parser.add_argument("--host", help="Change host binding", default="127.0.0.1", type=str)
-    parser.add_argument("--port", help="Change port binding", default=5001, type=int)
+    parser.add_argument("--port", help="Change port binding", default=5000, type=int)
     parser.add_argument("--debug", action="store_true",
                         help="Development: reload on file changes and serve Flask's debugger")
     args = parser.parse_args()

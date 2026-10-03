@@ -76,7 +76,7 @@ def test_preview_urls_pass_through_untouched():
     """Upload previews use blob:/data: URLs that have no server-side thumbnail."""
     run_node_module(SETUP + r"""
         for (const url of [
-            'blob:http://localhost:5001/9f2c-4e01',
+            'blob:http://localhost:5000/9f2c-4e01',
             'data:image/png;base64,iVBORw0KGgo=',
             'https://example.com/remote.png',
         ]) {

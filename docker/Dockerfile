@@ -37,9 +37,9 @@ RUN mkdir -p /data/characters /data/personas /data/themes /data/thumbs \
 ENV COZY_DATA_DIR=/data
 ENV PATH="/app/.venv/bin:$PATH"
 
-EXPOSE 5001
+EXPOSE 5000
 
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
 # --timeout 0 disables the worker timeout so long-running SSE streams from slow
 # local backends aren't killed mid-response (gthread's default is 30s). See #6.
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--worker-class", "gthread", "--threads", "4", "--timeout", "0", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "4", "--timeout", "0", "app:app"]

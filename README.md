@@ -41,7 +41,7 @@ uv sync
 uv run app.py
 ```
 
-Then open <http://localhost:5001> in your browser.
+Then open <http://localhost:5000> in your browser.
 
 To run Cozy on a server or with Docker instead, see
 [Advanced setup](docs/2-advanced-setup.md).
@@ -106,7 +106,7 @@ network can reach it until you say so. For the Python setup, bind to `0.0.0.0` o
 uv run app.py --host 0.0.0.0
 ```
 
-Then open `http://<computer's LAN address>:5001` on a phone connected to the same LAN.
+Then open `http://<computer's LAN address>:5000` on a phone connected to the same LAN.
 
 Cozy has no login screen, so anything that can reach it can read your chats and
 use your API key. Only do this on a network you trust, or put it behind a VPN or

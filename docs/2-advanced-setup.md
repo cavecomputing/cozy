@@ -24,7 +24,7 @@ example on a server.
 docker compose -f docker/compose.yml up -d --build
 ```
 
-Then open <http://localhost:5001> in your browser.
+Then open <http://localhost:5000> in your browser.
 
 The first start can take several minutes, because Docker has to build the
 app image. The `-d` flag means "run in the background". Cozy keeps running
@@ -69,11 +69,11 @@ The default mapping in `docker/compose.yml` is:
 
 ```yaml
 ports:
-  - "127.0.0.1:5001:5001"
+  - "127.0.0.1:5000:5000"
 ```
 
-This has three parts. The last `5001` is the port inside the container;
-leave it alone. The first `5001` is the port on your computer; change this
+This has three parts. The last `5000` is the port inside the container;
+leave it alone. The first `5000` is the port on your computer; change this
 one to use a different port. The `127.0.0.1` part means only programs on
 the same computer can connect.
 
@@ -81,7 +81,7 @@ To use port 8080 instead, change the line to:
 
 ```yaml
 ports:
-  - "127.0.0.1:8080:5001"
+  - "127.0.0.1:8080:5000"
 ```
 
 Restart Cozy, then open `http://localhost:8080`.
@@ -91,7 +91,7 @@ part:
 
 ```yaml
 ports:
-  - "5001:5001"
+  - "5000:5000"
 ```
 
 Warning: Cozy has no login screen. Anyone who can reach the address can
@@ -127,7 +127,7 @@ uv run app.py
 ```
 
 `uv sync` downloads the libraries Cozy needs. `uv run app.py` starts Cozy.
-Then open <http://localhost:5001> in your browser.
+Then open <http://localhost:5000> in your browser.
 
 This runs Flask's development server. It restarts itself when program
 files change. It stops when you press `Ctrl+C` or close the terminal. For
@@ -135,7 +135,7 @@ something that stays running on its own, use the Docker setup above.
 
 ### Use a different address or port
 
-By default Cozy listens on `127.0.0.1:5001`. That means port 5001, and
+By default Cozy listens on `127.0.0.1:5000`. That means port 5000, and
 only programs on the same computer can connect.
 
 A different port:
