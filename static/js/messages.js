@@ -626,7 +626,6 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
     // Scroll before the save rather than after it. The browser paints while
     // the request is out, and a finished reply that came out taller than its
     // stream (an output filter, say) would sit pushed below the fold until then.
-    // A message sent while scrolled up stays put too, like its reply.
     maybeScrollToBottom();
 
     if (persist && state.activeChat) {

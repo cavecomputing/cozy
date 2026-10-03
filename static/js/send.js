@@ -1,6 +1,6 @@
 import { state, el, llm } from './state.js';
 import {
-    autoResize, showToast, showApiNotice, maybeScrollToBottom,
+    autoResize, showToast, showApiNotice, scrollToBottom, maybeScrollToBottom,
     setSendButtonMode, updateComposerState, beginGeneration, endGeneration,
 } from './utils.js';
 import { appendMessage, renderMarkdown, createTextFader, STREAM_FADE_MS } from './messages.js';
@@ -61,6 +61,9 @@ async function sendOnce(text) {
 
     el.userInput.value = '';
     autoResize(el.userInput);
+    // Sending takes the reader to the bottom and follows the reply from there,
+    // wherever they were scrolled to. Scrolling up during the reply ends it.
+    scrollToBottom();
 
     // The reply belongs to the chat that was open when the request went out —
     // switching chats mid-stream must not redirect it into the new one.
