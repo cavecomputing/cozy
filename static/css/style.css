@@ -5074,22 +5074,29 @@ input[type="checkbox"]:checked::after {
         display: none !important;
     }
 
-    /* Edge to edge, except where a phone on its side has its notch and
-       rounded corners: the side insets are zero upright. The drawer, sheets and
-       modals below sit on the viewport, not the body, so each clears them too. */
+    /* The shell keeps its frame gap, measured from the safe area instead of
+       the screen edge so it clears the notch, the status bar and the home
+       indicator (all zero in a plain upright tab). The body's padding already
+       clears them, so the header and composer below add none of their own. The
+       drawer, sheets and modals sit on the viewport, not the body, so each
+       clears them itself. */
     body {
         width: 100%;
-        padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+        padding:
+            calc(var(--shell-gap) + 1px + env(safe-area-inset-top, 0px))
+            calc(var(--shell-gap) + 1px + env(safe-area-inset-right, 0px))
+            calc(var(--shell-gap) + 1px + env(safe-area-inset-bottom, 0px))
+            calc(var(--shell-gap) + 1px + env(safe-area-inset-left, 0px));
         overscroll-behavior: auto;
         touch-action: manipulation;
     }
 
-    /* A phone has no room to spare for a frame: the shell runs edge to edge. */
     body::before {
-        inset: 0;
-        border: 0;
-        border-radius: 0;
-        box-shadow: none;
+        inset:
+            calc(var(--shell-gap) + env(safe-area-inset-top, 0px))
+            calc(var(--shell-gap) + env(safe-area-inset-right, 0px))
+            calc(var(--shell-gap) + env(safe-area-inset-bottom, 0px))
+            calc(var(--shell-gap) + env(safe-area-inset-left, 0px));
     }
 
     body.mobile-drawer-open {
@@ -5352,8 +5359,9 @@ input[type="checkbox"]:checked::after {
         display: flex;
         align-items: center;
         min-height: var(--mobile-header-height);
-        padding: calc(env(safe-area-inset-top, 0px) + 0.35rem) var(--mobile-inline-padding) 0.35rem;
+        padding: 0.35rem var(--mobile-inline-padding);
         gap: 0.5rem;
+        border-radius: calc(var(--radius-shell) - 1px) calc(var(--radius-shell) - 1px) 0 0;   /* the shell's inner corners */
         border-bottom: 1px solid var(--line);
         flex-shrink: 0;
     }
@@ -5589,8 +5597,9 @@ input[type="checkbox"]:checked::after {
 
     /* An edge-to-edge bar on the shell's own surface; the chat fades into it. */
     #input-container {
-        padding: 0.45rem var(--mobile-inline-padding) calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+        padding: 0.45rem var(--mobile-inline-padding) 0.5rem;
         background-color: var(--bg-color);
+        border-radius: 0 0 calc(var(--radius-shell) - 1px) calc(var(--radius-shell) - 1px);
     }
 
     #input-wrapper {
