@@ -235,6 +235,19 @@ def test_separator_waits_for_its_message_to_be_drawn():
     """)
 
 
+def test_a_chat_that_fits_whole_draws_no_separator():
+    """A separator above the greeting marked nothing but the top of the chat."""
+    run_node_module(TRANSCRIPT_SETUP + r"""
+        el.settingsContextTokens.value = '100000';
+        state.messages = chatOf(30);
+        renderMessages();
+
+        assert.equal(getCurrentContextAnalysis().firstSelectedMessageId, 1);
+        assert.equal(scroller.querySelector('.context-boundary'), null);
+        assert.equal(jumpToContextBoundary(), false);
+    """)
+
+
 def test_jump_draws_down_to_an_undrawn_separator():
     run_node_module(TRANSCRIPT_SETUP + r"""
         el.settingsContextTokens.value = '4800';

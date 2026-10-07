@@ -53,8 +53,8 @@ def test_jump_scrolls_the_boundary_just_below_the_top_edge():
 
 
 def test_jump_clamps_to_the_top_instead_of_scrolling_negative():
-    """The whole history in context puts the separator at the very top, where
-    the headroom subtraction would otherwise resolve above scrollTop 0."""
+    """A separator near the very top, where the headroom subtraction would
+    otherwise resolve above scrollTop 0."""
     run_node_module(r"""
         import assert from 'node:assert/strict';
         import { state, el } from './static/js/state.js';
@@ -68,7 +68,8 @@ def test_jump_clamps_to_the_top_instead_of_scrolling_negative():
 
 
 def test_jump_is_inert_when_no_boundary_is_drawn():
-    """No context limit set (or an empty chat) means there is nowhere to jump."""
+    """No context limit set, an empty chat, or one that fits whole means there
+    is nowhere to jump."""
     run_node_module(r"""
         import assert from 'node:assert/strict';
         import { state, el } from './static/js/state.js';
@@ -83,24 +84,28 @@ def test_jump_is_inert_when_no_boundary_is_drawn():
     """)
 
 
-def test_message_history_tooltip_advertises_the_jump_only_with_a_limit():
+def test_message_history_tooltip_advertises_the_jump_only_with_a_separator():
     run_node_module(r"""
         import assert from 'node:assert/strict';
         import { state } from './static/js/state.js';
         import { tooltipForSegment } from './static/js/context-meter.js';
 
-        state.messages = [{ id: 1, role: 'user', text: 'hello' }];
+        state.messages = [1, 2, 3].map(id => ({ id, role: 'user', text: 'hello' }));
         const segment = { id: 'message_history', key: 'history:message_history', label: 'Message history', tokens: 40 };
+        const partial = { segments: [segment], selectedMessageIds: [2, 3], firstSelectedMessageId: 2 };
 
-        const limited = tooltipForSegment(segment, {
-            maxTokens: 4096, allocatedTokens: 400, segments: [segment], selectedMessageIds: [1],
-        });
+        const limited = tooltipForSegment(segment, { ...partial, maxTokens: 4096, allocatedTokens: 400 });
         assert.match(limited, /jump to where the window starts/);
 
-        const unlimited = tooltipForSegment(segment, {
-            maxTokens: 0, allocatedTokens: 400, segments: [segment], selectedMessageIds: [1],
-        });
+        const unlimited = tooltipForSegment(segment, { ...partial, maxTokens: 0, allocatedTokens: 400 });
         assert.doesNotMatch(unlimited, /jump to where the window starts/);
+
+        // The whole chat in the window draws no separator to jump to.
+        const whole = tooltipForSegment(segment, {
+            segments: [segment], selectedMessageIds: [1, 2, 3], firstSelectedMessageId: 1,
+            maxTokens: 4096, allocatedTokens: 400,
+        });
+        assert.doesNotMatch(whole, /jump to where the window starts/);
     """)
 
 

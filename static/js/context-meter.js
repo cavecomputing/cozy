@@ -21,11 +21,12 @@ export function getCurrentContextAnalysis({ includeDraft = false } = {}) {
 /**
  * Whether a context-window separator is in the transcript (drawn, or waiting
  * on a page not drawn yet), and so whether the Message history segment is
- * worth clicking. Mirrors the guard in updateContextBoundary() rather than
+ * worth clicking. Mirrors the guards in updateContextBoundary() rather than
  * probing the DOM, since the meter and the boundary re-render in either order.
  */
 function canJumpToBoundary(analysis) {
-    return analysis.maxTokens > 0 && (state.messages?.length || 0) > 0;
+    return analysis.maxTokens > 0 && (state.messages?.length || 0) > 0
+        && analysis.firstSelectedMessageId !== state.messages[0].id;
 }
 
 export function tooltipForSegment(segment, analysis) {
@@ -209,6 +210,10 @@ export function updateContextBoundary(analysis = null) {
         el.chatHistory.appendChild(newBoundary());
         return;
     }
+
+    // A window reaching back to the first message holds the whole chat, and a
+    // separator above the greeting would mark nothing.
+    if (boundaryMessageId === state.messages[0].id) return;
 
     // A message above the drawn pages gets its separator once one reaches it.
     boundaryTargetId = boundaryMessageId;
