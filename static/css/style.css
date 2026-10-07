@@ -192,6 +192,23 @@ body::before {
     pointer-events: none;
 }
 
+/* Installed as an app, the window or screen is the frame, so the shell fills it
+   edge to edge: no gap, no outline, square corners. Every view measures from
+   --shell-gap, so they all follow; the safe-area insets still apply on phones. */
+@media (display-mode: standalone) {
+    :root {
+        --shell-gap: 0px;
+        --radius-shell: 0px;
+    }
+
+    body { background-color: var(--bg-color); }
+
+    body::before {
+        border: none;
+        box-shadow: none;
+    }
+}
+
 /* ── Loading screen ────────────────────────────────────────────────── */
 #loading-screen {
     position: fixed;
@@ -5379,6 +5396,13 @@ input[type="checkbox"]:checked::after {
         justify-content: stretch;
         z-index: 200;
         animation: pushIn 0.2s ease-out;
+    }
+
+    /* Installed, the full-screen views meet the screen edge like the shell,
+       and the drawer keeps only the side that faces the chat. */
+    @media (display-mode: standalone) {
+        .modal-overlay { border: none; }
+        #sidebar { border-width: 0 1px 0 0; }
     }
 
     /* And closes back out to the right. */
