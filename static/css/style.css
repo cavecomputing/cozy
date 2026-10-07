@@ -4430,11 +4430,28 @@ input[type="checkbox"]:checked::after {
     z-index: 2;
 }
 
+/* A grid, so the name's error can share the label's line rather than open a
+   new one under the field and push the tabs and the avatar down. */
 .modal-name-wrap {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+}
+
+.modal-name-wrap > .form-input {
+    grid-column: 1 / -1;
+}
+
+.modal-name-wrap > .field-error {
+    grid-row: 1;
+    grid-column: 2;
+    justify-self: end;
+    margin: 0 0 0 var(--space-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ── Tabs ────────────────────────────────────────────────────────────────── */
