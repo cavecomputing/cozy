@@ -2801,11 +2801,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     padding-bottom: 0.625rem;
     border-bottom: 1px solid var(--line);
 }
+/* Section icons take a theme's second accent (the design system's green),
+   falling back to its success colour. */
 .settings-card-icon {
     flex-shrink: 0;
     width: 22px;
     height: 22px;
-    color: var(--status-success);
+    color: var(--accent-alt, var(--status-success));
 }
 .settings-card-suffix {
     font-size: var(--text-xl);

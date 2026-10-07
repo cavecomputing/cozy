@@ -30,6 +30,7 @@
     --danger-bg-hover: color-mix(in srgb, var(--danger-color) 12%, transparent);
     --success-color:  #427b58;
     --cool-color:     #076678;   /* blue — links, addresses, references */
+    --accent-alt:     var(--accent-color);   /* green — section icons, as in cozy.css */
 
     /* Elevation — soft shadows in the ink colour, never black on paper. */
     --shadow-md:          0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);

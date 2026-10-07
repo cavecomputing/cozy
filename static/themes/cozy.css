@@ -29,6 +29,7 @@
     --danger-bg-hover: color-mix(in srgb, var(--danger-color) 14%, transparent);
     --success-color:  #8ec07c;
     --cool-color:     #83a598;   /* blue — links, addresses, references */
+    --accent-alt:     #b8bb26;   /* green — section icons, the brand's second accent */
 
     /* Elevation — the lifted shadow, for surfaces that genuinely float
        (flyouts, menus, toasts). */

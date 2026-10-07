@@ -104,14 +104,16 @@ shared default set tuned for a dark palette. Declare them to retune the meter
 for a lighter or quieter palette.
 
 A few more variables are optional hooks. Of these, `cozy.css` sets only
-`--cool-color`, so a theme importing it keeps Cozy's blue until it sets its own.
-Declare the others when your palette needs them:
+`--cool-color` and `--accent-alt`, so a theme importing it keeps Cozy's blue and
+green until it sets its own. Declare the others when your palette needs them:
 
 - `--accent-text`: the accent as used for text (section labels, active rows,
   focus rings). Set it to a deeper or lighter step of the accent when the
   accent itself is too pale or too dark to read on your surfaces.
 - `--cool-color`: the hue for links, references and code. Without it Cozy
   derives one from `--rp-action-color`.
+- `--accent-alt`: a second accent for the icons beside settings card titles.
+  Without it they take `--success-color`.
 - `--shell-shadow`, `--card-shadow`, `--lift-shadow`: the shadows under the
   app's outer frame, under cards, and under a lifted button. The defaults suit
   a dark palette; light themes soften them.
