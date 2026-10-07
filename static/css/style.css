@@ -392,7 +392,7 @@ select.settings-select:focus-visible {
     height: 36px;
 }
 
-.sidebar-header .icon-btn svg {
+:is(.sidebar-header, #main-content > header) .icon-btn svg {
     width: 20px;
     height: 20px;
 }
@@ -5299,10 +5299,11 @@ input[type="checkbox"]:checked::after {
 
     #mobile-backdrop.show { display: block; }
 
+    /* The phone top bar: 52px with its rule, and the first button's glyph on
+       the same 16px edge as the desktop label, not its 44px target's. */
     .sidebar-header {
-        height: auto;
-        min-height: var(--mobile-header-height);
-        padding: 0.35rem 0.5rem;
+        height: calc(var(--mobile-header-height) - 1px);
+        padding: 0 var(--space-4) 0 calc(var(--space-5) - (var(--mobile-tap-target) - 20px) / 2);
     }
 
     /* The drawer's own pan-y (above) stops at the nearest scroller, which is
@@ -5514,8 +5515,8 @@ input[type="checkbox"]:checked::after {
     #main-content > header {
         display: flex;
         align-items: center;
-        min-height: var(--mobile-header-height);
-        padding: 0.35rem var(--mobile-inline-padding);
+        height: var(--mobile-header-height);
+        padding: 0 var(--mobile-inline-padding) 0 calc(var(--space-5) - (var(--mobile-tap-target) - 20px) / 2);
         gap: 0.5rem;
         border-radius: calc(var(--radius-shell) - 1px) calc(var(--radius-shell) - 1px) 0 0;   /* the shell's inner corners */
         border-bottom: 1px solid var(--line);
