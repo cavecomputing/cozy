@@ -3713,6 +3713,17 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin: 0;
     padding: 0 var(--space-3) var(--space-1);
 }
+.settings-warning button {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
 
 /* ── Field error ─────────────────────────────────────────────────────────
    A value that cannot be saved, said beside the control that holds it. This

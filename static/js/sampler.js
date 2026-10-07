@@ -241,7 +241,20 @@ export function updateContextSizeWarning() {
     }
     if (limit > ctxLen * 0.9) {
         el.contextSizeWarning.textContent =
-            `\u26a0 This may exceed the model's context window (~${ctxLen.toLocaleString()} tokens).`;
+            `\u26a0 This may exceed the model's context window (~${ctxLen.toLocaleString()} tokens). `;
+        // The largest step below the line this warning draws, so taking it clears the warning.
+        const fit = Math.floor((ctxLen * 0.9) / 256) * 256;
+        if (fit > 0) {
+            const use = document.createElement('button');
+            use.type = 'button';
+            use.textContent = `Use ${fit.toLocaleString()}`;
+            use.title = 'A tenth below the window, since token counts here are estimates';
+            use.addEventListener('click', () => {
+                el.settingsContextTokens.value = fit;
+                el.settingsContextTokens.dispatchEvent(new Event('input'));
+            });
+            el.contextSizeWarning.append(use);
+        }
         el.contextSizeWarning.hidden = false;
     } else {
         el.contextSizeWarning.textContent = '';

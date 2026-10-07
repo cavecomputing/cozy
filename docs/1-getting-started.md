@@ -49,7 +49,9 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
    with this section. If it fails, see [Troubleshooting](4-troubleshooting.md).
 8. Under **Context & generation**, set **Max context tokens** to the
    context size your server supports, and **Max response tokens** to the
-   longest single reply you want to receive.
+   longest single reply you want to receive. If the server reports the
+   model's context size and the field is set too close to it, a warning
+   under the field offers a value that fits. Click it to use that value.
 
 ## 2. Check the samplers
 
