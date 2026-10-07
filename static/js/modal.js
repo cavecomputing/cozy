@@ -269,8 +269,9 @@ async function closeUnlessDirty() {
 }
 
 function close() {
+    // The form keeps its contents: the panel fades out showing them, and
+    // open() fills it afresh every time.
     overlay.hidden = true;
-    clearForm();
     editingCharId = null;
     pendingAvatarFile = null;
 }
@@ -390,7 +391,7 @@ deleteBtn.addEventListener('click', async () => {
     if (!editingCharId) return;
     // deleteCharacter() runs the confirm itself, so the editor can only be torn
     // down once it reports the delete went through. Closing first meant that
-    // declining the confirm still ran clearForm() and took unsaved edits with
+    // declining the confirm still closed the editor and took unsaved edits with
     // it. close() rather than closeUnlessDirty(): the character is gone, so
     // there is nothing left to offer to save.
     const charId = editingCharId;

@@ -879,11 +879,22 @@ select.settings-select:focus-visible {
     border: 1px solid var(--border-color);
     z-index: 100;
     padding: 0.5rem;
+    /* Closing plays the opening backwards (see .chat-flyout). */
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition-property: opacity, transform, display;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: ease-in;
+    transition-behavior: allow-discrete;
 }
 
 .dropup-content.show {
     display: block;
     animation: slideUp 0.2s ease-out;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
 }
 
 @keyframes slideUp {
@@ -922,11 +933,13 @@ select.settings-select:focus-visible {
         z-index: 500;
         overflow: hidden;
         flex-direction: column;
+        transform: translateX(-8px);
     }
 
     #persona-dropup.dropup-content.show {
         display: flex;
         animation: fadeIn 0.15s ease-out;
+        transform: none;
     }
 
     #persona-dropup > .panel-header,
@@ -1878,10 +1891,20 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     display: flex;
     flex-direction: column;
     animation: slideUp 0.2s ease-out;
+    /* Closing plays the opening backwards. Carrying display through the
+       transition is what keeps a [hidden] panel on screen until it has faded;
+       a browser without transition-behavior closes it at once, as before. */
+    transition-property: opacity, transform, display;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: ease-in;
+    transition-behavior: allow-discrete;
 }
 
 .chat-flyout[hidden] {
     display: none !important;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
 }
 
 /* The pull-down handle of a phone's bottom sheet; there is none on a popover. */
@@ -2370,6 +2393,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-left: 1px;
     pointer-events: none;
     animation: fadeIn 0.15s ease-out;
+    /* Closing plays the opening backwards (see .chat-flyout). */
+    transition-property: opacity, transform, display;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: ease-in;
+    transition-behavior: allow-discrete;
 }
 
 .modal-overlay > .modal {
@@ -2475,6 +2503,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .modal-overlay[hidden] {
     display: none !important;
+    opacity: 0;
+    transform: translateX(-8px);
+}
+
+.modal-overlay[hidden] > .modal {
+    pointer-events: none;
 }
 
 /* Mobile-only drill-down back arrow — never show on desktop */
@@ -4847,9 +4881,17 @@ input[type="checkbox"]:checked::after {
     background: var(--backdrop-bg, rgba(0, 0, 0, 0.35));
     backdrop-filter: blur(2px);
     animation: fadeIn 0.15s ease-out;
+    transition-property: opacity, display;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: ease-in;
+    transition-behavior: allow-discrete;
 }
 
-.confirm-overlay[hidden] { display: none !important; }
+.confirm-overlay[hidden] {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
 
 .confirm-dialog {
     width: min(92vw, 380px);
@@ -5082,6 +5124,27 @@ input[type="checkbox"]:checked::after {
     backdrop-filter: blur(2px);
 }
 
+/* Both fade with the panel in front of them, out as well as in. */
+#mobile-backdrop,
+#sheet-backdrop {
+    opacity: 0;
+    pointer-events: none;
+    transition-property: opacity, display;
+    transition-duration: var(--motion-base);
+    transition-behavior: allow-discrete;
+}
+
+#mobile-backdrop.show,
+#sheet-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+    animation: backdropIn var(--motion-base) ease-out;
+}
+
+@keyframes backdropIn {
+    from { opacity: 0; }
+}
+
 /* Start state stays on-screen and tappable on purpose: if the animation is
    ever stalled (throttled tab, iOS low-power mode) a translateY(100%) start
    would strand the sheet below the viewport. */
@@ -5157,7 +5220,9 @@ input[type="checkbox"]:checked::after {
         /* Its list scrolls up and down as the browser does it; a drag to the
            left is Cozy's, to close the drawer (bindDragToClose in main.js). */
         touch-action: pan-y;
-        transition: transform var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1);
+        /* visibility rides along so the drawer is still there to slide out. */
+        transition: transform var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1),
+                    visibility var(--motion-slow);
         box-shadow: var(--shadow-md);
     }
 
@@ -5710,6 +5775,11 @@ input[type="checkbox"]:checked::after {
         padding: 0 0 0.35rem;
         z-index: 320;
         animation: sheetUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: var(--motion-base);
+    }
+
+    .chat-flyout[hidden] {
+        transform: translateY(100%);
     }
 
     /* The desktop .lorebook-flyout / .memory-flyout sizing rules are declared
