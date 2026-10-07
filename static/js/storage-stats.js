@@ -132,7 +132,7 @@ export function renderStorageStats(root, stats) {
         <div class="about-storage-grid">${tiles}</div>
         <div class="about-storage-cache">
             <span class="about-storage-cache-icon" aria-hidden="true">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"></path><polyline points="20 4 20 10 14 10"></polyline></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"></path><polyline points="20 4 20 10 14 10"></polyline></svg>
             </span>
             <div class="about-storage-cache-body">
                 <strong>Thumbnail cache</strong>
