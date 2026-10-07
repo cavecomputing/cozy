@@ -420,19 +420,16 @@ select.settings-select:focus-visible {
     margin-bottom: 1.5rem;
 }
 
-/* Character names are mono, as in the design's rail. The border is there at
-   rest, transparent, so the active card's border doesn't nudge the row. */
+/* Character names are mono, as in the design's rail. */
 .char-item {
     position: relative;
     display: flex;
     align-items: center;
     gap: 0.25rem;
     padding: 0;
-    border: 1px solid transparent;
     border-radius: var(--radius);
     margin-bottom: 0.25rem;
-    transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease,
-                border-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
+    transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease;
     color: var(--fg-quiet);
     font-family: var(--font-mono);
     font-size: var(--text-lg);
@@ -447,12 +444,11 @@ select.settings-select:focus-visible {
     }
 }
 
-/* The character on screen stands forward as a raised card. */
+/* The character on screen takes the selected fill and an accent name, flat on
+   the shell like every row in it. */
 .char-item.active {
-    background-color: var(--surface-raised);
-    border-color: var(--line);
-    box-shadow: var(--shadow-card);
-    color: var(--fg);
+    background-color: var(--surface-selected);
+    color: var(--fg-accent);
     font-weight: 700;
 }
 
@@ -2602,15 +2598,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: var(--space-2);
 }
 
-/* The border is always there, transparent until active, so the raised card
-   the active row becomes never shifts the rows around it. */
 .settings-nav-item {
     display: flex;
     align-items: center;
     gap: var(--space-4);
     width: 100%;
     padding: var(--space-2) var(--space-4);
-    border: 1px solid transparent;
+    border: 0;
     background: transparent;
     border-radius: var(--radius);
     color: var(--fg);
@@ -2618,7 +2612,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font: inherit;
     font-size: var(--text-xl);
     text-align: left;
-    transition: background-color var(--motion-base) ease, color var(--motion-base) ease, box-shadow var(--motion-base) ease;
+    transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
 }
 
 .settings-nav-item svg {
@@ -2632,11 +2626,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 }
 
-/* The current page stands forward as a raised card, named in the accent. */
+/* The current page takes the selected fill, named in the accent. */
 .settings-nav-item.active {
-    background-color: var(--surface-raised);
-    border-color: var(--line);
-    box-shadow: var(--shadow-card);
+    background-color: var(--surface-selected);
     color: var(--fg-accent);
     font-weight: 600;
 }
@@ -5488,8 +5480,6 @@ input[type="checkbox"]:checked::after {
     /* Don't highlight active in list view on mobile — back arrow chevron is enough */
     .settings-shell:not(.in-detail) .settings-nav-item.active {
         background-color: transparent;
-        border-color: transparent;
-        box-shadow: none;
         color: var(--fg);
         font-weight: 400;
     }
