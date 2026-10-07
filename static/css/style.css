@@ -2032,15 +2032,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-left: auto;
     margin-right: auto;
     position: relative;
-    /* A raised card resting on the shell, like a character message. */
-    background-color: var(--surface-raised);
+    /* A sunken well, like every other text field. */
+    background-color: var(--surface-sunken);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    box-shadow: var(--shadow-card);
     pointer-events: auto;
     /* Must beat .context-meter-segment's z-index: 1. The meter is not a stacking
        context, so its segments compete here directly, and the meter follows the
@@ -2048,14 +2047,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
        composer's popovers (slash menu, chat flyout), which are trapped in this
        wrapper's stacking context and cannot outrank it from the inside. */
     z-index: 2;
-    transition: border-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
+    transition: border-color var(--motion-base) ease;
 }
 
+/* A text field shows focus in its border, never a ring as well. */
 #input-wrapper:focus-within {
-    border-color: color-mix(in srgb, var(--accent-color) 24%, var(--line));
-    box-shadow:
-        var(--shadow-card),
-        0 0 0 3px color-mix(in srgb, var(--accent-color) 12%, transparent);
+    border-color: var(--fg-accent);
 }
 
 .slash-command-menu {
