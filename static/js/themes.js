@@ -6,9 +6,19 @@ import { state, el } from './state.js';
 export function applyTheme(name) {
     const link = document.getElementById('theme-stylesheet');
     if (link) {
+        link.addEventListener('load', syncThemeColor, { once: true });
         link.href = `/themes/${name}.css`;
     }
+    syncThemeColor();
     state.theme = name;
+}
+
+// The browser bar and an installed app's status or title bar take theme-color,
+// so match it to the theme's page background — on the spot for the sheet already
+// loaded, and again once a newly chosen sheet arrives.
+function syncThemeColor() {
+    const appBg = getComputedStyle(document.documentElement).getPropertyValue('--app-bg').trim();
+    if (appBg) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', appBg);
 }
 
 export async function loadThemeList() {
