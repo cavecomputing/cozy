@@ -39,6 +39,16 @@ class TestBundledCards:
             assert data.get('name')
             assert data.get('first_mes')
 
+    def test_bundled_greetings_load_nothing_from_the_network(self):
+        """A greeting is the first thing a new install draws, so an image in one
+        is a third-party request before the user has set anything up."""
+        for filename in _bundled_filenames():
+            path = os.path.join(shared.BUNDLED_CHARACTERS_DIR, filename)
+            with open(path, 'rb') as f:
+                data = extract_png_chara(f.read())['data']
+            for greeting in [data['first_mes'], *data.get('alternate_greetings', [])]:
+                assert '://' not in greeting, filename
+
     def test_sasha_card_credits_its_original_author(self):
         path = os.path.join(shared.BUNDLED_CHARACTERS_DIR, 'Sasha.png')
         with open(path, 'rb') as f:
