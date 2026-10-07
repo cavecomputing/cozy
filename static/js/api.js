@@ -7,13 +7,39 @@ export async function apiError(r, fallback) {
     try { const e = await r.json(); return e.error || fallback; } catch { return fallback; }
 }
 
+// Responses fetched before anything asked for them, each handed out once.
+const prefetched = new Map();
+
+/**
+ * Start the reads that restoring the last character and chat will make, so
+ * boot spends one round trip on them instead of three in a row. Whatever the
+ * restore doesn't take is dropped by dropPrefetched() rather than served stale
+ * to a later request.
+ */
+export function prefetchSelection(charId, chatId) {
+    const urls = ['/api/characters'];
+    if (charId) urls.push(`/api/characters/${charId}/chats`);
+    if (chatId) urls.push(`/api/chats/${chatId}/messages`);
+    for (const url of urls) {
+        const response = fetch(url);
+        response.catch(() => {});   // one nobody takes must not log as unhandled
+        prefetched.set(url, response);
+    }
+}
+
+export function dropPrefetched() {
+    prefetched.clear();
+}
+
 async function jsonRequest(url, { method = 'GET', body, fallback = 'Request failed' } = {}) {
     const options = { method };
     if (body !== undefined) {
         options.headers = { 'Content-Type': 'application/json' };
         options.body = JSON.stringify(body);
     }
-    const r = await fetch(url, options);
+    const early = method === 'GET' ? prefetched.get(url) : null;
+    prefetched.delete(url);
+    const r = await (early || fetch(url, options));
     if (!r.ok) throw new Error(await apiError(r, fallback));
     return r.json();
 }

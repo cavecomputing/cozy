@@ -2,7 +2,7 @@
 // ENTRY POINT — orchestrates all modules
 // ═══════════════════════════════════════════════════════════════════════════
 import { state, el, llm, icons, initElements } from './state.js';
-import { API } from './api.js';
+import { API, prefetchSelection, dropPrefetched } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
@@ -1468,6 +1468,9 @@ async function init() {
     }, { passive: true });
     initPromptVarsPanel();
     loadPrefs();
+    // Only the responses come early: loadCharacters() still waits for the
+    // group below, as the comment there requires.
+    prefetchSelection(state._savedActiveId, state._savedChatId);
     applyTheme(state.theme);
     bindResponsiveShellHandlers();
 
@@ -1493,6 +1496,7 @@ async function init() {
     // and feeds updateContextBoundary() and the summary trigger. Neither is
     // recomputed after this point, so both must see fully loaded state.
     await loadCharacters();
+    dropPrefetched();
     updateComposerState();
     renderLorebookList();
     renderLorebookFlyout();

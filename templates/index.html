@@ -22,6 +22,9 @@
         } catch (e) { /* private mode, blocked storage, unparseable prefs */ }
     </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {%- for module in js_modules %}
+    <link rel="modulepreload" href="{{ url_for('static', filename='js/' + module) }}">
+    {%- endfor %}
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>

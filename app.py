@@ -77,7 +77,13 @@ def serve_persona_thumb(size, filename):
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
-    return render_template('index.html', build_info=shared.BUILD_INFO)
+    # Every module, named up front so the browser fetches them side by side
+    # instead of finding each one only after the module importing it arrives.
+    js_modules = sorted(
+        os.path.basename(path)
+        for path in glob.glob(os.path.join(app.static_folder, 'js', '*.js'))
+    )
+    return render_template('index.html', build_info=shared.BUILD_INFO, js_modules=js_modules)
 
 
 @app.route('/api/themes', methods=['GET'])
