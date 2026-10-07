@@ -107,6 +107,8 @@ uv run app.py --host 0.0.0.0
 ```
 
 Then open `http://<computer's LAN address>:5000` on a phone connected to the same LAN.
+On an iPhone, **Add to Home Screen** in Safari's Share menu puts Cozy on the Home Screen
+with its own icon.
 
 Cozy has no login screen, so anything that can reach it can read your chats and
 use your API key. Only do this on a network you trust, or put it behind a VPN or
