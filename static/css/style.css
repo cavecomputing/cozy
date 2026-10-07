@@ -212,6 +212,12 @@ body::before {
     flex-direction: column;
     align-items: center;
     gap: 1rem;
+    /* Held back a moment: a local boot is done before the spinner would have
+       finished appearing, and a flash of it reads as a flicker. */
+    animation: loadingAppear 0.2s ease-out 0.3s backwards;
+}
+@keyframes loadingAppear {
+    from { opacity: 0; }
 }
 .loading-spinner {
     width: 36px;
