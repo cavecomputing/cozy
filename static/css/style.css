@@ -2407,7 +2407,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .btn-sm {
     padding: 0.35rem 0.7rem;
-    font-size: var(--text-sm);
 }
 
 .add-btn {
