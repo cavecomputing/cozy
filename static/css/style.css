@@ -379,6 +379,24 @@ select.settings-select:focus-visible {
     transform: translateY(1px);
 }
 
+/* The design system's top bar: 56px with the divider under it, 16px in on the
+   left (the avatars below start on the same edge) and 12px on the right, with
+   36px buttons drawing 20px glyphs. */
+.sidebar-header {
+    height: 55px;
+    padding: 0 var(--space-4) 0 var(--space-5);
+}
+
+.sidebar-header .icon-btn {
+    width: 36px;
+    height: 36px;
+}
+
+.sidebar-header .icon-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 .panel-header--xs {
     height: 28px;
     padding: 0 0.3rem;
@@ -397,11 +415,6 @@ select.settings-select:focus-visible {
 
 #sidebar > .panel-divider {
     margin: 0 0.5rem;
-}
-
-#new-char-btn {
-    flex-shrink: 0;
-    width: 32px;
 }
 
 .sidebar-scrollable {
@@ -467,7 +480,7 @@ select.settings-select:focus-visible {
     gap: 0.6rem;
     flex: 1;
     min-width: 0;
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem 0.75rem 0.4rem var(--space-3);
     border: 0;
     border-radius: var(--radius);
     background: none;
