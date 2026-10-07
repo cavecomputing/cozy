@@ -5605,14 +5605,28 @@ input[type="checkbox"]:checked::after {
 
     .thinking-block,
     .message-content,
-    .branch-pill,
     .msg-actions {
         grid-column: 1 / -1;
     }
 
+    /* A message other chats branch at gets a fourth column for its pill, at
+       the far end of the buttons' row rather than on a row of its own. When
+       the buttons wrap on the narrowest phones, it keeps to their last line,
+       centred on the 32px buttons. */
+    .message:has(.branch-pill) {
+        grid-template-columns: auto minmax(0, auto) minmax(0, 1fr) auto;
+    }
+
+    .message:has(.branch-pill) .msg-actions {
+        grid-column: 1 / -2;
+    }
+
     .branch-pill {
-        justify-self: start;
+        grid-column: -2;
+        order: 1;
+        align-self: end;
         margin-top: 0;
+        margin-bottom: calc((32px - 28px) / 2);
     }
 
     .message.user {
@@ -5678,7 +5692,7 @@ input[type="checkbox"]:checked::after {
     }
 
     /* The branch pill is a button too small to hit on a phone, so it gets the
-       same grown hit area, wider as well since nothing sits beside it. */
+       same grown hit area, wider as well, into the gap beside it. */
     .branch-pill {
         position: relative;
         min-height: 28px;
