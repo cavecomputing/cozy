@@ -1,6 +1,9 @@
 import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
-import { chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs, branchesAt } from './utils.js';
+import {
+    chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs, branchesAt,
+    parseDbStamp, timeAgo,
+} from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills } from './messages.js';
 import { renderLorebookFlyout, loadAuthorNote, flushAuthorNote } from './lorebooks.js';
@@ -60,13 +63,27 @@ function buildChatSelectButton(chat) {
     nameSpan.textContent = displayChatName(chat);
     nameSpan.title = nameSpan.textContent;
 
+    // What the name doesn't say: when the chat was last used, and what it
+    // branched from. In that order, so a narrow row cuts the branch, not the time.
+    const parent = chat.parent_chat_id && state.chats.find(c => c.id === chat.parent_chat_id);
+    const meta = document.createElement('span');
+    meta.className = 'chat-meta';
+    meta.textContent = [
+        chat.updated_at && timeAgo(parseDbStamp(chat.updated_at)),
+        parent && `branch of ${displayChatName(parent)}`,
+    ].filter(Boolean).join(' · ');
+
+    const label = document.createElement('span');
+    label.className = 'chat-label';
+    label.append(nameSpan, meta);
+
     // Double-click the name to rename
     button.addEventListener('dblclick', e => {
         e.stopPropagation();
         startChatRename(button.closest('.chat-item'), chat);
     });
 
-    button.append(prefix, nameSpan);
+    button.append(prefix, label);
     return button;
 }
 

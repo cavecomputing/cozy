@@ -626,9 +626,12 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
     maybeScrollToBottom();
 
     if (persist && state.activeChat) {
+        const chat = state.activeChat;
         const personaId = (role === 'user' && p) ? p.id : null;
         try {
-            const saved = await API.addMessage(state.activeChat.id, role, text, personaId);
+            const saved = await API.addMessage(chat.id, role, text, personaId);
+            // The server bumped the chat's updated_at too; the chats list reads it.
+            chat.updated_at = saved.created_at;
             message.dataset.msgId = saved.id;
             state.messages.push({
                 role, text, id: saved.id, created_at: saved.created_at,

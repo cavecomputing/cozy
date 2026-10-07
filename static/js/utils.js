@@ -51,6 +51,12 @@ export const DEFAULT_CHAT_NAME_RE =
 export function displayChatName(chat) {
     const name = (chat?.name || '').trim();
     if (!name || name === 'New Chat') return 'New chat';
+    // An unrenamed chat keeps chatStamp()'s name on disk and shows it as a date.
+    if (/^\d/.test(name) && DEFAULT_CHAT_NAME_RE.test(name)) {
+        const [year, month, day, hour, minute] = name.split(/[-:]/).map(Number);
+        const format = year === new Date().getFullYear() ? STAMP_FORMATS.dayTime : STAMP_FORMATS.full;
+        return format.format(new Date(year, month - 1, day, hour, minute));
+    }
     return name;
 }
 
@@ -81,6 +87,20 @@ export function shortStamp(date, now = new Date()) {
     if (date.getFullYear() !== now.getFullYear()) return STAMP_FORMATS.date.format(date);
     if (date.toDateString() !== now.toDateString()) return STAMP_FORMATS.dayTime.format(date);
     return STAMP_FORMATS.time.format(date);
+}
+
+const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+// Each unit, and how many of it make the next one up.
+const RELATIVE_UNITS = [[60, 'second'], [60, 'minute'], [24, 'hour'], [7, 'day'], [4.35, 'week'], [12, 'month'], [Infinity, 'year']];
+
+/** How long ago a date was, in the largest unit that fits: "3 hours ago", "yesterday". */
+export function timeAgo(date, now = new Date()) {
+    // Never "in 3 seconds": a server clock a little ahead is not the future.
+    let amount = Math.min(0, date - now) / 1000;
+    for (const [size, unit] of RELATIVE_UNITS) {
+        if (Math.abs(amount) < size) return relativeTime.format(Math.trunc(amount), unit);
+        amount /= size;
+    }
 }
 
 /** Local timestamp used to name new chats: "2026-03-22:20-06-42" */

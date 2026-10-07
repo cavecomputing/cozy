@@ -1027,6 +1027,8 @@ function bindChatHandlers() {
         closeSlashCommands();
         const isOpen = !el.chatFlyout.hidden;
         Flyouts.closeAllExcept('chat');
+        // Drawn again so each row's "2 hours ago" is as of now.
+        if (!isOpen) renderChats();
         el.chatFlyout.hidden = isOpen;
         el.chatFlyoutBtn.setAttribute('aria-expanded', String(!isOpen));
     });

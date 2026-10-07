@@ -206,8 +206,10 @@ you want.
   flip to the next chat that branches at that reply; the reply stays where it
   is on screen, so you can see how each branch went on. Forking again at the
   same reply adds another branch to the pill. Branches are ordinary chats in
-  the chat list, so rename and delete them as usual. A fork made before this
-  existed, or one whose original chat is deleted, simply has no pill.
+  the chat list, so rename and delete them as usual. Under each chat's name
+  the list says how long ago it was last used and, for a branch, which chat
+  it came from. A fork made before this existed, or one whose original chat
+  is deleted, simply has no pill.
 
 On a phone, Settings opens as a list. Tap a section to open its page, and
 tap the back arrow to return to the list. In the Prompt editor,

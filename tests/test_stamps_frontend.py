@@ -1,4 +1,4 @@
-"""Message stamps as Cozy shows them: short on the message, whole in its tooltip."""
+"""Dates as Cozy shows them: message stamps, unrenamed chat names, and how long ago."""
 
 from helpers import run_node_module
 
@@ -47,3 +47,42 @@ def test_the_tooltip_keeps_everything():
         assert.equal(parseDbStamp('2026-10-07 00:22:00').getTime(), Date.UTC(2026, 9, 7, 0, 22));
     """)
 
+
+def test_an_unrenamed_chat_reads_as_a_date():
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { displayChatName } from './static/js/utils.js';
+
+        // chatStamp()'s name, local time, from this year and from an earlier one.
+        const thisYear = new Date().getFullYear();
+        const recent = displayChatName({ name: `${thisYear}-10-07:00-19-59` });
+        assert.match(recent, /19/);
+        assert.doesNotMatch(recent, new RegExp(thisYear));
+        assert.doesNotMatch(recent, /59/, 'seconds are left out');
+        assert.match(displayChatName({ name: '2025-03-22:20-06-42' }), /2025/);
+
+        // A name someone chose, and the retired stamp with no year to read, stay as they are.
+        assert.equal(displayChatName({ name: 'Road trip' }), 'Road trip');
+        assert.equal(displayChatName({ name: 'May 18 16:54:17' }), 'May 18 16:54:17');
+    """)
+
+
+def test_time_ago_picks_the_largest_unit_that_fits():
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { timeAgo } from './static/js/utils.js';
+
+        const now = new Date(2026, 9, 7, 12, 0, 0);
+        const ago = seconds => timeAgo(new Date(now - seconds * 1000), now);
+        const hour = 3600, day = 24 * hour;
+        // Pinned against the same formatter rather than English text.
+        const expected = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
+        assert.equal(ago(90), expected.format(-1, 'minute'));
+        assert.equal(ago(2 * hour + 59 * 60), expected.format(-2, 'hour'));
+        assert.equal(ago(day), expected.format(-1, 'day'));
+        assert.equal(ago(10 * day), expected.format(-1, 'week'));
+        assert.equal(ago(400 * day), expected.format(-1, 'year'));
+        // A server clock running ahead is still "now", not the future.
+        assert.equal(timeAgo(new Date(now.getTime() + 5000), now), expected.format(0, 'second'));
+    """)
