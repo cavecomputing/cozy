@@ -5677,15 +5677,19 @@ input[type="checkbox"]:checked::after {
     /* At the 44px touch minimum a character's row no longer fits a 320px phone
        and the swipe pill swells, so the buttons stay 32px and their hit area
        grows to the full touch height instead, as in the Auto Summary header.
-       Vertical only: the buttons sit 2.4px apart. */
+       Vertical only: the buttons sit 2.4px apart. The Thinking toggle takes
+       the same size, at which its hit area just fills the gap to the name
+       line above. */
     .msg-action-btn,
-    .swipe-btn {
+    .swipe-btn,
+    .thinking-toggle {
         position: relative;
         min-width: 32px;
         min-height: 32px;
     }
     .msg-action-btn::after,
-    .swipe-btn::after {
+    .swipe-btn::after,
+    .thinking-toggle::after {
         content: '';
         position: absolute;
         inset: calc((32px - var(--mobile-tap-target)) / 2) 0;
