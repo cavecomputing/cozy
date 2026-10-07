@@ -4,7 +4,7 @@ import {
     applyAvatar, AVATAR, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode, beginGeneration, endGeneration,
-    branchesAt, displayChatName,
+    branchesAt, displayChatName, parseDbStamp, fullStamp, shortStamp,
 } from './utils.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
@@ -376,19 +376,11 @@ function buildEditActions() {
     return bar;
 }
 
-/** A database timestamp (UTC, no zone marker) as the reader's local date and time. */
-function formatStamp(utc) {
-    return (utc ? new Date(utc + 'Z') : new Date()).toLocaleString(undefined, {
-        month: 'short', day: 'numeric', year: 'numeric',
-        hour: 'numeric', minute: '2-digit'
-    });
-}
-
 /** Show "(edited)" while the swipe on screen is one the reader has rewritten. */
 function setEditedLabel(msgEl, editedAt) {
     const label = msgEl.querySelector('.msg-edited');
     label.hidden = !editedAt;
-    label.title = editedAt ? `Edited ${formatStamp(editedAt)}` : '';
+    label.title = editedAt ? `Edited ${fullStamp(parseDbStamp(editedAt))}` : '';
 }
 
 /** The button under a message that other chats branch at, or null: it opens the next of them. */
@@ -451,7 +443,9 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
         : (char?.name || 'Character');
     const msgTime = document.createElement('span');
     msgTime.className = 'msg-time';
-    msgTime.textContent = formatStamp(timestamp);
+    const sentAt = parseDbStamp(timestamp);
+    msgTime.textContent = shortStamp(sentAt);
+    msgTime.title = fullStamp(sentAt);
     const msgEdited = document.createElement('span');
     msgEdited.className = 'msg-edited';
     msgEdited.textContent = '(edited)';

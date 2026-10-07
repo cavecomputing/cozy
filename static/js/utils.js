@@ -54,6 +54,35 @@ export function displayChatName(chat) {
     return name;
 }
 
+// Built once: a formatter per message cost a long chat about 13 ms to open.
+const STAMP_FORMATS = {
+    time: new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }),
+    dayTime: new Intl.DateTimeFormat(undefined, {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    }),
+    date: new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+    full: new Intl.DateTimeFormat(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+    }),
+};
+
+/** A database timestamp (UTC, no zone marker) as a Date, or now when there is none. */
+export function parseDbStamp(utc) {
+    return utc ? new Date(utc + 'Z') : new Date();
+}
+
+/** The whole local date and time, for a tooltip behind a shortStamp(). */
+export function fullStamp(date) {
+    return STAMP_FORMATS.full.format(date);
+}
+
+/** A date as briefly as still says which day: the time today, no year this year, no time before. */
+export function shortStamp(date, now = new Date()) {
+    if (date.getFullYear() !== now.getFullYear()) return STAMP_FORMATS.date.format(date);
+    if (date.toDateString() !== now.toDateString()) return STAMP_FORMATS.dayTime.format(date);
+    return STAMP_FORMATS.time.format(date);
+}
+
 /** Local timestamp used to name new chats: "2026-03-22:20-06-42" */
 export function chatStamp() {
     const now = new Date();
