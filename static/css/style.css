@@ -5153,6 +5153,16 @@ input[type="checkbox"]:checked::after {
     to   { transform: translateY(0); opacity: 1; }
 }
 
+/* A phone page arriving from the right, or the one under it coming back from
+   the left. Short starts, on-screen for the reason sheetUp gives. */
+@keyframes pushIn {
+    from { transform: translateX(3rem); opacity: 0.4; }
+}
+
+@keyframes popIn {
+    from { transform: translateX(-3rem); opacity: 0.4; }
+}
+
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .mobile-only { display: flex; }
     .desktop-only {
@@ -5319,7 +5329,12 @@ input[type="checkbox"]:checked::after {
         align-items: stretch;
         justify-content: stretch;
         z-index: 200;
-        animation: none;
+        animation: pushIn 0.2s ease-out;
+    }
+
+    /* And closes back out to the right. */
+    .modal-overlay[hidden] {
+        transform: translateX(3rem);
     }
 
     .modal-overlay > .modal {
@@ -5422,6 +5437,9 @@ input[type="checkbox"]:checked::after {
     .settings-shell:not(.in-detail) .settings-pane { display: none; }
     /* Detail view — hide nav, show pane */
     .settings-shell.in-detail .settings-nav { display: none; }
+    /* A page pushes in from the right; Back brings the list in from the left. */
+    .settings-shell.in-detail .settings-pane { animation: pushIn 0.2s ease-out; }
+    .settings-shell.popped .settings-nav { animation: popIn 0.2s ease-out; }
     /* Don't highlight active in list view on mobile — back arrow chevron is enough */
     .settings-shell:not(.in-detail) .settings-nav-item.active {
         background-color: transparent;

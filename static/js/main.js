@@ -217,6 +217,8 @@ function updateSettingsHeader() {
 function exitSettingsDetail() {
     const wasDetail = el.settingsShell?.classList.contains('in-detail');
     el.settingsShell?.classList.remove('in-detail');
+    // Back from a page slides the list in; opening Settings on it does not.
+    el.settingsShell?.classList.toggle('popped', wasDetail && !el.settingsFlyout.hidden);
     if (el.settingsBackBtn) el.settingsBackBtn.hidden = true;
     updateSettingsHeader();
     if (wasDetail && !el.settingsFlyout.hidden) {
