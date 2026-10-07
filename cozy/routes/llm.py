@@ -2,6 +2,7 @@
 
 import json
 import logging
+from urllib.parse import urlsplit
 
 import requests as http_requests
 from flask import Blueprint, request, jsonify, Response, stream_with_context
@@ -14,12 +15,19 @@ llm_bp = Blueprint('llm', __name__)
 
 
 def _error_detail(e):
-    """Append the upstream response body to a RequestException message.
+    """A RequestException as the message a user sees.
 
-    Providers put the actual reason for a 4xx (bad model id, rejected
-    parameter, …) in the response body; raise_for_status() alone reports
-    only the status line.
+    A server that can't be reached at all gets a sentence naming the host
+    instead of urllib3's retry chain. Otherwise the upstream response body is
+    appended: providers put the actual reason for a 4xx (bad model id,
+    rejected parameter, …) there, and raise_for_status() alone reports only
+    the status line. Certificate and proxy failures keep their own wording,
+    since "couldn't reach" would point at the wrong fix.
     """
+    if isinstance(e, http_requests.ConnectionError) and not isinstance(
+            e, (http_requests.exceptions.SSLError, http_requests.exceptions.ProxyError)):
+        host = urlsplit(getattr(e.request, 'url', '')).netloc or 'the model server'
+        return f"Couldn't reach {host}. Is the model server running?"
     resp = getattr(e, 'response', None)
     if resp is not None:
         body = (resp.text or '').strip()
@@ -199,8 +207,9 @@ def llm_chat():
                         except (json.JSONDecodeError, IndexError):
                             pass
         except http_requests.RequestException as e:
+            # The raw exception for the log, the readable one for the toast.
             log.error('  LLM error: %s', e)
-            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+            yield f'data: {json.dumps({"error": _error_detail(e)})}\n\n'
         finally:
             log.info('── LLM RESPONSE ──')
             log.info('  Tokens: %d chunks', token_count)

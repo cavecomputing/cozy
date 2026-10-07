@@ -17,8 +17,8 @@ import { flushLLMSettingsSave } from './llm-settings.js';
 // ═══════════════════════════════════════════════════════════════════════════
 // SEND MESSAGE
 // ═══════════════════════════════════════════════════════════════════════════
-export async function handleSend() {
-    const text = el.userInput.value.trim();
+/** Send `text` (the composer's, by default), or with none ask for a reply to the chat as it stands. */
+export async function handleSend(text = el.userInput.value.trim()) {
     if (!state.activeCharacter || !state.activeChat) return;
     if (executeSlashCommand(text)) return;
 
@@ -59,8 +59,11 @@ async function sendOnce(text) {
         return;
     }
 
-    el.userInput.value = '';
-    autoResize(el.userInput);
+    // A retry sends nothing, so whatever has been typed since stays put.
+    if (text) {
+        el.userInput.value = '';
+        autoResize(el.userInput);
+    }
     // Sending takes the reader to the bottom and follows the reply from there,
     // wherever they were scrolled to. Scrolling up during the reply ends it.
     scrollToBottom();
@@ -139,7 +142,12 @@ async function sendOnce(text) {
         if (err.name !== 'AbortError') {
             failed = true;
             console.error('LLM error:', err);
-            showToast(`${source}: ${err.message}`);
+            // Retry asks again for the reply this send was waiting on. /retry
+            // is not the same thing: it regenerates the reply before it.
+            showToast(`${source}: ${err.message}`, 'error', 8000, {
+                label: 'Retry',
+                onClick: () => { if (state.activeChat?.id === chatId) handleSend(''); },
+            });
         } else if (llm.stopRequested) {
             // Stopped on purpose — keep the text as an ordinary reply. An
             // implicit abort (chat switch) leaves stopRequested false and falls

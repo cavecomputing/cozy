@@ -839,6 +839,22 @@ class TestLLMProxy:
         assert '400' in body
         assert 'model not found: aion-2.0' in body
 
+    def test_unreachable_server_is_named_rather_than_dumped(self, client):
+        """A refused connection reads as a sentence, not urllib3's retry chain."""
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://127.0.0.1:1/v1',
+            'api_model': 'test-model',
+        })
+        sentence = "Couldn't reach 127.0.0.1:1. Is the model server running?"
+        r = client.post('/api/llm/chat', json={
+            'model': 'test-model',
+            'messages': [{'role': 'user', 'content': 'hi'}],
+        })
+        body = r.get_data(as_text=True)
+        assert sentence in body
+        assert 'Max retries' not in body
+        assert client.post('/api/llm/test').get_json()['error'] == sentence
+
     def test_models_endpoint_requires_endpoint(self, client):
         r = client.get('/api/llm/models')
         assert r.status_code == 400
