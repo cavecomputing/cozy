@@ -177,16 +177,17 @@ def test_scrolling_up_draws_older_pages_without_moving_the_view():
         const before = reading.getBoundingClientRect().top;
         drawOlderNearTop();
 
-        assert.deepEqual(drawnIds().slice(0, 2), [51, 52]);
-        assert.equal(drawnIds().length, 200);
+        assert.deepEqual(drawnIds().slice(0, 2), [111, 112]);
+        assert.equal(drawnIds().length, 140);
         assert.equal(reading.getBoundingClientRect().top, before, 'the view must hold still');
 
-        // The last page is short, and its first message is the greeting.
-        scroller.scrollTop = 0;
-        drawOlderNearTop();
-        assert.equal(drawnIds().length, 250);
+        // Older pages are forty at a time, and the last is short.
+        const pages = [];
+        for (let drawn = drawnIds().length; drawOlderMessages(); drawn = drawnIds().length) {
+            pages.push(drawnIds().length - drawn);
+        }
+        assert.deepEqual(pages, [40, 40, 30]);
         assert.equal(scroller.querySelector('.message').dataset.isGreeting, 'true');
-        assert.equal(drawOlderMessages(), false, 'nothing older is left');
     """)
 
 
@@ -216,12 +217,13 @@ def test_separator_waits_for_its_message_to_be_drawn():
     """A window reaching past the drawn pages used to put the separator on the
     first drawn message, claiming everything above it was out of context."""
     run_node_module(TRANSCRIPT_SETUP + r"""
-        el.settingsContextTokens.value = '4800';
+        el.settingsContextTokens.value = '3600';
         state.messages = chatOf(250);
         renderMessages();
 
         const first = getCurrentContextAnalysis().firstSelectedMessageId;
         assert.ok(first < 151, `the window should reach past the drawn page, starts at ${first}`);
+        assert.ok(first > 110, `and stop inside the next page, starts at ${first}`);
         assert.equal(scroller.querySelector('.context-boundary'), null);
 
         // The separator lands in the page drawn above the view, and must not
