@@ -6,7 +6,7 @@ import { API } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
-    withBusy, flashSettingsSavedTick,
+    withBusy, flashSettingsSavedTick, dismissApiNotice,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection } from './characters.js';
@@ -573,6 +573,9 @@ function bindSettingsHandlers() {
             closeMobileSidebar({ restoreFocus: false, immediate: true });
         }
         el.settingsFlyout.hidden = false;
+        dismissApiNotice();
+        // Nothing can chat until an endpoint is set, so that is the page to open on.
+        if (!el.apiEndpoint?.value) state.settingsSection = 'api';
         // On desktop: restore the saved section. On mobile: show the list view first
         // (saved section stays "active" in the nav so reopening from the list is one tap away).
         const requestedSection = state.settingsSection;

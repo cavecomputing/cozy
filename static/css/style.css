@@ -4893,13 +4893,18 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── Toast notifications ─────────────────────────────────────────────────── */
+/* Bottom centre of the main pane, just above the composer. The top right is
+   where every page keeps its actions, and a toast there sat on the very button
+   it was answering. The phone keeps its toasts at the top. */
 #toast-container {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
+    bottom: 7rem;
+    left: calc(50vw + var(--sidebar-width) / 2);
+    transform: translateX(-50%);
     z-index: 9999;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 0.5rem;
     pointer-events: none;
 }
@@ -4919,8 +4924,9 @@ input[type="checkbox"]:checked::after {
     box-shadow: var(--shadow-md);
     font-size: var(--text-lg);
     line-height: 1.45;
-    animation: slideInRight 0.2s ease-out;
-    max-width: 360px;
+    animation: riseIn 0.2s ease-out;
+    width: max-content;
+    max-width: min(28rem, calc(100vw - var(--sidebar-width) - 2rem));
 }
 
 .toast.error   { border-left-color: var(--status-danger); }
@@ -4948,6 +4954,11 @@ input[type="checkbox"]:checked::after {
 @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes riseIn {
+    from { transform: translateY(0.5rem); opacity: 0; }
+    to   { transform: none; opacity: 1; }
 }
 
 /* ── Loading indicator (bouncing dots) ──────────────────────────────────── */
@@ -5795,13 +5806,17 @@ input[type="checkbox"]:checked::after {
 
     #toast-container {
         top: calc(env(safe-area-inset-top, 0px) + 0.6rem);
+        bottom: auto;
         left: var(--mobile-inline-padding);
         right: var(--mobile-inline-padding);
+        transform: none;
+        align-items: stretch;
     }
 
     .toast {
         max-width: none;
         width: 100%;
+        animation-name: slideInRight;
     }
 }
 

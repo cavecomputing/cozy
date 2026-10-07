@@ -198,6 +198,7 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
     }
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, duration);
+    return toast;
 }
 
 let savedTickTimer = null;
@@ -256,13 +257,22 @@ export async function withBusy(btn, busyLabel, work) {
     }
 }
 
+let apiNotice = null;
+
 export function showApiNotice() {
-    showToast(
+    apiNotice?.remove();
+    apiNotice = showToast(
         'No API configured — connect an endpoint and choose a model to start chatting.',
         'error',
         5000,
         { label: 'Open API Settings', onClick: openApiSettings },
     );
+}
+
+/** Take the no-API notice down once Settings, the place it points to, is open. */
+export function dismissApiNotice() {
+    apiNotice?.remove();
+    apiNotice = null;
 }
 
 function openApiSettings() {
