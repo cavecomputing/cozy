@@ -198,10 +198,13 @@ you want.
   presets without opening Settings, `/persona <name>` switches who you
   speak as, and `/char <name>` opens a character's most recent chat. Keep
   typing after the space and matching names are offered; the start of a
-  name is enough when only one fits. Typed with no name, they show what is
-  active and what is available. Where two versions of the same prompt are
-  installed, `/prompt <name>` picks the newer one and
-  `/prompt <name> <version>` — `/prompt NanoBear 2.1` — picks the exact one.
+  name is enough when only one fits. **Tab** fills in the highlighted
+  command or name without running it (the arrow keys move the highlight),
+  so `/pe` Tab `al` Tab leaves `/persona Alice` ready for Enter. Typed
+  with no name, they show what is active and what is available. Where two
+  versions of the same prompt are installed, `/prompt <name>` picks the
+  newer one and `/prompt <name> <version>` — `/prompt NanoBear 2.1` —
+  picks the exact one.
 - **Branches** — the branching-arrows button on a reply forks the chat there:
   everything up to that reply is copied into a new chat, which opens. Both
   chats then carry a small pill under that reply, such as **2/2**. Click it to

@@ -127,6 +127,11 @@ export function handleSlashKeydown(e) {
         runCommand(visibleCommands[activeIndex]);
         return true;
     }
+    if (e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        completeCommand(visibleCommands[activeIndex]);
+        return true;
+    }
     if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
@@ -180,6 +185,17 @@ function resetComposer() {
     autoResize(el.userInput);
     clearDraft();
     closeSlashCommands();
+}
+
+/**
+ * Fill the composer with the highlighted row without running it. A command
+ * that takes a name gets its space too, so the names are offered straight away.
+ */
+function completeCommand(command) {
+    el.userInput.value = command.name + (NAME_SOURCES[command.name] ? ' ' : '');
+    activeIndex = 0;
+    // The input handler re-filters the menu, resizes the box and saves the draft.
+    el.userInput.dispatchEvent(new Event('input'));
 }
 
 function runCommand(command, args) {
