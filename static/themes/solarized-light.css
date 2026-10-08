@@ -1,25 +1,28 @@
 /* Cozy — Solarized Light Theme */
 :root {
     /* Layout */
-    --app-bg:         #ddd6c1;
+    --app-bg:         #faf2dd;
     --bg-color:       #fdf6e3;
     --sidebar-bg:     #eee8d5;
-    --char-msg-bg:    #fdf6e3;
-    --hover-bg:       #ddd6c1;
+    --char-msg-bg:    #f1ebd8;
+    --hover-bg:       #e9e1cc;
     --active-bg:      rgba(38, 139, 210, 0.15);
     --input-bg:       #fdf6e3;
-    --border-color:   #93a1a1;
+    --border-color:   #cddcdb;
 
     /* Typography */
-    --text-color:     #002b36;
+    --text-color:     #1a414d;
     --text-secondary: #45616a;
 
     /* Accent */
-    --accent-color:   #268bd2;
-    --danger-color:   #dc322f;
+    --accent-color:   #0177bb;
+    --danger-color:   #c9171d;
     --danger-bg-hover: rgba(220, 50, 47, 0.1);
-    --success-color:  #859900;
-    --accent-text:    #1a6a9e;   /* the blue deepened to read as label text */
+    --success-color:  #6a7a05;
+    --cool-color:     #076c66;
+    --char-name-color: #106397;
+    --accent-alt:     #6c7d03;
+    --accent-text:    #0e6396;   /* the blue deepened to read as label text */
 
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(0,0,0,0.15);
@@ -30,13 +33,13 @@
     --input-shadow:       inset 0 1px 3px rgba(0, 43, 54, 0.09);
 
     /* RP markdown accent colors */
-    --rp-dialogue-color:  #3d8b2d;   /* forest green — quoted dialogue */
-    --rp-action-color:    #6c71c4;   /* violet — italics/actions */
-    --rp-emphasis-color:  #b58900;   /* amber — bold/strong emphasis */
-    --rp-quote-color:     #2aa198;   /* cyan — blockquotes/narration */
+    --rp-dialogue-color:  #23740f;   /* forest green — quoted dialogue */
+    --rp-action-color:    #5659a9;   /* violet — italics/actions */
+    --rp-emphasis-color:  #836205;   /* amber — bold/strong emphasis */
+    --rp-quote-color:     var(--text-color);   /* body text, as in cozy.css */
     --rp-quote-bg:        rgba(42, 161, 152, 0.10);
-    --rp-ooc-color:       #586e75;   /* base01 — code/OOC text */
-    --rp-intense-color:   #dc322f;   /* red — bold+italic intense actions */
+    --rp-ooc-color:       #4e636a;   /* base01 — code/OOC text */
+    --rp-intense-color:   #c9171d;   /* red — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(220, 50, 47, 0.25);
     --rp-strike-opacity:  0.45;
     --img-max-width:      100%;
@@ -49,7 +52,7 @@
     --avatar-text-color:  white;
 
     /* Buttons */
-    --btn-primary-color:      white;
+    --btn-primary-color:      #ffffff;
     --btn-danger-hover-color: white;
 
     /* Overlays & backdrops */
@@ -58,35 +61,34 @@
     --backdrop-bg:    rgba(0, 0, 0, 0.35);
 
     /* User-message bubble */
-    --user-msg-bg:              var(--accent-color);
-    --user-msg-color:           white;
-    --user-msg-name-color:      rgba(255, 255, 255, 0.85);
-    --user-action-color:        rgba(255, 255, 255, 0.9);
-    --user-action-hover-bg:     rgba(255, 255, 255, 0.15);
-    --user-action-hover-color:  white;
-    --user-focus-color:         white;   /* the accent ring can't show on an accent bubble */
+    --user-msg-bg:              #e1e8df;   /* a tint of the blue, so the text keeps its own colours */
+    --user-msg-color:           var(--text-color);
+    --user-msg-name-color:      var(--text-color);
+    --user-action-color:        var(--text-secondary);
+    --user-action-hover-bg:     var(--hover-bg);
+    --user-action-hover-color:  var(--text-color);
 
     /* User-message RP overrides (colors on accent bubbles) */
-    --user-dialogue-color:      rgba(255, 255, 255, 0.92);
-    --user-em-color:            rgba(255, 255, 255, 0.85);
-    --user-em-shadow:           0 0 8px rgba(108, 113, 196, 0.35);
-    --user-strong-color:        #fdf6e3;
-    --user-intense-color:       #fca5a5;
-    --user-intense-shadow:      0 0 8px rgba(252, 165, 165, 0.3);
+    --user-dialogue-color:      var(--rp-dialogue-color);
+    --user-em-color:            var(--rp-action-color);
+    --user-em-shadow:           none;
+    --user-strong-color:        var(--rp-emphasis-color);
+    --user-intense-color:       var(--rp-intense-color);
+    --user-intense-shadow:      none;
     --user-strike-opacity:      0.55;
-    --user-strike-color:        rgba(255, 255, 255, 0.6);
-    --user-blockquote-border:   rgba(255, 255, 255, 0.5);
-    --user-blockquote-bg:       rgba(255, 255, 255, 0.08);
-    --user-blockquote-color:    rgba(255, 255, 255, 0.85);
-    --user-code-bg:             rgba(255, 255, 255, 0.15);
-    --user-code-color:          rgba(255, 255, 255, 0.75);
-    --user-code-border:         rgba(255, 255, 255, 0.15);
-    --user-pre-bg:              rgba(255, 255, 255, 0.1);
-    --user-pre-border:          rgba(255, 255, 255, 0.1);
-    --user-heading-color:       white;
-    --user-h1-border:           rgba(255, 255, 255, 0.25);
-    --user-hr-mid-color:        rgba(255, 255, 255, 0.5);
-    --user-editable-bg:         rgba(255, 255, 255, 0.12);
+    --user-strike-color:        var(--rp-action-color);
+    --user-blockquote-border:   var(--border-color);
+    --user-blockquote-bg:       var(--app-bg);
+    --user-blockquote-color:    var(--text-color);
+    --user-code-bg:             var(--bg-color);
+    --user-code-color:          var(--rp-ooc-color);
+    --user-code-border:         var(--code-border);
+    --user-pre-bg:              var(--pre-bg);
+    --user-pre-border:          var(--pre-border);
+    --user-heading-color:       var(--text-color);
+    --user-h1-border:           var(--border-color);
+    --user-hr-mid-color:        var(--border-color);
+    --user-editable-bg:         color-mix(in srgb, var(--accent-color) 6%, transparent);
     --editable-bg:              rgba(0, 0, 0, 0.04);
 
 }

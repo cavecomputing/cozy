@@ -1,25 +1,27 @@
 /* Cozy — Solarized Dark Theme (higher contrast) */
 :root {
     /* Layout  (Solarized base03/base02 — deeper app-bg, lighter panels) */
-    --app-bg:         #001e28;
+    --app-bg:         #16353f;
     --bg-color:       #0c3d4e;
     --sidebar-bg:     #0c3d4e;
     --char-msg-bg:    #0f4356;
     --hover-bg:       #165060;
-    --active-bg:      #1c6070;
-    --input-bg:       #092e3c;
-    --border-color:   #3a6472;
+    --active-bg:      #054f5e;
+    --input-bg:       #113543;
+    --border-color:   #224d5a;
 
     /* Typography  (brighter for readability) */
-    --text-color:     #c0cccc;
+    --text-color:     #ebf7f7;
     --text-secondary: #9bb0b0;
 
     /* Accent  (Solarized blue / cyan / red / green) */
     --accent-color:   #268bd2;
-    --danger-color:   #dc322f;
+    --danger-color:   #ff998d;
     --danger-bg-hover: rgba(220, 50, 47, 0.18);
-    --success-color:  #a1b500;
-    --accent-text:    #80bde8;   /* the blue lightened to read as label text */
+    --success-color:  #bbd13a;
+    --char-name-color: #fe8bb9;
+    --accent-alt:     #bdd33d;
+    --accent-text:    #bee3fe;   /* the blue lightened to read as label text */
     --cool-color:     #b0b5ea;   /* violet — links, addresses, references */
 
     /* Shadows */
@@ -27,13 +29,13 @@
     --accent-edit-bg:     rgba(38, 139, 210, 0.1);
 
     /* RP markdown accent colors (lifted for contrast) */
-    --rp-dialogue-color:  #87c05a;   /* soft green — quoted dialogue */
-    --rp-action-color:    #8389d4;   /* lighter violet — italics/actions */
-    --rp-emphasis-color:  #d4a017;   /* brighter amber — bold/strong emphasis */
-    --rp-quote-color:     #3cc0b6;   /* brighter cyan — blockquotes/narration */
+    --rp-dialogue-color:  #9ed972;   /* soft green — quoted dialogue */
+    --rp-action-color:    #a1a8f6;   /* lighter violet — italics/actions */
+    --rp-emphasis-color:  #ffda8e;   /* brighter amber — bold/strong emphasis */
+    --rp-quote-color:     var(--text-color);   /* body text, as in cozy.css */
     --rp-quote-bg:        rgba(42, 161, 152, 0.12);
-    --rp-ooc-color:       #93a1a1;   /* base1 — code/OOC text */
-    --rp-intense-color:   #e05a20;   /* brighter orange — bold+italic intense actions */
+    --rp-ooc-color:       #a6b5b4;   /* base1 — code/OOC text */
+    --rp-intense-color:   #fe9f7c;   /* brighter orange — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(224, 90, 32, 0.22);
     --rp-strike-opacity:  0.5;
     --img-max-width:      100%;
@@ -43,11 +45,11 @@
     --pre-border:         rgba(88, 110, 117, 0.35);
 
     /* Avatars */
-    --avatar-text-color:  #fdf6e3;
+    --avatar-text-color:  #001e28;
 
     /* Buttons */
-    --btn-primary-color:      #fdf6e3;
-    --btn-danger-hover-color: #fdf6e3;
+    --btn-primary-color:      #001e28;
+    --btn-danger-hover-color: #13333d;
 
     /* Overlays & backdrops */
     --overlay-bg:     rgba(0, 0, 0, 0.55);
@@ -55,27 +57,27 @@
     --backdrop-bg:    rgba(0, 0, 0, 0.45);
 
     /* User-message bubble (darkened solarized blue, not raw accent) */
-    --user-msg-bg:              #164f69;
-    --user-msg-color:           #fdf6e3;
-    --user-msg-name-color:      rgba(253, 246, 227, 0.9);
+    --user-msg-bg:              #06445e;
+    --user-msg-color:           var(--text-color);
+    --user-msg-name-color:      var(--text-color);
     --user-action-color:        rgba(253, 246, 227, 0.6);
     --user-action-hover-bg:     rgba(253, 246, 227, 0.2);
     --user-action-hover-color:  #fdf6e3;
 
     /* User-message RP overrides (readable on blue accent bg) */
-    --user-dialogue-color:      rgba(135, 192, 90, 0.9);
-    --user-em-color:            rgba(253, 246, 227, 0.9);
+    --user-dialogue-color:      #9cd87d;
+    --user-em-color:            #afaea1;
     --user-em-shadow:           0 0 8px rgba(131, 137, 212, 0.4);
-    --user-strong-color:        #fdf6e3;
+    --user-strong-color:        #e3ddca;
     --user-intense-color:       #fdb97e;
     --user-intense-shadow:      0 0 8px rgba(253, 185, 126, 0.35);
     --user-strike-opacity:      0.6;
     --user-strike-color:        rgba(253, 246, 227, 0.6);
     --user-blockquote-border:   rgba(253, 246, 227, 0.5);
     --user-blockquote-bg:       rgba(253, 246, 227, 0.08);
-    --user-blockquote-color:    rgba(253, 246, 227, 0.9);
+    --user-blockquote-color:    var(--text-color);
     --user-code-bg:             rgba(253, 246, 227, 0.15);
-    --user-code-color:          rgba(253, 246, 227, 0.85);
+    --user-code-color:          #e0e5d8;
     --user-code-border:         rgba(253, 246, 227, 0.2);
     --user-pre-bg:              rgba(253, 246, 227, 0.1);
     --user-pre-border:          rgba(253, 246, 227, 0.15);

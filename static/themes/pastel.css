@@ -1,26 +1,28 @@
 /* Cozy — Pastel Theme */
 :root {
     /* Layout (soft lavender-grey base) */
-    --app-bg:         #e8e0f0;
+    --app-bg:         #f4ecfc;
     --bg-color:       #f5f0fa;
     --sidebar-bg:     #ede6f5;
-    --char-msg-bg:    #f5f0fa;
+    --char-msg-bg:    #e9e5ee;
     --hover-bg:       #e0d8ec;
-    --active-bg:      rgba(180, 160, 210, 0.2);
+    --active-bg:      #e2daec;
     --input-bg:       #f5f0fa;
-    --border-color:   #cdc4d8;
+    --border-color:   #dbd1e6;
 
     /* Typography */
     --text-color:     #3e3450;
     --text-secondary: #665a76;
 
     /* Accent (soft rose primary, lilac secondary) */
-    --accent-color:   #d48aa0;
-    --danger-color:   #d47070;
+    --accent-color:   #a25c72;
+    --danger-color:   #a34446;
     --danger-bg-hover: rgba(212, 112, 112, 0.12);
-    --success-color:  #7db88a;
-    --accent-text:    #9c4f69;   /* the rose deepened to read as label text */
-    --cool-color:     #6a58a0;   /* violet — links, addresses, references */
+    --success-color:  #437d52;
+    --char-name-color: #8f435e;
+    --accent-alt:     #457f54;
+    --accent-text:    #964964;   /* the rose deepened to read as label text */
+    --cool-color:     #64529a;   /* violet — links, addresses, references */
 
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(60, 50, 80, 0.12);
@@ -31,13 +33,13 @@
     --input-shadow:       inset 0 1px 3px rgba(60, 50, 80, 0.06);
 
     /* RP markdown accent colors */
-    --rp-dialogue-color:  #5a9e6a;   /* soft green — quoted dialogue */
-    --rp-action-color:    #9a7ec0;   /* lavender — italics/actions */
-    --rp-emphasis-color:  #c09040;   /* warm amber — bold/strong emphasis */
-    --rp-quote-color:     #6a9eb8;   /* soft blue — blockquotes/narration */
+    --rp-dialogue-color:  #2a6e3d;   /* soft green — quoted dialogue */
+    --rp-action-color:    #6d5290;   /* lavender — italics/actions */
+    --rp-emphasis-color:  #865d05;   /* warm amber — bold/strong emphasis */
+    --rp-quote-color:     var(--text-color);   /* body text, as in cozy.css */
     --rp-quote-bg:        rgba(106, 158, 184, 0.1);
-    --rp-ooc-color:       #8a80a0;   /* muted purple-grey — code/OOC text */
-    --rp-intense-color:   #c06878;   /* dusty rose — bold+italic intense actions */
+    --rp-ooc-color:       #635977;   /* muted purple-grey — code/OOC text */
+    --rp-intense-color:   #9c4758;   /* dusty rose — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(192, 104, 120, 0.2);
     --rp-strike-opacity:  0.45;
     --img-max-width:      100%;
@@ -50,7 +52,7 @@
     --avatar-text-color:  #ffffff;
 
     /* Buttons */
-    --btn-primary-color:      #3e3450;
+    --btn-primary-color:      #ffffff;
     --btn-danger-hover-color: #ffffff;
 
     /* Overlays & backdrops */
@@ -60,26 +62,26 @@
 
     /* User-message bubble (soft rose) */
     --user-msg-bg:              #e8c8d4;
-    --user-msg-color:           #3e3450;
-    --user-msg-name-color:      rgba(62, 52, 80, 0.85);
+    --user-msg-color:           #302641;
+    --user-msg-name-color:      #32253d;
     --user-action-color:        rgba(62, 52, 80, 0.8);
     --user-action-hover-bg:     rgba(62, 52, 80, 0.12);
     --user-action-hover-color:  #3e3450;
 
     /* User-message RP overrides */
-    --user-dialogue-color:      #4a8858;
+    --user-dialogue-color:      #205f32;
     --user-em-color:            #5e4a78;
     --user-em-shadow:           0 0 8px rgba(154, 126, 192, 0.3);
-    --user-strong-color:        #3e3450;
-    --user-intense-color:       #b05868;
+    --user-strong-color:        #5d5270;
+    --user-intense-color:       #8d394a;
     --user-intense-shadow:      0 0 8px rgba(176, 88, 104, 0.25);
     --user-strike-opacity:      0.5;
     --user-strike-color:        rgba(62, 52, 80, 0.5);
     --user-blockquote-border:   rgba(62, 52, 80, 0.35);
     --user-blockquote-bg:       rgba(62, 52, 80, 0.06);
-    --user-blockquote-color:    rgba(62, 52, 80, 0.85);
+    --user-blockquote-color:    #32253d;
     --user-code-bg:             rgba(62, 52, 80, 0.08);
-    --user-code-color:          rgba(62, 52, 80, 0.8);
+    --user-code-color:          #53445d;
     --user-code-border:         rgba(62, 52, 80, 0.15);
     --user-pre-bg:              rgba(62, 52, 80, 0.06);
     --user-pre-border:          rgba(62, 52, 80, 0.12);

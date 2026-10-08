@@ -1,24 +1,28 @@
 /* Cozy — Everforest Dark Theme */
 :root {
     /* Layout */
-    --app-bg:         #1e2326;
+    --app-bg:         #282e31;
     --bg-color:       #2d353b;
     --sidebar-bg:     #272e33;
     --char-msg-bg:    #343f44;
-    --hover-bg:       #3d484d;
-    --active-bg:      rgba(167, 192, 128, 0.18);
-    --input-bg:       #232a2e;
-    --border-color:   #475258;
+    --hover-bg:       #3b464a;
+    --active-bg:      #3b4640;
+    --input-bg:       #262e32;
+    --border-color:   #3b464b;
 
     /* Typography */
-    --text-color:     #d3c6aa;
+    --text-color:     #fbedd0;
     --text-secondary: #a3afa6;
 
     /* Accent */
     --accent-color:   #a7c080;
-    --danger-color:   #e67e80;
+    --danger-color:   #fe9798;
     --danger-bg-hover: rgba(230, 126, 128, 0.15);
-    --success-color:  #a7c080;
+    --success-color:  #b4cd8d;
+    --cool-color:     #7fbbb3;
+    --char-name-color: #d699b6;
+    --accent-alt:     #b6d08f;
+    --accent-text:    #c7e09f;
 
     /* Shadows */
     --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.45);
@@ -26,12 +30,12 @@
     --input-shadow:       inset 0 1px 3px rgba(0, 0, 0, 0.25);
 
     /* RP markdown accent colors */
-    --rp-dialogue-color:  #a7c080;   /* everforest green — quoted dialogue */
+    --rp-dialogue-color:  #b2cb8a;   /* everforest green — quoted dialogue */
     --rp-action-color:    #d699b6;   /* purple — italics/actions */
-    --rp-emphasis-color:  #dbbc7f;   /* golden yellow — bold/strong emphasis */
-    --rp-quote-color:     #7fbbb3;   /* blue — blockquotes/narration */
+    --rp-emphasis-color:  #f3d496;   /* golden yellow — bold/strong emphasis */
+    --rp-quote-color:     var(--text-color);   /* body text, as in cozy.css */
     --rp-quote-bg:        rgba(127, 187, 179, 0.10);
-    --rp-ooc-color:       #9da9a0;   /* grey2 — code/OOC text */
+    --rp-ooc-color:       #b7c3ba;   /* grey2 — code/OOC text */
     --rp-intense-color:   #e69875;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(230, 152, 117, 0.25);
     --rp-strike-opacity:  0.5;
@@ -42,10 +46,10 @@
     --pre-border:         rgba(71, 82, 88, 0.4);
 
     /* Avatars */
-    --avatar-text-color:  #2d353b;
+    --avatar-text-color:  #272f35;
 
     /* Buttons */
-    --btn-primary-color:      #2d353b;
+    --btn-primary-color:      #080e14;
     --btn-danger-hover-color: #2d353b;
 
     /* Overlays & backdrops */
@@ -54,27 +58,27 @@
     --backdrop-bg:    rgba(0, 0, 0, 0.45);
 
     /* User-message bubble */
-    --user-msg-bg:              #4a5e3a;
-    --user-msg-color:           #d3c6aa;
-    --user-msg-name-color:      rgba(211, 198, 170, 0.85);
+    --user-msg-bg:              #2e411e;
+    --user-msg-color:           var(--text-color);
+    --user-msg-name-color:      var(--text-color);
     --user-action-color:        rgba(211, 198, 170, 0.8);
     --user-action-hover-bg:     rgba(211, 198, 170, 0.15);
     --user-action-hover-color:  #d3c6aa;
 
     /* User-message RP overrides */
     --user-dialogue-color:      #b8d4a0;
-    --user-em-color:            #f0c8da;
+    --user-em-color:            #c59fb0;
     --user-em-shadow:           0 0 8px rgba(214, 153, 182, 0.3);
-    --user-strong-color:        #dbbc7f;
+    --user-strong-color:        #f3d496;
     --user-intense-color:       #e69875;
     --user-intense-shadow:      0 0 8px rgba(230, 152, 117, 0.35);
     --user-strike-opacity:      0.55;
     --user-strike-color:        rgba(211, 198, 170, 0.55);
     --user-blockquote-border:   rgba(131, 192, 146, 0.5);
     --user-blockquote-bg:       rgba(131, 192, 146, 0.08);
-    --user-blockquote-color:    rgba(211, 198, 170, 0.85);
+    --user-blockquote-color:    var(--text-color);
     --user-code-bg:             rgba(211, 198, 170, 0.12);
-    --user-code-color:          rgba(211, 198, 170, 0.8);
+    --user-code-color:          #d6cfb1;
     --user-code-border:         rgba(211, 198, 170, 0.18);
     --user-pre-bg:              rgba(30, 35, 38, 0.4);
     --user-pre-border:          rgba(211, 198, 170, 0.15);
