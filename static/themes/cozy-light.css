@@ -13,7 +13,7 @@
     --char-msg-bg:    #f2e5bc;
     --hover-bg:       #ebdbb2;
     --active-bg:      var(--hover-bg);
-    --input-bg:       var(--app-bg);
+    --input-bg:       #fffcf2;
     --border-color:   #e0d3ac;
 
     /* Typography */
