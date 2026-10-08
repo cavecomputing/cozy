@@ -1302,7 +1302,6 @@ select.settings-select:focus-visible {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-top: 0.625rem;
     padding: 0 0.625rem;
     min-height: 0;
     position: relative;
@@ -1353,13 +1352,15 @@ select.settings-select:focus-visible {
     gap: var(--space-4);
     border-radius: var(--radius);
     min-height: 0;
-    /* Messages fade out where they meet the composer instead of being cut off,
-       so the two read as one surface. The padding lets the newest message rest
-       above the fade once scrolled to the bottom. */
+    /* Messages fade out at both edges instead of being cut off, so the chat
+       melts into the composer below and the frame or header above. The
+       padding lets the first and newest messages rest clear of the fade once
+       scrolled to either end. */
     --chat-fade: var(--space-6);
-    padding-bottom: var(--chat-fade);
-    scroll-padding-bottom: var(--chat-fade);
-    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--chat-fade)), transparent);
+    padding-block: var(--chat-fade);
+    scroll-padding-block: var(--chat-fade);
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--chat-fade),
+                                #000 calc(100% - var(--chat-fade)), transparent);
 }
 
 /* The composer below sits outside this scroller, so a scrollbar here would
@@ -5541,7 +5542,6 @@ input[type="checkbox"]:checked::after {
         padding: 0 var(--mobile-inline-padding) 0 calc(var(--space-5) - (var(--mobile-tap-target) - 20px) / 2);
         gap: 0.5rem;
         border-radius: calc(var(--radius-shell) - 1px) calc(var(--radius-shell) - 1px) 0 0;   /* the shell's inner corners */
-        border-bottom: 1px solid var(--line);
         flex-shrink: 0;
     }
 
@@ -5565,7 +5565,6 @@ input[type="checkbox"]:checked::after {
     #chat-scroll {
         gap: var(--space-6);
         border-radius: 0;
-        padding-top: 0.6rem;
     }
 
     .message-container.user {
