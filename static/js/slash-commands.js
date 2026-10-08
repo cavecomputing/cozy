@@ -8,6 +8,8 @@ import { jumpToContextBoundary, setContextMeterVisible } from './context-meter.j
 import { matchPresetByName, labelPresets } from './preset-match.js';
 import { activatePreset } from './llm-settings.js';
 import { selectSystemPrompt } from './system-prompts.js';
+import { selectPersona } from './personas.js';
+import { selectCharacter } from './characters.js';
 
 const COMMANDS = [
     { name: '/retry',  description: 'Regenerate the last assistant message', run: retryLastAssistant },
@@ -21,7 +23,17 @@ const COMMANDS = [
     { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
     { name: '/prompt', description: 'Switch prompt preset: /prompt <name> [version]', run: switchPromptPreset },
     { name: '/api',    description: 'Switch API preset: /api <name>', run: switchApiPreset },
+    { name: '/persona', description: 'Switch persona: /persona <name>', run: switchPersona },
+    { name: '/char',   description: 'Switch character: /char <name>', run: switchCharacter },
 ];
+
+// The commands that take a name, and where the menu finds the names to offer.
+const NAME_SOURCES = {
+    '/prompt':  { list: () => state.systemPrompts, run: switchPromptPreset, description: 'Switch prompt preset' },
+    '/api':     { list: () => state.apiPresets, run: switchApiPreset, description: 'Switch API preset' },
+    '/persona': { list: () => state.personas, run: switchPersona, description: 'Switch persona' },
+    '/char':    { list: availableCharacters, run: switchCharacter, description: 'Switch character' },
+};
 
 let menuEl = null;
 let activeIndex = 0;
@@ -66,31 +78,29 @@ export function updateSlashCommands() {
 }
 
 /**
- * Preset-name suggestions once a command token and a space are typed, e.g.
+ * Name suggestions once a command token and a space are typed, e.g.
  * "/api loc" → the matching API presets. Each entry carries its full name
  * as `args` so picking it runs the switch without re-parsing the partial
  * text. Anything else (bare "/prompt", unknown command) is not ours: null
  * lets the caller fall back to the plain command list.
  */
 function presetSuggestions(value) {
-    const m = value.match(/^\/(prompt|api)\s([\s\S]*)$/i);
-    if (!m) return null;
-    const key = `/${m[1].toLowerCase()}`;
+    const m = value.match(/^(\/\S+)\s([\s\S]*)$/);
+    const key = m?.[1].toLowerCase();
+    const source = NAME_SOURCES[key];
+    if (!source) return null;
     const partial = m[2].trim().toLowerCase();
-    const source = key === '/prompt' ? state.systemPrompts : state.apiPresets;
-    const run = key === '/prompt' ? switchPromptPreset : switchApiPreset;
-    const kind = key === '/prompt' ? 'Prompt' : 'API';
     // Labels qualify a repeated name with its version, and a label is itself a
     // valid query — so each edition gets its own row that selects that edition.
-    const named = source.filter(p => typeof p?.name === 'string');
+    const named = source.list().filter(p => typeof p?.name === 'string');
     return labelPresets(named)
         .filter(label => label.toLowerCase().startsWith(partial))
         .slice(0, 8)
         .map(label => ({
             name: `${key} ${label}`,
-            description: `Switch ${kind.toLowerCase()} preset`,
+            description: source.description,
             args: label,
-            run,
+            run: source.run,
         }));
 }
 
@@ -283,4 +293,36 @@ async function switchApiPreset(args) {
     if (String(state.activePresetId) === String(preset.id)) {
         showToast(`API preset: ${preset.name}`, 'success');
     }
+}
+
+async function switchPersona(args) {
+    const { preset, error, candidates } = matchPresetByName(state.personas, args);
+    if (!preset) {
+        if (candidates.length === 0) return showToast('No personas yet — create one from the persona menu');
+        if (error === 'missing') {
+            return showToast(`Current persona: ${state.activePersona?.name || 'none'}. Available: ${candidateNames(candidates)}`);
+        }
+        return showToast(`No persona matches "${String(args).trim()}". Available: ${candidateNames(candidates)}`);
+    }
+    selectPersona(preset);
+    showToast(`Persona: ${preset.name}`, 'success');
+}
+
+/** Cards whose PNG has gone missing can't be opened, so they are never offered. */
+function availableCharacters() {
+    return state.characters.filter(c => !c.missing);
+}
+
+async function switchCharacter(args) {
+    const { preset, error, candidates } = matchPresetByName(availableCharacters(), args);
+    if (!preset) {
+        if (candidates.length === 0) return showToast('No characters yet — create or import one first');
+        if (error === 'missing') {
+            return showToast(`Current character: ${state.activeCharacter?.name || 'none'}. Available: ${candidateNames(candidates)}`);
+        }
+        return showToast(`No character matches "${String(args).trim()}". Available: ${candidateNames(candidates)}`);
+    }
+    // Re-selecting reloads the chat and would cut off a reply mid-stream.
+    if (preset.id === state.activeCharacter?.id) return showToast(`Already chatting with ${preset.name}`);
+    await selectCharacter(preset.id);
 }

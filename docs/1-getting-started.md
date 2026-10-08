@@ -195,8 +195,10 @@ you want.
   [User themes](9-user-themes.md).
 - **Slash commands** — typing `/` in the chat box lists the available
   commands. `/prompt <name>` and `/api <name>` switch prompt and API
-  presets without opening Settings. Keep typing after the space and
-  matching presets are offered. Typed with no name, they show what is
+  presets without opening Settings, `/persona <name>` switches who you
+  speak as, and `/char <name>` opens a character's most recent chat. Keep
+  typing after the space and matching names are offered; the start of a
+  name is enough when only one fits. Typed with no name, they show what is
   active and what is available. Where two versions of the same prompt are
   installed, `/prompt <name>` picks the newer one and
   `/prompt <name> <version>` — `/prompt NanoBear 2.1` — picks the exact one.
