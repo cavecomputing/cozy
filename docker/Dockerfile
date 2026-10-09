@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS source
+FROM python:3.14-slim AS source
 
 WORKDIR /source
 
@@ -10,7 +10,7 @@ RUN python cozy/build_info.py > .cozy-commit \
  && rm -rf .git
 
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ARG UID=1000
 ARG GID=1000
