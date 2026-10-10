@@ -205,6 +205,9 @@ you want.
   versions of the same prompt are installed, `/prompt <name>` picks the
   newer one and `/prompt <name> <version>` — `/prompt NanoBear 2.1` —
   picks the exact one.
+- **Arrow keys** — with the chat box empty, **↑** edits your last message,
+  and **←** and **→** step through the latest reply's swipes. **→** on its
+  last swipe asks for a new one, as the button does.
 - **Branches** — the branching-arrows button on a reply forks the chat there:
   everything up to that reply is copied into a new chat, which opens. Both
   chats then carry a small pill under that reply, such as **2/2**. Click it to

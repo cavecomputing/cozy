@@ -1347,6 +1347,21 @@ function bindComposerHandlers() {
     });
     el.userInput.addEventListener('keydown', e => {
         if (handleSlashKeydown(e)) return;
+        // Discord's and SillyTavern's keys for an empty box: Up edits your last
+        // message, Left and Right swipe the latest reply. Each clicks the
+        // message's own button, so its guards and states still apply.
+        const button = { ArrowUp: '.edit-msg-btn', ArrowLeft: '.swipe-prev', ArrowRight: '.swipe-next' }[e.key];
+        if (button && !el.userInput.value && !llm.generationActive
+            && !(e.shiftKey || e.altKey || e.ctrlKey || e.metaKey)) {
+            const rows = el.chatHistory.querySelectorAll(
+                e.key === 'ArrowUp' ? '.message-container.user' : '.message-container');
+            const target = rows[rows.length - 1]?.querySelector(button);
+            if (target && !target.disabled) {
+                e.preventDefault();
+                target.click();
+                return;
+            }
+        }
         // On touch shells Enter is the on-screen keyboard's line-break key, not
         // a submit shortcut, so leave it alone there; desktop keeps Enter-to-send.
         if (e.key === 'Enter' && !e.shiftKey && !window.matchMedia('(pointer: coarse)').matches) {
