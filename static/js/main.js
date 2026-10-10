@@ -1355,10 +1355,25 @@ function bindComposerHandlers() {
             && !(e.shiftKey || e.altKey || e.ctrlKey || e.metaKey)) {
             const rows = el.chatHistory.querySelectorAll(
                 e.key === 'ArrowUp' ? '.message-container.user' : '.message-container');
-            const target = rows[rows.length - 1]?.querySelector(button);
+            const row = rows[rows.length - 1];
+            const target = row?.querySelector(button);
             if (target && !target.disabled) {
                 e.preventDefault();
                 target.click();
+                // A long reply can push the message Up opens out of sight. One
+                // already in full view stays put; one cut off by either fade
+                // lands with its top just under the top fade. Left and Right
+                // change the newest reply, so they show the bottom of the chat.
+                if (e.key === 'ArrowUp') {
+                    const scroller = el.chatHistory;
+                    const { paddingTop, paddingBottom } = getComputedStyle(scroller);
+                    const band = scroller.clientHeight - parseFloat(paddingTop) - parseFloat(paddingBottom);
+                    const rect = row.getBoundingClientRect();
+                    const top = rect.top - scroller.getBoundingClientRect().top - parseFloat(paddingTop);
+                    if (top < 0 || top + Math.min(rect.height, band) > band) scroller.scrollTop += top;
+                } else {
+                    scrollToBottom();
+                }
                 return;
             }
         }
