@@ -95,3 +95,21 @@ def test_active_generation_guard_does_not_replace_the_controller():
         assert.equal(llm.generationActive, true);
         assert.equal(el.userInput.value, 'hello there');
     """)
+
+
+def test_generation_holds_the_screen_awake_until_it_ends():
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { beginGeneration, endGeneration } from './static/js/utils.js';
+
+        const events = [];
+        Object.defineProperty(globalThis.navigator, 'wakeLock', {
+            value: { request: async type => { events.push(type); return { release: async () => events.push('released') }; } },
+        });
+
+        assert.equal(beginGeneration(), true);
+        assert.equal(beginGeneration(), false);
+        endGeneration();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        assert.deepEqual(events, ['screen', 'released']);
+    """)
