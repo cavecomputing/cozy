@@ -94,10 +94,10 @@ ports:
   - "5000:5000"
 ```
 
-Warning: Cozy has no login screen. Anyone who can reach the address can
-read your chats and use your API key. Only open it to a network you trust,
-or put it behind a reverse proxy that asks for a password. See
-[Security](7-security.md).
+Warning: without a password, anyone who can reach the address can read
+your chats and use your API key. Set one first, in `docker/.env` — see
+[Require a password](7-security.md#require-a-password) — and only open
+Cozy to a network you trust.
 
 ### File permissions on Linux
 
@@ -155,10 +155,10 @@ uv run app.py --host 0.0.0.0 --port 8080
 Then open `http://<this computer's network address>:8080` on the other
 machine.
 
-Warning: Cozy has no login screen. Anyone who can reach the address can
-read your chats and use your API key. Only do this on a network you
-trust, or behind a reverse proxy that asks for a password. See
-[Security](7-security.md).
+Warning: without a password, anyone who can reach the address can read
+your chats and use your API key. Set one first with `COZY_PASSWORD` — see
+[Require a password](7-security.md#require-a-password) — and only do
+this on a network you trust.
 
 These `--host` and `--port` options work for the Python setup only. Under
 Docker, change the port mapping instead — see [Use a different

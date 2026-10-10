@@ -6,7 +6,9 @@ from urllib.parse import urlsplit
 
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
+from cozy import auth
 from cozy import shared
 from cozy import defaults
 from cozy import schema
@@ -29,11 +31,12 @@ def handle_exception(e):
 
 
 # ── Same-origin writes only ───────────────────────────────────────────────
-# Cozy has no login, so any other page open in the same browser can send it
-# requests. A file upload needs no CORS preflight, which put every upload
-# route in reach — /api/backup/restore among them, which replaces the whole
-# data directory. Browsers say where a request came from; writes that did
-# not come from Cozy's own page are refused.
+# Without COZY_PASSWORD Cozy has no login, so any other page open in the same
+# browser can send it requests; with it, a page served from another port on the
+# same host still gets the cookie. A file upload needs no CORS preflight, which
+# put every upload route in reach — /api/backup/restore among them, which
+# replaces the whole data directory. Browsers say where a request came from;
+# writes that did not come from Cozy's own page are refused.
 @app.before_request
 def refuse_cross_site_writes():
     if request.method in ('GET', 'HEAD', 'OPTIONS'):
@@ -83,7 +86,10 @@ def index():
         os.path.basename(path)
         for path in glob.glob(os.path.join(app.static_folder, 'js', '*.js'))
     )
-    return render_template('index.html', build_info=shared.BUILD_INFO, js_modules=js_modules)
+    return render_template(
+        'index.html', build_info=shared.BUILD_INFO, js_modules=js_modules,
+        has_password=bool(auth.PASSWORD),
+    )
 
 
 @app.route('/api/themes', methods=['GET'])
@@ -136,6 +142,32 @@ defaults.seed_default_characters()
 defaults.seed_default_prompts()
 defaults.seed_default_regex_presets()
 
+
+# ── Optional password (COZY_PASSWORD) ──────────────────────────────────────
+# Installed only when the password is set; see cozy/auth.py. After the DB
+# exists, since the signing key lives in it, and after refuse_cross_site_writes,
+# so another site can't post a sign-in either.
+if auth.PASSWORD:
+    # A reverse proxy says whether the browser used HTTPS, which decides
+    # whether the cookie is Secure.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=0, x_proto=1)
+    app.session_interface = auth.SessionInterface()
+    app.config.update(
+        # Cookies ignore the port, so a plain "session" would collide with
+        # another app on the same host.
+        SESSION_COOKIE_NAME='cozy_session',
+        SESSION_COOKIE_SAMESITE='Lax',
+        PERMANENT_SESSION_LIFETIME=auth.REMEMBER_FOR,
+        # Re-signing a remembered cookie on every response would change it on
+        # every response, and its Vary: Cookie would then turn each cached
+        # avatar into a fresh download.
+        SESSION_REFRESH_EACH_REQUEST=False,
+    )
+    app.secret_key = auth.signing_key()
+    app.before_request(auth.require_login)
+    app.after_request(auth.refuse_framing_and_caching)
+    app.register_blueprint(auth.bp)
+
 # ── Entry point ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="A cozy roleplay frontend.")
@@ -160,7 +192,8 @@ if __name__ == '__main__':
     #
     # Debug is opt-in because this is also how the README tells everyone to
     # run Cozy: it serves Werkzeug's PIN-locked Python console at /console,
-    # and --host 0.0.0.0 would put that on the network.
+    # outside COZY_PASSWORD's reach, and --host 0.0.0.0 would put that on the
+    # network.
     extra = [
         *glob.glob('static/**/*', recursive=True),
         *glob.glob('templates/**/*', recursive=True),

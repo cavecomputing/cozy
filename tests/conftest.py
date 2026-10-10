@@ -13,6 +13,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 # a temp data directory so pytest never touches a production checkout's data/.
 _IMPORT_DATA_DIR = tempfile.TemporaryDirectory(prefix='cozy-test-import-')
 os.environ['COZY_DATA_DIR'] = _IMPORT_DATA_DIR.name
+# A COZY_PASSWORD left in the shell would put every route behind the sign-in
+# page; tests/test_auth.py sets the password itself.
+os.environ.pop('COZY_PASSWORD', None)
 
 import app as app_module
 from cozy import card_store

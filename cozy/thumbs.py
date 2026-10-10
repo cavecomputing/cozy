@@ -45,7 +45,9 @@ CROP_SIZES = (SM,)
 
 WEBP_QUALITY = 80
 WEBP_METHOD = 4
-IMMUTABLE = 'public, max-age=31536000, immutable'
+# Private: behind COZY_PASSWORD a caching proxy or CDN in front must never keep
+# a copy it could hand to someone who hasn't signed in.
+IMMUTABLE = 'private, max-age=31536000, immutable'
 
 # (path, mtime_ns, size) -> content key. Saves re-reading the source on every
 # request; a changed file misses the memo because its stat differs.

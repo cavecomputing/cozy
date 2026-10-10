@@ -21,6 +21,16 @@
             }
         } catch (e) { /* private mode, blocked storage, unparseable prefs */ }
     </script>
+    {%- if has_password %}
+    <script>
+        // Back after signing out would bring this page back whole from the
+        // browser's back/forward cache, chats and all, without asking the
+        // server. So it hides on the way into that cache and reloads on the
+        // way out, and the server decides what comes back.
+        addEventListener('pagehide', function (e) { if (e.persisted) document.documentElement.style.display = 'none'; });
+        addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
+    </script>
+    {%- endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {%- for module in js_modules %}
     <link rel="modulepreload" href="{{ url_for('static', filename='js/' + module) }}">
@@ -844,6 +854,7 @@
                                     <h4>Cozy</h4>
                                     <p class="about-tagline">A self-hosted, single-user app for chatting with LLM character cards. With a little Discord inspiration ✨</p>
                                     <p class="about-build">Build {% if build_info.commit %}<a href="https://github.com/cavecomputing/cozy/commit/{{ build_info.commit }}" target="_blank" rel="noopener noreferrer"><code>{{ build_info.display }}</code></a>{% else %}<code>{{ build_info.display }}</code>{% endif %} · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a></p>
+                                    {% if has_password %}<form class="about-signout" method="post" action="/logout"><button class="btn btn-secondary btn-sm" type="submit"><span>Sign out</span></button></form>{% endif %}
                                 </div>
                             </section>
                             <section class="settings-card">

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>Sign in · Cozy</title>
+    <link id="theme-stylesheet" rel="stylesheet" href="/themes/cozy.css">
+    <script>
+        // The theme this device last chose in the app, before the first paint,
+        // as in index.html. One that has since gone falls back to the default,
+        // keeping a light theme light, as loadThemeList() does in the app.
+        try {
+            var savedTheme = JSON.parse(localStorage.getItem('cozy/prefs') || '{}').theme;
+            if (savedTheme) {
+                var themeLink = document.getElementById('theme-stylesheet');
+                themeLink.onerror = function () {
+                    themeLink.onerror = null;
+                    themeLink.href = String(savedTheme).endsWith('-light') ? '/themes/cozy-light.css' : '/themes/cozy.css';
+                };
+                themeLink.href = '/themes/' + encodeURIComponent(savedTheme) + '.css';
+            }
+        } catch (e) { /* private mode, blocked storage, unparseable prefs */ }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+    <meta name="theme-color" content="#1d2021">
+</head>
+<body class="signin">
+    <form class="settings-card signin-card" method="post">
+        <span class="signin-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M8 10h.01M12 10h.01M16 10h.01"></path></svg>
+            <span class="signin-wordmark">cozy</span>
+        </span>
+        <p>Enter the password to open your chats.</p>
+        {% if error %}<p class="signin-error" role="alert">{{ error }}</p>{% endif %}
+        <div class="signin-field">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-input" id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+        </div>
+        <label class="signin-remember"><input type="checkbox" name="remember" checked> Keep this device signed in</label>
+        <button class="btn btn-primary" type="submit"><span>Sign in</span></button>
+    </form>
+    <script>
+        // The browser bar and an installed app's status bar match the page, as
+        // syncThemeColor() keeps them in the app.
+        function syncThemeColor() {
+            document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.body).backgroundColor;
+        }
+        document.getElementById('theme-stylesheet').addEventListener('load', syncThemeColor);
+        syncThemeColor();
+    </script>
+</body>
+</html>

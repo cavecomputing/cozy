@@ -113,10 +113,11 @@ only over HTTPS or on the computer running Cozy (`localhost`); over plain HTTP o
 they can only add a shortcut to the page. Over HTTPS, Cozy also keeps the phone's screen
 from locking while a reply is being written.
 
-Cozy has no login screen, so anything that can reach it can read your chats and
-use your API key. Only do this on a network you trust, or put it behind a VPN or
-an authenticating reverse proxy. See [Security](docs/7-security.md) and
-[Advanced setup](docs/2-advanced-setup.md).
+Without a password, anything that can reach Cozy can read your chats and use
+your API key. Set `COZY_PASSWORD` and every device has to sign in first; see
+[Require a password](docs/7-security.md#require-a-password). Even then, only do
+this on a network you trust, or reach Cozy through a VPN. See
+[Security](docs/7-security.md) and [Advanced setup](docs/2-advanced-setup.md).
 
 ## Documentation
 

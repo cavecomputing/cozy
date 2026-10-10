@@ -4,6 +4,9 @@
 import { downloadUrl, sanitizeFilename, showToast } from './utils.js';
 
 export async function apiError(r, fallback) {
+    // Signed out behind COZY_PASSWORD (the password changed, or the session
+    // ended): every API route answers 401, so go and sign in again.
+    if (r.status === 401) location.assign('/login');
     try { const e = await r.json(); return e.error || fallback; } catch { return fallback; }
 }
 
@@ -211,11 +214,7 @@ export const API = {
             body: JSON.stringify(payload),
             signal,
         });
-        if (!res.ok) {
-            let msg = 'LLM request failed';
-            try { const b = await res.json(); msg = b.error || msg; } catch {}
-            throw new Error(msg);
-        }
+        if (!res.ok) throw new Error(await apiError(res, 'LLM request failed'));
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let reasoning = '';

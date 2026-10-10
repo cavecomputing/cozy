@@ -589,7 +589,10 @@
     <section id="settings">
       <div class="table-head"><h2>settings</h2><span class="chip chip-soft">key/value</span></div>
       <p class="purpose">One row per setting, values always TEXT — <code>'1'</code> and <code>'0'</code> stand in
-        for booleans. The API key lives here in plain text and is masked on its way out of the routes.</p>
+        for booleans. The API key lives here in plain text and is masked on its way out of the routes.
+        With <code>COZY_PASSWORD</code> set, <code>secret_key</code> holds the random half of the sign-in
+        cookie's signing key: created on the first start with a password, never sent by any route, left out
+        of backups, and kept by a restore.</p>
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>

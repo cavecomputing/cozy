@@ -47,7 +47,8 @@ Cozy:
 - **Restore from backup** asks for confirmation, then **deletes everything in
   the data directory** and unpacks the archive in its place — chats,
   characters, personas, themes, settings and API keys all become the ones in
-  the backup. The page reloads when it finishes.
+  the backup. The page reloads when it finishes. With a
+  [password](7-security.md#require-a-password) set, devices stay signed in.
 
 A backup made by a newer version of Cozy is refused, since this build cannot
 know what changed in the database since. An older one restores fine: Cozy

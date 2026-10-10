@@ -8,3 +8,7 @@ services:
     volumes:
       - ../data:/data
     restart: unless-stopped
+    environment:
+      # Optional: put COZY_PASSWORD='…' in docker/.env to require a password.
+      # Left unset, Cozy has no sign-in. See docs/7-security.md.
+      - COZY_PASSWORD=${COZY_PASSWORD:-}

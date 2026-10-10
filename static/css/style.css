@@ -253,6 +253,71 @@ body::before {
     letter-spacing: 0.02em;
 }
 
+/* ── Sign-in page ──────────────────────────────────────────────────── */
+/* templates/login.html, served only when COZY_PASSWORD is set: the design
+   system's SignIn, one raised card in the middle of the page with the brand as
+   its title. No shell behind it. Auto margins rather than grid centring, so a
+   card taller than the window (a phone on its side, keyboard up) scrolls
+   instead of losing its top. */
+body.signin {
+    padding: var(--space-5);
+    overflow-y: auto;
+}
+body.signin::before {
+    content: none;
+}
+.signin-card {
+    width: min(360px, 100%);
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+.signin-card p {
+    font-size: var(--text-lg);
+    line-height: 1.4;
+    color: var(--fg-quiet);
+}
+.signin-card .signin-error {
+    color: var(--status-danger);
+}
+.signin-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--accent-alt, var(--status-success));
+}
+.signin-brand svg {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+}
+.signin-wordmark {
+    font-family: var(--font-mono);
+    font-size: var(--text-4xl);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--fg-heading);
+}
+.signin-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.signin-field .form-label {
+    margin: 0;
+}
+.signin-remember {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-lg);
+}
+.signin-card .btn {
+    justify-content: center;
+}
+
 #sidebar {
     position: relative;
     width: 240px;
@@ -3320,6 +3385,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin: 0.4rem 0 0;
     font-size: var(--text-sm);
     color: var(--fg-quiet);
+}
+
+/* Shown only when COZY_PASSWORD is set. */
+.about-signout {
+    margin-top: var(--space-3);
 }
 
 .about-credit h5 {

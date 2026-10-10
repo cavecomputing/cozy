@@ -109,7 +109,8 @@ follows is the map, plus the rules the code cannot tell you on its own.
 
 | Module | Owns |
 |---|---|
-| [app.py](app.py) | Entry point, and the only Python file at the repo root — `Flask(__name__)` resolves `templates/` and `static/` beside it, and `gunicorn app:app` names it. Registers eight blueprints from [cozy/routes/](cozy/routes/) (all `/api/*`), runs `init_db()` and the seeders. |
+| [app.py](app.py) | Entry point, and the only Python file at the repo root — `Flask(__name__)` resolves `templates/` and `static/` beside it, and `gunicorn app:app` names it. Registers eight blueprints from [cozy/routes/](cozy/routes/) (all `/api/*`), runs `init_db()` and the seeders, then installs the sign-in guard when `COZY_PASSWORD` is set. |
+| [cozy/auth.py](cozy/auth.py) | The optional password: sign-in page, the guard in front of every route, sign-out. |
 | [cozy/shared.py](cozy/shared.py) | Paths, `get_db()`, and the small request helpers. `BASE_DIR` is the *repo root*, one level above the package — bundled content and `static/themes` hang off it. |
 | [cozy/schema.py](cozy/schema.py) | `init_db()` and the `MIGRATIONS` tuple. |
 | [cozy/defaults.py](cozy/defaults.py) | `DEFAULT_PROMPT_TEMPLATE`, `DEFAULT_REGEX_PRESETS`, and the three seeders. |
@@ -212,6 +213,26 @@ flow through. Each saved prompt is **paired**, a `content` template and a `post_
 (`DEFAULT_POST_HISTORY_TEMPLATE`) injected after the chat history; both live on the `system_prompts`
 row and travel together through the import/export endpoints in
 [cozy/routes/settings.py](cozy/routes/settings.py).
+
+### Optional password
+
+`COZY_PASSWORD` turns on [cozy/auth.py](cozy/auth.py), ported from the owner's imgy and binny apps.
+[app.py](app.py) installs it only when the password is set, so without one the guard doesn't exist
+and nothing changes.
+
+- Every route is protected by default. `OPEN_ENDPOINTS` (the sign-in page, `/static`) plus `.css`
+  files under `/themes` are the whole list of exceptions; never open anything else that serves from
+  the data directory. [tests/test_auth.py](tests/test_auth.py) sweeps the whole url_map, so a new
+  route that slips through fails it.
+- The guard stays registered after `refuse_cross_site_writes`, so a page on another site can't post
+  a sign-in. The one-second lockout is global on purpose, as in imgy and binny: a client that
+  reaches `/login` directly can hold off new sign-ins while it guesses, but a lockout per address
+  would let many addresses guess side by side.
+- The cookie's signing key mixes the `secret_key` setting with the password. That row never leaves:
+  `read_settings()` drops it, `_database_snapshot()` keeps it out of backups, and a restore puts
+  this install's back (`restore_backup()`).
+- The password is read when app.py is imported, so the tests load app.py again with it set
+  (`load_app()`) rather than using the password-less app the rest of the suite shares.
 
 ### LLM proxy and streaming
 

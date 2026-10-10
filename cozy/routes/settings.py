@@ -194,6 +194,8 @@ def read_settings():
     for key in SECRET_KEYS:
         s.update(mask_secret(s.get(key, ''), key))
         s.pop(key, None)
+    # Half of the sign-in cookie's signing key (cozy/auth.py); the page has no use for it.
+    s.pop('secret_key', None)
     return jsonify(s)
 
 
@@ -890,11 +892,20 @@ def _quiet_remove(path):
 
 
 def _database_snapshot(path):
-    """Copy the live database to *path* through SQLite's backup API."""
+    """Copy the live database to *path* through SQLite's backup API, less the
+    sign-in secret.
+
+    That secret stays with this install (cozy/auth.py): a backup holding it,
+    plus one sign-in cookie, would let the password be guessed offline.
+    secure_delete overwrites the row instead of leaving it in a free page.
+    """
     with get_db() as conn:
         destination = sqlite3.connect(path)
         try:
             conn.backup(destination)
+            destination.execute('PRAGMA secure_delete = ON')
+            destination.execute("DELETE FROM settings WHERE key = 'secret_key'")
+            destination.commit()
         finally:
             destination.close()
 
@@ -1064,9 +1075,17 @@ def restore_backup():
                 raise ValueError('the database in it is unreadable')
         except (zipfile.BadZipFile, KeyError, ValueError, UnicodeDecodeError) as e:
             return jsonify({'error': f'That file is not a Cozy backup ({e}).'}), 400
+        # A backup carries no sign-in secret (_database_snapshot()). Put this
+        # install's back, or the next start would make a new one and sign
+        # every device out (cozy/auth.py).
+        with get_db() as conn:
+            secret = conn.execute("SELECT value FROM settings WHERE key='secret_key'").fetchone()
         _replace_data_dir(staged)
     # An older backup arrives at whatever schema it was taken at, so upgrade it
     # and restore any bundled prompt it predates, the way a start would.
     init_db()
+    if secret:
+        with get_db() as conn:
+            upsert_setting(conn, 'secret_key', secret['value'])
     seed_default_prompts()
     return jsonify({'success': True, 'schema_version': version})
