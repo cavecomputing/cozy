@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // API LAYER
 // ═══════════════════════════════════════════════════════════════════════════
-import { downloadUrl, sanitizeFilename } from './utils.js';
+import { downloadUrl, sanitizeFilename, showToast } from './utils.js';
 
 export async function apiError(r, fallback) {
     try { const e = await r.json(); return e.error || fallback; } catch { return fallback; }
@@ -221,13 +221,17 @@ export const API = {
         let reasoning = '';
         let content = '';
         let buffer = '';
+        let finishReason = null;
+        let sawDone = false;
 
         const processLine = (line) => {
-            if (line === 'data: [DONE]' || !line.startsWith('data: ')) return;
+            if (line === 'data: [DONE]') { sawDone = true; return; }
+            if (!line.startsWith('data: ')) return;
             let json;
             // Ignore unparseable fragments (e.g. a line truncated mid-stream)
             try { json = JSON.parse(line.slice(6)); } catch { return; }
             if (json.error) throw new Error(json.error);
+            finishReason = json.choices?.[0]?.finish_reason || finishReason;
             const delta = json.choices?.[0]?.delta || {};
             const reasonTok = delta.reasoning_content || delta.reasoning || '';
             const contentTok = delta.content || '';
@@ -259,6 +263,13 @@ export const API = {
             const lines = buffer.split('\n');
             buffer = lines.pop();
             for (const line of lines) processLine(line);
+        }
+        // Either way the reply stops mid-sentence and looks finished, so say
+        // why. The same two cases routes/llm.py logs.
+        if (finishReason === 'length') {
+            showToast('The reply was cut off at Max response tokens (Settings \u2192 API).', 'error', 8000);
+        } else if (!sawDone && !finishReason) {
+            showToast('The connection closed before the reply finished.', 'error', 8000);
         }
         // Build final combined text
         let fullText = '';

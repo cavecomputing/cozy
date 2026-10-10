@@ -88,6 +88,38 @@ def test_stream_leaves_thinking_tag_open_when_cut_mid_reasoning():
     """)
 
 
+def test_stream_says_why_a_reply_that_ended_early_stopped():
+    """A reply cut at max_tokens, or by a dropped connection, looks finished."""
+    run_node_module(STREAM_SETUP + r"""
+        const toasts = [];
+        globalThis.document = {
+            createElement: () => ({ setAttribute() {}, remove() {} }),
+            getElementById: () => ({ appendChild(toast) { toasts.push(toast.textContent); } }),
+        };
+        globalThis.setTimeout = () => 0;
+
+        stubStream([
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}\n',
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n',
+            'data: [DONE]\n',
+        ]);
+        assert.equal(await API.streamChatCompletion({ model: 'm' }, () => {}), 'Hello');
+        assert.deepEqual(toasts, []);
+
+        stubStream([
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}\n',
+            'data: {"choices":[{"delta":{},"finish_reason":"length"}]}\n',
+            'data: [DONE]\n',
+        ]);
+        await API.streamChatCompletion({ model: 'm' }, () => {});
+        assert.match(toasts.pop(), /Max response tokens/);
+
+        stubStream(['data: {"choices":[{"delta":{"content":"Hel"}}]}\n']);
+        assert.equal(await API.streamChatCompletion({ model: 'm' }, () => {}), 'Hel');
+        assert.match(toasts.pop(), /connection closed/);
+    """)
+
+
 # ── generateSwipe: stop mid-regen ──────────────────────────────────────────
 # Harness mirrors test_summaries_frontend.py's generateSwipe test.
 

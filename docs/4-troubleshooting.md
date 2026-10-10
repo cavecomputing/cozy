@@ -71,9 +71,13 @@ See [Sampler settings](6-sampler-settings.md#backend-compatibility).
 
 ## Replies stop early
 
-Check **Max response tokens** first. If the reply is not reaching that limit,
-inspect both the Cozy logs and the LLM server logs. A proxy between Cozy and the
-LLM server may be buffering or closing the streaming response.
+Cozy says which of the two common causes it was. *"The reply was cut off at Max
+response tokens"* means the reply reached the limit in **Settings → API →
+Context & generation**; raise it. A thinking model's reasoning counts toward
+the same limit. *"The connection closed before the reply finished"* means the stream
+ended without the server saying it was done: inspect both the Cozy logs and the
+LLM server logs. A proxy between Cozy and the LLM server may be buffering or
+closing the streaming response.
 
 ## Replies arrive with text changed or missing
 
