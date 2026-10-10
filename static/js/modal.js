@@ -324,11 +324,27 @@ async function save() {
     }
 }
 
-importInput.addEventListener('change', async () => {
+importInput.addEventListener('change', () => {
     const file = importInput.files[0];
     if (!file) return;
     importInput.value = '';
+    importCardFile(file);
+});
 
+// A card dropped anywhere on the window goes through that same import: a new
+// character, or with the editor open on one, a replacement for it. Without
+// this, the browser would leave Cozy to show the dropped file.
+document.addEventListener('dragover', e => {
+    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+});
+document.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    e.preventDefault();
+    importCardFile(file);
+});
+
+async function importCardFile(file) {
     // Importing while editing replaces that character rather than adding a new
     // one \u2014 the way a card gets updated to a newer version.
     const replacingId = editingCharId;
@@ -357,7 +373,7 @@ importInput.addEventListener('change', async () => {
     } catch (err) {
         showToast('Import failed: ' + err.message, 'error');
     }
-});
+}
 
 function closeExportMenu() {
     exportMenu.hidden = true;

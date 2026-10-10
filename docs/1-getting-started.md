@@ -97,6 +97,9 @@ either a `.png` image with the character data stored inside it, or a plain
    card file.
 4. Look over the fields, then save.
 
+On a computer you can skip the menu: drag the card file onto the Cozy window
+and drop it anywhere.
+
 Imported cards are stored as PNG files in `data/characters/`, so other
 apps can still read them. The same **Import/Export** menu saves the
 character you are editing back out as `.json` or `.png`.
@@ -107,7 +110,8 @@ When a character you already have gets an update, place the new card on
 top of the existing character instead of adding a second copy:
 
 1. Open the character for editing.
-2. Use the same **Import** menu item and select the new file.
+2. Use the same **Import** menu item and select the new file, or drop the
+   file onto the window while the editor is open.
 3. Cozy asks you to confirm. Confirm, and the new card replaces the old
    one in place.
 
