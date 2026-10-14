@@ -332,17 +332,43 @@ importInput.addEventListener('change', () => {
 });
 
 // A card dropped anywhere on the window goes through that same import: a new
-// character, or with the editor open on one, a replacement for it. Without
-// this, the browser would leave Cozy to show the dropped file.
+// character, or with the editor open on one, a replacement for it. Several
+// cards dropped together are each imported as a new character. Without this,
+// the browser would leave Cozy to show the dropped file.
 document.addEventListener('dragover', e => {
     if (e.dataTransfer.types.includes('Files')) e.preventDefault();
 });
 document.addEventListener('drop', e => {
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+    const files = [...e.dataTransfer.files];
+    if (!files.length) return;
     e.preventDefault();
-    importCardFile(file);
+    if (files.length === 1) importCardFile(files[0]);
+    else importCardFiles(files);
 });
+
+// Replacing the open character with each card in turn would keep only the
+// last, so a batch always adds. One bad file doesn't stop the rest; the toast
+// names the ones that failed.
+async function importCardFiles(files) {
+    let last = null;
+    const failed = [];
+    for (const file of files) {
+        try {
+            const char = await API.importCard(file);
+            await applyCharUpdate(char, false);
+            last = char;
+        } catch {
+            failed.push(file.name);
+        }
+    }
+    const imported = files.length - failed.length;
+    if (last) {
+        close();
+        await selectCharacter(last.id);
+    }
+    if (!failed.length) showToast(`${imported} characters imported`, 'success');
+    else showToast(`Imported ${imported} of ${files.length}. Failed: ${failed.join(', ')}`, 'error', 8000);
+}
 
 async function importCardFile(file) {
     // Importing while editing replaces that character rather than adding a new

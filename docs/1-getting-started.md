@@ -98,7 +98,8 @@ either a `.png` image with the character data stored inside it, or a plain
 4. Look over the fields, then save.
 
 On a computer you can skip the menu: drag the card file onto the Cozy window
-and drop it anywhere.
+and drop it anywhere. Drop several cards at once and each one is added as a
+new character.
 
 Imported cards are stored as PNG files in `data/characters/`, so other
 apps can still read them. The same **Import/Export** menu saves the
