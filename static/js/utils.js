@@ -206,16 +206,17 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
         btn.type = 'button';
         btn.className = 'toast-action';
         btn.textContent = action.label;
-        btn.addEventListener('click', e => {
-            // Keep the click from reaching document-level outside-click
-            // closers (settings flyout, popovers): the action may open one
-            // of the very panels they guard.
-            e.stopPropagation();
-            toast.remove();
-            action.onClick();
-        });
+        btn.addEventListener('click', () => action.onClick());
         toast.appendChild(btn);
     }
+    // A click anywhere on the toast dismisses it. It stops there so that
+    // document-level outside-click closers (settings flyout, popovers) don't
+    // read it as a click away from the panel the toast sits over — or from
+    // the one an action button just opened.
+    toast.onclick = e => {
+        e.stopPropagation();
+        toast.remove();
+    };
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, duration);
     return toast;

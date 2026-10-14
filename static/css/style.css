@@ -5087,12 +5087,13 @@ input[type="checkbox"]:checked::after {
     pointer-events: none;
 }
 
-/* Toasts overlay whatever is beneath them — including the settings modal's
-   close button — so the body stays click-through and only the action button
-   takes pointer events. A toast is a raised callout in the body colour; its
-   kind is carried by the left edge alone, not by flooding the card. */
+/* The container is click-through, so only the toasts themselves catch the
+   pointer, and a click on one dismisses it. A toast is a raised callout in the
+   body colour; its kind is carried by the left edge alone, not by flooding the
+   card. */
 .toast {
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
     padding: 0.5rem 0.875rem;
     background-color: var(--surface-raised);
     color: var(--fg);
@@ -5112,7 +5113,6 @@ input[type="checkbox"]:checked::after {
 
 /* The ghost button, in miniature. */
 .toast-action {
-    pointer-events: auto;
     display: block;
     margin-top: 0.5rem;
     border: 1px solid var(--line);
