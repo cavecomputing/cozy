@@ -86,10 +86,12 @@ def index():
         os.path.basename(path)
         for path in glob.glob(os.path.join(app.static_folder, 'js', '*.js'))
     )
+    # no-cache: an installed web app otherwise reopens from its saved copy of
+    # this page and keeps running the modules it named before an update.
     return render_template(
         'index.html', build_info=shared.BUILD_INFO, js_modules=js_modules,
         has_password=bool(auth.PASSWORD),
-    )
+    ), {'Cache-Control': 'no-cache'}
 
 
 @app.route('/api/themes', methods=['GET'])

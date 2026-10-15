@@ -103,3 +103,9 @@ def test_about_page_leaves_unknown_build_unlinked(client, monkeypatch):
 
     assert 'Build <code>unknown</code>' in body
     assert 'github.com/cavecomputing/cozy/commit/' not in body
+
+
+def test_page_carrying_the_build_is_revalidated(client):
+    # An installed web app reopening from a saved copy would keep showing, and
+    # running, the build it last fetched.
+    assert client.get('/').headers['Cache-Control'] == 'no-cache'
