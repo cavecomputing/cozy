@@ -201,7 +201,9 @@ you want.
 - **Slash commands** — typing `/` in the chat box lists the available
   commands. `/prompt <name>` and `/api <name>` switch prompt and API
   presets without opening Settings, `/persona <name>` switches who you
-  speak as, and `/char <name>` opens a character's most recent chat. Keep
+  speak as, `/char <name>` opens a character's most recent chat, and
+  `/context <tokens>` sets **Max context tokens** (`/context 16k` means
+  16384) on the active API preset. Keep
   typing after the space and matching names are offered; the start of a
   name is enough when only one fits. **Tab** fills in the highlighted
   command or name without running it (the arrow keys move the highlight),

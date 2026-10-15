@@ -6,7 +6,7 @@ import { clearDraft } from './drafts.js';
 import { regenerateLastAssistantMessage, handleSwipeAction } from './messages.js';
 import { jumpToContextBoundary, setContextMeterVisible } from './context-meter.js';
 import { matchPresetByName, labelPresets } from './preset-match.js';
-import { activatePreset } from './llm-settings.js';
+import { activatePreset, flushLLMSettingsSave } from './llm-settings.js';
 import { selectSystemPrompt } from './system-prompts.js';
 import { selectPersona } from './personas.js';
 import { selectCharacter } from './characters.js';
@@ -21,6 +21,7 @@ const COMMANDS = [
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
     { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
     { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
+    { name: '/context', description: 'Set max context tokens: /context <tokens>', run: setContextTokens },
     { name: '/prompt', description: 'Switch prompt preset: /prompt <name> [version]', run: switchPromptPreset },
     { name: '/api',    description: 'Switch API preset: /api <name>', run: switchApiPreset },
     { name: '/persona', description: 'Switch persona: /persona <name>', run: switchPersona },
@@ -272,6 +273,36 @@ function toggleMeter() {
     const visible = !state.showContextTokenMeter;
     setContextMeterVisible(visible);
     showToast(visible ? 'Context token meter shown' : 'Context token meter hidden');
+}
+
+function contextLabel(tokens) {
+    return tokens > 0 ? `${tokens.toLocaleString()} tokens` : 'unlimited';
+}
+
+/**
+ * Write the number into Settings → API's Max context tokens and let that
+ * field's own input handler save it to the active API preset and refresh the
+ * warning and meter. "16k" is accepted as shorthand for 16384.
+ */
+async function setContextTokens(args) {
+    const typed = String(args).trim();
+    const modelWindow = state.modelContextLength;
+    if (!typed) {
+        const current = parseInt(el.settingsContextTokens?.value || state.contextMaxTokens, 10) || 0;
+        const model = modelWindow ? ` The model's window is ~${modelWindow.toLocaleString()}.` : '';
+        return showToast(`Max context: ${contextLabel(current)}.${model}`);
+    }
+    const m = typed.match(/^(\d+)(k?)$/i);
+    if (!m) return showToast('Give a number of tokens, such as /context 16384 or /context 16k');
+    const tokens = parseInt(m[1], 10) * (m[2] ? 1024 : 1);
+    el.settingsContextTokens.value = String(tokens);
+    el.settingsContextTokens.dispatchEvent(new Event('input'));
+    // A failed save has already toasted.
+    if (!(await flushLLMSettingsSave()).ok) return;
+    if (modelWindow && tokens > modelWindow * 0.9) {
+        return showToast(`Max context: ${contextLabel(tokens)}. This may exceed the model's window (~${modelWindow.toLocaleString()}).`);
+    }
+    showToast(`Max context: ${contextLabel(tokens)}`, 'success');
 }
 
 /** Keep the not-found toast readable no matter how many presets exist. */
