@@ -2152,6 +2152,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     box-shadow: var(--shadow-md);
     overflow: hidden;
     padding: 0.25rem;
+    /* One name column shared by every row (each row is a subgrid), as wide as
+       the longest name up to half the menu, so /auto-summary never breaks. */
+    display: grid;
+    grid-template-columns: fit-content(50%) minmax(0, 1fr);
 }
 
 .slash-command-menu[hidden] {
@@ -2166,7 +2170,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--text-color);
     cursor: pointer;
     display: grid;
-    grid-template-columns: 5rem 1fr;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
     align-items: baseline;   /* the mono name and sans description share a line */
     gap: 0.6rem;
     padding: var(--space-2) 0.55rem;
@@ -5912,7 +5917,6 @@ input[type="checkbox"]:checked::after {
     }
 
     .slash-command-item {
-        grid-template-columns: 4.25rem minmax(0, 1fr);
         min-height: 44px;
     }
 
