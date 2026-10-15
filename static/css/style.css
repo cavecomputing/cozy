@@ -5071,18 +5071,16 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── Toast notifications ─────────────────────────────────────────────────── */
-/* Bottom centre of the main pane, just above the composer. The top right is
-   where every page keeps its actions, and a toast there sat on the very button
-   it was answering. The phone keeps its toasts at the top. */
+/* Top right. That is where pages keep their actions, so a toast can land on
+   the button it answers; a click takes it away. */
 #toast-container {
     position: fixed;
-    bottom: 7rem;
-    left: calc(50vw + var(--sidebar-width) / 2);
-    transform: translateX(-50%);
+    top: calc(env(safe-area-inset-top, 0px) + var(--shell-gap) + 0.75rem);
+    right: calc(env(safe-area-inset-right, 0px) + var(--shell-gap) + 0.75rem);
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-end;
     gap: 0.5rem;
     pointer-events: none;
 }
@@ -5103,9 +5101,9 @@ input[type="checkbox"]:checked::after {
     box-shadow: var(--shadow-md);
     font-size: var(--text-lg);
     line-height: 1.45;
-    animation: riseIn 0.2s ease-out;
+    animation: slideInRight 0.2s ease-out;
     width: max-content;
-    max-width: min(28rem, calc(100vw - var(--sidebar-width) - 2rem));
+    max-width: 360px;
 }
 
 .toast.error   { border-left-color: var(--status-danger); }
@@ -5132,11 +5130,6 @@ input[type="checkbox"]:checked::after {
 @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes riseIn {
-    from { transform: translateY(0.5rem); opacity: 0; }
-    to   { transform: none; opacity: 1; }
 }
 
 /* ── Loading indicator (bouncing dots) ──────────────────────────────────── */
@@ -6052,17 +6045,14 @@ input[type="checkbox"]:checked::after {
 
     #toast-container {
         top: calc(env(safe-area-inset-top, 0px) + 0.6rem);
-        bottom: auto;
         left: var(--mobile-inline-padding);
         right: var(--mobile-inline-padding);
-        transform: none;
         align-items: stretch;
     }
 
     .toast {
         max-width: none;
         width: 100%;
-        animation-name: slideInRight;
     }
 }
 
