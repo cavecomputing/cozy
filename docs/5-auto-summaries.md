@@ -101,6 +101,9 @@ carries more history than one opened a batch ago.
 2. Open the memory panel beside the chat input.
 3. Enable **Auto Summary**.
 
+Typing `/auto-summary on` or `/auto-summary off` in the chat box does the
+same for the open chat, and `/auto-summary` alone flips it.
+
 All existing old messages are processed in one visible, sequentially numbered
 catch-up run as soon as Auto Summary is enabled. Sending a new message may wait
 for an active update so that no old history is skipped.

@@ -10,6 +10,7 @@ import { activatePreset, flushLLMSettingsSave } from './llm-settings.js';
 import { selectSystemPrompt } from './system-prompts.js';
 import { selectPersona } from './personas.js';
 import { selectCharacter } from './characters.js';
+import { summarizerConfigured } from './summaries.js';
 
 const COMMANDS = [
     { name: '/retry',  description: 'Regenerate the last assistant message', run: retryLastAssistant },
@@ -22,6 +23,7 @@ const COMMANDS = [
     { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
     { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
     { name: '/context', description: 'Set max context tokens: /context <tokens>', run: setContextTokens },
+    { name: '/auto-summary', description: 'Turn auto summaries on or off: /auto-summary [on|off]', run: setAutoSummary },
     { name: '/prompt', description: 'Switch prompt preset: /prompt <name> [version]', run: switchPromptPreset },
     { name: '/api',    description: 'Switch API preset: /api <name>', run: switchApiPreset },
     { name: '/persona', description: 'Switch persona: /persona <name>', run: switchPersona },
@@ -34,6 +36,7 @@ const NAME_SOURCES = {
     '/api':     { list: () => state.apiPresets, run: switchApiPreset, description: 'Switch API preset' },
     '/persona': { list: () => state.personas, run: switchPersona, description: 'Switch persona' },
     '/char':    { list: availableCharacters, run: switchCharacter, description: 'Switch character' },
+    '/auto-summary': { list: () => [{ name: 'on' }, { name: 'off' }], run: setAutoSummary, description: 'Auto summaries for this chat' },
 };
 
 let menuEl = null;
@@ -303,6 +306,25 @@ async function setContextTokens(args) {
         return showToast(`Max context: ${contextLabel(tokens)}. This may exceed the model's window (~${modelWindow.toLocaleString()}).`);
     }
     showToast(`Max context: ${contextLabel(tokens)}`, 'success');
+}
+
+/**
+ * Flip the memory flyout's per-chat toggle and let its change handler do the
+ * rest, backfill included. With no argument it toggles, as /meter does.
+ */
+function setAutoSummary(args) {
+    const chat = state.activeChat;
+    if (!chat) return showToast('Select a chat first');
+    const word = String(args).trim().toLowerCase();
+    if (word && word !== 'on' && word !== 'off') return showToast('Use /auto-summary on or /auto-summary off');
+    const on = word ? word === 'on' : !chat.summary_enabled;
+    if (on === !!chat.summary_enabled) return showToast(`Auto summaries are already ${word} for this chat`);
+    el.summaryToggle.checked = on;
+    el.summaryToggle.dispatchEvent(new Event('change'));
+    if (on && !summarizerConfigured()) {
+        return showToast('Auto summaries on for this chat, but no summarizer is set up yet: see Settings → Auto Summaries');
+    }
+    showToast(`Auto summaries ${on ? 'on' : 'off'} for this chat`, 'success');
 }
 
 /** Keep the not-found toast readable no matter how many presets exist. */

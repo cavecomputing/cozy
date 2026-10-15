@@ -71,7 +71,7 @@ export function summaryToText(obj) {
 }
 
 // ── Config helpers ──────────────────────────────────────────────────────────
-function summarizerConfigured() {
+export function summarizerConfigured() {
     // The main endpoint lives in the settings input rather than state. Each
     // blank dedicated field falls back independently on the server.
     const ep = state.summaryApiEndpoint || el.apiEndpoint?.value;
