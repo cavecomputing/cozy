@@ -1452,18 +1452,29 @@ function bindScrollHandlers() {
             && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
     }, { passive: true });
 
-    // Reaching the bottom starts the follow and moving up ends it. Nothing
-    // else does: a reply that grows past the fold between a draw and this
-    // event, or a browser that settles its own scroll late, leaves the view
-    // short of the bottom without the reader having asked to stop. A move up
-    // that ends flush with the bottom is the view clamping to content that
-    // shrank, not the reader.
+    // The keys that scroll the transcript up are the reader's too, as is a
+    // mouse held on it (dragging its scrollbar, or a selection that scrolls).
+    document.addEventListener('keydown', e => {
+        if (['PageUp', 'ArrowUp', 'Home'].includes(e.key)
+            && !e.target.closest('input, textarea, select, [contenteditable]')
+            && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
+    });
+    let mouseHeld = false;
+    el.chatHistory.addEventListener('pointerdown', e => { mouseHeld = e.pointerType === 'mouse'; });
+    window.addEventListener('pointerup', () => { mouseHeld = false; });
+
+    // Reaching the bottom starts the follow. Moving up ends it only while the
+    // mouse is held: every other way the reader scrolls up is caught above,
+    // and the browser moves this view on its own too. Safari does it more than
+    // most (scroll anchoring, a fling carrying on past a scrollTop write, a
+    // scroll event reporting a stale height), and a scroll event can't tell
+    // any of that from the reader.
     let lastScrollTop = el.chatHistory.scrollTop;
     el.chatHistory.addEventListener('scroll', () => {
         const { scrollTop, scrollHeight, clientHeight } = el.chatHistory;
         const fromBottom = scrollHeight - scrollTop - clientHeight;
         const atBottom = fromBottom < 60;
-        if (scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
+        if (mouseHeld && scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
         else if (atBottom) state.autoScroll = true;
         lastScrollTop = scrollTop;
         el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
