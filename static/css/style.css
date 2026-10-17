@@ -1427,6 +1427,10 @@ select.settings-select:focus-visible {
     scroll-padding-block: var(--chat-fade);
     mask-image: linear-gradient(to bottom, transparent, #000 var(--chat-fade),
                                 #000 calc(100% - var(--chat-fade)), transparent);
+    /* The scripts place this view themselves: following a reply, jumping on
+       send, holding still as older pages draw in. The browser's own scroll
+       anchoring (new in Safari 27) moves it as well and pulls it back up. */
+    overflow-anchor: none;
 }
 
 /* The composer below sits outside this scroller, so a scrollbar here would
