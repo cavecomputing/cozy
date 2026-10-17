@@ -28,6 +28,7 @@ const COMMANDS = [
     { name: '/api',    description: 'Switch API preset: /api <name>', run: switchApiPreset },
     { name: '/persona', description: 'Switch persona: /persona <name>', run: switchPersona },
     { name: '/char',   description: 'Switch character: /char <name>', run: switchCharacter },
+    { name: '/settings', description: 'Open settings: /settings [page]', run: openSettingsPage },
 ];
 
 // The commands that take a name, and where the menu finds the names to offer.
@@ -37,6 +38,7 @@ const NAME_SOURCES = {
     '/persona': { list: () => state.personas, run: switchPersona, description: 'Switch persona' },
     '/char':    { list: availableCharacters, run: switchCharacter, description: 'Switch character' },
     '/auto-summary': { list: () => [{ name: 'on' }, { name: 'off' }], run: setAutoSummary, description: 'Auto summaries for this chat' },
+    '/settings': { list: settingsPages, run: openSettingsPage, description: 'Open settings' },
 };
 
 let menuEl = null;
@@ -394,4 +396,25 @@ async function switchCharacter(args) {
     // Re-selecting reloads the chat and would cut off a reply mid-stream.
     if (preset.id === state.activeCharacter?.id) return showToast(`Already chatting with ${preset.name}`);
     await selectCharacter(preset.id);
+}
+
+/** The settings nav's own pages, minus Regex while advanced configuration hides it. */
+function settingsPages() {
+    return [...el.settingsNav.querySelectorAll('.settings-nav-item:not([hidden])')]
+        .map(button => ({ name: button.querySelector('span').textContent, button }));
+}
+
+/**
+ * Open Settings, then click the named page's nav item so it opens exactly as
+ * a tap would, drilling into the page on phones.
+ */
+function openSettingsPage(args) {
+    const typed = String(args).trim();
+    const { preset: page, candidates } = matchPresetByName(settingsPages(), typed);
+    if (typed && !page) return showToast(`No settings page matches "${typed}". Pages: ${candidates.join(', ')}`);
+    // Opening restores the saved page once settings load, Regex included,
+    // which would land on top of this one unless it is the saved page.
+    if (page) state.settingsSection = page.button.dataset.section;
+    if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
+    page?.button.click();
 }
