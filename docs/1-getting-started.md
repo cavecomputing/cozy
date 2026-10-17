@@ -218,7 +218,7 @@ you want.
   and **←** and **→** step through the latest reply's swipes. **→** on its
   last swipe asks for a new one, as the button does.
 - **`/` to type** — pressed anywhere outside a text box, **/** jumps to the
-  chat box. An empty box starts a slash command; a draft is left as it was.
+  chat box, ready to type. The slash itself isn't typed.
 - **Branches** — the branching-arrows button on a reply forks the chat there:
   everything up to that reply is copied into a new chat, which opens. Both
   chats then carry a small pill under that reply, such as **2/2**. Click it to

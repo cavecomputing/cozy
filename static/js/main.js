@@ -1384,18 +1384,14 @@ function bindComposerHandlers() {
             handleSend();
         }
     });
-    // `/` from anywhere outside a text box goes to the chat box. An empty box
-    // gets the `/` too, so the command menu opens; a draft is left as it was.
+    // `/` from anywhere outside a text box goes to the chat box, without
+    // typing the slash itself.
     document.addEventListener('keydown', e => {
         if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented
             || e.target.closest('input, textarea, select, [contenteditable]')
             || el.userInput.disabled || panelOpen() || confirmOpen()) return;
         e.preventDefault();
         el.userInput.focus();
-        if (!el.userInput.value) {
-            el.userInput.value = '/';
-            el.userInput.dispatchEvent(new Event('input'));
-        }
     });
     // The draft counts toward the window while the meter shows, so typing moves
     // both views. It does not need letter-level latency, hence the shared
