@@ -80,7 +80,6 @@
     /* Semantic roles over the palette each theme already declares, so themes
        need no edit and a user theme keeps working. Components name the job
        (a sunken surface, a quiet line) rather than the palette entry. */
-    --surface-page:     var(--app-bg);
     --surface-panel:    var(--bg-color);
     --surface-raised:   var(--char-msg-bg);
     --surface-sunken:   var(--input-bg);
@@ -5947,9 +5946,8 @@ input[type="checkbox"]:checked::after {
         transform: translateY(100%);
     }
 
-    /* The desktop .lorebook-flyout / .memory-flyout sizing rules are declared
-       later in the file — re-assert the sheet geometry with higher specificity. */
-    .chat-flyout.lorebook-flyout,
+    /* The desktop .memory-flyout sizing rules are declared later in the
+       file — re-assert the sheet geometry with higher specificity. */
     .chat-flyout.memory-flyout {
         left: var(--frame-left);
         min-width: 0;
@@ -6054,13 +6052,7 @@ input[type="checkbox"]:checked::after {
 
 /* ── Lorebooks ──────────────────────────────────────────────────────────── */
 
-/* Active-lorebook flyout (next to composer) */
-.lorebook-flyout {
-    left: -1px;
-    min-width: 240px;
-    max-width: 380px;
-    max-height: 320px;
-}
+/* The lorebook picker inside the Memory flyout */
 .lorebook-flyout-select {
     font-size: var(--text-lg);
 }
