@@ -31,7 +31,6 @@ from cozy.summarizer import (
     section_cap,
     section_to_text,
     strip_thinking_content,
-    summary_to_text,
     token_batches,
 )
 
@@ -57,7 +56,7 @@ def test_parse_summary_roundtrip():
     sections = [l['section'] for l in obj['lines']]
     assert sections == ['story', 'story', 'bonds']
     # Rendering back produces both headings and all three bullets.
-    rendered = summary_to_text(obj)
+    rendered = section_to_text(obj, 'story') + '\n\n' + section_to_text(obj, 'bonds')
     assert 'STORY SO FAR' in rendered and 'BONDS' in rendered
     assert rendered.count('\n- ') + rendered.count('- ', 0, 20) >= 1
     assert len([l for l in rendered.splitlines() if l.startswith('- ')]) == 3
@@ -370,7 +369,7 @@ def test_append_summary_accumulates_and_merges_bonds_by_relationship():
     bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
     assert story == ['S1', 'S2']              # accumulates, no duplicate
     assert bonds == ['A & B: firm allies']    # same relationship, updated in place
-    # Story block precedes bonds block (matches summary_to_text ordering).
+    # Story block precedes bonds block, the order the prompt renders them in.
     sections = [l['section'] for l in out['lines']]
     assert sections == ['story', 'story', 'bonds']
     # Inputs are not mutated.
@@ -590,8 +589,9 @@ def test_parse_summarizer_output_strips_reasoning_block():
         '<think>private chain of thought</think>\n'
         'STORY SO FAR\n- visible event\n\nBONDS\n- A & B: allies'
     )
-    assert 'private chain of thought' not in summary_to_text(obj)
-    assert 'visible event' in summary_to_text(obj)
+    texts = [line['text'] for line in obj['lines']]
+    assert not any('private chain of thought' in text for text in texts)
+    assert 'visible event' in texts
 
 
 def test_strip_thinking_content_handles_multiple_and_incomplete_blocks():
@@ -1025,7 +1025,7 @@ def test_append_mode_accumulates_story_across_batches(client, sample_chat, monke
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()
-    story = summary_to_text(parse_summary_json(row['summary_json']))
+    story = section_to_text(parse_summary_json(row['summary_json']), 'story')
     assert 'S1 happened' in story and 'S2 happened' in story  # additive, both kept
     # Both batches used the additive builder while under cap.
     assert len(calls) == 2
@@ -1126,7 +1126,7 @@ def test_full_summary_sheds_its_oldest_entry(client, sample_chat, monkeypatch):
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()
-    stored = summary_to_text(parse_summary_json(row['summary_json']))
+    stored = section_to_text(parse_summary_json(row['summary_json']), 'story')
     assert 'OLDEST' not in stored      # rolled off
     assert 'NEWEST' in stored          # the recent past survives
 
@@ -1835,7 +1835,7 @@ def test_generic_chat_patch_cannot_overwrite_interleaved_worker_publish(
         ).fetchone()
     assert row['name'] == 'Renamed safely'
     assert row['summary_up_to_msg_id'] == message_id
-    assert 'Something happened.' in summary_to_text(parse_summary_json(row['summary_json']))
+    assert 'Something happened.' in section_to_text(parse_summary_json(row['summary_json']), 'story')
 
 
 def test_update_chat_ignores_client_watermark(client, sample_chat):

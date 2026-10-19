@@ -397,28 +397,16 @@ def section_lines(obj, section):
 def section_to_text(obj, section):
     """Render a single section with its heading, or '' when the section is empty.
 
-    Each section is measured and budgeted on its own, so the heading is included here
-    rather than only in the combined render — a section's real cost against its own cap
-    includes the heading that has to travel with it.
+    Each section is measured and budgeted on its own, so the heading is included here:
+    a section's real cost against its own cap includes the heading that has to travel
+    with it. This render also feeds the summary back to the summarizer, so the headings
+    must stay exactly as ``_norm_heading`` matches them.
     """
     lines = section_lines(obj, section)
     if not lines:
         return ''
     heading = BONDS_HEADING if section == 'bonds' else STORY_HEADING
     return '\n'.join([heading] + [f"- {line['text']}" for line in lines])
-
-
-def summary_to_text(obj):
-    """Render a summary object back to bare ``STORY SO FAR`` / ``BONDS`` text.
-
-    This render feeds the previous summary into the next fold-in and is what the chat
-    prompt measures, so the headings must stay exactly as ``_norm_heading`` matches them.
-    The frontend's ``summaryToText`` renders the *chat* prompt and deliberately annotates
-    the story heading with its ordering; keep these two in step on structure, not on that
-    wording.
-    """
-    blocks = [section_to_text(obj, 'story'), section_to_text(obj, 'bonds')]
-    return '\n\n'.join(block for block in blocks if block)
 
 
 def section_cap(cap_tokens, section):

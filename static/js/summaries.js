@@ -42,7 +42,7 @@ function summariesActive(chat = state.activeChat) {
 }
 
 // ── Rendering the summary object to text (for injection into the chat prompt) ──
-// Deliberately NOT a byte-for-byte mirror of summarizer.summary_to_text: this render is
+// Deliberately NOT a byte-for-byte mirror of summarizer.section_to_text: this render is
 // read by the roleplay model, so the story heading spells out that the beats are a
 // timeline rather than an unordered pile of facts. The Python renderer stays bare
 // because it feeds the summary back to the summarizer and is matched by _norm_heading.
