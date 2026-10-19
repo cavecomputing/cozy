@@ -1,9 +1,9 @@
 import { state, el } from './state.js';
 import { autoResize, showToast, Flyouts } from './utils.js';
-import { createNewChat, startChatRename, importChat } from './chats.js';
+import { createNewChat, startChatRename } from './chats.js';
 import { exportChat } from './export.js';
 import { clearDraft } from './drafts.js';
-import { regenerateLastAssistantMessage, handleSwipeAction } from './messages.js';
+import { regenerateLastAssistantMessage } from './messages.js';
 import { jumpToContextBoundary, setContextMeterVisible } from './context-meter.js';
 import { matchPresetByName, labelPresets } from './preset-match.js';
 import { activatePreset, flushLLMSettingsSave } from './llm-settings.js';
@@ -14,11 +14,8 @@ import { summarizerConfigured } from './summaries.js';
 
 const COMMANDS = [
     { name: '/retry',  description: 'Regenerate the last assistant message', run: retryLastAssistant },
-    { name: '/prev',   description: 'Show the previous swipe', run: () => swipeLast(true) },
-    { name: '/next',   description: 'Next swipe, or generate a new one', run: () => swipeLast(false) },
     { name: '/new',    description: 'Start a new chat for this character', run: newChat },
     { name: '/rename', description: 'Rename the current chat', run: renameCurrentChat },
-    { name: '/import', description: 'Import a chat from a file', run: importCurrentChat },
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
     { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
     { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
@@ -217,33 +214,6 @@ function retryLastAssistant() {
     regenerateLastAssistantMessage();
 }
 
-/**
- * Step the last character message through its swipes, greetings included —
- * cycling alternate greetings is the half the message arrows offer that
- * /retry (which always lands on a fresh generation) cannot reach.
- */
-function swipeLast(isPrev) {
-    if (!state.activeChat) return showToast('Select a chat first');
-    const last = [...state.messages].reverse().find(m => m.role === 'character');
-    const msgEl = last?.id
-        ? el.chatHistory.querySelector(`.message.character[data-msg-id="${last.id}"]`)
-        : null;
-    if (!msgEl) return showToast('No assistant message to swipe yet');
-
-    const swipes = JSON.parse(msgEl.dataset.swipes || '[]');
-    const idx = parseInt(msgEl.dataset.activeSwipeIndex || '0', 10);
-    // handleSwipeAction() no-ops at either end; from the composer there is no
-    // greyed-out arrow to explain why nothing moved.
-    if (isPrev && idx <= 0) return showToast('Already at the first swipe');
-    if (!isPrev && idx >= swipes.length - 1 && msgEl.dataset.isGreeting === 'true') {
-        return showToast('No more greetings');
-    }
-    if (!isPrev && idx >= swipes.length - 1 && last !== state.messages.at(-1)) {
-        return showToast('Your last message has no reply yet. Press Send to get one.');
-    }
-    handleSwipeAction(msgEl, isPrev);
-}
-
 async function newChat() {
     if (!state.activeCharacter) return showToast('Select a character first');
     await createNewChat(true, false);
@@ -263,11 +233,6 @@ function renameCurrentChat() {
     el.chatFlyoutBtn?.setAttribute('aria-expanded', 'true');
     const li = el.flyoutChatList?.querySelector(`.chat-item[data-chat-id="${state.activeChat.id}"]`);
     if (li) startChatRename(li, state.activeChat);
-}
-
-function importCurrentChat() {
-    if (!state.activeCharacter) return showToast('Select a character first');
-    importChat();
 }
 
 function jumpToContext() {
