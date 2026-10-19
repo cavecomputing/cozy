@@ -7,7 +7,6 @@ import { renderMessages } from './messages.js';
 import { createTagEditor, createGreetingEditor } from './field-editors.js';
 import { confirmDialog } from './confirm.js';
 import { updateContextViews } from './context-meter.js';
-import { validateCharacter } from './validate.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CHARACTER MODAL
@@ -169,34 +168,20 @@ function clearFieldErrors() {
 }
 
 /**
- * Put each message beside the control it belongs to and focus the first one.
- * The message stays until the field is fixed — an error that erases itself on
- * a timer is gone before a slow reader reaches it.
+ * Put the message beside the name field and focus it. The message stays until
+ * the field is fixed — an error that erases itself on a timer is gone before a
+ * slow reader reaches it.
  */
-function showFieldErrors(errors) {
+function showNameError(message) {
     clearFieldErrors();
-    let first = null;
-
-    for (const { field, message } of errors) {
-        const input = fields[field];
-        if (!input) continue;
-
-        const note = document.createElement('p');
-        note.className = 'field-error';
-        note.id = `${input.id}-error`;
-        note.textContent = message;
-        input.insertAdjacentElement('afterend', note);
-
-        input.setAttribute('aria-invalid', 'true');
-        input.setAttribute('aria-describedby', note.id);
-        first = first || input;
-    }
-
-    // Switch to the tab holding the first problem before focusing it, or the
-    // focus lands on a control the user cannot see.
-    const panel = first?.closest('.tab-panel');
-    if (panel) overlay.querySelector(`.tab-btn[data-tab="${panel.id.replace('tab-', '')}"]`)?.click();
-    first?.focus?.();
+    const note = document.createElement('p');
+    note.className = 'field-error';
+    note.id = `${fields.name.id}-error`;
+    note.textContent = message;
+    fields.name.insertAdjacentElement('afterend', note);
+    fields.name.setAttribute('aria-invalid', 'true');
+    fields.name.setAttribute('aria-describedby', note.id);
+    fields.name.focus();
 }
 
 function collect() {
@@ -300,9 +285,8 @@ async function applyCharUpdate(char, isNew) {
 async function save() {
     const data = collect();
     const isEditing = !!editingCharId;
-    const errors = validateCharacter({ name: data.name });
-    if (errors.length) {
-        showFieldErrors(errors);
+    if (!data.name) {
+        showNameError('Give the character a name.');
         return;
     }
     clearFieldErrors();
