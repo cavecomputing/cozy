@@ -503,12 +503,6 @@ class TestMessages:
         swipe = r.get_json()
         assert swipe['content'] == 'Alternative response'
 
-    def test_list_swipes_for_unknown_message_returns_404(self, client):
-        r = client.get('/api/messages/99999/swipes')
-
-        assert r.status_code == 404
-        assert r.get_json()['error'] == 'Message not found'
-
     def test_update_message(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
@@ -1024,8 +1018,10 @@ class TestMessageDelete:
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Alt 1'})
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Alt 2'})
         # Confirm swipes exist
-        swipes = client.get(f'/api/messages/{msg["id"]}/swipes').get_json()
-        assert len(swipes) >= 2
+        with shared.get_db() as conn:
+            assert conn.execute(
+                'SELECT COUNT(*) FROM message_swipes WHERE message_id=?', (msg['id'],)
+            ).fetchone()[0] >= 2
 
         r = client.delete(f'/api/messages/{msg["id"]}')
         assert r.status_code == 200

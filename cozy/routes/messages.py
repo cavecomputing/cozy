@@ -195,18 +195,6 @@ def add_message(chat_id):
 
 # ── Swipe routes ───────────────────────────────────────────────────────────
 
-@messages_bp.route('/api/messages/<int:msg_id>/swipes', methods=['GET'])
-def list_swipes(msg_id):
-    with get_db() as conn:
-        if not conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone():
-            return not_found('Message')
-        rows = conn.execute(
-            'SELECT id, content, created_at, edited_at FROM message_swipes WHERE message_id=? ORDER BY id ASC',
-            (msg_id,)
-        ).fetchall()
-        return jsonify([dict(r) for r in rows])
-
-
 @messages_bp.route('/api/messages/<int:msg_id>/swipes', methods=['POST'])
 def add_swipe(msg_id):
     with get_db() as conn:
