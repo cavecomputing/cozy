@@ -463,7 +463,11 @@ export function analyzeContext({
 
     const maxTokens = getContextTokenBudget();
     const responseTokens = getResponseTokenReserve();
-    let selected = candidates;
+    // Only a tail that fits the whole window can survive the trimming below,
+    // so the first, rough assembly needn't walk the rest of a long chat.
+    let selected = maxTokens > 0
+        ? selectContextMessages(candidates, { maxTokens, stripThinking: true })
+        : candidates;
     let assembled = assembleMessages(selected, { summaryText });
 
     if (maxTokens > 0 && candidates.length > 0) {

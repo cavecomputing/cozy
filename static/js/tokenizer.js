@@ -12,10 +12,31 @@ import { parseThinkingContent } from './thinking.js';
 
 const MESSAGE_OVERHEAD = 4; // ChatML-ish per-message framing tokens
 
+// Counts of recent texts. One analysis counts each message several times over,
+// and the next one, a keystroke later, counts the same messages again.
+const counted = new Map();
+
 export function estimateTextTokens(text) {
     if (!text) return 0;
     const s = String(text);
-    const words = s.trim().split(/\s+/).filter(Boolean).length;
+    let tokens = counted.get(s);
+    if (tokens === undefined) {
+        if (counted.size >= 5000) counted.clear();
+        tokens = countTokens(s);
+        counted.set(s, tokens);
+    }
+    return tokens;
+}
+
+function countTokens(s) {
+    let words = 0;
+    let inWord = false;
+    for (let i = 0; i < s.length; i += 1) {
+        const c = s.charCodeAt(i);
+        const space = c === 32 || (c >= 9 && c <= 13) || (c > 127 && /\s/.test(s[i]));
+        if (space) inWord = false;
+        else if (!inWord) { inWord = true; words += 1; }
+    }
     // Word-based estimate (~1.3 tokens/word for English) vs character-based
     // (~4 chars/token). Take the max — code and dense punctuation push the
     // char estimate up; ordinary prose tracks the word estimate.
