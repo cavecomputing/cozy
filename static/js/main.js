@@ -325,7 +325,9 @@ function openMobileSidebar() {
         main.inert = true;
         main.setAttribute('aria-hidden', 'true');
     }
-    el.mobileSidebarClose?.focus();
+    // Into the drawer, so the keyboard is there too. It has no button of its
+    // own to land on; a tap outside or a drag to the left closes it.
+    el.sidebar.focus({ preventScroll: true });
 }
 
 function bindResponsiveShellHandlers() {
@@ -487,7 +489,6 @@ function bindSidebarHandlers() {
     // Mobile sidebar
     el.mobileMenuBtn?.addEventListener('click', openMobileSidebar);
     el.mobileBackdrop?.addEventListener('click', closeMobileSidebar);
-    el.mobileSidebarClose?.addEventListener('click', closeMobileSidebar);
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && el.sidebar.classList.contains('mobile-open')) {
             closeMobileSidebar();
@@ -928,13 +929,9 @@ function bindCharacterHandlers() {
     // New character — the sidebar's "New character" row and the empty-state CTA
     el.newCharBtn?.addEventListener('click', () => openCharacterModal());
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
-    // The pencil beside the character heading the sidebar
-    el.editCharBtn.addEventListener('click', () => {
-        if (state.activeCharacter) openCharacterModal(state.activeCharacter);
-    });
 
-    // Character list — select / row menu / Archived section
-    el.charList.addEventListener('click', e => {
+    // Recent and the character list — select / row menu / Archived section
+    el.charList.parentElement.addEventListener('click', e => {
         if (e.target.closest('.char-archived-btn')) {
             toggleArchivedSection();
             return;
@@ -954,11 +951,7 @@ function bindCharacterHandlers() {
         }
     });
 
-    el.recentList.addEventListener('click', e => {
-        const item = e.target.closest('.recent-char');
-        if (item) selectCharacter(parseInt(item.dataset.charId, 10));
-    });
-    // Its times are relative, so they move on while the page sits open.
+    // Recent's times are relative, so they move on while the page sits open.
     setInterval(refreshRecentTimes, 60_000);
 
     // Row menu — acts on the row it was opened from
@@ -1002,7 +995,7 @@ function bindCharacterHandlers() {
     // a hidden button quietly drops focus out of the list.
     el.sidebar.addEventListener('keydown', e => {
         if (el.charRowMenu.hidden) return;
-        const trigger = el.charList.querySelector('.char-menu-btn[aria-expanded="true"]');
+        const trigger = el.sidebar.querySelector('.char-menu-btn[aria-expanded="true"]');
         const items = [...el.charRowMenu.querySelectorAll('li:not([hidden]) > button')];
         const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
         if (e.key === 'Escape') {

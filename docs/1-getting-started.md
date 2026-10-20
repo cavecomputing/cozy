@@ -75,12 +75,9 @@ What every setting means, and which servers support it:
 ## 3. Add a character
 
 A character is who you talk to. A new install includes one character, so
-you can start right away. You can keep her, change her, or delete her.
-The character you are chatting with heads the sidebar: click the pencil
-beside their name to edit them, and **Delete** is at the bottom of the
-editor. Every other character has **Edit** and **Delete** in the **⋯**
-menu beside their name in the list. A deleted character does not come
-back.
+you can start right away. You can keep her, change her, or delete her:
+**Edit** and **Delete** are in the **⋯** menu beside her name in the
+sidebar. A deleted character does not come back.
 
 To keep a character at the top of the list, choose **Pin** from the **⋯**
 menu; a star after the name marks them. To tidy the sidebar without
@@ -90,8 +87,8 @@ chats and all; click **Archived** to unfold it, and choose **Unarchive**
 to bring a character back.
 
 Once your library is longer than twelve characters, the five you last
-wrote to (other than the one you are chatting with) appear above the
-list, newest first, each with how long ago that was.
+wrote to move to the top of the sidebar, newest first, each with how long
+ago that was. The rest of the list follows under a thin line.
 
 ### Bring in a card from another site
 

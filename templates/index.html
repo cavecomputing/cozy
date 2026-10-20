@@ -61,38 +61,10 @@
     <div id="mobile-backdrop"></div>
     <!-- Backdrop behind mobile bottom sheets (chat / lorebook flyouts) -->
     <div id="sheet-backdrop"></div>
-    <aside id="sidebar">
-        <div class="sidebar-header panel-header">
-            <!-- Side zones hold the buttons shown at each width; the character
-                 takes the room between them. -->
-            <div class="sidebar-header-side sidebar-header-side--left">
-                <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <!-- The character on screen, filled by renderSidebarCharacter(), with
-                 its editor a click away. -->
-            <div class="sidebar-char" id="sidebar-char">
-                <div class="avatar sidebar-char-avatar" id="sidebar-char-avatar" hidden></div>
-                <div class="sidebar-char-text">
-                    <div class="sidebar-char-name" id="sidebar-char-name">Characters</div>
-                    <div class="sidebar-char-by" id="sidebar-char-by" hidden></div>
-                </div>
-            </div>
-            <div class="sidebar-header-side sidebar-header-side--right">
-                <button id="edit-char-btn" class="icon-btn" title="Edit Character" aria-label="Edit Character" hidden>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                </button>
-            </div>
-        </div>
-        <div class="panel-divider"></div>
-
+    <aside id="sidebar" tabindex="-1">
         <div class="sidebar-scrollable">
-            <!-- The last few characters you wrote to, other than the one on
-                 screen. Filled and shown by renderRecent() once the list is
+            <!-- The last few characters you wrote to, which then leave the list
+                 below. Filled and shown by renderCharList() once the list is
                  long; their times are the only label they need. -->
             <div id="recent-chars" class="recent-chars" hidden>
                 <ul class="recent-list" id="recent-list"></ul>

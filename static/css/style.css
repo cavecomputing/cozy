@@ -1163,7 +1163,7 @@ input[type="checkbox"]:checked::after {
    SIDEBAR
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Rail and header ─────────────────────────────────────────────────────── */
+/* ── Rail ────────────────────────────────────────────────────────────────── */
 #sidebar {
     position: relative;
     width: 240px;
@@ -1179,72 +1179,15 @@ input[type="checkbox"]:checked::after {
     transition: width var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Sidebar header: the "Characters" eyebrow reads from the left, lined up with
-   its hairline and the character cards under it, and takes the room between
-   the side zones — each zone only as wide as the buttons shown at this width. */
-.sidebar-header-side {
-    display: flex;
-    align-items: center;
-}
-
-/* The character on screen: avatar, name, and who made the card. Without one
-   it is the plain "Characters" title, so the name stays in the same place. */
-.sidebar-char {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-}
-
-.sidebar-char-avatar {
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--line);
-}
-
-.sidebar-char-text {
-    min-width: 0;
-    line-height: 1.3;
-}
-
-.sidebar-char-name {
-    font-size: var(--text-2xl);
-    font-weight: 650;
-    color: var(--fg);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sidebar-char-by {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* The design system's top bar: 56px with the divider under it, 16px in on the
-   left (the avatars below start on the same edge) and 12px on the right, with
-   36px buttons drawing 20px glyphs. */
-.sidebar-header {
-    height: 55px;
-    padding: 0 var(--space-4) 0 var(--space-5);
-}
-
-.sidebar-header .icon-btn {
-    width: 36px;
-    height: 36px;
-}
-
-:is(.sidebar-header, #main-content > header) .icon-btn svg {
+#main-content > header .icon-btn svg {
     width: 20px;
     height: 20px;
 }
 
-#sidebar > .panel-divider {
-    margin: 0 0.5rem;
+/* No header: the rail is the list, then the persona. Focused only so the
+   phone drawer has somewhere to put the keyboard when it opens. */
+#sidebar:focus {
+    outline: none;
 }
 
 .sidebar-scrollable {
@@ -1287,6 +1230,14 @@ input[type="checkbox"]:checked::after {
     }
 }
 
+/* The character on screen takes the selected fill and an accent name, flat on
+   the shell like every row in it. */
+.char-item.active {
+    background-color: var(--surface-selected);
+    color: var(--fg-accent);
+    font-weight: 600;
+}
+
 .char-item.missing {
     opacity: 0.45;
     pointer-events: auto;
@@ -1312,8 +1263,7 @@ input[type="checkbox"]:checked::after {
     text-align: left;
 }
 
-/* List and Recent rows share one size, so the two read as one list. */
-:is(.char-select-btn, .recent-char-btn) .avatar {
+.char-select-btn .avatar {
     width: 26px;
     height: 26px;
     border-radius: 6px;
@@ -1382,9 +1332,10 @@ input[type="checkbox"]:checked::after {
     height: 11px;
 }
 
-/* Archived rows are dimmed so they read as set aside — except a missing one,
+/* Archived rows are dimmed so they read as set aside — except the one on
+   screen, which stays as legible as any active row, and a missing one,
    which .char-item.missing already dims. */
-.char-item.archived:not(.missing) .char-select-btn {
+.char-item.archived:not(.active, .missing) .char-select-btn {
     opacity: 0.6;
 }
 
@@ -1471,7 +1422,8 @@ input[type="checkbox"]:checked::after {
 /* The last few characters you wrote to, at the top of the list and scrolling
    with it, so a short window (a phone on its side) still has room for the
    list. Rows like the list's, each with when you last wrote, which is all the
-   label the block has; a hairline ends it. */
+   label the block has; a hairline ends it, and the list under it leaves
+   these characters out. */
 .recent-chars {
     margin-bottom: 0.5rem;
 }
@@ -1481,40 +1433,8 @@ input[type="checkbox"]:checked::after {
     margin-bottom: 0.4rem;
 }
 
-.recent-char-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    width: 100%;
-    padding: 0.3rem 0.5rem;
-    border: 0;
-    border-radius: var(--radius);
-    background: none;
-    color: var(--fg-quiet);
-    cursor: pointer;
-    font-size: var(--text-xl);
-    font-weight: 500;
-    text-align: left;
-    transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
-}
-
-@media (hover: hover) {
-    .recent-char-btn:hover {
-        background-color: var(--surface-quiet);
-        color: var(--fg);
-    }
-}
-
-/* The name, then when you last wrote right-aligned beside it; a long name
-   gives way to the time. */
-.recent-label {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    flex: 1;
-    min-width: 0;
-}
-
+/* When you last wrote, right-aligned after the name; a long name gives way
+   to it. */
 .recent-time {
     flex: none;
     font-family: var(--font-sans);
@@ -6593,13 +6513,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     #mobile-backdrop.show { display: block; }
 
-    /* The phone top bar: 52px with its rule, and the first button's glyph on
-       the same 16px edge as the desktop label, not its 44px target's. */
-    .sidebar-header {
-        height: calc(var(--mobile-header-height) - 1px);
-        padding: 0 var(--space-4) 0 calc(var(--space-5) - (var(--mobile-tap-target) - 20px) / 2);
-    }
-
     /* The drawer's own pan-y (above) stops at the nearest scroller, which is
        this list, so it needs the same to leave a leftward drag to Cozy. */
     .sidebar-scrollable {
@@ -6612,12 +6525,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     .char-item,
-    .recent-char-btn,
     .new-char-row {
         font-size: var(--text-3xl);
     }
 
-    :is(.char-select-btn, .recent-char-btn) .avatar,
+    .char-select-btn .avatar,
     .new-char-icon {
         width: 32px;
         height: 32px;
@@ -6625,7 +6537,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     .char-select-btn,
-    .recent-char-btn,
     .new-char-row,
     .chat-select-btn,
     .persona-option {
