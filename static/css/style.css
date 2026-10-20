@@ -1219,10 +1219,6 @@ select.settings-select:focus-visible {
 }
 
 .pf-textarea {
-    font-size: var(--text-md);
-    min-height: 5.5rem;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
     margin-bottom: 0.4rem;
     resize: vertical;
 }
@@ -3070,9 +3066,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-style: italic;
     opacity: 0.75;
 }
-.prompt-description-input {
-    font-size: var(--text-md);
-}
 /* Scoped to the description and version rows on purpose: .form-input's own
    `width: 100%` weighs the same and sits further down the file, so a bare
    .prompt-version-input would lose the width and stretch across the row. */
@@ -3133,7 +3126,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .prompt-vars-panel {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
 }
 .prompt-vars-title {
     margin-bottom: var(--space-2);
@@ -3320,23 +3312,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         width: auto;
     }
     .prompt-section-controls,
-    .prompt-vars-panel,
     .prompt-basic-hint,
     .prompt-section-right {
         grid-column: auto;
         grid-row: auto;
-    }
-    .prompt-vars-panel {
-        max-height: 200px;
-    }
-    /* The editor card and the textarea both draw a same-coloured border a
-       few px apart, which reads as the field "bleeding" over the card edge
-       on narrow screens. Flush the textarea into the card so the card is the
-       only frame, with the text aligned to the tabs above it. */
-    .prompt-section-right .form-textarea {
-        border-color: transparent;
-        padding-left: 0;
-        padding-right: 0;
     }
     .prompt-section-right .form-textarea:focus {
         border-color: transparent;
@@ -3594,7 +3573,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: 0.55rem;
     margin-top: 0.55rem;
     padding: 0.55rem 0.6rem;
-    background-color: color-mix(in srgb, var(--bg-color) 76%, transparent);
     border-radius: var(--radius);
 }
 
@@ -4065,7 +4043,6 @@ input[type="checkbox"]:checked::after {
 }
 
 .settings-select {
-    padding-right: 2rem;
     appearance: none;
     -webkit-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -4141,10 +4118,6 @@ input[type="checkbox"]:checked::after {
     font-size: var(--text-md);
     color: var(--text-secondary);
     font-style: italic;
-}
-
-.settings-model-row .cozy-select {
-    flex: 1;
 }
 
 .settings-model-row .icon-btn {
@@ -5345,7 +5318,6 @@ input[type="checkbox"]:checked::after {
     }
 
     .btn {
-        min-height: var(--mobile-tap-target);
         justify-content: center;
     }
 
@@ -5479,7 +5451,6 @@ input[type="checkbox"]:checked::after {
     }
 
     .modal-header {
-        min-height: var(--mobile-header-height);
         height: auto;
     }
 
@@ -5982,6 +5953,9 @@ input[type="checkbox"]:checked::after {
     .chat-flyout .chat-select-btn,
     .lorebook-flyout-manage {
         min-height: var(--mobile-tap-target);
+    }
+
+    .chat-flyout .chat-select-btn {
         padding: 0.65rem 0.75rem;
     }
 
@@ -6010,12 +5984,6 @@ input[type="checkbox"]:checked::after {
         flex: 1 1 12rem;
     }
 
-    /* Selects (e.g. the API preset picker) take the full row so their
-       action icons wrap together onto one line instead of splitting. */
-    .settings-model-row .settings-select {
-        flex: 1 1 100%;
-    }
-
     .settings-row:has(input[type="checkbox"]) {
         min-height: 52px;
     }
@@ -6032,7 +6000,6 @@ input[type="checkbox"]:checked::after {
     }
 
     .tab-btn {
-        min-height: 44px;
         flex: 0 0 auto;
         padding: 0.45rem 0.8rem;
     }
@@ -6641,7 +6608,6 @@ input[type="checkbox"]:checked::after {
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     :is(.preset-select-row, .prompt-select-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { grid-column: 1 / -1; }
-    :is(.preset-select-row, .prompt-select-row) > .icon-btn,
     .prompt-select-row .export-dropdown > .icon-btn { width: 100%; }
     .sampler-slider { min-height: 44px; }
     /* Phone inputs are set at 16px, so the value needs the wider box to show
@@ -6700,7 +6666,7 @@ input[type="checkbox"]:checked::after {
     .prompt-section-body { align-items: stretch; }
 }
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
-    .lorebook-entry-toggle { min-height: 44px; white-space: normal; }
+    .lorebook-entry-toggle { white-space: normal; }
 }
 .regex-filters { gap: var(--space-4); padding-top: var(--space-3); }
 .regex-filter { gap: var(--space-4); padding: var(--space-4); }
@@ -6714,7 +6680,7 @@ input[type="checkbox"]:checked::after {
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     .regex-filter-header { flex-wrap: wrap; }
     .regex-filter-name { flex-basis: 100%; }
-    .regex-filter-flag { min-height: 44px; gap: var(--space-3); }
+    .regex-filter-flag { gap: var(--space-3); }
     .regex-filter-flags-label { flex-basis: 100%; }
     .regex-filter-display { flex-basis: 100%; margin-left: 0; }
     .regex-test-output { max-height: none; }
