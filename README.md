@@ -21,7 +21,7 @@ expects.
 
 <p align="center">
   <img src="assets/5.png" alt="Chat view on desktop" width="49%">
-  <img src="assets/6.png" alt="Character editor" width="49%">
+  <img src="assets/6.png" alt="API settings" width="49%">
 </p>
 
 > [!IMPORTANT]
