@@ -1005,6 +1005,7 @@ function bindCharacterHandlers() {
             closeCharMenu();
         } else if (step) {
             e.preventDefault();
+            el.charRowMenu.dataset.keyboard = '1';
             const at = items.indexOf(document.activeElement);
             const next = at === -1 ? (step > 0 ? 0 : items.length - 1) : (at + step + items.length) % items.length;
             items[next].focus();

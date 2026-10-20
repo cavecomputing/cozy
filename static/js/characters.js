@@ -117,7 +117,11 @@ export function noteChatActivity(charId, stamp) {
 export function closeCharMenu() {
     if (el.charRowMenu.hidden) return false;
     el.charRowMenu.hidden = true;
-    el.sidebar.querySelector('.char-menu-btn[aria-expanded="true"]')?.setAttribute('aria-expanded', 'false');
+    const trigger = el.sidebar.querySelector('.char-menu-btn[aria-expanded="true"]');
+    trigger?.setAttribute('aria-expanded', 'false');
+    // A menu opened by pointer let go of the ⋯ it focused, or the focused row
+    // would keep showing it after the pointer leaves.
+    if (!el.charRowMenu.dataset.keyboard && document.activeElement === trigger) trigger.blur();
     return true;
 }
 
@@ -137,6 +141,7 @@ export function toggleCharMenu(trigger, char, fromKeyboard = false) {
     menu.querySelector('[data-action="pin"] span').textContent = char.pinned ? 'Unpin' : 'Pin';
     menu.querySelector('[data-action="archive"] span').textContent = char.archived ? 'Unarchive' : 'Archive';
     menu.dataset.charId = char.id;
+    menu.dataset.keyboard = fromKeyboard ? '1' : '';
     menu.hidden = false;
     trigger.setAttribute('aria-expanded', 'true');
     // By pointer, focus stays on the ⋯: Safari doesn't focus a clicked button,

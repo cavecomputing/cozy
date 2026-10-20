@@ -1309,9 +1309,18 @@ input[type="checkbox"]:checked::after {
     color: var(--fg);
 }
 
+/* The row's own hover fill is the shared hover colour, so the ⋯ hovers and
+   presses a step darker to show against it. */
 .char-item-actions .char-menu-btn[aria-expanded="true"] {
     background-color: color-mix(in srgb, var(--text-color) 12%, transparent);
     color: var(--text-color);
+}
+
+@media (hover: hover) {
+    .char-item-actions .char-menu-btn:hover {
+        background-color: color-mix(in srgb, var(--text-color) 12%, transparent);
+        color: var(--text-color);
+    }
 }
 
 /* Small enough that its hover fill sits inside the row; .icon-btn's 32px
