@@ -1314,9 +1314,13 @@ input[type="checkbox"]:checked::after {
     color: var(--text-color);
 }
 
+/* Small enough that its hover fill sits inside the row; .icon-btn's 32px
+   floor would fill the row's whole height. */
 .char-item-actions .icon-btn {
     width: 22px;
     height: 22px;
+    min-width: 0;
+    min-height: 0;
 }
 
 /* The star after a pinned character's name. */
