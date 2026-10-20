@@ -4254,7 +4254,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-quiet);
     margin: 0;
     padding: var(--space-1) 0 var(--space-2);
-    margin-inline: 0;
     max-width: 68ch;
     line-height: 1.45;
 }
@@ -6461,10 +6460,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         min-width: 44px;
     }
 
-    :is(.form-input, .form-textarea, .cozy-select-trigger) { font-size: 16px; }
-
-    .form-input { min-height: 44px; }
-
     /* 26 + 9 + 9 = the 44px tap target, so this margin is not spacing. */
     input[type="checkbox"] {
         width: 44px;
@@ -6946,15 +6941,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         transform: translateY(100%);
     }
 
-    /* The desktop .memory-flyout sizing rules are declared later in the
-       file — re-assert the sheet geometry with higher specificity. */
-    .chat-flyout.memory-flyout {
-        left: var(--frame-left);
-        min-width: 0;
-        max-width: none;
-        max-height: min(60dvh, 440px);
-    }
-
     /* Drag-handle pill: pull the sheet down to dismiss it, or tap the
        backdrop. Its own element, so that a touch on it can be refused to the
        page's scrolling and the drag be Cozy's (bindDragToClose in main.js). */
@@ -7107,7 +7093,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .settings-nav {
         border-right: 0;
-        width: 100%;
         padding: var(--space-4) var(--space-5);
     }
 
@@ -7143,7 +7128,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .settings-section-body,
     .settings-section-stack,
     .prompt-section-body {
-        padding: 0.65rem var(--mobile-inline-padding);
+        padding-block: 0.65rem;
     }
 
     .settings-card {
@@ -7197,10 +7182,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .settings-model-row .form-input {
         flex: 1 1 12rem;
-    }
-
-    .settings-row:has(input[type="checkbox"]) {
-        min-height: 52px;
     }
 
     /* iOS shrinks the visual viewport for the keyboard without resizing the
@@ -7346,13 +7327,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         display: flex;
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .prompt-section-left {
-        flex-direction: column;
-        gap: 0.5rem;
-        width: auto;
-        display: contents;
     }
 
     .prompt-section-controls,
