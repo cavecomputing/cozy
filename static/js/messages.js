@@ -484,9 +484,11 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
 // scrolls up: building every message at once took seconds on long chats and
 // kept all of them in the DOM. state.messages still holds the whole chat, so
 // context, memory and the request never see the difference.
-const DRAW_PAGE = 100;
-// Older pages are smaller: each is built mid-scroll, where a hundred messages
-// held an older phone's main thread for the best part of half a second.
+// Pages stay small, since a hundred messages held an older phone's main thread
+// for the best part of half a second. The first only has to cover the screen,
+// and drawOlderNearTop() tops it up when short messages leave it shy; older
+// ones are built mid-scroll.
+const DRAW_PAGE = 40;
 const OLDER_PAGE = 40;
 // The state.messages array on screen, and the index of its oldest drawn entry.
 let drawnList = null;

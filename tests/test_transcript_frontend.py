@@ -156,12 +156,12 @@ def test_a_long_chat_draws_only_its_newest_page():
         renderMessages();
 
         const ids = drawnIds();
-        assert.equal(ids.length, 100);
-        assert.equal(ids[0], 151);
+        assert.equal(ids.length, 40);
+        assert.equal(ids[0], 211);
         assert.equal(ids.at(-1), 250);
         // Opened at the newest message, with well over a screen of history above.
         assert.equal(scroller.scrollTop, scroller.scrollHeight - scroller.clientHeight);
-        // Message 151 opens the drawn page but not the chat, so it is no greeting.
+        // Message 211 opens the drawn page but not the chat, so it is no greeting.
         assert.equal(scroller.querySelector('.message').dataset.isGreeting, undefined);
     """)
 
@@ -173,12 +173,12 @@ def test_scrolling_up_draws_older_pages_without_moving_the_view():
 
         // The reader scrolls to within a screen of the top.
         scroller.scrollTop = 120;
-        const reading = scroller.querySelector('.message[data-msg-id="152"]');
+        const reading = scroller.querySelector('.message[data-msg-id="212"]');
         const before = reading.getBoundingClientRect().top;
         drawOlderNearTop();
 
-        assert.deepEqual(drawnIds().slice(0, 2), [111, 112]);
-        assert.equal(drawnIds().length, 140);
+        assert.deepEqual(drawnIds().slice(0, 2), [171, 172]);
+        assert.equal(drawnIds().length, 80);
         assert.equal(reading.getBoundingClientRect().top, before, 'the view must hold still');
 
         // Older pages are forty at a time, and the last is short.
@@ -186,7 +186,7 @@ def test_scrolling_up_draws_older_pages_without_moving_the_view():
         for (let drawn = drawnIds().length; drawOlderMessages(); drawn = drawnIds().length) {
             pages.push(drawnIds().length - drawn);
         }
-        assert.deepEqual(pages, [40, 40, 30]);
+        assert.deepEqual(pages, [40, 40, 40, 40, 10]);
         assert.equal(scroller.querySelector('.message').dataset.isGreeting, 'true');
     """)
 
@@ -194,10 +194,10 @@ def test_scrolling_up_draws_older_pages_without_moving_the_view():
 def test_a_short_newest_page_keeps_drawing_until_it_can_scroll():
     """A transcript that cannot scroll never fires the scroll that asks for more."""
     run_node_module(TRANSCRIPT_SETUP + r"""
-        scroller.clientHeight = 8000;   // taller than a page of 100 messages
+        scroller.clientHeight = 8000;   // taller than a page of 40 messages
         state.messages = chatOf(250);
         renderMessages();
-        assert.ok(drawnIds().length > 100);
+        assert.ok(drawnIds().length > 40);
         assert.ok(scroller.scrollTop >= scroller.clientHeight || drawnIds().length === 250);
     """)
 
@@ -209,7 +209,7 @@ def test_a_switched_chat_draws_nothing_older_of_the_old_one():
         renderMessages();
         state.messages = chatOf(300);
         assert.equal(drawOlderMessages(), false);
-        assert.equal(drawnIds().length, 100);
+        assert.equal(drawnIds().length, 40);
     """)
 
 
@@ -217,19 +217,19 @@ def test_separator_waits_for_its_message_to_be_drawn():
     """A window reaching past the drawn pages used to put the separator on the
     first drawn message, claiming everything above it was out of context."""
     run_node_module(TRANSCRIPT_SETUP + r"""
-        el.settingsContextTokens.value = '3600';
+        el.settingsContextTokens.value = '2200';
         state.messages = chatOf(250);
         renderMessages();
 
         const first = getCurrentContextAnalysis().firstSelectedMessageId;
-        assert.ok(first < 151, `the window should reach past the drawn page, starts at ${first}`);
-        assert.ok(first > 110, `and stop inside the next page, starts at ${first}`);
+        assert.ok(first < 211, `the window should reach past the drawn page, starts at ${first}`);
+        assert.ok(first > 170, `and stop inside the next page, starts at ${first}`);
         assert.equal(scroller.querySelector('.context-boundary'), null);
 
         // The separator lands in the page drawn above the view, and must not
         // push what the reader is looking at down by its own height.
         scroller.scrollTop = 0;
-        const reading = scroller.querySelector('.message[data-msg-id="151"]');
+        const reading = scroller.querySelector('.message[data-msg-id="211"]');
         const before = reading.getBoundingClientRect().top;
         drawOlderNearTop();
         assert.equal(boundaryBefore(), first);
