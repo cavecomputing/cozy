@@ -774,6 +774,28 @@ class TestArchive:
         assert r.status_code == 404
 
 
+# ── Recent ─────────────────────────────────────────────────────────────────
+
+class TestLastChatAt:
+    def _last_chat_at(self, client, char_id):
+        listing = client.get('/api/characters').get_json()
+        return next(c for c in listing if c['id'] == char_id)['last_chat_at']
+
+    def test_none_until_you_write(self, client, sample_character, sample_chat):
+        # A greeting is saved when a character is opened; that isn't chatting.
+        client.post(f'/api/chats/{sample_chat["id"]}/messages',
+                    json={'role': 'character', 'content': 'Hello.'})
+        assert self._last_chat_at(client, sample_character['id']) is None
+
+    def test_your_newest_message_across_chats(self, client, sample_character, sample_chat):
+        char_id = sample_character['id']
+        other = client.post(f'/api/characters/{char_id}/chats', json={}).get_json()
+        client.post(f'/api/chats/{sample_chat["id"]}/messages', json={'role': 'user', 'content': 'a'})
+        newest = client.post(f'/api/chats/{other["id"]}/messages',
+                             json={'role': 'user', 'content': 'b'}).get_json()
+        assert self._last_chat_at(client, char_id) == newest['created_at']
+
+
 class TestRetiredCharacterOrganization:
     def test_character_responses_omit_retired_fields(self, client, sample_character):
         character = client.get(f'/api/characters/{sample_character["id"]}').get_json()

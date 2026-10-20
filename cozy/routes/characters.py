@@ -148,6 +148,14 @@ def list_characters():
         rows = conn.execute(
             'SELECT * FROM characters ORDER BY created_at ASC'
         ).fetchall()
+        # When each character was last written to, for the sidebar's Recent.
+        # Your own messages only: opening a character saves its greeting, and
+        # looking at someone is not chatting with them.
+        last_chat_at = dict(conn.execute(
+            'SELECT c.character_id, MAX(m.created_at) FROM messages m '
+            "JOIN chats c ON c.id = m.chat_id WHERE m.role = 'user' "
+            'GROUP BY c.character_id'
+        ).fetchall())
         result = []
         for row in rows:
             if row['missing']:
@@ -157,6 +165,7 @@ def list_characters():
                     os.path.join(shared.CHARACTERS_DIR, row['filename'])
                 )
                 result.append(_char_to_dict(row, card))
+            result[-1]['last_chat_at'] = last_chat_at.get(row['id'])
         return jsonify(result)
 
 

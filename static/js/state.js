@@ -69,6 +69,8 @@ export function initElements() {
     Object.assign(el, {
         sidebar:         document.getElementById('sidebar'),
         charList:        document.getElementById('char-list'),
+        recentChars:     document.getElementById('recent-chars'),
+        recentList:      document.getElementById('recent-list'),
         charRowMenu:     document.getElementById('char-row-menu'),
         chatFlyout:      document.getElementById('chat-flyout'),
         chatFlyoutBtn:   document.getElementById('chat-flyout-btn'),

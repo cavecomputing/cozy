@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
-import { applyAvatar, AVATAR, compareCharacters, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY } from './utils.js';
+import { applyAvatar, AVATAR, compareCharacters, recentCharacters, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages, flushEdit } from './messages.js';
 import { forgetCharacterLorebook } from './lorebooks.js';
@@ -13,6 +13,11 @@ import { forgetCharacterLorebook } from './lorebooks.js';
 // Whether the Archived section is unfolded. Not saved: it starts folded on
 // every load and unfolds by itself when the character on screen is archived.
 let archivedOpen = false;
+
+// Character id → when you last wrote to them, for the Recent block. Kept apart
+// from state.characters, whose rows the pin, archive and edit responses replace
+// with ones that don't carry it.
+const lastChatAt = new Map();
 
 export function renderCharList() {
     // The one place the list is ordered. Sorting state in place keeps its order
@@ -28,6 +33,7 @@ export function renderCharList() {
             <button type="button" class="btn btn-secondary btn-sm char-list-create-btn">Create Character</button>
         `;
         el.charList.appendChild(li);
+        renderRecent();
         return;
     }
     // Archived characters sort last, so the first one is where their section starts.
@@ -85,6 +91,38 @@ export function renderCharList() {
         li.append(selectBtn, actions);
         el.charList.appendChild(li);
     });
+    renderRecent();
+}
+
+/** Fill the Recent block above the list, or hide it when it has no rows. */
+function renderRecent() {
+    const recent = recentCharacters(state.characters, lastChatAt);
+    el.recentChars.hidden = recent.length === 0;
+    el.recentList.innerHTML = '';
+    recent.forEach(char => {
+        const li = document.createElement('li');
+        li.className = `recent-char${char.id === state.activeCharacter?.id ? ' active' : ''}`;
+        li.dataset.charId = char.id;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'recent-char-btn';
+        btn.setAttribute('aria-label', `Select ${char.name}`);
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'avatar';
+        applyAvatar(avatarDiv, char, '?', AVATAR.SM);
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'char-name';
+        nameSpan.textContent = nameSpan.title = char.name;
+        btn.append(avatarDiv, nameSpan);
+        li.append(btn);
+        el.recentList.appendChild(li);
+    });
+}
+
+/** You just sent this character a message: move them to the top of Recent. */
+export function noteChatActivity(charId, stamp) {
+    lastChatAt.set(charId, stamp);
+    renderRecent();
 }
 
 /** Close the row menu. Returns true when it was open, so Escape knows to stop. */
@@ -179,6 +217,8 @@ function clearActiveCharacterState() {
 export async function loadCharacters() {
     try {
         state.characters = await API.getCharacters();
+        lastChatAt.clear();
+        state.characters.forEach(c => c.last_chat_at && lastChatAt.set(c.id, c.last_chat_at));
         renderCharList();
         const available = state.characters.filter(c => !c.missing);
         if (available.length === 0) {
@@ -225,6 +265,7 @@ export async function selectCharacter(charId) {
     const activeItem = document.querySelector(`.char-item[data-char-id="${charId}"]`);
     activeItem?.classList.add('active');
     activeItem?.querySelector('.char-select-btn')?.setAttribute('aria-current', 'true');
+    renderRecent();
 
     // Clear current chat view while chats load
     state.chats    = [];

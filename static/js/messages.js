@@ -10,6 +10,7 @@ import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
 } from './thinking.js';
 import { updateContextViews, updateContextBoundary, placeContextBoundary } from './context-meter.js';
+import { noteChatActivity } from './characters.js';
 import { generateResponse } from './request-builder.js';
 import { applyDisplayFilters, applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
@@ -649,6 +650,7 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
             const saved = await API.addMessage(chat.id, role, text, personaId);
             // The server bumped the chat's updated_at too; the chats list reads it.
             chat.updated_at = saved.created_at;
+            if (role === 'user') noteChatActivity(chat.character_id, saved.created_at);
             message.dataset.msgId = saved.id;
             state.messages.push({
                 role, text, id: saved.id, created_at: saved.created_at,

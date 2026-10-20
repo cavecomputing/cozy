@@ -968,6 +968,11 @@ function bindCharacterHandlers() {
         }
     });
 
+    el.recentList.addEventListener('click', e => {
+        const item = e.target.closest('.recent-char');
+        if (item) selectCharacter(parseInt(item.dataset.charId, 10));
+    });
+
     // Row menu — acts on the row it was opened from
     el.charRowMenu.addEventListener('click', e => {
         const action = e.target.closest('[data-action]')?.dataset.action;

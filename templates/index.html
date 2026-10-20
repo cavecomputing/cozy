@@ -92,6 +92,13 @@
         <div class="panel-divider"></div>
 
         <div class="sidebar-scrollable">
+            <!-- The last few characters you wrote to. Filled and shown by
+                 renderRecent() once the list is long. -->
+            <div id="recent-chars" class="recent-chars" hidden>
+                <h3 class="section-label">Recent</h3>
+                <ul class="recent-list" id="recent-list"></ul>
+                <div class="panel-divider"></div>
+            </div>
             <!-- Character list — populated by JS from API -->
             <ul class="char-list" id="char-list"></ul>
         </div>

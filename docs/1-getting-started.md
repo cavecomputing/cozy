@@ -84,6 +84,10 @@ same menu. The character moves into the folded **Archived** section at the
 bottom of the list, chats and all; click **Archived** to unfold it, and
 choose **Unarchive** to bring a character back.
 
+Once your library is longer than twelve characters, a small **Recent**
+block appears above the list with the five you last wrote to, newest
+first.
+
 ### Bring in a card from another site
 
 Cozy reads V2 character cards, the same format SillyTavern uses. A card is

@@ -1422,6 +1422,65 @@ input[type="checkbox"]:checked::after {
     justify-content: center;
 }
 
+/* ── Recent ──────────────────────────────────────────────────────────────── */
+/* The last few characters you wrote to, at the top of the list and scrolling
+   with it, so a short window (a phone on its side) still has room for the
+   list. Smaller rows than the list's, and a quiet eyebrow so it reads as a
+   shortcut under "Characters" rather than a second heading. */
+.recent-chars {
+    padding-top: 0.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.recent-chars .section-label {
+    padding: 0 0.5rem 0.35rem;
+    color: var(--fg-quiet);
+}
+
+.recent-list {
+    list-style: none;
+    margin-bottom: 0.4rem;
+}
+
+.recent-char-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--fg-quiet);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    text-align: left;
+    transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
+}
+
+.recent-char.active .recent-char-btn {
+    color: var(--fg-accent);
+}
+
+@media (hover: hover) {
+    .recent-char-btn:hover {
+        background-color: var(--surface-quiet);
+        color: var(--fg);
+    }
+}
+
+.recent-char-btn .avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    font-size: 0.55rem;
+}
+
+.recent-chars .panel-divider {
+    margin: 0;
+}
+
 /* ── Character row menu ──────────────────────────────────────────────────── */
 /* The character rows' ⋯ menu. toggleCharMenu() places it from the row that
    opened it and sets the corner it grows from. It outranks the settings and
@@ -6542,6 +6601,16 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .char-item {
         margin-bottom: 0.35rem;
+    }
+
+    .recent-char-btn {
+        padding: 0.45rem 0.5rem;
+        font-size: var(--text-lg);
+    }
+
+    .recent-char-btn .avatar {
+        width: 26px;
+        height: 26px;
     }
 
     .char-select-btn,

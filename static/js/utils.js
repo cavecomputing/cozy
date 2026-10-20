@@ -464,6 +464,20 @@ export function compareCharacters(a, b) {
 }
 
 /**
+ * The sidebar's Recent block: the five characters chatted with most lately,
+ * newest first, from a map of character id to when you last wrote to them.
+ * Empty while the list is short enough to see whole, where Recent would only
+ * repeat it. Archived and missing characters never appear.
+ */
+export function recentCharacters(chars, lastChatAt) {
+    const listed = chars.filter(c => !c.archived && !c.missing);
+    if (listed.length <= 12) return [];
+    return listed.filter(c => lastChatAt.has(c.id))
+        .sort((a, b) => lastChatAt.get(b.id).localeCompare(lastChatAt.get(a.id)))
+        .slice(0, 5);
+}
+
+/**
  * The chats that branch at one message, each with the message to land on: the
  * chat the forks were cut from, then the forks in list order. Empty when
  * nothing branches there. A message either is where this chat was itself cut
