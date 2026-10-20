@@ -833,6 +833,47 @@ class TestLLMProxy:
         assert '400' in body
         assert 'model not found: aion-2.0' in body
 
+    def test_wrong_key_reads_as_a_sentence(self, client, monkeypatch):
+        """A 401 names the likely fix and the provider's reason, not raw JSON."""
+        class Unauthorized:
+            encoding = 'utf-8'
+            ok = False
+            status_code = 401
+            reason = 'Unauthorized'
+            text = '{"error": {"message": "No auth credentials found", "code": 401}}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        monkeypatch.setattr(llm_module.http_requests, 'post',
+                            lambda *a, **kw: Unauthorized())
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://upstream.test/v1',
+            'api_model': 'test-model',
+        })
+        r = client.post('/api/llm/chat', json={
+            'model': 'test-model',
+            'messages': [{'role': 'user', 'content': 'hi'}],
+        })
+        error = json.loads(r.get_data(as_text=True).split('data: ', 1)[1])['error']
+        assert error == ('401 Unauthorized. The server turned down the API key. '
+                         'It said: No auth credentials found')
+
+    def test_status_error_wording(self):
+        url = 'http://upstream.test/v1/chat/completions'
+        not_found = llm_module._status_error(
+            404, 'Not Found', url, '{"error": "The model \'x\' does not exist"}')
+        assert f'Nothing found at {url}.' in not_found
+        assert not_found.endswith("It said: The model 'x' does not exist")
+        # An HTML error page is noise; a plain-text body is the reason itself.
+        assert llm_module._status_error(502, 'Bad Gateway', url, '<html>nginx</html>') \
+            == '502 Bad Gateway.'
+        assert llm_module._status_error(500, 'Server Error', url, 'out of memory') \
+            == '500 Server Error. It said: out of memory'
+
     def test_unreachable_server_is_named_rather_than_dumped(self, client):
         """A refused connection reads as a sentence, not urllib3's retry chain."""
         client.put('/api/settings', json={

@@ -14,14 +14,56 @@ log = logging.getLogger('cozy')
 llm_bp = Blueprint('llm', __name__)
 
 
+def _provider_message(body):
+    """The reason a provider gave in an error body, or '' when there is none.
+
+    OpenAI-style APIs nest it as {"error": {"message": ...}}; others use a bare
+    "error", "message" or "detail" string. A non-JSON body is passed through
+    unless it is an HTML error page, which reads as noise in a toast.
+    """
+    body = (body or '').strip()
+    try:
+        data = json.loads(body)
+    except ValueError:
+        return '' if body.startswith('<') else body[:300]
+    if not isinstance(data, dict):
+        return body[:300]
+    error = data.get('error')
+    if isinstance(error, dict):
+        error = error.get('message')
+    message = error or data.get('message') or data.get('detail')
+    return message.strip()[:300] if isinstance(message, str) else body[:300]
+
+
+def _status_error(status, reason, url, body):
+    """An HTTP error from the model server as the sentence a user sees.
+
+    The status a newcomer is most likely to meet gets the fix it usually
+    means; the provider's own reason follows, since it names the bad model
+    id or rejected parameter when there is one.
+    """
+    hint = {
+        401: 'The server turned down the API key.',
+        402: 'The provider says the account is out of credits.',
+        403: 'The server refused the request. Check the API key and that it may use this model.',
+        404: f'Nothing found at {url}. Check that the endpoint ends in /v1 and the model name is right.',
+        429: 'The server is rate limiting requests. Wait a moment, then retry.',
+    }.get(status)
+    message = f'{status} {reason}.'
+    if hint:
+        message += f' {hint}'
+    detail = _provider_message(body)
+    if detail:
+        message += f' It said: {detail}'
+    return message
+
+
 def _error_detail(e):
     """A RequestException as the message a user sees.
 
     A server that can't be reached at all gets a sentence naming the host
-    instead of urllib3's retry chain. Otherwise the upstream response body is
-    appended: providers put the actual reason for a 4xx (bad model id,
-    rejected parameter, …) there, and raise_for_status() alone reports only
-    the status line. Certificate and proxy failures keep their own wording,
+    instead of urllib3's retry chain, and an HTTP error status gets
+    _status_error(). Certificate and proxy failures keep their own wording,
     since "couldn't reach" would point at the wrong fix.
     """
     if isinstance(e, http_requests.ConnectionError) and not isinstance(
@@ -30,9 +72,8 @@ def _error_detail(e):
         return f"Couldn't reach {host}. Is the model server running?"
     resp = getattr(e, 'response', None)
     if resp is not None:
-        body = (resp.text or '').strip()
-        if body:
-            return f'{e} — {body[:500]}'
+        url = getattr(e.request, 'url', None) or resp.url
+        return _status_error(resp.status_code, resp.reason, url, resp.text)
     return str(e)
 
 
@@ -176,11 +217,9 @@ def llm_chat():
                     # complaint (bad model id, rejected parameter, …) lives
                     # there, and raise_for_status() discards it.
                     r.encoding = 'utf-8'
-                    detail = (r.text or '').strip()
-                    msg = f'{r.status_code} {r.reason} from {url}'
-                    if detail:
-                        msg += f' — {detail[:500]}'
-                    log.error('  LLM error: %s', msg)
+                    log.error('  LLM error: %s %s from %s — %s',
+                              r.status_code, r.reason, url, (r.text or '').strip()[:500])
+                    msg = _status_error(r.status_code, r.reason, url, r.text)
                     yield f'data: {json.dumps({"error": msg})}\n\n'
                     return
                 r.encoding = 'utf-8'

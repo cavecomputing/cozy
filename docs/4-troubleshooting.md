@@ -48,8 +48,16 @@ does not provide a model list.
 
 ## Connection test fails
 
-The error shown by Cozy normally contains the upstream server's response. Check
-the endpoint, key, and model name first.
+The error starts with the status the server answered, then what it usually
+means, then the server's own reason after "It said:":
+
+| Status | Usually means |
+|---|---|
+| 401 | The API key is wrong or missing. |
+| 402 | The provider account is out of credits. |
+| 403 | The key may not use this model, or the request was refused. |
+| 404 | The endpoint doesn't end in `/v1`, or the model name is wrong. |
+| 429 | Too many requests. Wait a moment, then retry. |
 
 If Cozy says it couldn't reach the server, nothing answered at that address.
 Check that the server is running and that the endpoint's host and port are
