@@ -46,6 +46,14 @@ export function renderMarkdown(targetEl, rawText, applyDisplay = false) {
 export const STREAM_FADE_MS = 400;
 
 /**
+ * How often a streaming reply is redrawn. Each draw re-parses the whole reply
+ * and lays its bubble out again, which is most of what streaming costs, so
+ * drawing every frame kept the main thread half busy; the fade carries the eye
+ * between draws.
+ */
+export const STREAM_DRAW_MS = 45;
+
+/**
  * Fade in the text each streaming draw adds. A draw rebuilds the whole bubble,
  * so the fade can't live on the nodes themselves: the fader remembers how far
  * the text reached at each draw and when, and wraps the stretches still fading
@@ -159,16 +167,23 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     let newContent;
     // Kept in step with the stream so a Stop can still salvage it.
     let streamed = '';
-    // Draw at most once per frame — see the same guard in send.js. Here the
-    // bubble survives the stream, so a queued draw must also be cancelled: it
-    // would otherwise repaint the unfiltered stream over the saved swipe.
+    // Draw at most once every STREAM_DRAW_MS — see the same guard in send.js.
+    // Here the bubble survives the stream, so a queued draw must also be
+    // cancelled: it would otherwise repaint the unfiltered stream over the
+    // saved swipe.
     let frame = 0;
+    let drawnAt = -Infinity;
     // Revealed toward what has arrived, at the pace send.js sets.
     let shown = 0;
     const fadeIn = createTextFader();
     const drawStreamed = () => {
+        if (performance.now() - drawnAt < STREAM_DRAW_MS) {
+            frame = requestAnimationFrame(drawStreamed);
+            return;
+        }
+        drawnAt = performance.now();
         frame = 0;
-        shown += Math.max(1, Math.ceil((streamed.length - shown) / 8));
+        shown += Math.max(1, Math.ceil((streamed.length - shown) / 3));
         const parsed = parseThinkingContent(streamed.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
         renderMarkdown(contentEl, parsed.response, true);

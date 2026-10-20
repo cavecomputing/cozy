@@ -3,7 +3,7 @@ import {
     autoResize, showToast, showApiNotice, scrollToBottom, maybeScrollToBottom,
     setSendButtonMode, updateComposerState, beginGeneration, endGeneration,
 } from './utils.js';
-import { appendMessage, renderMarkdown, createTextFader, STREAM_FADE_MS } from './messages.js';
+import { appendMessage, renderMarkdown, createTextFader, STREAM_FADE_MS, STREAM_DRAW_MS } from './messages.js';
 import { generateResponse } from './request-builder.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
@@ -96,20 +96,27 @@ async function sendOnce(text) {
     let streamed = '';
     let reply = null;
     let failed = false;
-    // Draw at most once per frame. A fast endpoint delivers several tokens per
-    // frame, and every draw re-parses the whole reply and then reads
-    // scrollHeight to scroll — a forced layout — so drawing per token costs
-    // time quadratic in the reply length. `streamed` is still assigned on every
-    // token: a Stop salvages that, not whatever happens to be on screen.
+    // Draw at most once every STREAM_DRAW_MS, on a frame. A fast endpoint
+    // delivers several tokens per frame, and every draw re-parses the whole
+    // reply and then reads scrollHeight to scroll — a forced layout — so
+    // drawing per token costs time quadratic in the reply length. `streamed`
+    // is still assigned on every token: a Stop salvages that, not whatever
+    // happens to be on screen.
     let frame = 0;
+    let drawnAt = -Infinity;
     // Reveal the reply toward what has arrived rather than all of it at once:
-    // each frame shows an eighth of the backlog, so the pace follows the stream,
+    // each draw shows a third of the backlog, so the pace follows the stream,
     // steady while tokens trickle and quicker when they burst.
     let shown = 0;
     const fadeIn = createTextFader();
     const drawStreamed = () => {
+        if (performance.now() - drawnAt < STREAM_DRAW_MS) {
+            frame = requestAnimationFrame(drawStreamed);
+            return;
+        }
+        drawnAt = performance.now();
         frame = 0;
-        shown += Math.max(1, Math.ceil((streamed.length - shown) / 8));
+        shown += Math.max(1, Math.ceil((streamed.length - shown) / 3));
         const parsed = parseThinkingContent(streamed.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
         renderMarkdown(contentEl, parsed.response, true);
