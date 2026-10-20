@@ -4,10 +4,10 @@ Cozy uses SQLite (`data/cozy_chat.db`) for chat history, user personas, settings
 
 ## Schema reference
 
-[schema reference](https://cavecomputing.github.io/cozy/10-database-schema.html) is the only copy of it: every
+The [schema reference](https://cavecomputing.github.io/cozy/10-database-schema.html) is the only copy of it: every
 table with its real `CREATE TABLE`, a map of the three cascading foreign keys,
 the indexes, the migration ledger, and the seeded settings. Open it in a
-browser. A schema change belongs in `db.html`, not here.
+browser. A schema change belongs in `10-database-schema.html`, not here.
 
 ## Seeded data
 

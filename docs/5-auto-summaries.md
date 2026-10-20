@@ -13,14 +13,16 @@ template has no slot for it.
 
 ## Configure
 
-Open **Settings → Auto Summaries**.
+Open **Settings → Summaries**.
 
 The summarizer can use the main LLM connection. Leave its endpoint, API key, or
 model blank to use the matching main connection value.
 
 Settings:
 
-- **Size cap:** Maximum summary size as a percentage of the context window.
+- **Size cap:** Maximum summary size as a percentage of the context window,
+  10% by default. It appears once **Show advanced configuration** is ticked in
+  **Settings → General**.
 
 Cozy does not summarize while everything still fits. Once the oldest message no
 longer fits, a normal background update summarizes one batch and drops those

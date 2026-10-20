@@ -84,7 +84,8 @@ ports:
   - "127.0.0.1:8080:5000"
 ```
 
-Restart Cozy, then open `http://localhost:8080`.
+Apply it with `docker compose -f docker/compose.yml up -d`, then open
+`http://localhost:8080`.
 
 To let other machines on your network connect, remove the `127.0.0.1:`
 part:
@@ -101,9 +102,11 @@ Cozy to a network you trust.
 
 ### File permissions on Linux
 
-Inside the container, Cozy saves files as user 1000 and group 1000. On
-Linux, if your account has different IDs, Cozy cannot write to `data/`
-and fails. Build the image with your own IDs instead:
+Inside the container, Cozy runs as user 1000 and group 1000, and takes
+ownership of `data/` each time it starts. On Linux, if your account has
+different IDs, the files in `data/` end up owned by user 1000 and your own
+account may not be able to change or back them up. Build the image with your
+own IDs instead:
 
 ```bash
 docker compose -f docker/compose.yml build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
@@ -116,8 +119,10 @@ Use this when you want to run Cozy directly, without Docker.
 
 ### What you need
 
-- Python 3.12 or newer. Check with `python3 --version`.
 - [uv](https://docs.astral.sh/uv/). Check with `uv --version`.
+
+You don't need Python installed yourself: the first `uv sync` downloads the
+version Cozy uses, which is pinned in `.python-version`.
 
 ### Install and start
 
@@ -129,8 +134,8 @@ uv run app.py
 `uv sync` downloads the libraries Cozy needs. `uv run app.py` starts Cozy.
 Then open <http://localhost:5000> in your browser.
 
-This runs Flask's development server. It restarts itself when program
-files change. It stops when you press `Ctrl+C` or close the terminal. For
+This runs Flask's development server. It stops when you press `Ctrl+C` or
+close the terminal. For
 something that stays running on its own, use the Docker setup above.
 
 ### Use a different address or port
@@ -221,10 +226,7 @@ uv run pytest
 ```
 
 Node.js must be installed and on `PATH` for the tests that check Cozy's
-frontend JavaScript — currently eleven files, covering the request
-builder, the regex engine and bundled regex presets, dialogue matching,
-avatars, summaries, thinking blocks, the send flow, stop-mid-reply
-handling, storage stats, and the context meter.
+frontend JavaScript: the `test_*_frontend.py` files and a few others.
 
 Without Node.js those tests are **skipped, not failed**. A run that
 reports success on a machine without Node.js has tested none of that

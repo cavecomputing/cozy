@@ -22,9 +22,11 @@ port mapping — see [Use a different port](2-advanced-setup.md#use-a-different-
 Python, pass `--port` — see
 [Use a different address or port](2-advanced-setup.md#use-a-different-address-or-port).
 
-## Docker cannot write to `data/`
+## Files in `data/` belong to the wrong user
 
-On Linux, rebuild the image with your UID and GID:
+Under Docker, Cozy takes ownership of `data/` as user 1000 when it starts. On
+Linux, if your account has different IDs, rebuild the image with your UID and
+GID:
 
 ```bash
 docker compose -f docker/compose.yml down
@@ -82,7 +84,8 @@ closing the streaming response.
 ## Replies arrive with text changed or missing
 
 A regex output filter rewrites each reply before it is saved, so a stray pattern
-can delete more than intended. Open **Settings → Regex** and check which preset
+can delete more than intended. Open **Settings → Regex** (tick **Show advanced
+configuration** in **Settings → General** first if the tab isn't there) and check which preset
 is selected; select **None** to switch filtering off. Filters change the stored
 message and cannot be undone.
 

@@ -16,8 +16,8 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
 
 1. Click **Settings** at the bottom left of the screen. A settings panel
    opens.
-2. Click **API** at the top of the settings panel.
-3. Click **+** to create a connection preset, then type a name for it and
+2. Click **API** in the list of sections on the left.
+3. Click **+ New** to create a connection preset, then type a name for it and
    confirm. A preset stores all the connection settings described below,
    so you can keep one preset per server and switch between them. A new
    preset starts as a copy of whatever is currently on the page.
@@ -187,7 +187,7 @@ you want.
 
 - **Prompt template** — **Settings → Prompt** holds the template that
   combines the character, your persona, lorebook entries, and chat history
-  into the text the AI receives. Cozy includes several ready-made presets.
+  into the text the AI receives. Cozy includes two ready-made presets, NanoBear and NanoBear Author.
   The eye icon on **Settings → API** shows exactly what will be sent. The
   pill beside a preset's name is its version, and two versions of the same
   preset can sit side by side once an update ships.
@@ -258,7 +258,8 @@ click it, or your change is lost.
   from the memory button next to the chat input.
 - Replies keep the same repeated formatting problem, such as wrong
   quotation marks → [Regex output filters](8-regex-output-filters.md). Nothing is filtered
-  until you select a preset under **Settings → Regex**.
+  until you select a preset under **Settings → Regex**. That tab appears once
+  **Show advanced configuration** is ticked in **Settings → General**.
 - You want background facts the AI uses only when relevant, such as
   places, history, or side characters → manage them under
   **Settings → Lorebooks**, and attach them from the memory button next

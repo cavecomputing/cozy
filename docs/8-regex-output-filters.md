@@ -51,12 +51,13 @@ at render time, and a display-only one never touches what is saved.
 
 ## Presets
 
-Open **Settings → Regex**. The dropdown at the top selects the active preset:
+Open **Settings → Regex**. The tab appears once **Show advanced configuration**
+is ticked in **Settings → General**. The dropdown at the top selects the active preset:
 
 - Select a preset to make its filters live.
 - Select **None** to switch filtering off. This is the only off switch — there
   is no per-filter enable toggle.
-- **+** creates an empty preset, and the trash icon deletes the selected one.
+- **+ New** creates an empty preset, and **Delete** deletes the selected one.
 
 Only one preset is active at a time. Deleting the active preset turns filtering
 off rather than falling back to another one.

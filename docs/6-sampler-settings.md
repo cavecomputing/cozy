@@ -17,6 +17,7 @@ Samplers → Active samplers**.
 | Setting | Default | Shown by default | What it changes |
 |---|---:|:---:|---|
 | Temperature | 1.0 | yes | Higher values add variation. Lower values are more predictable. |
+| Dynamic temperature | Range 0, Exponent 1.0 | no | Varies temperature during generation. A range of `0` disables it. |
 | Top-P | 0.95 | no | Limits choices to tokens inside a cumulative probability threshold. `1.0` disables the filter on most servers. |
 | Min-P | 0.05 | yes | Removes tokens that are too unlikely compared with the best token. `0` usually disables it. |
 | Top-K | 0 | no | Limits choices to the K most likely tokens. `0` usually disables it. |
@@ -34,7 +35,6 @@ Active samplers** to enable them.
 
 | Setting | Disabled value | Purpose |
 |---|---:|---|
-| Dynamic temperature | Range `0` | Adjusts temperature during generation. |
 | Top-N Sigma | `-1` | Filters low-scoring tokens using a sigma threshold. |
 | Presence penalty | `0` | Discourages tokens that appeared at least once. |
 | Frequency penalty | `0` | Discourages tokens based on how often they appeared. |
@@ -59,12 +59,13 @@ If a request fails after enabling a sampler:
    supported range.
 
 Backend-specific JSON can be added under **Settings → API → Extra request parameters**.
+That card appears once **Show advanced configuration** is ticked in
+**Settings → General**.
 
 Mirostat and Typical-P are no longer in the sampler list. A server that still
 supports them takes them there, for example `{"mirostat": 2, "mirostat_tau": 5.0}`
-or `{"typical_p": 0.9}`. That card appears once **Show advanced configuration**
-is ticked in **Settings → General**. An install that had either switched on was
-moved there automatically, unless that field already held invalid JSON.
+or `{"typical_p": 0.9}`. An install that had either switched on was moved there
+automatically, unless that field already held invalid JSON.
 
 ## Simple adjustments
 

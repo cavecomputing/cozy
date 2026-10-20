@@ -49,14 +49,14 @@ To run Cozy on a server or with Docker instead, see
 Hooray! You are up and running! :D
 But don't forget to do the first-start configuration below.
 
-And if you would like some more details on character cards, personas, etc, check out [Getting started](docs/1-getting-started.md).
+And if you would like some more details on character cards, personas, etc., check out [Getting started](docs/1-getting-started.md).
 
 ## First-start configuration
 
 1. Connect to Cozy.
 2. Open `Settings` in the bottom left.
 3. Navigate to `API`.
-4. Click `+` to name and create a preset.
+4. Click `+ New` to name and create a preset.
 5. Under `Connection` enter the base `Endpoint` URL for your LLM server.
    Some common ones:
 
@@ -71,7 +71,7 @@ And if you would like some more details on character cards, personas, etc, check
    These are defaults — if you changed a port when setting up a local service, adjust the URL to match. If you don't know the endpoint for
    your service, check its documentation for its OpenAI-compatible base URL.
 6. Under `Connection` enter an `API key` if your server requires one.
-7. Under `Connection` select or search for the `Model` identifier and test the connection.
+7. Under `Connection` select or search for the `Model` identifier, then click `Test connection` at the top of the page.
 8. Set the `Context & generation` settings you would like to use. The sampler defaults next to them
    work for most models, so there is nothing to change there unless your model's documentation
    says otherwise.
@@ -96,7 +96,7 @@ uv run app.py
 To update a Docker or server installation instead, see
 [Advanced setup](docs/2-advanced-setup.md).
 
-## Mobile Use
+## Mobile use
 
 Care has been put into making sure mobile use is responsive and pleasant to use. 
 
@@ -143,12 +143,12 @@ Redistributions and derivative works must preserve the attribution in
 ## Acknowledgements
 
 - **Sasha** — the character card included with a fresh install was created by
-  **Chunchunmaru** and is used here with their permission. The original is at
+  **Chunchunmaru** and is used here with their permission. The original is
   [Sasha - Your new innocent warden](https://chub.ai/characters/Chunchunmaru/sasha-your-new-innocent-warden-756ba28f7556).
   She is an ordinary character card in Cozy like any other: edit or delete her and
   she stays gone.
 
-- **Marinara** — [SpicyMarinara](https://github.com/SpicyMarinara) on GitHub helped me
+- **Marinara** ([SpicyMarinara](https://github.com/SpicyMarinara) on GitHub) helped me
   with the original LittleBear preset I wrote for SillyTavern a long time ago. None of
   that preset ships here — the Bear naming is all that carried over — but it's where I
   got into making roleplay content in the first place.
@@ -156,6 +156,6 @@ Redistributions and derivative works must preserve the attribution in
 ---
 
 Howdy! This whole app is "vibe coded slop". If that bothers you...🤷   
-Cozy is feature complete, which isn't the same as stable. What it can do is pretty much set in stone (for now), so I'm not planning to add more, but the code will keep changing: bug fixes, polish, and changes to how existing things work. I'm still trying to avoid breaking changes and ship proper migrations to keep things stableish. If you try to checkout an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take a coding harness but then it completely replaced SillyTavern for my use. Maybe other people will like it?
+Cozy is feature complete, which isn't the same as stable. What it can do is pretty much set in stone (for now), so I'm not planning to add more, but the code will keep changing: bug fixes, polish, and changes to how existing things work. I'm still trying to avoid breaking changes and ship proper migrations to keep things stableish. If you try to check out an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take a coding harness but then it completely replaced SillyTavern for my use. Maybe other people will like it?
 
 As an aside, I personally put a lot of weight in *ideas*. As such, I would super appreciate if you linked to this repo if you decide to fork this or use ideas from it. Other than that, go nuts and make cool things ❤️
