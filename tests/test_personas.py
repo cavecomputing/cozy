@@ -15,7 +15,7 @@ class TestPersonaList:
         personas = r.get_json()
         assert len(personas) >= 1
         default = next(p for p in personas if p['is_default'])
-        assert default['name'] == 'Default Persona'
+        assert default['name'] == 'User'
         assert default['tagline'] == 'Change me!'
         assert default['avatar_url'] is None
 

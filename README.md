@@ -80,7 +80,8 @@ And if you would like some more details on character cards, personas, etc, check
 The server must provide an OpenAI-style streaming `/chat/completions` endpoint.
 Model listing and advanced sampler support vary by server so verify the settings beforehand.
 
-Don't forget to also change the default persona. Otherwise the AI is going to assume your name is literally "Default Persona".
+Don't forget to also change the default persona: click **User** at the bottom of the sidebar, then the pencil beside it.
+Otherwise the AI is going to assume your name is literally "User".
 
 ## Updating
 

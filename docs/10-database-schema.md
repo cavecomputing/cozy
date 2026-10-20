@@ -11,8 +11,8 @@ browser. A schema change belongs in `db.html`, not here.
 
 ## Seeded data
 
-On first run, the database is seeded with a **Default persona** ("Default
-Persona", tagline: "Change me!", `is_default = 1`) and the default settings
+On first run, the database is seeded with a default persona ("User",
+tagline: "Change me!", `is_default = 1`) and the default settings
 listed under "Seeded settings" in [10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html#seeded).
 
 Auto Summaries are disabled on new chats until the user enables them for that

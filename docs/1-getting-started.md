@@ -168,13 +168,17 @@ A persona is who *you* are in the story. Its name is used wherever
 `{{user}}` appears, and its description is sent to the AI with every
 message you send.
 
-1. Click your name at the bottom of the sidebar. Your personas open.
-2. Create a persona and write a short description of yourself, or of the
-   character you play.
+A fresh install starts with one persona called **User**.
+
+1. Click **User** at the bottom of the sidebar. Your personas open.
+2. Click the pencil beside it, then give it your name and a short
+   description of yourself, or of the character you play. To keep more
+   than one, use **New Persona** instead.
 3. Save. To switch to a different persona later, click your name again
    and pick another one.
 
-You are done with this section when you have one persona saved.
+You are done with this section when your persona has your name instead of
+**User**.
 
 ## 5. Change the look and behavior (optional)
 
