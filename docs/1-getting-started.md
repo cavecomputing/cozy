@@ -75,18 +75,23 @@ What every setting means, and which servers support it:
 ## 3. Add a character
 
 A character is who you talk to. A new install includes one character, so
-you can start right away. You can keep her, change her, or delete her:
-**Edit** and **Delete** are in the **⋯** menu beside her name in the
-sidebar. A deleted character does not come back.
+you can start right away. You can keep her, change her, or delete her.
+The character you are chatting with heads the sidebar: click the pencil
+beside their name to edit them, and **Delete** is at the bottom of the
+editor. Every other character has **Edit** and **Delete** in the **⋯**
+menu beside their name in the list. A deleted character does not come
+back.
 
-To tidy the sidebar without deleting anyone, choose **Archive** from the
-same menu. The character moves into the folded **Archived** section at the
-bottom of the list, chats and all; click **Archived** to unfold it, and
-choose **Unarchive** to bring a character back.
+To keep a character at the top of the list, choose **Pin** from the **⋯**
+menu; a star after the name marks them. To tidy the sidebar without
+deleting anyone, choose **Archive** from the same menu. The character
+moves into the folded **Archived** section at the bottom of the list,
+chats and all; click **Archived** to unfold it, and choose **Unarchive**
+to bring a character back.
 
-Once your library is longer than twelve characters, a small **Recent**
-block appears above the list with the five you last wrote to, newest
-first.
+Once your library is longer than twelve characters, the five you last
+wrote to (other than the one you are chatting with) appear above the
+list, newest first, each with how long ago that was.
 
 ### Bring in a card from another site
 
@@ -94,8 +99,8 @@ Cozy reads V2 character cards, the same format SillyTavern uses. A card is
 either a `.png` image with the character data stored inside it, or a plain
 `.json` text file. Sites such as chub.ai hand out exactly this format.
 
-1. Click **+** at the top right of the character sidebar (the left
-   column). The character editor opens.
+1. Click **New character** in the character sidebar (the left column).
+   The character editor opens.
 2. Click **Import/Export** in the editor header.
 3. Under **Import**, choose **From file (.json / .png)** and select the
    card file.
@@ -129,7 +134,7 @@ picture too.
 
 ### Make a character yourself
 
-1. Click **+** at the top right of the character sidebar. The character
+1. Click **New character** in the character sidebar. The character
    editor opens.
 2. Fill in the fields. Only a name is required; everything else is
    optional. Without a picture the character shows its initials, and you can

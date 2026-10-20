@@ -11,7 +11,7 @@ import { forgetCharacterLorebook } from './lorebooks.js';
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Whether the Archived section is unfolded. Not saved: it starts folded on
-// every load and unfolds by itself when the character on screen is archived.
+// every load.
 let archivedOpen = false;
 
 // Character id → when you last wrote to them, for the Recent block. Kept apart
@@ -25,26 +25,26 @@ export function renderCharList() {
     state.characters.sort(compareCharacters);
     closeCharMenu();   // its row is about to be replaced
     el.charList.innerHTML = '';
+    renderSidebarCharacter();
+    renderRecent();
     if (state.characters.length === 0) {
         const li = document.createElement('li');
         li.className = 'char-list-empty';
-        li.innerHTML = `
-            <span>Create or import a character to start chatting.</span>
-            <button type="button" class="btn btn-secondary btn-sm char-list-create-btn">Create Character</button>
-        `;
+        li.textContent = 'Create or import a character to start chatting.';
         el.charList.appendChild(li);
-        renderRecent();
         return;
     }
+    // The character on screen heads the sidebar instead of having a row here.
+    const listed = state.characters.filter(c => c.id !== state.activeCharacter?.id);
     // Archived characters sort last, so the first one is where their section starts.
-    const firstArchived = state.characters.find(c => c.archived);
-    state.characters.forEach(char => {
+    const firstArchived = listed.find(c => c.archived);
+    listed.forEach(char => {
         if (char === firstArchived) {
             const toggle = document.createElement('li');
             toggle.className = 'char-archived-toggle';
             toggle.innerHTML = `
                 <button type="button" class="char-archived-btn section-label" aria-expanded="${archivedOpen}">
-                    ${icons.CHEVRIGHT}<span>Archived (${state.characters.filter(c => c.archived).length})</span>
+                    ${icons.CHEVRIGHT}<span>Archived (${listed.filter(c => c.archived).length})</span>
                 </button>
             `;
             el.charList.appendChild(toggle);
@@ -52,7 +52,7 @@ export function renderCharList() {
         if (char.archived && !archivedOpen) return;
 
         const li = document.createElement('li');
-        li.className = `char-item${char.id === state.activeCharacter?.id ? ' active' : ''}${char.missing ? ' missing' : ''}${char.pinned ? ' pinned' : ''}${char.archived ? ' archived' : ''}`;
+        li.className = `char-item${char.missing ? ' missing' : ''}${char.archived ? ' archived' : ''}`;
         li.dataset.charId = char.id;
 
         const selectBtn = document.createElement('button');
@@ -60,9 +60,6 @@ export function renderCharList() {
         selectBtn.className = 'char-select-btn';
         selectBtn.disabled = !!char.missing;
         selectBtn.setAttribute('aria-label', char.missing ? `${char.name} is missing` : `Select ${char.name}`);
-        if (char.id === state.activeCharacter?.id) {
-            selectBtn.setAttribute('aria-current', 'true');
-        }
 
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'avatar';
@@ -73,35 +70,39 @@ export function renderCharList() {
         nameSpan.textContent = char.missing ? `${char.name} (missing)` : char.name;
         nameSpan.title = nameSpan.textContent;
         selectBtn.append(avatarDiv, nameSpan);
+        // A pinned row says so after the name; pinning itself is in the ⋯ menu.
+        if (char.pinned && !char.archived) {
+            selectBtn.insertAdjacentHTML('beforeend', `<span class="char-pin-mark" title="Pinned" aria-label="Pinned">${icons.STAR_FILLED}</span>`);
+        }
 
         const actions = document.createElement('div');
         actions.className = 'char-item-actions';
-        const pinIcon = char.pinned ? icons.STAR_FILLED : icons.STAR;
-        const pinTitle = char.pinned ? 'Unpin character' : 'Pin character';
-        const menuBtn = `<button class="icon-btn char-menu-btn" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">${icons.MORE}</button>`;
-        if (char.missing || char.archived) {
-            actions.innerHTML = menuBtn;
-        } else {
-            actions.innerHTML = `
-                <button class="icon-btn char-pin-btn" title="${pinTitle}" aria-label="${pinTitle}">${pinIcon}</button>
-                ${menuBtn}
-            `;
-        }
+        actions.innerHTML = `<button class="icon-btn char-menu-btn" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">${icons.MORE}</button>`;
 
         li.append(selectBtn, actions);
         el.charList.appendChild(li);
     });
-    renderRecent();
+}
+
+/** Head the sidebar with the character on screen, or "Characters" without one. */
+function renderSidebarCharacter() {
+    const char = state.activeCharacter;
+    el.sidebarCharAvatar.hidden = el.editCharBtn.hidden = !char;
+    el.sidebarCharName.textContent = el.sidebarCharName.title = char ? char.name : 'Characters';
+    el.sidebarCharBy.textContent = char?.creator ? `by ${char.creator}` : '';
+    el.sidebarCharBy.hidden = !el.sidebarCharBy.textContent;
+    if (char) applyAvatar(el.sidebarCharAvatar, char, '?', AVATAR.SM);
 }
 
 /** Fill the Recent block above the list, or hide it when it has no rows. */
 function renderRecent() {
-    const recent = recentCharacters(state.characters, lastChatAt);
+    const others = state.characters.filter(c => c.id !== state.activeCharacter?.id);
+    const recent = recentCharacters(others, lastChatAt);
     el.recentChars.hidden = recent.length === 0;
     el.recentList.innerHTML = '';
     recent.forEach(char => {
         const li = document.createElement('li');
-        li.className = `recent-char${char.id === state.activeCharacter?.id ? ' active' : ''}`;
+        li.className = 'recent-char';
         li.dataset.charId = char.id;
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -158,6 +159,9 @@ export function toggleCharMenu(trigger, char, fromKeyboard = false) {
 
     // A card whose file is missing has nothing to edit.
     menu.querySelectorAll('[data-row-edit]').forEach(li => { li.hidden = !!char.missing; });
+    // Pinning only orders the unarchived list, as the star did.
+    menu.querySelector('[data-row-pin]').hidden = !!(char.missing || char.archived);
+    menu.querySelector('[data-action="pin"] span').textContent = char.pinned ? 'Unpin' : 'Pin';
     menu.querySelector('[data-action="archive"] span').textContent = char.archived ? 'Unarchive' : 'Archive';
     menu.dataset.charId = char.id;
     menu.hidden = false;
@@ -199,17 +203,14 @@ export function toggleArchivedSection() {
     el.charList.querySelector('.char-archived-btn')?.focus();
 }
 
-/** Archive or unarchive a character. The one on screen stays open when
- *  archived, so the section unfolds with it rather than hiding its row. */
+/** Archive or unarchive a character. The one on screen stays open, heading
+ *  the sidebar, whichever way it goes. */
 export async function toggleArchived(charId) {
     try {
         const updated = await API.toggleCharacterArchive(charId);
         const idx = state.characters.findIndex(c => c.id === charId);
         if (idx !== -1) state.characters[idx] = updated;
-        if (state.activeCharacter?.id === charId) {
-            state.activeCharacter = updated;
-            if (updated.archived) archivedOpen = true;
-        }
+        if (state.activeCharacter?.id === charId) state.activeCharacter = updated;
         renderCharList();
     } catch (err) {
         showToast('Could not archive character: ' + err.message, 'error');
@@ -265,21 +266,9 @@ export async function selectCharacter(charId) {
     state.activeCharacter = char;
     state.activeChat = null;
     el.currentCharName.textContent = char.name;
-    // A restored or fallback pick can be archived while its section is folded.
-    if (char.archived && !archivedOpen) {
-        archivedOpen = true;
-        renderCharList();
-    }
     updateComposerState();
-
-    document.querySelectorAll('.char-item').forEach(i => {
-        i.classList.remove('active');
-        i.querySelector('.char-select-btn')?.removeAttribute('aria-current');
-    });
-    const activeItem = document.querySelector(`.char-item[data-char-id="${charId}"]`);
-    activeItem?.classList.add('active');
-    activeItem?.querySelector('.char-select-btn')?.setAttribute('aria-current', 'true');
-    renderRecent();
+    // The one you left takes a row again, and this one leaves the list for the header.
+    renderCharList();
 
     // Clear current chat view while chats load
     state.chats    = [];

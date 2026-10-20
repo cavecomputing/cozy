@@ -925,41 +925,27 @@ function bindCharacterHandlers() {
         Modal.open(char);
     };
 
-    // New character — sidebar header "+", empty-state CTA, and the mobile header "+"
+    // New character — the sidebar's "New character" row and the empty-state CTA
     el.newCharBtn?.addEventListener('click', () => openCharacterModal());
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
-    el.mobileNewCharBtn?.addEventListener('click', () => openCharacterModal());
+    // The pencil beside the character heading the sidebar
+    el.editCharBtn.addEventListener('click', () => {
+        if (state.activeCharacter) openCharacterModal(state.activeCharacter);
+    });
 
-    // Character list — select / pin / row menu / Archived section
+    // Character list — select / row menu / Archived section
     el.charList.addEventListener('click', e => {
-        if (e.target.closest('.char-list-create-btn')) {
-            openCharacterModal();
-            return;
-        }
         if (e.target.closest('.char-archived-btn')) {
             toggleArchivedSection();
             return;
         }
-        const pinBtn    = e.target.closest('.char-pin-btn');
         const menuBtn   = e.target.closest('.char-menu-btn');
         const selectBtn = e.target.closest('.char-select-btn');
         const item      = e.target.closest('.char-item');
         if (!item) return;
         const id   = parseInt(item.dataset.charId, 10);
         const char = state.characters.find(c => c.id === id);
-        if (pinBtn) {
-            e.stopPropagation();
-            if (char) {
-                API.toggleCharacterPin(id)
-                    .then(updated => {
-                        // Replace the character in state and re-render so order updates
-                        const idx = state.characters.findIndex(c => c.id === id);
-                        if (idx !== -1) state.characters[idx] = updated;
-                        renderCharList();
-                    })
-                    .catch(err => showToast('Could not pin character: ' + err.message, 'error'));
-            }
-        } else if (menuBtn) {
+        if (menuBtn) {
             e.stopPropagation();
             // A click with no detail came from Enter or Space, not a pointer.
             if (char) toggleCharMenu(menuBtn, char, e.detail === 0);
@@ -985,6 +971,15 @@ function bindCharacterHandlers() {
         closeCharMenu();
         if (action === 'edit') {
             if (char) openCharacterModal(char);
+        } else if (action === 'pin') {
+            API.toggleCharacterPin(id)
+                .then(updated => {
+                    // Replace the character in state and re-render so order updates
+                    const idx = state.characters.findIndex(c => c.id === id);
+                    if (idx !== -1) state.characters[idx] = updated;
+                    renderCharList();
+                })
+                .catch(err => showToast('Could not pin character: ' + err.message, 'error'));
         } else if (action === 'archive') {
             toggleArchived(id);
         } else {
@@ -992,7 +987,7 @@ function bindCharacterHandlers() {
         }
     });
     // Any click outside the menu and the ⋯ buttons closes it. Capture phase,
-    // because the star and the ⋯ stop their clicks from bubbling.
+    // because the ⋯ stops its clicks from bubbling.
     document.addEventListener('click', e => {
         if (!e.target.closest('#char-row-menu, .char-menu-btn')) closeCharMenu();
     }, true);

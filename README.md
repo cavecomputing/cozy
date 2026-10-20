@@ -75,7 +75,7 @@ And if you would like some more details on character cards, personas, etc., chec
 8. Set the `Context & generation` settings you would like to use. The sampler defaults next to them
    work for most models, so there is nothing to change there unless your model's documentation
    says otherwise.
-9. Chat with the default character or create a new character by clicking the `+` icon in the top right of the character sidebar.
+9. Chat with the default character or create a new character by clicking **New character** in the character sidebar.
 
 The server must provide an OpenAI-style streaming `/chat/completions` endpoint.
 Model listing and advanced sampler support vary by server so verify the settings beforehand.

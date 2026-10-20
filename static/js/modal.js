@@ -267,11 +267,13 @@ async function applyCharUpdate(char, isNew) {
     const idx = state.characters.findIndex(c => c.id === char.id);
     if (idx >= 0) state.characters[idx] = char;
     else          state.characters.push(char);
+    // Before the list is drawn, so the sidebar header shows the saved card.
+    const isActive = state.activeCharacter?.id === char.id;
+    if (isActive) state.activeCharacter = char;
     renderCharList();
     renderLorebookList();
 
-    if (state.activeCharacter?.id === char.id) {
-        state.activeCharacter = char;
+    if (isActive) {
         el.currentCharName.textContent = char.name;
         renderMessages();
         renderLorebookFlyout();

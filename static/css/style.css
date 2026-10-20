@@ -1187,11 +1187,42 @@ input[type="checkbox"]:checked::after {
     align-items: center;
 }
 
-/* Uppercase text has no descenders, so a centred line box leaves it sitting
-   about a pixel high next to the "+" button's symmetric glyph. Nudge it back. */
-.sidebar-header .panel-title {
-    text-align: left;
-    transform: translateY(1px);
+/* The character on screen: avatar, name, and who made the card. Without one
+   it is the plain "Characters" title, so the name stays in the same place. */
+.sidebar-char {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.sidebar-char-avatar {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+}
+
+.sidebar-char-text {
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.sidebar-char-name {
+    font-size: var(--text-2xl);
+    font-weight: 650;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-char-by {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* The design system's top bar: 56px with the divider under it, 16px in on the
@@ -1233,7 +1264,7 @@ input[type="checkbox"]:checked::after {
     margin-bottom: 1.5rem;
 }
 
-/* Character names are mono, as in the design's rail. */
+/* Character names are in the reading face, quiet until hovered. */
 .char-item {
     position: relative;
     display: flex;
@@ -1241,11 +1272,10 @@ input[type="checkbox"]:checked::after {
     gap: 0.25rem;
     padding: 0;
     border-radius: var(--radius);
-    margin-bottom: 0.25rem;
+    margin-bottom: 1px;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease;
     color: var(--fg-quiet);
-    font-family: var(--font-mono);
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
     font-weight: 500;
     min-width: 0;
 }
@@ -1255,14 +1285,6 @@ input[type="checkbox"]:checked::after {
         background-color: var(--surface-quiet);
         color: var(--fg);
     }
-}
-
-/* The character on screen takes the selected fill and an accent name, flat on
-   the shell like every row in it. */
-.char-item.active {
-    background-color: var(--surface-selected);
-    color: var(--fg-accent);
-    font-weight: 700;
 }
 
 .char-item.missing {
@@ -1280,7 +1302,7 @@ input[type="checkbox"]:checked::after {
     gap: 0.6rem;
     flex: 1;
     min-width: 0;
-    padding: 0.4rem 0.75rem 0.4rem var(--space-3);
+    padding: 0.3rem 0.5rem;
     border: 0;
     border-radius: var(--radius);
     background: none;
@@ -1290,8 +1312,13 @@ input[type="checkbox"]:checked::after {
     text-align: left;
 }
 
-.char-select-btn .avatar {
+/* List and Recent rows share one size, so the two read as one list. */
+:is(.char-select-btn, .recent-char-btn) .avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
     border: 1px solid var(--line);
+    font-size: 0.6rem;
 }
 
 /* A character row is disabled because its PNG is missing, and .char-item.missing
@@ -1337,36 +1364,27 @@ input[type="checkbox"]:checked::after {
     color: var(--text-color);
 }
 
-/* A favorited row keeps its star visible at rest; the ⋯ still appears
-   only on hover or focus, or while its menu is open, like any other row.
-   (Desktop only — on touch the whole group stays visible, see the
-   touch-screen block in the Phone part.) */
-@media (min-width: 769px) and (hover: hover) {
-    .char-item.pinned .char-item-actions {
-        display: flex;
-    }
-    .char-item.pinned:not(:hover):not(:focus-within) .char-menu-btn:not([aria-expanded="true"]) {
-        display: none;
-    }
-}
-
 .char-item-actions .icon-btn {
     width: 22px;
     height: 22px;
 }
 
-.char-pin-btn {
-    color: var(--text-secondary);
-}
-
-.char-item.pinned .char-pin-btn {
+/* The star after a pinned character's name. */
+.char-pin-mark {
+    display: flex;
+    flex-shrink: 0;
     color: var(--accent-color);
+    opacity: 0.8;
 }
 
-/* Archived rows are dimmed so they read as set aside — except the one on
-   screen, which stays as legible as any active row, and a missing one,
+.char-pin-mark svg {
+    width: 11px;
+    height: 11px;
+}
+
+/* Archived rows are dimmed so they read as set aside — except a missing one,
    which .char-item.missing already dims. */
-.char-item.archived:not(.active, .missing) .char-select-btn {
+.char-item.archived:not(.missing) .char-select-btn {
     opacity: 0.6;
 }
 
@@ -1407,35 +1425,55 @@ input[type="checkbox"]:checked::after {
 }
 
 .char-list-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.75rem;
+    padding: 0.5rem;
     font-size: var(--text-md);
     color: var(--text-secondary);
     line-height: 1.4;
 }
 
-.char-list-empty .btn {
+/* "New character": the first row of the list, its + in an avatar-sized box. */
+.new-char-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
     width: 100%;
-    justify-content: center;
+    margin-bottom: 0.25rem;
+    padding: 0.3rem 0.5rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--fg-quiet);
+    cursor: pointer;
+    font-size: var(--text-xl);
+    font-weight: 500;
+    text-align: left;
+    transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
+}
+
+@media (hover: hover) {
+    .new-char-row:hover {
+        background-color: var(--surface-quiet);
+        color: var(--fg);
+    }
+}
+
+.new-char-icon {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+    border-radius: 6px;
 }
 
 /* ── Recent ──────────────────────────────────────────────────────────────── */
 /* The last few characters you wrote to, at the top of the list and scrolling
    with it, so a short window (a phone on its side) still has room for the
-   list. Smaller rows than the list's, each with when you last wrote, and a
-   quiet eyebrow so it reads as a shortcut under "Characters" rather than a
-   second heading. */
+   list. Rows like the list's, each with when you last wrote, which is all the
+   label the block has; a hairline ends it. */
 .recent-chars {
-    padding-top: 0.1rem;
     margin-bottom: 0.5rem;
-}
-
-.recent-chars .section-label {
-    padding: 0 0.5rem 0.35rem;
-    color: var(--fg-quiet);
 }
 
 .recent-list {
@@ -1454,14 +1492,10 @@ input[type="checkbox"]:checked::after {
     background: none;
     color: var(--fg-quiet);
     cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
+    font-size: var(--text-xl);
+    font-weight: 500;
     text-align: left;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
-}
-
-.recent-char.active .recent-char-btn {
-    color: var(--fg-accent);
 }
 
 @media (hover: hover) {
@@ -1469,13 +1503,6 @@ input[type="checkbox"]:checked::after {
         background-color: var(--surface-quiet);
         color: var(--fg);
     }
-}
-
-.recent-char-btn .avatar {
-    width: 20px;
-    height: 20px;
-    border-radius: 5px;
-    font-size: 0.55rem;
 }
 
 /* The name, then when you last wrote right-aligned beside it; a long name
@@ -6617,21 +6644,22 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         margin-bottom: 1rem;
     }
 
-    .char-item {
-        margin-bottom: 0.35rem;
+    .char-item,
+    .recent-char-btn,
+    .new-char-row {
+        font-size: var(--text-3xl);
     }
 
-    .recent-char-btn {
-        padding: 0.45rem 0.5rem;
-        font-size: var(--text-lg);
-    }
-
-    .recent-char-btn .avatar {
-        width: 26px;
-        height: 26px;
+    :is(.char-select-btn, .recent-char-btn) .avatar,
+    .new-char-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-control);
     }
 
     .char-select-btn,
+    .recent-char-btn,
+    .new-char-row,
     .chat-select-btn,
     .persona-option {
         min-height: 48px;

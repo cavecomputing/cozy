@@ -63,7 +63,7 @@
     <div id="sheet-backdrop"></div>
     <aside id="sidebar">
         <div class="sidebar-header panel-header">
-            <!-- Side zones hold the buttons shown at each width; the title
+            <!-- Side zones hold the buttons shown at each width; the character
                  takes the room between them. -->
             <div class="sidebar-header-side sidebar-header-side--left">
                 <button id="mobile-sidebar-close" class="icon-btn mobile-only" title="Close Sidebar" aria-label="Close Sidebar">
@@ -73,32 +73,37 @@
                     </svg>
                 </button>
             </div>
-            <h2 class="section-label panel-title">Characters</h2>
+            <!-- The character on screen, filled by renderSidebarCharacter(), with
+                 its editor a click away. -->
+            <div class="sidebar-char" id="sidebar-char">
+                <div class="avatar sidebar-char-avatar" id="sidebar-char-avatar" hidden></div>
+                <div class="sidebar-char-text">
+                    <div class="sidebar-char-name" id="sidebar-char-name">Characters</div>
+                    <div class="sidebar-char-by" id="sidebar-char-by" hidden></div>
+                </div>
+            </div>
             <div class="sidebar-header-side sidebar-header-side--right">
-                <button id="new-char-btn" class="icon-btn desktop-only" title="New Character" aria-label="New Character">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
-                <button id="mobile-new-char-btn" class="icon-btn mobile-only" title="New Character" aria-label="New Character">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
+                <button id="edit-char-btn" class="icon-btn" title="Edit Character" aria-label="Edit Character" hidden>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                 </button>
             </div>
         </div>
         <div class="panel-divider"></div>
 
         <div class="sidebar-scrollable">
-            <!-- The last few characters you wrote to. Filled and shown by
-                 renderRecent() once the list is long. -->
+            <!-- The last few characters you wrote to, other than the one on
+                 screen. Filled and shown by renderRecent() once the list is
+                 long; their times are the only label they need. -->
             <div id="recent-chars" class="recent-chars" hidden>
-                <h3 class="section-label">Recent</h3>
                 <ul class="recent-list" id="recent-list"></ul>
                 <div class="panel-divider"></div>
             </div>
+            <button type="button" id="new-char-btn" class="new-char-row">
+                <span class="new-char-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </span>
+                <span>New character</span>
+            </button>
             <!-- Character list — populated by JS from API -->
             <ul class="char-list" id="char-list"></ul>
         </div>
@@ -107,6 +112,10 @@
              opened it. It lives here rather than in the row so the scrolling
              list can't clip it. -->
         <ul class="export-menu char-row-menu" id="char-row-menu" role="menu" hidden>
+            <li data-row-pin><button type="button" data-action="pin" role="menuitem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"></polygon></svg>
+                <span>Pin</span>
+            </button></li>
             <li data-row-edit><button type="button" data-action="edit" role="menuitem">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                 <span>Edit</span>
