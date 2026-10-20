@@ -14,8 +14,8 @@ on its own. You must connect it to a separate AI server. That can be a paid
 service on the internet (for example OpenRouter) or a program running on
 your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
 
-1. Click **Settings** at the bottom left of the screen. A settings panel
-   opens.
+1. Click the gear icon (**Settings**) at the bottom left of the screen,
+   beside your persona. A settings panel opens.
 2. Click **API** in the list of sections on the left.
 3. Click **+ New** to create a connection preset, then type a name for it and
    confirm. A preset stores all the connection settings described below,

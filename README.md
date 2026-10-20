@@ -54,7 +54,7 @@ And if you would like some more details on character cards, personas, etc., chec
 ## First-start configuration
 
 1. Connect to Cozy.
-2. Open `Settings` in the bottom left.
+2. Open `Settings` with the gear icon in the bottom left.
 3. Navigate to `API`.
 4. Click `+ New` to name and create a preset.
 5. Under `Connection` enter the base `Endpoint` URL for your LLM server.
