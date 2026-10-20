@@ -136,12 +136,6 @@
        uppercase labels above them (.section-label), active rows and focus. */
     --fg-heading: var(--text-color);
 
-    /* --status-warning replaces --warning-color, which was declared by no theme
-       at all and always fell back to a hardcoded ochre. --rp-emphasis-color is
-       declared by all eight, so the warning takes each theme's emphasis hue.
-       It is deliberately NOT used for --fg-heading: it exists to colour bold
-       text inside roleplay messages and is gold-family in every theme, so a
-       heading keyed to it never expresses the theme's own identity. */
     /* Two derived surfaces for boxes inside a panel: a card on the pane, and
        something inset within that card (a lorebook entry, a regex filter). */
     --surface-card:  var(--surface-raised);
@@ -153,6 +147,12 @@
     /* Page gutter: --space-5 on a narrow pane, --space-6 once there is room. */
     --page-gutter: clamp(var(--space-5), 1.5vw, var(--space-6));
 
+    /* --status-warning replaces --warning-color, which was declared by no theme
+       at all and always fell back to a hardcoded ochre. --rp-emphasis-color is
+       declared by all eight, so the warning takes each theme's emphasis hue.
+       It is deliberately NOT used for --fg-heading: it exists to colour bold
+       text inside roleplay messages and is gold-family in every theme, so a
+       heading keyed to it never expresses the theme's own identity. */
     --status-danger:  var(--danger-color);
     --status-warning: var(--rp-emphasis-color, var(--accent-color));
     --status-success: var(--success-color);
@@ -766,7 +766,8 @@ input[type="checkbox"]:checked::after {
     /* No `outline: none` here. It weighed the same as the shared focus ring and
        sat later in the file, so it silently suppressed the ring on everything
        wearing .settings-select — including the custom picker's trigger, which
-       is a button, not a field. The fields' own opt-out is below and explicit. */
+       is a button, not a field. The fields' own opt-out is the explicit rule
+       at the top of this section. */
     box-shadow: var(--input-shadow, none);
     transition: border-color var(--motion-base), box-shadow var(--motion-base);
 }
@@ -1339,7 +1340,7 @@ input[type="checkbox"]:checked::after {
 /* A favorited row keeps its star visible at rest; the ⋯ still appears
    only on hover or focus, or while its menu is open, like any other row.
    (Desktop only — on touch the whole group stays visible, see the
-   (hover: none) block after the persona rows.) */
+   touch-screen block in the Phone part.) */
 @media (min-width: 769px) and (hover: hover) {
     .char-item.pinned .char-item-actions {
         display: flex;
@@ -2153,7 +2154,9 @@ input[type="checkbox"]:checked::after {
     background-color: var(--accent-edit-bg);
 }
 
-/* Avatar with image background */
+/* Every avatar with a picture, not only a message's. Its font-size: 0 beats
+   .pf-avatar-wrap .avatar and .message .avatar, which weigh the same, only by
+   coming after them. */
 .avatar[data-has-image="true"] {
     font-size: 0;
     image-rendering: auto;
@@ -3614,8 +3617,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* ── Panel layout (header, body and footer) ──────────────────────────────── */
-/* modal-header now uses .panel-header; keep selector for action spacing */
-
 .modal-header-actions {
     display: flex;
     align-items: center;
@@ -3653,6 +3654,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: 0.5rem;
 }
 
+/* A panel's header is also a .panel-header; this adds the panel's own height
+   and inset. */
 .modal-header {
     min-height: 48px;
     padding-inline: var(--space-5);
@@ -3671,8 +3674,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* The editor opens flush with the sidebar's top edge, so its header keeps the
-   sidebar's 44px height rather than the 48px the settings block gives every
-   .modal-header — that is what puts the two dividers on one line. */
+   sidebar's 44px height rather than the 48px every other panel's
+   .modal-header has — that is what puts the two dividers on one line. */
 #char-modal .modal-header {
     min-height: 44px;
 }
@@ -4379,7 +4382,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 /* One rank for every box title: a settings card, a sub-group inside one, a
    sampler group, the prompt reference panel. Sentence case in mono and the
-   heading hue; a card's own title is set larger above.
+   heading hue; a card's own title is set larger in the next rule.
    Uppercase small-caps is a different job entirely — it belongs to
    .section-label, which names app chrome, not content. */
 .settings-card-header h4,
@@ -4887,8 +4890,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
 
-/* Same container as the editor's fold above, one step narrower: the preset
-   picker's row of actions wraps. */
+/* The settings pane's container, as in the prompt editor's fold but one step
+   narrower: the preset picker's row of actions wraps. */
 @container (max-width: 800px) {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
@@ -4935,9 +4938,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     opacity: 0.75;
 }
 
-/* Scoped to the description and version rows on purpose: .form-input's own
-   `width: 100%` weighs the same and sits further down the file, so a bare
-   .prompt-version-input would lose the width and stretch across the row. */
+/* Scoped to the description and version rows on purpose: the extra class
+   outweighs .form-input's own `width: 100%`, so the version box keeps its
+   width wherever the two rules sit. */
 .prompt-meta-row .prompt-version-input {
     width: 7.5rem;
 }
@@ -5317,8 +5320,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-left: auto;
     padding: 0 0.5rem;
     font-size: var(--text-md);
-    /* The entry search's cap: here, after the shared rule that caps fields at 100%;
-       Add entry as tall as the search beside it. */
+    /* Narrower than the shared 100% cap on fields. */
     max-width: 18rem;
 }
 
@@ -5452,6 +5454,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .settings-card-header > .lorebook-picker > .cozy-select { min-width: 12rem; max-width: 26rem; }
 
+/* Add entry as tall as the search beside it. */
 #settings-lorebook-add-entry { align-self: stretch; }
 
 /* The select needs about 20rem to keep its source and count beside the name,
@@ -6978,7 +6981,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         padding-left: 1.1rem;
     }
 
-    /* A 24px box is under the touch minimum the mobile block gives every other
+    /* A 24px box is under the touch minimum the phone block gives every other
        .icon-btn, and growing the button would put the header's height straight
        back. Grow the hit area instead — the full row, which is free space the
        padding was wasting. Vertical only: the buttons sit 2.4px apart in the Auto
@@ -7348,6 +7351,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         padding: var(--space-4);
     }
 
+    /* On focus an outline takes the place of the field's border and ring. */
     .prompt-section-right .form-textarea:focus {
         border-color: transparent;
         box-shadow: none;
