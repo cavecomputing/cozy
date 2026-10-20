@@ -535,15 +535,18 @@ export async function handleEntriesClick(e) {
 export function addEntry() {
     if (!editing) return;
     el.lorebookEntries.querySelector('.lorebook-entry-empty')?.remove();
-    const idx = el.lorebookEntries.querySelectorAll('.lorebook-entry').length;
-    el.lorebookEntries.appendChild(buildEntryRow({
+    // First, beside the Add entry button, rather than a long scroll away.
+    const row = buildEntryRow({
         keys: [], content: '', enabled: true, constant: false, insertion_order: 100,
         extensions: {},
-    }, idx, -1));
-    // A blank row matches no search, so drop the filter rather than append
+    }, 0, -1);
+    el.lorebookEntries.prepend(row);
+    reindexEntryRows();
+    // A blank row matches no search, so drop the filter rather than add
     // the new entry out of sight.
     if (el.lorebookEntrySearch) el.lorebookEntrySearch.value = '';
     filterEntries();
+    row.querySelector('[data-field="keys"]').focus();
 }
 
 // ── Import / export ───────────────────────────────────────────────────────
