@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
-import { applyAvatar, AVATAR, compareCharacters, recentCharacters, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY } from './utils.js';
+import { applyAvatar, AVATAR, compareCharacters, recentCharacters, parseDbStamp, timeAgo, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages, flushEdit } from './messages.js';
 import { forgetCharacterLorebook } from './lorebooks.js';
@@ -113,9 +113,23 @@ function renderRecent() {
         const nameSpan = document.createElement('span');
         nameSpan.className = 'char-name';
         nameSpan.textContent = nameSpan.title = char.name;
-        btn.append(avatarDiv, nameSpan);
+        const time = document.createElement('span');
+        time.className = 'recent-time';
+        time.textContent = timeAgo(parseDbStamp(lastChatAt.get(char.id)));
+        const label = document.createElement('span');
+        label.className = 'recent-label';
+        label.append(nameSpan, time);
+        btn.append(avatarDiv, label);
         li.append(btn);
         el.recentList.appendChild(li);
+    });
+}
+
+/** Move Recent's "5 minutes ago" on, in place, so a focused row keeps focus. */
+export function refreshRecentTimes() {
+    el.recentList.querySelectorAll('.recent-char').forEach(li => {
+        li.querySelector('.recent-time').textContent =
+            timeAgo(parseDbStamp(lastChatAt.get(Number(li.dataset.charId))));
     });
 }
 

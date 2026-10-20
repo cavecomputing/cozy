@@ -1425,8 +1425,9 @@ input[type="checkbox"]:checked::after {
 /* ── Recent ──────────────────────────────────────────────────────────────── */
 /* The last few characters you wrote to, at the top of the list and scrolling
    with it, so a short window (a phone on its side) still has room for the
-   list. Smaller rows than the list's, and a quiet eyebrow so it reads as a
-   shortcut under "Characters" rather than a second heading. */
+   list. Smaller rows than the list's, each with when you last wrote, and a
+   quiet eyebrow so it reads as a shortcut under "Characters" rather than a
+   second heading. */
 .recent-chars {
     padding-top: 0.1rem;
     margin-bottom: 0.5rem;
@@ -1475,6 +1476,23 @@ input[type="checkbox"]:checked::after {
     height: 20px;
     border-radius: 5px;
     font-size: 0.55rem;
+}
+
+/* The name, then when you last wrote right-aligned beside it; a long name
+   gives way to the time. */
+.recent-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.recent-time {
+    flex: none;
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    color: var(--fg-quiet);
 }
 
 .recent-chars .panel-divider {

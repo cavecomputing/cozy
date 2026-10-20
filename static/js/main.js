@@ -9,7 +9,7 @@ import {
     withBusy, flashSettingsSavedTick, dismissApiNotice,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
-import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection } from './characters.js';
+import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop } from './messages.js';
 import { Modal } from './modal.js';
@@ -972,6 +972,8 @@ function bindCharacterHandlers() {
         const item = e.target.closest('.recent-char');
         if (item) selectCharacter(parseInt(item.dataset.charId, 10));
     });
+    // Its times are relative, so they move on while the page sits open.
+    setInterval(refreshRecentTimes, 60_000);
 
     // Row menu — acts on the row it was opened from
     el.charRowMenu.addEventListener('click', e => {
