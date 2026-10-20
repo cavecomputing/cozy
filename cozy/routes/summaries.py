@@ -416,8 +416,7 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
         request = [system, {**user, 'content': user['content'] + retry_note(problems)}]
 
 
-def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False,
-                     job_token=None):
+def _run_summary_job(chat_id, up_to_msg_id, require_running=False, job_token=None):
     """Fold messages ``(watermark, up_to_msg_id]`` into the chat's running summary,
     one entry per batch. Persists after each batch. Never raises out — terminal state is
     written to ``summary_status`` (``idle`` on success, ``error`` on failure)."""
@@ -441,16 +440,8 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
                 return
             if require_running and row['summary_status'] != 'running':
                 raise _SummaryPaused
-            if rebuild:
-                # Start from a blank slate rather than extending the stored summary.
-                # Checkpointing still happens per batch: a rebuild that dies at batch
-                # 18 of 20 keeps those 18 and resumes from the watermark, which matters
-                # far more than preserving a summary the user asked to replace.
-                summary_obj = {'lines': []}
-                watermark = 0
-            else:
-                summary_obj = parse_summary_json(row['summary_json'])
-                watermark = row['summary_up_to_msg_id'] or 0
+            summary_obj = parse_summary_json(row['summary_json'])
+            watermark = row['summary_up_to_msg_id'] or 0
             char_name, user_name = _speaker_names(conn, row)
 
         if up_to_msg_id is None:
@@ -589,11 +580,11 @@ def _run_summary_job(chat_id, up_to_msg_id, rebuild=False, require_running=False
         _release_job_generation(chat_id, job_token)
 
 
-def _spawn_job(chat_id, up_to_msg_id, rebuild, job_token):
+def _spawn_job(chat_id, up_to_msg_id, job_token):
     """Start the worker in a daemon thread (indirection so tests can stub it out)."""
     threading.Thread(
         target=_run_summary_job,
-        args=(chat_id, up_to_msg_id, rebuild, True, job_token),
+        args=(chat_id, up_to_msg_id, True, job_token),
         daemon=True,
     ).start()
 
@@ -604,19 +595,16 @@ def _spawn_job(chat_id, up_to_msg_id, rebuild, job_token):
 def run_summary(chat_id):
     """Kick off a background summary run and return 202 immediately.
 
-    Body: ``{ "up_to_msg_id": <int>, "rebuild": <bool?> }`` — fold everything after the
+    Body: ``{ "up_to_msg_id": <int> }`` — fold everything after the
     watermark up to that id. A run already in flight is a no-op (409)."""
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({'error': 'A JSON object body is required'}), 400
     up_to_msg_id = data.get('up_to_msg_id')
-    rebuild = data.get('rebuild', False)
     if (isinstance(up_to_msg_id, bool)
             or not isinstance(up_to_msg_id, int)
             or up_to_msg_id <= 0):
         return jsonify({'error': 'up_to_msg_id must be a positive integer'}), 400
-    if not isinstance(rebuild, bool):
-        return jsonify({'error': 'rebuild must be a boolean'}), 400
 
     job_token = uuid.uuid4().hex
     with _job_tokens_lock:
@@ -652,7 +640,7 @@ def run_summary(chat_id):
         return jsonify({'already_running': True, **_summary_state(fresh)}), 409
 
     try:
-        _spawn_job(chat_id, up_to_msg_id, rebuild, job_token)
+        _spawn_job(chat_id, up_to_msg_id, job_token)
     except Exception as e:  # thread creation failure must not leave a permanent claim
         log.exception('Could not start summary job for chat %s', chat_id)
         _set_status(
@@ -703,7 +691,7 @@ def reset_summary(chat_id):
 
     Useful after changing the context size: growing it can leave a now-unneeded
     summary lingering, and shrinking it may need a fresh start over a different set
-    of aged-out messages (follow with a run/rebuild to regenerate)."""
+    of aged-out messages (follow with a run to regenerate)."""
     with get_db() as conn:
         # Serialize with the run claim so a reset can never invalidate a worker after
         # observing an outdated idle status.

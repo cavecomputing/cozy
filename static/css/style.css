@@ -3543,7 +3543,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     opacity: 0.8;
 }
 
-/* Rebuild / Reset sit inline with the card header, pushing themselves and
+/* Stop / Reset sit inline with the card header, pushing themselves and
    the enable toggle to the right together. */
 .summary-header-actions {
     display: flex;

@@ -1240,7 +1240,6 @@ def test_enable_response_does_not_start_run_for_newly_selected_chat():
             disabled: false,
             addEventListener(type, fn) { listeners[type] = fn; },
         };
-        el.summaryRebuildBtn = { addEventListener() {} };
         el.summaryResetBtn = { addEventListener() {} };
 
         const chatA = { id: 1, summary_enabled: false, summary: { lines: [] } };
@@ -1284,7 +1283,6 @@ def test_enabling_summaries_drains_the_whole_existing_backlog_in_batches():
             disabled: false,
             addEventListener(type, fn) { listeners[type] = fn; },
         };
-        el.summaryRebuildBtn = { addEventListener() {} };
         el.summaryCancelBtn = { addEventListener() {} };
         el.summaryResetBtn = { addEventListener() {} };
         el.settingsContextTokens.value = '60';
@@ -1640,238 +1638,6 @@ def test_context_boundary_follows_last_message_when_summary_covers_everything():
     run_node_module(code)
 
 
-def test_rebuild_clears_stale_summary_when_full_history_fits_without_it():
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { state, el } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import { initSummaryHandlers } from './static/js/summaries.js';
-
-        const listeners = {};
-        el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = {
-            addEventListener(type, fn) { listeners[type] = fn; },
-        };
-        el.summaryResetBtn = { addEventListener() {} };
-        el.settingsContextTokens = { value: '32' };
-        el.samplerMaxTokens = { value: '10' };
-        state.messages = [
-            { id: 1, role: 'user', text: 'message-0-abcdefghijklmno' },
-            { id: 2, role: 'character', text: 'message-1-abcdefghijklmno' },
-        ];
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: 1,
-            summary: {
-                lines: [{ section: 'story', text: 'A stale summary consumes context.' }],
-            },
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        state.chats = [state.activeChat];
-
-        let resets = 0;
-        let runs = 0;
-        API.resetSummary = async chatId => {
-            resets += 1;
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary_up_to_msg_id: null,
-                summary: { lines: [] },
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-        API.runSummary = async () => { runs += 1; throw new Error('should not run'); };
-        API.getSummaryStatus = async () => ({ ...state.activeChat });
-
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.equal(resets, 1);
-        assert.equal(runs, 0);
-        assert.equal(state.activeChat.summary_up_to_msg_id, null);
-    """
-    run_node_module(code)
-
-
-def test_rebuild_stabilizes_summary_shift_without_interval_rounding_or_reload_run():
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { state, el } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import {
-            initSummaryHandlers,
-            maybeTriggerSummary,
-        } from './static/js/summaries.js';
-
-        const listeners = {};
-        el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = {
-            addEventListener(type, fn) { listeners[type] = fn; },
-        };
-        el.summaryResetBtn = { addEventListener() {} };
-        el.settingsContextTokens = { value: '202' };
-        el.samplerMaxTokens = { value: '10' };
-        state.autoSummariesEnabled = true;
-        state.apiModel = 'main-model';
-        state.summaryApiEndpoint = 'http://summary.example/v1';
-        state.summaryApiModel = 'summary-model';
-        state.messages = Array.from({ length: 25 }, (_, i) => ({
-            id: i + 1,
-            role: i % 2 ? 'character' : 'user',
-            text: `m-${i}-abcdefghij`,
-        }));
-        // A summary occupies context only through its {{summary}} slot.
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{ id: 1, content: '{{#summary}}[Memory — Story So Far]\n{{summary}}{{/summary}}', post_history_content: '' }];
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: null,
-            summary: { lines: [] },
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        state.chats = [state.activeChat];
-
-        const rebuiltSummary = {
-            lines: [{ section: 'story', text: 'x'.repeat(40) }],
-        };
-        const calls = [];
-        API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
-            if (options.rebuild) {
-                return {
-                    id: chatId,
-                    summary_enabled: true,
-                    summary: { lines: [] },
-                    summary_up_to_msg_id: null,
-                    summary_status: 'running',
-                    summary_status_detail: 'Summarizing…',
-                };
-            }
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: rebuiltSummary,
-                summary_up_to_msg_id: options.up_to_msg_id,
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-        // Before the rebuild is posted the server still holds the empty summary the
-        // click is judged against; afterwards it reports the rebuilt one.
-        API.getSummaryStatus = async chatId => (calls.length ? {
-            id: chatId,
-            summary_enabled: true,
-            summary: rebuiltSummary,
-            summary_up_to_msg_id: calls[0].up_to_msg_id,
-            summary_status: 'idle',
-            summary_status_detail: '',
-        } : { ...state.activeChat });
-
-        const nativeSetTimeout = globalThis.setTimeout;
-        globalThis.setTimeout = (fn, _ms) => nativeSetTimeout(fn, 0);
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.deepEqual(calls.map(call => ({
-            upTo: call.up_to_msg_id,
-            rebuild: call.rebuild,
-        })), [
-            { upTo: 2, rebuild: true },
-            // The final summary displaced messages 3 through 6. Stabilization folds
-            // in exactly those instead of rounding through a whole 20-message batch.
-            { upTo: 6, rebuild: false },
-        ]);
-        assert.equal(state.activeChat.summary_up_to_msg_id, 6);
-
-        await maybeTriggerSummary();
-        assert.equal(calls.length, 2);
-    """
-    run_node_module(code)
-
-
-def test_rebuild_click_during_background_run_still_issues_the_rebuild():
-    """triggerRun's join branch must not consume the rebuild request itself:
-    wait out the in-flight run, then post an actual rebuild."""
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { state, el } from './static/js/state.js';
-        import { API } from './static/js/api.js';
-        import { initSummaryHandlers } from './static/js/summaries.js';
-
-        const listeners = {};
-        el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = {
-            addEventListener(type, fn) { listeners[type] = fn; },
-        };
-        el.summaryResetBtn = { addEventListener() {} };
-        el.settingsContextTokens = { value: '202' };
-        el.samplerMaxTokens = { value: '10' };
-        state.autoSummariesEnabled = true;
-        state.apiModel = 'main-model';
-        state.summaryApiEndpoint = 'http://summary.example/v1';
-        state.summaryApiModel = 'summary-model';
-        state.messages = Array.from({ length: 25 }, (_, i) => ({
-            id: i + 1,
-            role: i % 2 ? 'character' : 'user',
-            text: `m-${i}-abcdefghij`,
-        }));
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: null,
-            summary: { lines: [] },
-            summary_status: 'running',
-            summary_status_detail: 'Summarizing…',
-        };
-        state.chats = [state.activeChat];
-
-        const calls = [];
-        let statusCalls = 0;
-        API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: { lines: [] },
-                summary_up_to_msg_id: null,
-                summary_status: 'running',
-                summary_status_detail: 'Summarizing…',
-            };
-        };
-        API.getSummaryStatus = async chatId => {
-            statusCalls += 1;
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: { lines: [] },
-                // First poll resolves the joined background run; later polls
-                // report the completed rebuild.
-                summary_up_to_msg_id: statusCalls === 1 ? null : calls[0]?.up_to_msg_id,
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-
-        const nativeSetTimeout = globalThis.setTimeout;
-        globalThis.setTimeout = (fn, _ms) => nativeSetTimeout(fn, 0);
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.equal(calls.length, 1);
-        assert.equal(calls[0].rebuild, true);
-        assert.equal(calls[0].up_to_msg_id, 2);
-        assert.ok(statusCalls >= 2);  // joined the in-flight run before rebuilding
-        assert.equal(state.activeChat.summary_up_to_msg_id, 2);
-    """
-    run_node_module(code)
-
-
 def test_summary_text_marks_the_story_as_chronological():
     """The chat model must read STORY as a timeline, not an unordered pile of facts.
     The frontend renderer carries this so it applies whatever prompt template is saved."""
@@ -1929,7 +1695,7 @@ def test_range_label_is_empty_when_it_cannot_be_resolved():
     run_node_module(code)
 
 
-REBUILD_SETUP = r"""
+RESET_SETUP = r"""
     import assert from 'node:assert/strict';
     import { state, el } from './static/js/state.js';
     import { API } from './static/js/api.js';
@@ -1937,12 +1703,10 @@ REBUILD_SETUP = r"""
 
     const listeners = {};
     el.summaryToggle = { addEventListener() {} };
-    el.summaryRebuildBtn = {
-        addEventListener(type, fn) { listeners[type] = fn; },
-        setAttribute() {},
-    };
     el.summaryCancelBtn = { addEventListener() {} };
-    el.summaryResetBtn = { addEventListener() {} };
+    el.summaryResetBtn = {
+        addEventListener(type, fn) { listeners[type] = fn; },
+    };
     el.settingsContextTokens = { value: '202' };
     el.samplerMaxTokens = { value: '10' };
     state.apiModel = 'main-model';
@@ -1958,252 +1722,6 @@ REBUILD_SETUP = r"""
     state.activeSystemPromptId = 1;
     state.systemPrompts = [{ id: 1, content: '{{#summary}}[Memory — Story So Far]\n{{summary}}{{/summary}}', post_history_content: '' }];
 """
-
-
-def test_rebuild_button_resumes_an_interrupted_run_instead_of_starting_over():
-    """After a cancel, pressing the button again must continue, not redo paid-for work."""
-    code = REBUILD_SETUP + r"""
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            // A run that stopped part way: entries exist and the watermark is partial.
-            summary_up_to_msg_id: 4,
-            summary: { lines: [{ section: 'story', text: 'already summarized beat' }] },
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        state.chats = [state.activeChat];
-
-        const calls = [];
-        API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: state.activeChat.summary,
-                summary_up_to_msg_id: options.up_to_msg_id,
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-        API.getSummaryStatus = async chatId => ({
-            id: chatId,
-            summary_enabled: true,
-            summary: state.activeChat.summary,
-            summary_up_to_msg_id: state.activeChat.summary_up_to_msg_id,
-            summary_status: 'idle',
-            summary_status_detail: '',
-        });
-
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.ok(calls.length > 0, 'expected the button to start a run');
-        // The defining assertion: no from-scratch pass was posted.
-        assert.ok(calls.every(call => call.rebuild === false),
-            'resume must never post rebuild:true');
-        // It picked up past the existing watermark rather than from the beginning.
-        assert.ok(calls[0].up_to_msg_id > 4);
-    """
-    run_node_module(code)
-
-
-def test_resume_press_is_not_swallowed_by_an_earlier_background_cancel():
-    """Cancelling a background update leaves a marker no loop was waiting to consume.
-
-    The resume path reaches consumeCancellation without calling triggerRun first, so
-    without clearing the marker on entry the first Continue press did nothing at all.
-    """
-    code = REBUILD_SETUP + r"""
-        // Cancelling explains itself with a toast, which needs a DOM.
-        globalThis.document = {
-            getElementById() { return { appendChild() {} }; },
-            createElement() {
-                return { setAttribute() {}, appendChild() {}, remove() {} };
-            },
-        };
-        let cancelClick;
-        el.summaryCancelBtn = {
-            disabled: false,
-            addEventListener(type, fn) { cancelClick = fn; },
-        };
-
-        // A post-turn background run is in flight; nothing is awaiting it.
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: 4,
-            summary: { lines: [{ section: 'story', text: 'already summarized beat' }] },
-            summary_status: 'running',
-            summary_status_detail: 'Summarizing… (batch 1/3)',
-        };
-        state.chats = [state.activeChat];
-
-        const idle = chatId => ({
-            id: chatId,
-            summary_enabled: true,
-            summary: state.activeChat.summary,
-            summary_up_to_msg_id: state.activeChat.summary_up_to_msg_id,
-            summary_status: 'idle',
-            summary_status_detail: '',
-        });
-        API.cancelSummary = async chatId => idle(chatId);
-        API.getSummaryStatus = async chatId => idle(chatId);
-        const calls = [];
-        API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
-            state.activeChat.summary_up_to_msg_id = options.up_to_msg_id;
-            return { ...idle(chatId), summary_up_to_msg_id: options.up_to_msg_id };
-        };
-
-        initSummaryHandlers();
-        await cancelClick();
-        await listeners.click();
-
-        assert.ok(calls.length > 0,
-            'the Continue press must not be swallowed by the stale cancel marker');
-        assert.ok(calls.every(call => call.rebuild === false),
-            'resume must never post rebuild:true');
-    """
-    run_node_module(code)
-
-
-def test_cancelling_during_a_resume_still_stops_the_loop():
-    """Clearing the stale marker on entry must not make a fresh cancel unstoppable."""
-    code = REBUILD_SETUP + r"""
-        globalThis.document = {
-            getElementById() { return { appendChild() {} }; },
-            createElement() {
-                return { setAttribute() {}, appendChild() {}, remove() {} };
-            },
-        };
-        let cancelClick;
-        el.summaryCancelBtn = {
-            disabled: false,
-            addEventListener(type, fn) { cancelClick = fn; },
-        };
-
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: 4,
-            summary: { lines: [{ section: 'story', text: 'already summarized beat' }] },
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        state.chats = [state.activeChat];
-
-        const idle = chatId => ({
-            id: chatId,
-            summary_enabled: true,
-            summary: state.activeChat.summary,
-            summary_up_to_msg_id: state.activeChat.summary_up_to_msg_id,
-            summary_status: 'idle',
-            summary_status_detail: '',
-        });
-        API.cancelSummary = async chatId => idle(chatId);
-        API.getSummaryStatus = async chatId => idle(chatId);
-
-        let runs = 0;
-        API.runSummary = async (chatId, options) => {
-            runs += 1;
-            // The user hits Cancel while this batch is in flight. The watermark
-            // deliberately does not advance, so only the cancel can end the loop.
-            state.activeChat.summary_status = 'running';
-            await cancelClick();
-            return idle(chatId);
-        };
-
-        initSummaryHandlers();
-        await listeners.click();
-
-        // One batch attempted, then the cancel stopped it — not a stall-guard bailout.
-        assert.equal(runs, 1, 'the cancel must stop the resume loop at the next batch');
-    """
-    run_node_module(code)
-
-
-def test_rebuild_button_still_starts_over_when_the_summary_is_empty():
-    """With nothing banked there is nothing to resume, so it must rebuild properly."""
-    code = REBUILD_SETUP + r"""
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: null,
-            summary: { lines: [] },
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        state.chats = [state.activeChat];
-
-        const calls = [];
-        API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
-            return {
-                id: chatId,
-                summary_enabled: true,
-                summary: { lines: [{ section: 'story', text: 'rebuilt' }] },
-                summary_up_to_msg_id: options.up_to_msg_id,
-                summary_status: 'idle',
-                summary_status_detail: '',
-            };
-        };
-        API.getSummaryStatus = async chatId => ({
-            id: chatId,
-            summary_enabled: true,
-            summary: state.activeChat.summary,
-            summary_up_to_msg_id: state.activeChat.summary_up_to_msg_id,
-            summary_status: 'idle',
-            summary_status_detail: '',
-        });
-
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.equal(calls[0].rebuild, true);
-    """
-    run_node_module(code)
-
-
-def test_rebuild_button_decides_from_the_server_not_a_stale_tab():
-    """A tab loaded before a run began still shows an empty summary. Pressing the button
-    there used to start over, discarding every batch the other run had finished."""
-    code = REBUILD_SETUP + r"""
-        state.activeChat = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: null,
-            summary: { lines: [] },
-            summary_status: 'idle',
-            summary_status_detail: '',
-        };
-        state.chats = [state.activeChat];
-        const server = {
-            id: 7,
-            summary_enabled: true,
-            summary_up_to_msg_id: 4,
-            summary: { lines: [{ section: 'story', text: 'finished in another tab' }] },
-            summary_status: 'error',
-            summary_status_detail: 'Summarizer request failed',
-        };
-        API.getSummaryStatus = async () => ({ ...server });
-        const calls = [];
-        API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
-            server.summary_up_to_msg_id = options.up_to_msg_id;
-            server.summary_status = 'idle';
-            return { ...server };
-        };
-
-        initSummaryHandlers();
-        await listeners.click();
-
-        assert.ok(calls.length > 0, 'expected the button to continue the run');
-        assert.ok(calls.every(call => call.rebuild === false),
-            'a stale tab must not start over');
-        assert.ok(calls[0].up_to_msg_id > 4);
-    """
-    run_node_module(code)
 
 
 # The styled confirm dialog is plain DOM. This stands in for just enough of it, and
@@ -2234,39 +1752,74 @@ FAKE_DIALOG_DOM = r"""
 """
 
 
-def test_rebuild_from_scratch_asks_before_replacing_a_summary():
-    code = REBUILD_SETUP + FAKE_DIALOG_DOM + r"""
-        // Up to date: everything past the watermark fits, so there is nothing to
-        // continue and the button means start over.
+def test_reset_clears_then_summarizes_the_history_again():
+    """Reset is the from-scratch path: once confirmed, it clears the summary and then
+    folds the whole backlog in again, the way turning summaries on does."""
+    code = RESET_SETUP + FAKE_DIALOG_DOM + r"""
         state.activeChat = {
             id: 7,
             summary_enabled: true,
             summary_up_to_msg_id: 10,
-            summary: { lines: [{ section: 'story', text: 'an older beat' }] },
+            summary: { lines: [{ section: 'story', text: 'a stale beat' }] },
             summary_status: 'idle',
             summary_status_detail: '',
         };
         state.chats = [state.activeChat];
-        API.getSummaryStatus = async () => ({ ...state.activeChat });
-        const calls = [];
+        const order = [];
+        API.resetSummary = async chatId => {
+            order.push('reset');
+            return {
+                ...state.activeChat,
+                id: chatId,
+                summary_up_to_msg_id: null,
+                summary: { lines: [] },
+            };
+        };
         API.runSummary = async (chatId, options) => {
-            calls.push({ chatId, ...options });
+            order.push(options.up_to_msg_id);
             return { ...state.activeChat, summary_up_to_msg_id: options.up_to_msg_id };
         };
 
         initSummaryHandlers();
         let click = listeners.click();
         await settle();
-        assert.ok(dialogShown(), 'expected a confirm before starting over');
+        assert.ok(dialogShown(), 'expected a confirm before clearing the summary');
         dialogHandlers['.confirm-cancel']();
         await click;
-        assert.equal(calls.length, 0, 'declining must not start a rebuild');
+        assert.deepEqual(order, [], 'declining must leave the summary alone');
 
         click = listeners.click();
         await settle();
         dialogHandlers['.confirm-accept']();
         await click;
-        assert.equal(calls[0].rebuild, true);
+        assert.equal(order[0], 'reset');
+        // The backlog is folded in from the start, not from the old watermark.
+        assert.equal(order.length, 2, `expected one run after the reset, got ${order}`);
+        assert.ok(order[1] < 10, `run target ${order[1]} skipped history the reset cleared`);
+    """
+    run_node_module(code)
+
+
+def test_reset_that_fails_starts_no_run():
+    code = RESET_SETUP + FAKE_DIALOG_DOM + r"""
+        state.activeChat = {
+            id: 7,
+            summary_enabled: true,
+            summary_up_to_msg_id: 10,
+            summary: { lines: [] },
+            summary_status: 'idle',
+            summary_status_detail: '',
+        };
+        state.chats = [state.activeChat];
+        API.resetSummary = async () => { throw new Error('reset refused'); };
+        let runs = 0;
+        API.runSummary = async () => { runs += 1; return { ...state.activeChat }; };
+
+        initSummaryHandlers();
+        await listeners.click();
+
+        assert.equal(runs, 0);
+        assert.equal(state.activeChat.summary_up_to_msg_id, 10);
     """
     run_node_module(code)
 
@@ -2281,7 +1834,6 @@ def test_cancel_button_is_live_only_while_a_run_is_in_flight():
         Object.assign(el, {
             summaryToggle: { checked: false, disabled: false, title: '' },
             summaryCancelBtn: cancelBtn,
-            summaryRebuildBtn: { setAttribute() {} },
             summaryLines: null,
             summaryStatus: null,
         });
@@ -2312,7 +1864,6 @@ def test_stopping_memory_mid_send_lets_the_reply_go_ahead():
         import { initSummaryHandlers } from './static/js/summaries.js';
 
         el.summaryToggle = { addEventListener() {} };
-        el.summaryRebuildBtn = { addEventListener() {}, setAttribute() {} };
         el.summaryResetBtn = { addEventListener() {} };
         let cancelClick;
         el.summaryCancelBtn = {

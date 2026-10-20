@@ -727,7 +727,7 @@ def test_run_job_folds_and_advances_watermark(client, sample_chat, monkeypatch):
                         lambda messages, cap_tokens=0: calls.append(messages) or CANNED)
     ids = _add_messages(client, sample_chat['id'], 5)
 
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     with shared.get_db() as conn:
         row = conn.execute('SELECT * FROM chats WHERE id=?', (sample_chat['id'],)).fetchone()
@@ -744,7 +744,7 @@ def test_run_job_batches_by_tokens(client, sample_chat, monkeypatch):
     monkeypatch.setattr(summaries, 'call_summarizer',
                         lambda messages, cap_tokens=0: calls.append(1) or CANNED)
     ids = _add_messages(client, sample_chat['id'], 5)
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
     # Two full batches, and the last message is half a batch: enough to stand alone.
     assert len(calls) == 3
 
@@ -758,7 +758,7 @@ def test_run_job_folds_a_trailing_sliver_into_the_last_batch(
                         lambda messages, cap_tokens=0: calls.append(messages) or CANNED)
     ids = _add_messages(client, sample_chat['id'], 5)
 
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     assert len(calls) == 1
     assert 'msg 4' in calls[0][1]['content']
@@ -804,7 +804,7 @@ def test_run_job_sends_names_not_placeholders(client, sample_chat, sample_person
         'role': 'user', 'content': 'Hi, {{char}}.', 'persona_id': sample_persona['id'],
     }).get_json()
 
-    summaries._run_summary_job(chat_id, reply['id'], rebuild=False)
+    summaries._run_summary_job(chat_id, reply['id'])
 
     prompt = sent[0][1]['content']
     assert '{{' not in prompt
@@ -816,7 +816,7 @@ def test_run_job_sends_names_not_placeholders(client, sample_chat, sample_person
 def test_run_job_incremental(client, sample_chat, monkeypatch):
     monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
     ids = _add_messages(client, sample_chat['id'], 3)
-    summaries._run_summary_job(sample_chat['id'], ids[1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[1])
     with shared.get_db() as conn:
         wm1 = conn.execute('SELECT summary_up_to_msg_id FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()[0]
@@ -825,7 +825,7 @@ def test_run_job_incremental(client, sample_chat, monkeypatch):
     seen = []
     monkeypatch.setattr(summaries, 'call_summarizer',
                         lambda messages, cap_tokens=0: seen.append(messages) or CANNED)
-    summaries._run_summary_job(sample_chat['id'], ids[2], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[2])
     with shared.get_db() as conn:
         wm2 = conn.execute('SELECT summary_up_to_msg_id FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()[0]
@@ -846,7 +846,7 @@ def test_run_job_error_sets_error_status(client, sample_chat, monkeypatch):
         raise RuntimeError('summarizer exploded')
     monkeypatch.setattr(summaries, 'call_summarizer', boom)
     ids = _add_messages(client, sample_chat['id'], 2)
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
     row = _chat_row(sample_chat['id'])
     assert row['summary_status'] == 'error'
     assert 'exploded' in row['summary_status_detail']
@@ -862,7 +862,7 @@ def test_expected_job_failures_log_one_line_and_bugs_keep_their_traceback(
         raise RuntimeError('503 Service Unavailable')
     monkeypatch.setattr(summaries, 'call_summarizer', provider_down)
     with caplog.at_level('INFO', logger='cozy'):
-        summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+        summaries._run_summary_job(sample_chat['id'], ids[-1])
     failed = [r for r in caplog.records if 'Summary job failed' in r.getMessage()]
     assert [r.levelname for r in failed] == ['WARNING']
     assert '503 Service Unavailable' in failed[0].getMessage()
@@ -874,7 +874,7 @@ def test_expected_job_failures_log_one_line_and_bugs_keep_their_traceback(
         raise KeyError('lines')
     monkeypatch.setattr(summaries, 'call_summarizer', bug)
     with caplog.at_level('INFO', logger='cozy'):
-        summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+        summaries._run_summary_job(sample_chat['id'], ids[-1])
     failed = [r for r in caplog.records if 'Summary job failed' in r.getMessage()]
     assert failed and failed[0].levelname == 'ERROR' and failed[0].exc_info
 
@@ -1020,7 +1020,7 @@ def test_append_mode_accumulates_story_across_batches(client, sample_chat, monke
 
     monkeypatch.setattr(summaries, 'call_summarizer', complete)
     ids = _add_messages(client, sample_chat['id'], 2)
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
@@ -1131,30 +1131,6 @@ def test_full_summary_sheds_its_oldest_entry(client, sample_chat, monkeypatch):
     assert 'NEWEST' in stored          # the recent past survives
 
 
-def test_rebuild_drops_legacy_pinned_flags(client, sample_chat, monkeypatch):
-    """Summaries written when pinning existed rebuild into ordinary entries."""
-    cid = sample_chat['id']
-    _store_summary(cid, {'lines': [
-        {'section': 'story', 'text': 'Old beat.', 'pinned': True},
-        {'section': 'bonds', 'text': 'A & B: allies.', 'pinned': True},
-    ]})
-    monkeypatch.setattr(
-        summaries, 'call_summarizer',
-        lambda messages, cap_tokens=0: 'STORY SO FAR\n- Fresh beat.\n\nBONDS\n- A & B: allies',
-    )
-    ids = _add_messages(client, cid, 2)
-
-    summaries._run_summary_job(cid, ids[-1], rebuild=True)
-
-    with shared.get_db() as conn:
-        row = conn.execute('SELECT summary_json FROM chats WHERE id=?', (cid,)).fetchone()
-    lines = parse_summary_json(row['summary_json'])['lines']
-    assert [l['text'] for l in lines] == ['Fresh beat.', 'A & B: allies']
-    assert not any('pinned' in l for l in lines)
-    assert 'Old beat.' not in row['summary_json']
-
-
-
 def test_append_overflow_cannot_evict_the_previous_entries(client, sample_chat, monkeypatch):
     """An oversized delta is cut to its entry limit, not left to swamp the section and
     push older memory out through enforce_cap."""
@@ -1173,7 +1149,7 @@ def test_append_overflow_cannot_evict_the_previous_entries(client, sample_chat, 
     _store_summary(sample_chat['id'], {
         'lines': [{'section': 'story', 'text': 'previous useful memory'}],
     }, watermark=ids[0])
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     assert len(calls) == 2
     assert all(call[0]['content'] == APPEND_INSTRUCTIONS for call in calls)
@@ -1196,7 +1172,7 @@ def test_append_mode_merges_bonds_without_duplicating(client, sample_chat, monke
         {'section': 'story', 'text': 'earlier beat'},
         {'section': 'bonds', 'text': 'A & B: uneasy'},
     ]}, watermark=ids[0])
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
@@ -1218,7 +1194,7 @@ def test_append_mode_survives_reply_with_empty_bonds_section(client, sample_chat
         {'section': 'story', 'text': 'earlier beat'},
         {'section': 'bonds', 'text': 'A & B: uneasy'},
     ]}, watermark=ids[0])
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json, summary_status FROM chats WHERE id=?',
@@ -1282,35 +1258,6 @@ def test_thinking_only_chunk_advances_without_model_call(
     assert row['summary_status'] == 'idle'
 
 
-def test_thinking_only_rebuild_publishes_empty_without_model_call(
-        client, sample_chat, monkeypatch):
-    """A rebuild starts from a blank slate, so nothing visible means nothing kept."""
-    cid = sample_chat['id']
-    _store_summary(cid, {'lines': [
-        {'section': 'story', 'text': 'Old detail.'},
-        {'section': 'bonds', 'text': 'A & B: allies.'},
-    ]})
-    response = client.post(f'/api/chats/{cid}/messages', json={
-        'role': 'character', 'content': '<thinking>hidden only</thinking>',
-    })
-    message_id = response.get_json()['id']
-    monkeypatch.setattr(
-        summaries,
-        'call_summarizer',
-        lambda *args, **kwargs: pytest.fail('thinking-only rebuild must not call the model'),
-    )
-
-    summaries._run_summary_job(cid, message_id, rebuild=True)
-
-    with shared.get_db() as conn:
-        row = conn.execute(
-            'SELECT summary_json, summary_up_to_msg_id FROM chats WHERE id=?',
-            (cid,),
-        ).fetchone()
-    assert parse_summary_json(row['summary_json']) == {'lines': []}
-    assert row['summary_up_to_msg_id'] == message_id
-
-
 def test_pause_discards_inflight_result_and_keeps_last_checkpoint(
         client, sample_chat, monkeypatch):
     cid = sample_chat['id']
@@ -1349,42 +1296,6 @@ def test_pause_discards_inflight_result_and_keeps_last_checkpoint(
     assert row['summary_status_detail'] == ''
 
 
-def test_per_chat_pause_during_rebuild_preserves_previous_state(
-        client, sample_chat, monkeypatch):
-    cid = sample_chat['id']
-    ids = _add_messages(client, cid, 2)
-    original = {'lines': [
-        {'section': 'story', 'text': 'Complete previous memory.'},
-    ]}
-    _store_summary(cid, original, ids[-1])
-    client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
-    with shared.get_db() as conn:
-        conn.execute(
-            "UPDATE chats SET summary_status='running', summary_status_detail='Starting…' "
-            'WHERE id=?',
-            (cid,),
-        )
-
-    def disable_during_call(messages, cap_tokens=0):
-        response = client.put(f'/api/chats/{cid}', json={'summary_enabled': False})
-        assert response.status_code == 200
-        return CANNED
-
-    monkeypatch.setattr(summaries, 'call_summarizer', disable_during_call)
-    summaries._run_summary_job(cid, ids[-1], rebuild=True, require_running=True)
-
-    with shared.get_db() as conn:
-        row = conn.execute(
-            'SELECT summary_json, summary_up_to_msg_id, summary_status, '
-            'summary_status_detail FROM chats WHERE id=?',
-            (cid,),
-        ).fetchone()
-    assert parse_summary_json(row['summary_json']) == original
-    assert row['summary_up_to_msg_id'] == ids[-1]
-    assert row['summary_status'] == 'idle'
-    assert row['summary_status_detail'] == ''
-
-
 def test_disable_reenable_new_run_cannot_revive_old_worker(
         client, sample_chat, monkeypatch):
     cid = sample_chat['id']
@@ -1392,7 +1303,7 @@ def test_disable_reenable_new_run_cannot_revive_old_worker(
     message_id = _add_messages(client, cid, 1)[0]
     spawned_tokens = []
 
-    def capture_spawn(chat_id, up_to_msg_id, rebuild, job_token):
+    def capture_spawn(chat_id, up_to_msg_id, job_token):
         assert chat_id == cid and up_to_msg_id == message_id
         spawned_tokens.append(job_token)
 
@@ -1448,7 +1359,7 @@ def test_terminal_worker_releases_current_generation_when_status_cannot_change(
     monkeypatch.setattr(
         summaries,
         '_spawn_job',
-        lambda chat_id, up_to_msg_id, rebuild, job_token, *a: spawned_tokens.append(job_token),
+        lambda chat_id, up_to_msg_id, job_token, *a: spawned_tokens.append(job_token),
     )
     started = client.post(
         f'/api/chats/{cid}/summary/run', json={'up_to_msg_id': message_id}
@@ -1479,30 +1390,14 @@ def test_terminal_worker_releases_current_generation_when_status_cannot_change(
     assert cid not in summaries._job_tokens
 
 
-def test_run_job_rebuild_resets(client, sample_chat, monkeypatch):
-    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
-    ids = _add_messages(client, sample_chat['id'], 3)
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
-    # Rebuild folds from scratch and still ends at the same watermark.
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=True)
-    with shared.get_db() as conn:
-        row = conn.execute('SELECT summary_up_to_msg_id, summary_json FROM chats WHERE id=?',
-                           (sample_chat['id'],)).fetchone()
-    assert row['summary_up_to_msg_id'] == ids[-1]
-    assert parse_summary_json(row['summary_json'])['lines']
-
-
-def test_rebuild_keeps_batches_completed_before_a_failure(
+def test_run_keeps_batches_completed_before_a_failure(
         client, sample_chat, monkeypatch):
-    """A rebuild checkpoints per batch, so a failure keeps the work already paid for.
+    """A run checkpoints per batch, so a failure keeps the work already paid for.
 
     The watermark lands on the last batch that succeeded, which is what lets the next
     run resume from there instead of re-summarizing the whole transcript.
     """
     ids = _add_messages(client, sample_chat['id'], 3)
-    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
-    summaries._run_summary_job(sample_chat['id'], ids[-1])
-
     _batch_every(monkeypatch, 1)
     calls = 0
 
@@ -1515,7 +1410,7 @@ def test_rebuild_keeps_batches_completed_before_a_failure(
         return CANNED
 
     monkeypatch.setattr(summaries, 'call_summarizer', fail_second_batch)
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=True)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     with shared.get_db() as conn:
         after = conn.execute(
@@ -1523,7 +1418,7 @@ def test_rebuild_keeps_batches_completed_before_a_failure(
             (sample_chat['id'],),
         ).fetchone()
     # Batch one committed before batch two failed: its message range is retired, and
-    # the rebuild's from-scratch summary holds that batch rather than nothing.
+    # the summary holds that batch rather than nothing.
     assert after['summary_up_to_msg_id'] == ids[0]
     assert parse_summary_json(after['summary_json'])['lines']
     assert after['summary_status'] == 'error'
@@ -1602,7 +1497,7 @@ def test_run_endpoint_missing_chat(client):
 def test_reset_endpoint_clears_summary_and_watermark(client, sample_chat, monkeypatch):
     monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
     ids = _add_messages(client, sample_chat['id'], 3)
-    summaries._run_summary_job(sample_chat['id'], ids[-1], rebuild=False)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
     _store_summary(sample_chat['id'], {
         'lines': [{'section': 'bonds', 'text': 'keep?'}],
     }, ids[-1])

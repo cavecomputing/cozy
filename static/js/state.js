@@ -228,7 +228,6 @@ export function initElements() {
         summaryToggle:       document.getElementById('summary-enable-toggle'),
         summaryStatus:       document.getElementById('summary-status'),
         summaryLines:        document.getElementById('summary-lines'),
-        summaryRebuildBtn:   document.getElementById('summary-rebuild-btn'),
         summaryCancelBtn:    document.getElementById('summary-cancel-btn'),
         summaryResetBtn:     document.getElementById('summary-reset-btn'),
         summaryConfigHint:   document.getElementById('summary-config-hint'),

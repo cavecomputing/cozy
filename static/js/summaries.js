@@ -21,7 +21,7 @@ import { confirmDialog } from './confirm.js';
 const STORY_HEADING = 'STORY SO FAR';
 const BONDS_HEADING = 'BONDS';
 const POLL_MS = 2500;
-// While a send, backfill or rebuild is waiting on a run, check far more often: every
+// While a send or backfill is waiting on a run, check far more often: every
 // tick of POLL_MS was up to 2.5s added to the wait, and a short job's progress never
 // got past "Starting…". The status request is a single-row read.
 const WAIT_POLL_MS = 500;
@@ -93,24 +93,14 @@ function batchTargetTokens() {
 }
 
 // ── Aged-out message detection ──────────────────────────────────────────────
-function windowAssessment(excludeLastN = 0, {
-    includeSummarized = false,
-    summaryTextOverride = null,
-} = {}) {
+function windowAssessment(excludeLastN = 0) {
     if (!state.activeChat || getContextTokenBudget() <= 0) {
         return { candidates: [], agedOut: [], analysis: null };
     }
-    const candidates = getRawHistoryMessages(state.messages, {
-        excludeLastN,
-        includeSummarized,
-    });
-    const summaryText = summaryTextOverride == null
-        ? activeSummaryText()
-        : summaryTextOverride;
+    const candidates = getRawHistoryMessages(state.messages, { excludeLastN });
     const analysis = analyzeContext({
         excludeLastN,
-        includeSummarized,
-        summaryText,
+        summaryText: activeSummaryText(),
     });
     const agedCount = candidates.length - analysis.selectedMessages.length;
     return {
@@ -120,8 +110,8 @@ function windowAssessment(excludeLastN = 0, {
     };
 }
 
-function agedOutMessages(excludeLastN = 0, options = {}) {
-    return windowAssessment(excludeLastN, options).agedOut;
+function agedOutMessages(excludeLastN = 0) {
+    return windowAssessment(excludeLastN).agedOut;
 }
 
 // When anything ages out of a contiguous window, the unused space left behind
@@ -196,8 +186,8 @@ export function untrustedContextAssessment({ candidates, agedOut, analysis }, la
 }
 
 /** The toast to show for a measurement that must not be acted on, or '' to proceed. */
-function windowMeasurementUntrusted(excludeLastN, label, options = {}) {
-    const assessment = windowAssessment(excludeLastN, options);
+function windowMeasurementUntrusted(excludeLastN, label) {
+    const assessment = windowAssessment(excludeLastN);
     if (!untrustedContextAssessment(assessment, label)) return '';
     return budgetUnsatisfiable(assessment.analysis)
         ? UNSATISFIABLE_BUDGET_TOAST
@@ -265,25 +255,6 @@ function oldestRetirableId(candidates, coverCount) {
         total = 0;
     }
     return persisted.length > 1 ? persisted[persisted.length - 2].id : null;
-}
-
-/**
- * Retire only the messages that are currently outside the final prompt. This is
- * used while stabilizing an explicit rebuild: normal background updates also
- * prepay token headroom for future messages, but doing that here would make a
- * completed rebuild unexpectedly discard raw context that still fits.
- */
-function exactRunTarget(excludeLastN = 0) {
-    const assessment = windowAssessment(excludeLastN);
-    const wm = state.activeChat?.summary_up_to_msg_id || 0;
-    const pending = assessment.agedOut.filter(m => (m.id || 0) > wm);
-    if (!pending.length) return null;
-    if (untrustedContextAssessment(assessment, 'rebuild stabilization')) return null;
-    const ids = pending
-        .map(message => message?.id)
-        .filter(id => Number.isInteger(id) && id > 0)
-        .sort((a, b) => a - b);
-    return ids.length ? ids[ids.length - 1] : null;
 }
 
 function summarizedCount() {
@@ -385,8 +356,8 @@ export function stopStatusPolling() {
 // ── Kicking off runs + send readiness ───────────────────────────────────────
 
 // Chats whose current run the user cancelled. Stopping the worker is not enough on its
-// own: the send preflight and the rebuild tail both loop until the watermark advances,
-// so without this they would answer a cancel by starting the very next batch. A marker
+// own: the send preflight loops until the watermark advances, so without this it would
+// answer a cancel by starting the very next batch. A marker
 // is consumed by whichever loop sees it first, and starting a deliberate run clears any
 // stale one so a later send is never pre-cancelled.
 const cancelledRuns = new Set();
@@ -452,10 +423,9 @@ async function waitForSummaryCompletion(chatId, initialState, signal) {
     return st;
 }
 
-async function triggerRun({ rebuild = false, awaitCompletion = false,
+async function triggerRun({ awaitCompletion = false,
                             chatId = state.activeChat?.id, signal,
-                            excludeLastN = 0, exactTarget = false,
-                            wholeBacklog = false } = {}) {
+                            excludeLastN = 0, wholeBacklog = false } = {}) {
     if (chatId == null || state.activeChat?.id !== chatId) return null;
     // A deliberate new run supersedes any earlier cancel.
     cancelledRuns.delete(chatId);
@@ -493,32 +463,13 @@ async function triggerRun({ rebuild = false, awaitCompletion = false,
         return waitForSummaryCompletion(chatId, runningState, signal);
     }
 
-    if (rebuild && agedOutMessages(excludeLastN, {
-        includeSummarized: true,
-        summaryTextOverride: '',
-    }).length === 0) {
-        // Removing stale memory may be enough for all history to fit verbatim.
-        // In that case rebuilding would unnecessarily perpetuate the summary.
-        await clearSummary(chatId);
-        return null;
-    }
-
-    const agedOut = agedOutMessages(excludeLastN, { includeSummarized: rebuild });
-    const agedOutIds = agedOut.map(m => m.id).filter(id => Number.isInteger(id) && id > 0);
-    const upTo = rebuild
-        ? (agedOutIds.length ? agedOutIds[agedOutIds.length - 1] : null)
-        : (exactTarget
-            ? exactRunTarget(excludeLastN)
-            : automaticRunTarget(excludeLastN, { wholeBacklog }));
+    const upTo = automaticRunTarget(excludeLastN, { wholeBacklog });
     if (upTo == null) {
-        // Nothing is outside the context window. On an explicit rebuild that means
-        // a grown context now fits everything — clear any lingering stale summary.
-        if (rebuild) await clearSummary(chatId);
-        else renderMemorySummaryCard();
+        renderMemorySummaryCard();
         return null;
     }
     try {
-        const st = await API.runSummary(chatId, { up_to_msg_id: upTo, rebuild });
+        const st = await API.runSummary(chatId, { up_to_msg_id: upTo });
         if (!validSummaryState(st)) {
             throw new Error('Summarizer returned an invalid status response.');
         }
@@ -666,12 +617,19 @@ async function enableSummariesForChat() {
     // The update belongs to the chat where the toggle was clicked. Never use
     // the newly selected chat's messages if the user switched during the PUT.
     if (state.activeChat?.id !== chat.id) return;
+    return backfillSummary();
+}
+
+/**
+ * Drain the existing backlog now, one checkpointed batch at a time, so the summary
+ * isn't left half-filled until the next send finishes it. Turning summaries on and
+ * Reset both end here.
+ */
+async function backfillSummary() {
     if (!summarizerConfigured()) {
         renderMemorySummaryCard();  // arms the feature; hint tells the user to configure
-        return;
+        return null;
     }
-    // Drain the existing backlog now, one checkpointed batch at a time, so the summary
-    // isn't left half-filled until a send or a manual resume finishes it.
     try {
         return await ensureSummaryReadyForSend(undefined, { backfill: true });
     } catch (e) {
@@ -697,124 +655,6 @@ async function disableSummariesForChat() {
         if (inList) inList.summary_enabled = wasEnabled;
         showToast('Could not disable summaries: ' + e.message);
         if (state.activeChat?.id === chat.id) renderMemorySummaryCard();
-    }
-}
-
-/**
- * True when the button should carry on from the watermark rather than start over.
- *
- * A summary that already holds entries while history sits unsummarized is a run that
- * stopped early — cancelled, failed, or interrupted by a closed browser. Continuing is
- * what the user means by pressing the button again, and it keeps the batches already
- * paid for. Starting from scratch is still available: Reset first, then rebuild.
- */
-function shouldResumeInsteadOfRebuild(chat = state.activeChat) {
-    return (chat?.summary?.lines?.length || 0) > 0 && agedOutUnsummarized().length > 0;
-}
-
-async function rebuildSummary() {
-    const chat = state.activeChat;
-    if (!summariesActive(chat)) return;
-    const chatId = chat.id;
-    // Pressing the button is a deliberate run, so it supersedes an earlier cancel the
-    // same way triggerRun does. Cancelling a background update leaves a marker no loop
-    // was waiting to consume, and the resume path below reaches consumeCancellation
-    // without calling triggerRun first — without this the first press is swallowed.
-    cancelledRuns.delete(chatId);
-    let resuming = false;
-    try {
-        // Whether this press continues or starts over is decided from this tab's copy
-        // of the chat, which goes stale when a run moved on in another tab or on
-        // another device. Starting over from a stale copy throws away batches that
-        // run already paid for, so decide from the server's state.
-        const fresh = await API.getSummaryStatus(chatId);
-        if (!validSummaryState(fresh)) {
-            throw new Error('Summarizer returned an invalid status response.');
-        }
-        applySummaryState(fresh, chatId);
-        if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
-        // A run already in flight would swallow this click through triggerRun's
-        // join branch and never issue the actual rebuild. Wait it out first; a
-        // failed background run must not block its own replacement.
-        if (state.activeChat?.summary_status === 'running') {
-            try {
-                await waitForSummaryCompletion(chatId, { summary_status: 'running' });
-            } catch (e) {
-                if (e.name === 'AbortError') throw e;
-            }
-            if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
-        }
-        // Resuming skips the from-scratch pass entirely and falls through to the drain
-        // loop below, which is already the "fold in everything past the watermark" path.
-        resuming = shouldResumeInsteadOfRebuild();
-        if (!resuming) {
-            // A rebuild recomputes the boundary over the full transcript; refuse it
-            // outright on a self-contradictory measurement instead of rewriting the
-            // watermark from bad numbers.
-            const refusal = windowMeasurementUntrusted(
-                0, 'summary rebuild', { includeSummarized: true },
-            );
-            if (refusal) {
-                showToast(refusal);
-                return;
-            }
-            // Starting over costs a model call per batch, and the first finished batch
-            // overwrites the current summary — Reset asks before discarding less. When
-            // the whole history fits without a summary, triggerRun only clears it, and
-            // nothing is lost.
-            const rebuildsBatches = agedOutMessages(0, {
-                includeSummarized: true,
-                summaryTextOverride: '',
-            }).length > 0;
-            if (rebuildsBatches && state.activeChat.summary?.lines?.length) {
-                const ok = await confirmDialog({
-                    title: 'Rebuild the summary from scratch?',
-                    message: 'Every batch is summarized again. The current summary is '
-                        + 'replaced as soon as the first batch finishes, so if the run '
-                        + 'stops partway, only the rebuilt part remains.',
-                    confirmLabel: 'Rebuild',
-                });
-                if (!ok) return;
-                if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
-            }
-            await triggerRun({ rebuild: true, awaitCompletion: true, chatId });
-        }
-
-        // The replacement summary's final size is unknowable before the rebuild
-        // finishes. Injecting it can move the context boundary and age out a few
-        // more messages. Fold those in now, to a fixed point, so reopening the
-        // chat cannot discover and launch a surprise follow-up batch. On a resume
-        // this same loop is the whole job.
-        let previousWatermark = state.activeChat?.summary_up_to_msg_id || 0;
-        let stalledRuns = 0;
-        if (consumeCancellation(chatId)) return;
-        while (state.activeChat?.id === chatId && summariesActive(state.activeChat)
-            && agedOutUnsummarized().length > 0
-            && !windowMeasurementUntrusted(0, 'rebuild stabilization')) {
-            await triggerRun({
-                awaitCompletion: true,
-                chatId,
-                exactTarget: true,
-            });
-            if (state.activeChat?.id !== chatId || !summariesActive(state.activeChat)) return;
-            // Stop chasing the boundary once the user has said stop.
-            if (consumeCancellation(chatId)) return;
-
-            const watermark = state.activeChat.summary_up_to_msg_id || 0;
-            if (watermark <= previousWatermark) {
-                stalledRuns += 1;
-                if (stalledRuns >= 2) {
-                    throw new Error('Chat memory could not stabilize the context boundary.');
-                }
-            } else {
-                stalledRuns = 0;
-                previousWatermark = watermark;
-            }
-        }
-    } catch (e) {
-        if (e.name !== 'AbortError') {
-            showToast(`${resuming ? 'Continuing the summary' : 'Summary rebuild'} failed: ${e.message}`);
-        }
     }
 }
 
@@ -846,33 +686,43 @@ async function cancelSummary() {
     }
 }
 
-/** Wipe the summary + watermark to empty (no LLM call). */
-async function clearSummary(chatId = state.activeChat?.id) {
-    if (chatId == null) return;
+/** Wipe the summary + watermark to empty (no LLM call). True when it was cleared. */
+async function clearSummary(chatId) {
     if (state.activeChat?.id === chatId) stopStatusPolling();
     try {
         const st = await API.resetSummary(chatId);
         applySummaryState(st, chatId);
+        return true;
     } catch (e) {
         showToast('Could not reset summary: ' + e.message);
+        return false;
     }
 }
 
-/** Reset button: confirm, then clear to a blank slate. */
+/**
+ * Reset button: confirm, clear to a blank slate, then summarize the history again.
+ *
+ * This is the from-scratch path, for a summary gone stale after editing old messages
+ * or changing the context size. Continuing an interrupted run needs no button: the
+ * next send, or turning summaries back on, folds in whatever is left.
+ */
 async function resetSummary() {
     const chat = state.activeChat;
     if (!summariesActive(chat)) return;
+    const chatId = chat.id;
     const hasContent = (chat.summary?.lines?.length || 0) > 0;
     if (hasContent) {
         const ok = await confirmDialog({
             title: 'Reset summary?',
-            message: 'This clears the generated summary for this chat. '
-                + 'You can rebuild it from history afterward.',
+            message: 'This clears the summary for this chat and summarizes its '
+                + 'history again from the start.',
             confirmLabel: 'Reset',
         });
         if (!ok) return;
     }
-    await clearSummary(chat.id);
+    if (!(await clearSummary(chatId))) return;
+    if (state.activeChat?.id !== chatId) return;
+    return backfillSummary();
 }
 
 // ── Rendering the memory card ───────────────────────────────────────────────
@@ -1009,30 +859,7 @@ export function renderMemorySummaryCard() {
     }
     markUnusedVar(el.summaryMarker, 'summary');
     const busy = chat?.summary_status === 'running';
-    if (el.summaryRebuildBtn) {
-        el.summaryRebuildBtn.disabled = !enabled || busy;
-        // Rebuild is icon-only, so busy reads as a spinning glyph. Optional
-        // calls to match setAttribute?. below: the tests stub these buttons as
-        // bare objects carrying only the properties they assert on.
-        el.summaryRebuildBtn.classList?.toggle('spinning', busy);
-        // aria-busy must be the string "true"; toggleAttribute writes "",
-        // which reads as absent.
-        if (busy) el.summaryRebuildBtn.setAttribute?.('aria-busy', 'true');
-        else el.summaryRebuildBtn.removeAttribute?.('aria-busy');
-        // The same button continues an interrupted run or starts over, and which one it
-        // will do is not guessable from the icon — say so.
-        const resuming = enabled && !busy && shouldResumeInsteadOfRebuild(chat);
-        el.summaryRebuildBtn.title = resuming
-            ? 'Continue summarizing from where it stopped'
-            : 'Rebuild from history';
-        el.summaryRebuildBtn.setAttribute?.(
-            'aria-label',
-            resuming
-                ? 'Continue summarizing the remaining history'
-                : 'Rebuild the summary from history',
-        );
-    }
-    // Cancel is the mirror of the other two: live only while a run is in flight.
+    // Cancel is the mirror of Reset: live only while a run is in flight.
     if (el.summaryCancelBtn) el.summaryCancelBtn.disabled = !enabled || !busy;
     if (el.summaryResetBtn) {
         el.summaryResetBtn.disabled = !enabled || busy
@@ -1060,7 +887,6 @@ export function initSummaryHandlers() {
         if (el.summaryToggle.checked) await enableSummariesForChat();
         else await disableSummariesForChat();
     });
-    el.summaryRebuildBtn?.addEventListener('click', rebuildSummary);
     el.summaryCancelBtn?.addEventListener('click', cancelSummary);
     el.summaryResetBtn?.addEventListener('click', resetSummary);
 }
