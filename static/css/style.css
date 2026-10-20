@@ -397,6 +397,9 @@ body.signin::before {
     align-items: center;
     justify-content: center;
     transition: background var(--motion-base), color var(--motion-base), transform var(--motion-fast);
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
 }
 
 @media (hover: hover) {
@@ -441,8 +444,6 @@ body.signin::before {
     animation: spin 0.8s linear infinite;
 }
 
-.icon-btn { min-width: 32px; min-height: 32px; flex-shrink: 0; }
-
 /* ── Focus, disabled and label trimming ──────────────────────────────────── */
 /* One focus ring for everything that takes focus, in place of the nine-selector
    allowlist this replaces. An allowlist has to be remembered into on every new
@@ -481,7 +482,9 @@ body.signin::before {
         padding-block: calc((1lh - 1cap) / 2);
     }
     button > .advanced-badge { padding-block: calc(0.05rem + (1lh - 1cap) / 2); }
-    :is(.prompt-picker, .lorebook-picker) .cozy-select-value > .cozy-select-badge { padding-block: calc(var(--space-1) + (1lh - 1cap) / 2); }
+    :is(.prompt-picker, .lorebook-picker) .cozy-select-value > .cozy-select-badge {
+        padding-block: calc(var(--space-1) + (1lh - 1cap) / 2);
+    }
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
@@ -805,7 +808,11 @@ input[type="checkbox"]:checked::after {
     flex: 1;
 }
 
-:is(.form-input, .form-textarea, .cozy-select-trigger) { min-width: 0; max-width: 100%; border-radius: var(--radius-control); }
+:is(.form-input, .form-textarea, .cozy-select-trigger) {
+    min-width: 0;
+    max-width: 100%;
+    border-radius: var(--radius-control);
+}
 
 :is(.form-input, .cozy-select-trigger) { min-height: 34px; }
 
@@ -834,6 +841,7 @@ input[type="checkbox"]:checked::after {
     display: flex;
     align-items: center;
     text-align: left;
+    padding-right: var(--space-6);
 }
 
 .cozy-select-value {
@@ -896,8 +904,6 @@ input[type="checkbox"]:checked::after {
     font-style: italic;
     cursor: default;
 }
-
-.cozy-select-trigger { padding-right: var(--space-6); }
 
 /* ── Menus ───────────────────────────────────────────────────────────────── */
 .export-dropdown {
@@ -2176,7 +2182,12 @@ input[type="checkbox"]:checked::after {
 }
 
 /* Markdown typography inside bubbles — RP-enhanced styles */
-.message-content img          { max-width: var(--img-max-width, 300px); height: auto; display: block; border-radius: var(--radius); }
+.message-content img {
+    max-width: var(--img-max-width, 300px);
+    height: auto;
+    display: block;
+    border-radius: var(--radius);
+}
 
 /* A full blank line, the space the same break takes in the raw text, so a
    message doesn't grow at every paragraph when Edit swaps the one for the
@@ -2184,9 +2195,13 @@ input[type="checkbox"]:checked::after {
 .message-content p            { margin: 0 0 1lh; }
 .message-content p:last-child { margin-bottom: 0; }
 
-.message-content a            { color: inherit; text-decoration: underline; opacity: 0.85; }
+.message-content a {
+    color: inherit;
+    text-decoration: underline;
+    opacity: 0.85;
+}
 
-.message-content a:hover      { opacity: 1; }
+.message-content a:hover { opacity: 1; }
 
 /* On the unfilled character card a link takes the cool hue, as addresses do
    across the app; a filled user bubble keeps its own text colour. */
@@ -2445,15 +2460,25 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     line-height: 1;
 }
 
-@media (hover: hover) { .msg-action-btn:hover                { background-color: var(--hover-bg); color: var(--text-color); } }
+@media (hover: hover) {
+    .msg-action-btn:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-color);
+    }
+}
 
 .msg-action-btn.delete-msg-btn:hover { color: var(--danger-color); }
 .msg-action-btn.save-msg-btn:hover   { color: var(--success-color); }
-.msg-action-btn.fork-msg-btn:hover    { color: var(--accent-color); }
+.msg-action-btn.fork-msg-btn:hover   { color: var(--accent-color); }
 
-.message.user .msg-action-btn        { color: var(--user-action-color, rgba(255, 255, 255, 0.5)); }
+.message.user .msg-action-btn { color: var(--user-action-color, rgba(255, 255, 255, 0.5)); }
 
-@media (hover: hover) { .message.user .msg-action-btn:hover  { background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15)); color: var(--user-action-hover-color, white); } }
+@media (hover: hover) {
+    .message.user .msg-action-btn:hover {
+        background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15));
+        color: var(--user-action-hover-color, white);
+    }
+}
 
 /* The accent ring vanishes on a bubble filled with the accent, so a theme that
    fills it that way names a ring colour that reads on it. */
@@ -2632,7 +2657,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     transition: background var(--motion-base);
 }
 
-@media (hover: hover) { .thinking-toggle:hover { background-color: var(--hover-bg); } }
+@media (hover: hover) {
+    .thinking-toggle:hover {
+        background-color: var(--hover-bg);
+    }
+}
 
 .thinking-toggle .chevron {
     transition: transform var(--motion-base);
@@ -3624,7 +3653,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: 0.5rem;
 }
 
-.modal-header { min-height: 48px; padding-inline: var(--space-5); flex-shrink: 0; }
+.modal-header {
+    min-height: 48px;
+    padding-inline: var(--space-5);
+    flex-shrink: 0;
+}
 
 /* ── Character editor ────────────────────────────────────────────────────── */
 /* Character editor — wider than the 380px .modal base so card fields
@@ -3971,7 +4004,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     transition: border-color var(--motion-base);
 }
 
-@media (hover: hover) { .toast-action:hover { border-color: var(--fg-quiet); } }
+@media (hover: hover) {
+    .toast-action:hover {
+        border-color: var(--fg-quiet);
+    }
+}
 
 @keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
@@ -3994,7 +4031,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .settings-submodal .modal { width: calc(var(--shell-pane-width) / 2); max-width: 90vw; }
 }
 
-.settings-submodal .modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
+.settings-submodal .modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.75rem 1rem 1rem;
+}
 
 /* Mobile-only drill-down back arrow — never show on desktop */
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
@@ -4019,6 +4061,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .settings-body {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
 }
 
 .settings-shell {
@@ -4053,11 +4099,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-size: var(--text-xl);
     text-align: left;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
+    min-height: 36px;
 }
 
 .settings-nav-item svg {
     flex-shrink: 0;
     color: var(--fg-quiet);
+    width: 18px;
+    height: 18px;
 }
 
 @media (hover: hover) {
@@ -4085,6 +4134,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* Clears the pinned page header and footer, so a field reached with Tab never
+       lands underneath either. */
+    scroll-padding-block: 10rem 3.5rem;
 }
 
 .settings-section {
@@ -4115,7 +4167,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
     .settings-nav { grid-area: 2 / 1; }
     .settings-pane { grid-area: 1 / 2 / 3; }
-    #settings-title { padding: 0 var(--space-1) var(--space-2); border-bottom: 1px solid var(--line); }
+    #settings-title {
+        padding: 0 var(--space-1) var(--space-2);
+        border-bottom: 1px solid var(--line);
+    }
     #settings-close-btn {
         order: -1;
         align-self: flex-start;
@@ -4198,6 +4253,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-size: var(--text-sm);
     color: var(--fg-quiet);
     margin: 0;
+    padding: var(--space-1) 0 var(--space-2);
+    margin-inline: 0;
+    max-width: 68ch;
+    line-height: 1.45;
 }
 
 /* The foot of every page that saves as you type, pinned to the bottom of the
@@ -4247,16 +4306,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .settings-saved-tick.visible {
     opacity: 1;
 }
-
-.settings-body { flex: 1; min-height: 0; overflow: hidden; padding: 0; }
-
-.settings-nav-item { min-height: 36px; }
-
-.settings-nav-item svg { width: 18px; height: 18px; }
-
-/* Clears the pinned page header and footer, so a field reached with Tab never
-   lands underneath either. */
-.settings-pane { scroll-padding-block: 10rem 3.5rem; }
 
 /* ── Cards and rows ──────────────────────────────────────────────────────── */
 /* Measure is bounded on the prose that needs it — the page subtitle, the card
@@ -4430,11 +4479,19 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .settings-section-body {
     background-color: transparent;
+    max-width: none;
 }
 
 .settings-row {
     display: flex;
     flex-direction: column;
+    /* A settings row is a tap target on every device, not only under the
+       mobile breakpoint — a touch laptop is a wide viewport with fingers. */
+    min-height: 44px;
+    padding: var(--space-2) 0;
+    margin-inline: 0;
+    gap: var(--space-3);
+    border-color: var(--line-soft);
 }
 
 .settings-row[hidden] { display: none; }
@@ -4506,17 +4563,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     overflow-wrap: anywhere;
 }
 
-.settings-section-body { max-width: none; }
-
-/* A settings row is a tap target on every device, not only under the
-   mobile breakpoint — a touch laptop is a wide viewport with fingers. */
-.settings-row { min-height: 44px; padding: var(--space-2) 0; margin-inline: 0; gap: var(--space-3); border-color: var(--line-soft); }
-
-.settings-hint { padding: var(--space-1) 0 var(--space-2); margin-inline: 0; max-width: 68ch; line-height: 1.45; }
-
 .settings-row > .cozy-select { flex-basis: 200px; }
 
-.settings-action-label { font-family: var(--font-mono); font-weight: 600; font-size: var(--text-sm); line-height: 1.3; }
+.settings-action-label {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    line-height: 1.3;
+}
 
 /* ── API and samplers ────────────────────────────────────────────────────── */
 /* Holds its width while it reads "Testing…", so the icons beside it stay put. */
@@ -4582,6 +4636,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     min-width: 2.5rem;
     accent-color: var(--fg-accent);
     cursor: pointer;
+    min-height: 32px;
 }
 
 .settings-model-row {
@@ -4633,6 +4688,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-size: var(--text-md);
     color: var(--fg);
     cursor: pointer;
+    /* Model identifiers are long, unspaced and vendor-prefixed. */
+    overflow-wrap: anywhere;
 }
 
 @media (hover: hover) {
@@ -4707,6 +4764,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     opacity: 1;
     transform: translateY(0);
     transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
+    max-width: min(320px, calc(100vw - 66px));
+    max-height: min(420px, 55dvh);
+    overflow-y: auto;
 }
 
 .sampler-popover[hidden] {
@@ -4766,16 +4826,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 }
 
-.sampler-slider { min-height: 32px; }
-
-.sampler-popover { max-width: min(320px, calc(100vw - 66px)); }
-
-.sampler-popover { max-height: min(420px, 55dvh); overflow-y: auto; }
-
 .sampler-done-btn { display: none; }
-
-/* Model identifiers are long, unspaced and vendor-prefixed. */
-.model-picker-item { overflow-wrap: anywhere; }
 
 /* ── Picker rows (a preset picker and its buttons) ───────────────────────── */
 .settings-card-header > :is(.preset-select-row, .sampler-toolbar) {
@@ -4817,9 +4868,23 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    buttons, as tall as the field beside them: an inset fill, a hairline edge
    that firms up under the pointer, and Delete's icon in the danger hue. Only
    the icon: as text on the fill the hue drops below 4.5:1 in most themes. */
-:is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn { width: auto; min-height: 34px; gap: var(--space-2); padding-inline: var(--space-3); background: var(--surface-quiet); border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--fg); }
+:is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn {
+    width: auto;
+    min-height: 34px;
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
+    background: var(--surface-quiet);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    color: var(--fg);
+}
 
-@media (hover: hover) { :is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn:hover:not(:disabled) { border-color: var(--fg-quiet); transform: translateY(-1px); } }
+@media (hover: hover) {
+    :is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn:hover:not(:disabled) {
+        border-color: var(--fg-quiet);
+        transform: translateY(-1px);
+    }
+}
 
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
 
@@ -4843,6 +4908,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .prompt-section-body {
     display: grid;
     min-height: 0;
+    /* Editor first, reference column second: the template is what you came to
+       edit, and the variable list is what you consult while editing it. */
+    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-rows: auto auto;
+    flex: none;
+    align-items: stretch;
 }
 
 .prompt-section-left {
@@ -4864,7 +4935,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-style: italic;
     opacity: 0.75;
 }
-
 
 /* Scoped to the description and version rows on purpose: .form-input's own
    `width: 100%` weighs the same and sits further down the file, so a bare
@@ -4926,17 +4996,36 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    active one underlined on the header's hairline. The negative margin takes
    back the header's bottom padding, which the tab carries itself so its
    underline can reach that line. */
-.prompt-builder-tabs .tab-btn { padding: 0 var(--space-3) calc(0.625rem - 1px); margin-bottom: calc(-0.625rem - 1px); font-size: 1.125rem; font-weight: 700; line-height: 1.25; }
+.prompt-builder-tabs .tab-btn {
+    padding: 0 var(--space-3) calc(0.625rem - 1px);
+    margin-bottom: calc(-0.625rem - 1px);
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
 
 .prompt-builder-tabs .tab-btn:first-child { padding-left: 0; }
 
 .prompt-rendered-btn {
     flex: none;
+    width: auto;
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    color: var(--fg-cool);
+    /* Like a title-row button elsewhere, Preview may not set the row's height. */
+    margin-block: calc(-1 * var(--space-2));
 }
 
 .prompt-vars-panel {
     flex: 1;
     min-height: 0;
+    /* A card's full padding would leave the longest variable chip no room. */
+    grid-column: 2;
+    grid-row: 2;
+    overflow: visible;
+    max-height: none;
+    padding-inline: var(--space-4);
 }
 
 .prompt-vars-title {
@@ -4975,6 +5064,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     display: flex;
     flex-direction: column;
     position: relative;
+    grid-column: 1;
+    min-height: 480px;
 }
 
 /* Filled-in preview — slides over the editor it belongs to, rather than
@@ -5094,6 +5185,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .prompt-section-right .form-textarea {
     flex: 1;
     width: 100%;
+    min-height: 420px;
+    max-height: none;
+    resize: vertical;
+    line-height: 1.65;
+    font-family: var(--font-mono);
 }
 
 /* The callout holding the editor's place while advanced configuration is off. */
@@ -5138,27 +5234,15 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     line-height: 1.4;
 }
 
-/* Editor first, reference column second: the template is what you came to
-   edit, and the variable list is what you consult while editing it. */
-.prompt-section-body { grid-template-columns: minmax(0, 1fr) 240px; grid-template-rows: auto auto; flex: none; align-items: stretch; }
-
-.prompt-section-right { grid-column: 1; min-height: 480px; }
-
-.prompt-section-right .form-textarea { min-height: 420px; max-height: none; resize: vertical; line-height: 1.65; }
-
-.prompt-rendered-btn { width: auto; display: flex; gap: var(--space-2); padding: var(--space-3); color: var(--fg-cool); }
-
-/* A card's full padding would leave the longest variable chip no room. */
-.prompt-vars-panel { grid-column: 2; grid-row: 2; overflow: visible; max-height: none; padding-inline: var(--space-4); }
-
 /* Template tags run long and carry no spaces to break at. */
-.prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) { font-size: var(--text-xs); overflow-wrap: anywhere; }
+.prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) {
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+}
 
 .prompt-vars-panel dt { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
 
 .prompt-vars-toggle { display: none; }
-
-.prompt-section-right .form-textarea { font-family: var(--font-mono); }
 
 /* In the two-column workspace the reference sets the row height; both editors
    fill that same row, so changing tabs never changes the panel's height. */
@@ -5183,9 +5267,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .prompt-section-body { grid-template-columns: minmax(0, 1fr); }
     .prompt-vars-panel { grid-column: 1; grid-row: 3; }
 }
-
-/* Like a title-row button elsewhere, Preview may not set the row's height. */
-.prompt-rendered-btn { margin-block: calc(-1 * var(--space-2)); }
 
 /* ── Lorebooks page ──────────────────────────────────────────────────────── */
 /* Settings panel — lorebook editor */
@@ -5237,6 +5318,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-left: auto;
     padding: 0 0.5rem;
     font-size: var(--text-md);
+    /* The entry search's cap: here, after the shared rule that caps fields at 100%;
+       Add entry as tall as the search beside it. */
+    max-width: 18rem;
 }
 
 /* .lorebook-entry sets `display: flex`, which would beat the UA [hidden] rule. */
@@ -5276,7 +5360,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .lorebook-entry-keys { flex: 1; }
 
 /* Keys are matched character for character, so they read in mono. */
-.lorebook-entry :is(.lorebook-entry-keys, [data-field="secondary_keys"]) { font-family: var(--font-mono); }
+.lorebook-entry :is(.lorebook-entry-keys, [data-field="secondary_keys"]) {
+    font-family: var(--font-mono);
+}
 
 .lorebook-entry-content { font-size: var(--text-lg); line-height: 1.5; }
 
@@ -5320,15 +5406,38 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 /* Lorebook picker: the shared preset row lays it out; these rules only style
    the character and entry-count detail carried on each option. The source
    wears the prompt picker's badge. */
-.lorebook-picker :is(.cozy-select-value:has(> *), .cozy-select-option) { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); white-space: normal; }
+.lorebook-picker :is(.cozy-select-value:has(> *), .cozy-select-option) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    white-space: normal;
+}
 
-.lorebook-picker .cozy-select-label { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.lorebook-picker .cozy-select-label {
+    flex: 1 1 140px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 600;
+}
 
-.lorebook-picker .cozy-select-detail { flex: 0 1 auto; max-width: 40%; overflow-wrap: anywhere; }
+.lorebook-picker .cozy-select-detail {
+    flex: 0 1 auto;
+    max-width: 40%;
+    overflow-wrap: anywhere;
+}
 
-.lorebook-picker :is(.cozy-select-detail, .cozy-select-count) { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 400; }
+.lorebook-picker :is(.cozy-select-detail, .cozy-select-count) {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: 400;
+}
 
-.lorebook-picker .cozy-select-count { white-space: nowrap; margin-left: auto; font-family: var(--font-mono); }
+.lorebook-picker .cozy-select-count {
+    white-space: nowrap;
+    margin-left: auto;
+    font-family: var(--font-mono);
+}
 
 .lorebook-picker .cozy-select-menu { max-height: min(320px, 45dvh); overscroll-behavior: contain; }
 
@@ -5336,13 +5445,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 /* The picker takes the title row as the API preset picker does, only wider:
    each option also carries its source and entry count. */
-.settings-card-header > .lorebook-picker { flex: 1 1 auto; justify-content: flex-end; margin-left: auto; }
+.settings-card-header > .lorebook-picker {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    margin-left: auto;
+}
 
 .settings-card-header > .lorebook-picker > .cozy-select { min-width: 12rem; max-width: 26rem; }
-
-/* The entry search's cap: here, after the shared rule that caps fields at 100%;
-   Add entry as tall as the search beside it. */
-.lorebook-entry-search { max-width: 18rem; }
 
 #settings-lorebook-add-entry { align-self: stretch; }
 
@@ -5357,7 +5466,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    line under it; labels go over controls, and an entry's keys take a full
    line with its move and delete buttons under them. */
 @container (max-width: 640px) {
-    .lorebook-entry-search { order: 1; flex-basis: 100%; max-width: none; }
+    .lorebook-entry-search {
+        order: 1;
+        flex-basis: 100%;
+        max-width: none;
+    }
     #settings-lorebook-add-entry { margin-left: auto; }
     .lorebook-entry-field { grid-template-columns: minmax(0, 1fr); }
     .lorebook-entry-keys-wrap { flex-basis: 100%; }
@@ -5372,6 +5485,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .regex-filters {
     display: flex;
     flex-direction: column;
+    gap: var(--space-4);
+    padding-top: var(--space-3);
 }
 
 /* A filter is an inset card inside the Filters card, like a lorebook entry. */
@@ -5381,6 +5496,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--surface-inset);
+    gap: var(--space-4);
+    padding: var(--space-4);
 }
 
 /* An uncompilable pattern is an ordinary in-progress state, so this is only
@@ -5403,6 +5520,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .regex-filter-row {
     display: flex;
+    gap: var(--space-5);
 }
 
 .regex-filter-field {
@@ -5410,6 +5528,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     min-width: 0;
     display: flex;
     flex-direction: column;
+    gap: var(--space-2);
 }
 
 .regex-filter-field > span {
@@ -5426,6 +5545,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+    gap: var(--space-3) var(--space-5);
 }
 
 .regex-filter-flags-label {
@@ -5498,21 +5618,15 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     border-color: color-mix(in srgb, var(--fg-accent) 46%, var(--line));
 }
 
-.regex-filters { gap: var(--space-4); padding-top: var(--space-3); }
-
-.regex-filter { gap: var(--space-4); padding: var(--space-4); }
-
-.regex-filter-row { gap: var(--space-5); }
-
-.regex-filter-field { gap: var(--space-2); }
-
-.regex-filter-meta { gap: var(--space-3) var(--space-5); }
-
 :is(.regex-filter-flag, .lorebook-entry-toggle) { min-height: 32px; }
 
 /* The Preset card is its title row and nothing else, so the row's rule would
    underline an empty card. */
-[data-section="regex"] .settings-card-header:only-child { margin: 0; padding: 0; border: 0; }
+[data-section="regex"] .settings-card-header:only-child {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
 
 #settings-regex-add { margin-left: auto; }
 
@@ -5575,6 +5689,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin: 0;
     font-size: var(--text-sm);
     color: var(--fg-quiet);
+    max-width: none;
+    line-height: 1.65;
 }
 
 /* Local storage: proportional overview plus exact, readable figures. Palette
@@ -5608,6 +5724,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     justify-content: space-between;
     gap: 0.75rem;
     margin-bottom: 0.55rem;
+    padding-top: var(--space-4);
+    flex-wrap: wrap;
 }
 
 .about-storage-summary > div {
@@ -5765,6 +5883,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-top: 0.55rem;
     padding: 0.55rem 0.6rem;
     border-radius: var(--radius);
+    border: 0;
+    background: transparent;
+    padding-block: var(--space-4);
 }
 
 .about-storage-cache-icon {
@@ -5868,6 +5989,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-size: var(--text-sm);
     font-weight: 600;
     line-height: 1.3;
+    color: var(--fg-cool);
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .about-link-desc {
@@ -5907,14 +6031,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-cool);
 }
 
-.about-credit p { max-width: none; line-height: 1.65; }
-
-.about-storage-cache { border: 0; background: transparent; padding-block: var(--space-4); }
-
-.about-link-title { color: var(--fg-cool); text-decoration: underline; text-underline-offset: 3px; }
-
-.about-storage-summary { padding-top: var(--space-4); flex-wrap: wrap; }
-
 /* A credit is a field row: the name in the label column, the note beside it,
    the name level with the note's first line. */
 .settings-row--field.about-credit { align-items: baseline; }
@@ -5925,7 +6041,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 /* ── Help panels ─────────────────────────────────────────────────────────── */
 /* Shared by every settings help panel — the prose ones (Prompt syntax) and the
    reference ones, which nest their content in .sampler-help-section boxes. */
-.settings-help-body { font-size: var(--text-xl); line-height: 1.55; color: var(--text-color); }
+.settings-help-body {
+    font-size: var(--text-xl);
+    line-height: 1.55;
+    color: var(--text-color);
+}
 
 .settings-help-body p { margin: 0 0 0.6rem; color: var(--text-secondary); }
 
@@ -6128,11 +6248,17 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-quiet);
 }
 
-.sampler-help-list em { color: var(--fg); font-style: normal; font-weight: 500; }
+.sampler-help-list em {
+    color: var(--fg);
+    font-style: normal;
+    font-weight: 500;
+}
 
 /* Common-endpoints rows are labeled with full URLs, which need more than the
    default 180px dt column — size to the longest URL, wrapping on narrow screens. */
-.sampler-help-list--urls .sampler-help-row { grid-template-columns: minmax(140px, max-content) 1fr; }
+.sampler-help-list--urls .sampler-help-row {
+    grid-template-columns: minmax(140px, max-content) 1fr;
+}
 
 .sampler-help-list--urls .sampler-help-row dt { min-width: 0; }
 
@@ -6330,21 +6456,38 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         font-size: 16px;
     }
 
-    :is(.icon-btn, .btn, .tab-btn, .cozy-select-trigger, .export-menu button) { min-height: 44px; min-width: 44px; }
+    :is(.icon-btn, .btn, .tab-btn, .cozy-select-trigger, .export-menu button) {
+        min-height: 44px;
+        min-width: 44px;
+    }
 
     :is(.form-input, .form-textarea, .cozy-select-trigger) { font-size: 16px; }
 
     .form-input { min-height: 44px; }
 
     /* 26 + 9 + 9 = the 44px tap target, so this margin is not spacing. */
-    input[type="checkbox"] { width: 44px; height: 26px; margin-block: 9px; flex-shrink: 0; }
+    input[type="checkbox"] {
+        width: 44px;
+        height: 26px;
+        margin-block: 9px;
+        flex-shrink: 0;
+    }
 
     /* -9px is half the knob's own height, which is what centres it. */
-    input[type="checkbox"]::after { width: 18px; height: 18px; margin-top: -9px; }
+    input[type="checkbox"]::after {
+        width: 18px;
+        height: 18px;
+        margin-top: -9px;
+    }
 
     input[type="checkbox"]:checked::after { transform: translateX(18px); }
 
-    .cozy-select-option { min-height: 44px; padding-block: var(--space-4); white-space: normal; overflow-wrap: anywhere; }
+    .cozy-select-option {
+        min-height: 44px;
+        padding-block: var(--space-4);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
 
     /* ── Sidebar: an off-screen drawer ───────────────────────────────────── */
     #sidebar {
@@ -6531,6 +6674,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .message.user {
         grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+        max-width: 100%;
+        border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
     }
 
     .msg-body,
@@ -6571,11 +6716,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         align-self: end;
         margin-top: 0;
         margin-bottom: calc((32px - 28px) / 2);
-    }
-
-    .message.user {
-        max-width: 100%;
-        border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
+        /* The branch pill is a button too small to hit on a phone, so it gets the
+           same grown hit area, wider as well, into the gap beside it. */
+        position: relative;
+        min-height: 28px;
     }
 
     .message.character {
@@ -6639,13 +6783,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         content: '';
         position: absolute;
         inset: calc((32px - var(--mobile-tap-target)) / 2) 0;
-    }
-
-    /* The branch pill is a button too small to hit on a phone, so it gets the
-       same grown hit area, wider as well, into the gap beside it. */
-    .branch-pill {
-        position: relative;
-        min-height: 28px;
     }
 
     .branch-pill::after {
@@ -6898,6 +7035,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .modal-header {
         height: auto;
+        padding: var(--space-2) var(--space-4);
     }
 
     .modal-body {
@@ -6967,11 +7105,16 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         flex-shrink: 0;
     }
 
-    .settings-nav { border-right: 0; }
+    .settings-nav {
+        border-right: 0;
+        width: 100%;
+        padding: var(--space-4) var(--space-5);
+    }
 
     .settings-nav-item {
         padding: var(--space-3) 0.8rem;
         font-size: var(--text-2xl);
+        min-height: 44px;
     }
 
     .settings-page-header--with-action {
@@ -7064,19 +7207,26 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
        layout viewport, so 100dvh leaves the modal's footer under the keyboard.
        main.js measures visualViewport and publishes it as this custom property;
        the fallback is what non-iOS browsers use. */
-    .settings-modal { width: 100%; max-width: 100%; height: var(--settings-viewport-height, 100dvh); }
-
-    .modal-header { padding: var(--space-2) var(--space-4); }
-
-    .settings-nav { width: 100%; padding: var(--space-4) var(--space-5); }
-
-    .settings-nav-item { min-height: 44px; }
+    .settings-modal {
+        width: 100%;
+        max-width: 100%;
+        height: var(--settings-viewport-height, 100dvh);
+    }
 
     #settings-flyout:has(.in-detail) #settings-close-btn { display: none; }
 
     /* In a page the title names it, as the desktop page header does; the list
        keeps the plain eyebrow. */
-    #settings-flyout:has(.in-detail) #settings-title { font-size: var(--text-4xl); font-weight: 700; line-height: 1.2; text-transform: none; letter-spacing: 0; color: var(--fg-heading); text-align: center; padding-right: 44px; }
+    #settings-flyout:has(.in-detail) #settings-title {
+        font-size: var(--text-4xl);
+        font-weight: 700;
+        line-height: 1.2;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--fg-heading);
+        text-align: center;
+        padding-right: 44px;
+    }
 
     .settings-page-header { position: static; padding: var(--space-3) var(--page-gutter); }
 
@@ -7092,7 +7242,15 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .settings-row:has(> input[type="checkbox"]) { position: relative; }
 
-    .settings-row:has(> input[type="checkbox"]) > label::after { content: ''; position: absolute; right: 0; top: 50%; width: 44px; height: 44px; transform: translateY(-50%); }
+    .settings-row:has(> input[type="checkbox"]) > label::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translateY(-50%);
+    }
 
     .settings-row > .cozy-select { flex-basis: 150px; }
 
@@ -7107,7 +7265,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .sampler-subsection-header { align-items: center; }
 
     #settings-flyout.modal-overlay,
-    .settings-submodal.modal-overlay { top: var(--settings-viewport-top, 0px); bottom: auto; height: calc(var(--settings-viewport-height, 100dvh) - var(--frame-top) - var(--frame-bottom)); }
+    .settings-submodal.modal-overlay {
+        top: var(--settings-viewport-top, 0px);
+        bottom: auto;
+        height: calc(var(--settings-viewport-height, 100dvh) - var(--frame-top) - var(--frame-bottom));
+    }
 
     .settings-submodal > .modal { height: 100%; }
 
@@ -7115,11 +7277,31 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .sampler-reset-btn { min-height: 44px; }
 
-    .sampler-popover { position: fixed; top: calc(80px + env(safe-area-inset-top, 0px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); width: auto; min-width: 0; max-width: none; max-height: none; }
+    .sampler-popover {
+        position: fixed;
+        top: calc(80px + env(safe-area-inset-top, 0px));
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        left: calc(16px + env(safe-area-inset-left, 0px));
+        right: calc(16px + env(safe-area-inset-right, 0px));
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        max-height: none;
+    }
 
     .sampler-popover-footer { display: flex; }
 
-    .sampler-done-btn { display: block; min-height: 44px; padding: 0 0.6rem; background: none; border: 0; border-radius: var(--radius-control); color: var(--fg-accent); font: 600 var(--text-md) var(--font-mono); cursor: pointer; }
+    .sampler-done-btn {
+        display: block;
+        min-height: 44px;
+        padding: 0 0.6rem;
+        background: none;
+        border: 0;
+        border-radius: var(--radius-control);
+        color: var(--fg-accent);
+        font: 600 var(--text-md) var(--font-mono);
+        cursor: pointer;
+    }
 
     :is(.regex-filter-flag, .lorebook-entry-toggle) { min-height: 44px; }
 
@@ -7132,7 +7314,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .model-picker-item { min-height: 44px; }
 
     /* ── Picker rows ─────────────────────────────────────────────────────── */
-    :is(.preset-select-row, .prompt-select-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+    :is(.preset-select-row, .prompt-select-row) {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-3);
+    }
 
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { grid-column: 1 / -1; }
 
@@ -7140,7 +7326,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .settings-action-label { font-size: var(--text-xs); }
 
-    :is(.preset-select-row, .prompt-select-row) .icon-btn { min-height: var(--mobile-tap-target); padding-inline: var(--space-1); gap: var(--space-1); }
+    :is(.preset-select-row, .prompt-select-row) .icon-btn {
+        min-height: var(--mobile-tap-target);
+        padding-inline: var(--space-1);
+        gap: var(--space-1);
+    }
 
     .settings-model-row .icon-btn { min-height: var(--mobile-tap-target); }
 
@@ -7155,12 +7345,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .prompt-section-body {
         display: flex;
         flex-direction: column;
+        align-items: stretch;
     }
 
     .prompt-section-left {
         flex-direction: column;
         gap: 0.5rem;
         width: auto;
+        display: contents;
     }
 
     .prompt-section-controls,
@@ -7170,26 +7362,43 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         grid-row: auto;
     }
 
-
-
     .prompt-builder-tabs .tab-btn { min-height: 44px; }
-
-    .prompt-section-left { display: contents; }
 
     .prompt-section-right { flex: none; min-height: 0; }
 
-    .prompt-section-right .form-textarea { min-height: 180px; height: clamp(180px, calc(var(--settings-viewport-height, 100dvh) * 0.45), 360px); background: var(--input-bg); border: 1px solid var(--line-soft); padding: var(--space-4); }
+    .prompt-section-right .form-textarea {
+        min-height: 180px;
+        height: clamp(180px, calc(var(--settings-viewport-height, 100dvh) * 0.45), 360px);
+        background: var(--input-bg);
+        border: 1px solid var(--line-soft);
+        padding: var(--space-4);
+    }
 
     .prompt-section-right .form-textarea:focus {
         border-color: transparent;
         box-shadow: none;
     }
 
-    .prompt-section-right .form-textarea:focus-visible { outline: 2px solid var(--fg-accent); outline-offset: 2px; }
+    .prompt-section-right .form-textarea:focus-visible {
+        outline: 2px solid var(--fg-accent);
+        outline-offset: 2px;
+    }
 
     .prompt-vars-panel { flex: none; padding: 0; }
 
-    .prompt-vars-toggle { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 52px; border: 0; background: transparent; color: var(--fg-heading); font: 700 1.125rem/1.25 var(--font-mono); padding: var(--space-4); border-radius: var(--radius); }
+    .prompt-vars-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        width: 100%;
+        min-height: 52px;
+        border: 0;
+        background: transparent;
+        color: var(--fg-heading);
+        font: 700 1.125rem/1.25 var(--font-mono);
+        padding: var(--space-4);
+        border-radius: var(--radius);
+    }
 
     .prompt-vars-toggle > span:last-child { margin-left: auto; }
 
@@ -7199,9 +7408,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     #prompt-vars-content > .settings-card-header { display: none; }
 
-    .prompt-section-body { align-items: stretch; }
-
-    .prompt-vars-panel dt code { display: inline-flex; align-items: center; min-height: 44px; }
+    .prompt-vars-panel dt code {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
 
     .prompt-basic-hint-link { min-height: 44px; padding: var(--space-3); }
 
@@ -7255,7 +7466,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     :is(.about-storage-grid, .about-link-grid) { grid-template-columns: minmax(0, 1fr); }
 
-    :is(.about-storage-summary-note, .about-storage-tile-desc, .about-storage-cache-body span) { white-space: normal; }
+    :is(.about-storage-summary-note, .about-storage-tile-desc, .about-storage-cache-body span) {
+        white-space: normal;
+    }
 
     .about-build { overflow-wrap: anywhere; }
 
@@ -7270,7 +7483,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 /* ── Smallest phones ─────────────────────────────────────────────────────── */
 @media (max-width: 359px) {
     /* The smallest phones have no room for title-size tabs beside Preview's label. */
-    :is(.prompt-builder-bar > .settings-card-icon, .prompt-rendered-btn .settings-action-label) { display: none; }
+    :is(.prompt-builder-bar > .settings-card-icon, .prompt-rendered-btn .settings-action-label) {
+        display: none;
+    }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
