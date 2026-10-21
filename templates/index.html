@@ -63,19 +63,24 @@
     <div id="sheet-backdrop"></div>
     <aside id="sidebar" tabindex="-1">
         <div class="sidebar-scrollable">
-            <!-- The last few characters you wrote to, which then leave the list
-                 below. Filled and shown by renderCharList() once the list is
-                 long; their times are the only label they need. -->
-            <div id="recent-chars" class="recent-chars" hidden>
-                <ul class="recent-list" id="recent-list"></ul>
-                <div class="panel-divider"></div>
+            <!-- New character, and once the list is long, a clock that opens the
+                 last few characters you wrote to. renderCharList() fills Recent
+                 and shows the clock. -->
+            <div class="sidebar-top">
+                <button type="button" id="new-char-btn" class="new-char-row">
+                    <span class="new-char-icon" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </span>
+                    <span>New character</span>
+                </button>
+                <button type="button" id="recent-btn" class="recent-btn" title="Recent" aria-label="Recent characters" aria-controls="recent-chars" aria-expanded="false" hidden>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+                </button>
+                <div id="recent-chars" class="export-menu recent-chars" hidden>
+                    <div class="section-label recent-title">Recent</div>
+                    <ul class="recent-list" id="recent-list"></ul>
+                </div>
             </div>
-            <button type="button" id="new-char-btn" class="new-char-row">
-                <span class="new-char-icon" aria-hidden="true">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </span>
-                <span>New character</span>
-            </button>
             <!-- Character list — populated by JS from API -->
             <ul class="char-list" id="char-list"></ul>
         </div>

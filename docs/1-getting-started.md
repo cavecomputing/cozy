@@ -86,9 +86,10 @@ moves into the folded **Archived** section at the bottom of the list,
 chats and all; click **Archived** to unfold it, and choose **Unarchive**
 to bring a character back.
 
-Once your library is longer than twelve characters, the five you last
-wrote to move to the top of the sidebar, newest first, each with how long
-ago that was. The rest of the list follows under a thin line.
+Once your library is longer than twelve characters, a clock button
+appears beside **New character**. It lists the five you last wrote to,
+newest first, each with how long ago that was; click one to open it. They
+stay in the list below as well.
 
 ### Bring in a card from another site
 

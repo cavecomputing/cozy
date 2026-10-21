@@ -14,7 +14,7 @@ import { forgetCharacterLorebook } from './lorebooks.js';
 // every load and unfolds by itself when the character on screen is archived.
 let archivedOpen = false;
 
-// Character id → when you last wrote to them, for the Recent block. Kept apart
+// Character id → when you last wrote to them, for the Recent menu. Kept apart
 // from state.characters, whose rows the pin, archive and edit responses replace
 // with ones that don't carry it.
 const lastChatAt = new Map();
@@ -24,11 +24,11 @@ export function renderCharList() {
     // the displayed one, which the startup and after-delete picks rely on.
     state.characters.sort(compareCharacters);
     closeCharMenu();   // its row is about to be replaced
+    toggleRecentMenu(false);
     el.charList.innerHTML = '';
-    // Recent comes first and takes its characters out of the list under it,
-    // so nobody is listed twice.
+    // Recent is a menu off the clock button; the list keeps everyone.
     const recent = recentCharacters(state.characters, lastChatAt);
-    el.recentChars.hidden = recent.length === 0;
+    el.recentBtn.hidden = recent.length === 0;
     el.recentList.replaceChildren(...recent.map(char => charRow(char, lastChatAt.get(char.id))));
     if (state.characters.length === 0) {
         const li = document.createElement('li');
@@ -37,7 +37,7 @@ export function renderCharList() {
         el.charList.appendChild(li);
         return;
     }
-    const listed = state.characters.filter(c => !recent.includes(c));
+    const listed = state.characters;
     // Archived characters sort last, so the first one is where their section starts.
     const firstArchived = listed.find(c => c.archived);
     listed.forEach(char => {
@@ -57,7 +57,8 @@ export function renderCharList() {
 }
 
 /** One character's row, in Recent or the list: avatar, name, a star if pinned,
- *  when you last wrote to them if `lastWrote` is given, and the ⋯ menu. */
+ *  then when you last wrote to them if `lastWrote` is given (Recent), or the
+ *  ⋯ menu if not (the list, where the same character's row has one). */
 function charRow(char, lastWrote) {
     const active = char.id === state.activeCharacter?.id;
     const li = document.createElement('li');
@@ -84,19 +85,31 @@ function charRow(char, lastWrote) {
     if (char.pinned && !char.archived) {
         selectBtn.insertAdjacentHTML('beforeend', `<span class="char-pin-mark" title="Pinned" aria-label="Pinned">${icons.STAR_FILLED}</span>`);
     }
+    li.append(selectBtn);
     if (lastWrote) {
         const time = document.createElement('span');
         time.className = 'recent-time';
         time.textContent = timeAgo(parseDbStamp(lastWrote));
         selectBtn.append(time);
+        return li;
     }
 
     const actions = document.createElement('div');
     actions.className = 'char-item-actions';
     actions.innerHTML = `<button class="icon-btn char-menu-btn" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">${icons.MORE}</button>`;
-
-    li.append(selectBtn, actions);
+    li.append(actions);
     return li;
+}
+
+/** Open or close the Recent menu under the clock, toggling when `open` is
+ *  left out. `fromKeyboard` puts focus on its first character, as the row
+ *  menu does. */
+export function toggleRecentMenu(open = el.recentChars.hidden, fromKeyboard = false) {
+    el.recentChars.hidden = !open;
+    el.recentBtn.setAttribute('aria-expanded', String(open));
+    // By pointer, focus goes to the clock, so Escape is caught in the sidebar
+    // on Safari too, which doesn't focus a clicked button.
+    if (open) (fromKeyboard ? el.recentList.querySelector('.char-select-btn') : el.recentBtn)?.focus({ preventScroll: true });
 }
 
 /** Move Recent's "5 minutes ago" on, in place, so a focused row keeps focus. */

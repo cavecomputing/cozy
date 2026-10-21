@@ -1207,7 +1207,7 @@ input[type="checkbox"]:checked::after {
     margin-bottom: 1.5rem;
 }
 
-/* Character names are in the reading face, quiet until hovered. */
+/* Character names are mono, as in the design's rail, quiet until hovered. */
 .char-item {
     position: relative;
     display: flex;
@@ -1215,10 +1215,11 @@ input[type="checkbox"]:checked::after {
     gap: 0.25rem;
     padding: 0;
     border-radius: var(--radius);
-    margin-bottom: 1px;
+    margin-bottom: 2px;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease;
     color: var(--fg-quiet);
-    font-size: var(--text-xl);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
     font-weight: 500;
     min-width: 0;
 }
@@ -1235,7 +1236,7 @@ input[type="checkbox"]:checked::after {
 .char-item.active {
     background-color: var(--surface-selected);
     color: var(--fg-accent);
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .char-item.missing {
@@ -1253,7 +1254,7 @@ input[type="checkbox"]:checked::after {
     gap: 0.6rem;
     flex: 1;
     min-width: 0;
-    padding: 0.3rem 0.5rem;
+    padding: 0.35rem 0.6rem;
     border: 0;
     border-radius: var(--radius);
     background: none;
@@ -1264,8 +1265,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .char-select-btn .avatar {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     border: 1px solid var(--line);
     font-size: 0.6rem;
@@ -1341,8 +1342,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .char-pin-mark svg {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
 }
 
 /* Archived rows are dimmed so they read as set aside — except the one on
@@ -1395,20 +1396,22 @@ input[type="checkbox"]:checked::after {
     line-height: 1.4;
 }
 
-/* "New character": the first row of the list, its + in an avatar-sized box. */
+/* "New character": the top of the list, its + in an avatar-sized box. */
 .new-char-row {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    width: 100%;
-    margin-bottom: 0.25rem;
-    padding: 0.3rem 0.5rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.35rem 0.6rem;
     border: 0;
     border-radius: var(--radius);
     background: none;
     color: var(--fg-quiet);
     cursor: pointer;
-    font-size: var(--text-xl);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    white-space: nowrap;
     font-weight: 500;
     text-align: left;
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease;
@@ -1424,26 +1427,81 @@ input[type="checkbox"]:checked::after {
 .new-char-icon {
     display: grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
     border: 1px solid var(--line);
     border-radius: 6px;
 }
 
 /* ── Recent ──────────────────────────────────────────────────────────────── */
-/* The last few characters you wrote to, at the top of the list and scrolling
-   with it, so a short window (a phone on its side) still has room for the
-   list. Rows like the list's, each with when you last wrote, which is all the
-   label the block has; a hairline ends it, and the list under it leaves
-   these characters out. */
+/* New character, with the clock for Recent beside it once the list is long.
+   Both scroll with the list, so a short window (a phone on its side) still
+   has room for it. */
+.sidebar-top {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+.recent-btn {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background-color: var(--surface-quiet);
+    color: var(--fg-quiet);
+    cursor: pointer;
+    transition: border-color var(--motion-base), color var(--motion-base);
+}
+
+.recent-btn[aria-expanded="true"] {
+    border-color: var(--fg-quiet);
+    color: var(--fg);
+}
+
+@media (hover: hover) {
+    .recent-btn:hover {
+        border-color: var(--fg-quiet);
+        color: var(--fg);
+    }
+}
+
+/* The last few characters you wrote to, dropped from the clock across the
+   sidebar's width: rows like the list's a size down, each with when you last
+   wrote. The list below still has everyone, ⋯ menus and all. */
 .recent-chars {
-    margin-bottom: 0.5rem;
+    right: 0;
+    min-width: 0;
+}
+
+.recent-title {
+    padding: 0.35rem 0.5rem 0.3rem;
 }
 
 .recent-list {
     list-style: none;
-    margin-bottom: 0.4rem;
+}
+
+/* Sized on the button, which .export-menu button would otherwise size. */
+.recent-list .char-item {
+    margin-bottom: 0;
+}
+
+.recent-list .char-select-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: var(--text-md);
+}
+
+.recent-list .char-select-btn .avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
 }
 
 /* When you last wrote, right-aligned after the name; a long name gives way
@@ -1453,10 +1511,6 @@ input[type="checkbox"]:checked::after {
     font-family: var(--font-sans);
     font-size: var(--text-2xs);
     color: var(--fg-quiet);
-}
-
-.recent-chars .panel-divider {
-    margin: 0;
 }
 
 /* ── Character row menu ──────────────────────────────────────────────────── */
@@ -6572,7 +6626,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .char-item,
     .new-char-row {
-        font-size: var(--text-3xl);
+        font-size: var(--text-xl);
     }
 
     .char-select-btn .avatar,
@@ -6580,6 +6634,26 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         width: 32px;
         height: 32px;
         border-radius: var(--radius-control);
+    }
+
+    .recent-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .recent-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .recent-list .char-select-btn {
+        min-height: 44px;
+        font-size: var(--text-lg);
+    }
+
+    .recent-list .char-select-btn .avatar {
+        width: 28px;
+        height: 28px;
     }
 
     .char-select-btn,

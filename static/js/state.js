@@ -71,6 +71,7 @@ export function initElements() {
         charList:        document.getElementById('char-list'),
         recentChars:     document.getElementById('recent-chars'),
         recentList:      document.getElementById('recent-list'),
+        recentBtn:       document.getElementById('recent-btn'),
         charRowMenu:     document.getElementById('char-row-menu'),
         chatFlyout:      document.getElementById('chat-flyout'),
         chatFlyoutBtn:   document.getElementById('chat-flyout-btn'),

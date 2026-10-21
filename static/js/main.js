@@ -9,7 +9,7 @@ import {
     withBusy, flashSettingsSavedTick, dismissApiNotice,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
-import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes } from './characters.js';
+import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop } from './messages.js';
 import { Modal } from './modal.js';
@@ -932,6 +932,10 @@ function bindCharacterHandlers() {
 
     // Recent and the character list — select / row menu / Archived section
     el.charList.parentElement.addEventListener('click', e => {
+        if (e.target.closest('#recent-btn')) {
+            toggleRecentMenu(undefined, e.detail === 0);
+            return;
+        }
         if (e.target.closest('.char-archived-btn')) {
             toggleArchivedSection();
             return;
@@ -947,6 +951,7 @@ function bindCharacterHandlers() {
             // A click with no detail came from Enter or Space, not a pointer.
             if (char) toggleCharMenu(menuBtn, char, e.detail === 0);
         } else if (selectBtn) {
+            toggleRecentMenu(false);
             selectCharacter(id);
         }
     });
@@ -983,6 +988,7 @@ function bindCharacterHandlers() {
     // because the ⋯ stops its clicks from bubbling.
     document.addEventListener('click', e => {
         if (!e.target.closest('#char-row-menu, .char-menu-btn')) closeCharMenu();
+        if (!e.target.closest('#recent-chars, #recent-btn')) toggleRecentMenu(false);
     }, true);
     // The menu is placed once, so it can't follow the rows as the list scrolls.
     el.charList.parentElement.addEventListener('scroll', closeCharMenu, { passive: true });
@@ -1012,6 +1018,26 @@ function bindCharacterHandlers() {
         } else if (e.key === 'Tab' && el.charRowMenu.contains(document.activeElement)) {
             trigger?.focus();
             closeCharMenu();
+        }
+    });
+    // The same keys while Recent is open, walking its characters and
+    // returning to the clock.
+    el.sidebar.addEventListener('keydown', e => {
+        if (el.recentChars.hidden) return;
+        const rows = [...el.recentList.querySelectorAll('.char-select-btn')];
+        const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            el.recentBtn.focus();
+            toggleRecentMenu(false);
+        } else if (step) {
+            e.preventDefault();
+            const at = rows.indexOf(document.activeElement);
+            rows[at === -1 ? (step > 0 ? 0 : rows.length - 1) : (at + step + rows.length) % rows.length].focus();
+        } else if (e.key === 'Tab' && el.recentChars.contains(document.activeElement)) {
+            el.recentBtn.focus();
+            toggleRecentMenu(false);
         }
     });
 }
