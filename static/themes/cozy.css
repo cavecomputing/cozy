@@ -35,13 +35,10 @@
        (flyouts, menus, toasts). */
     --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
     --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
-    --input-shadow:       none;
 
     /* RP markdown — speech in aqua, narration muted, emphasis in
        the accent and intense actions in orange. */
     --rp-dialogue-color:  #8ec07c;   /* aqua */
-    --rp-dialogue-weight: 500;
-    --rp-dialogue-shadow: none;
     --rp-action-color:    var(--text-secondary);   /* muted — italics/actions */
     --rp-emphasis-color:  var(--accent-color);   /* yellow — bold/strong emphasis */
     --rp-quote-color:     var(--text-color);   /* blockquotes/narration */
@@ -49,7 +46,6 @@
     --rp-ooc-color:       var(--cool-color);   /* blue — code/OOC text */
     --rp-intense-color:   #fe8019;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  none;
-    --rp-strike-opacity:  0.5;
     --code-bg:            var(--bg-color);
     --code-border:        var(--border-color);
     --pre-bg:             var(--app-bg);
@@ -84,38 +80,8 @@
        character accent. */
     --char-name-color:          #d3869b;
 
-    /* User message — the raised bubble; the character's reply is plain prose
-       on the shell. */
-    --user-msg-bg:              var(--char-msg-bg);
-    --user-msg-border:          transparent;
-    --user-msg-color:           var(--text-color);
-    --user-msg-name-color:      var(--text-color);
-    --user-action-color:        var(--text-secondary);
-    --user-action-hover-bg:     var(--hover-bg);
-    --user-action-hover-color:  var(--text-color);
-
-    /* User-message RP overrides */
-    --user-dialogue-color:      var(--rp-dialogue-color);
-    --user-dialogue-weight:     var(--rp-dialogue-weight);
-    --user-dialogue-shadow:     none;
-    --user-em-color:            var(--rp-action-color);
-    --user-em-shadow:           none;
-    --user-strong-color:        var(--rp-emphasis-color);
-    --user-intense-color:       var(--rp-intense-color);
-    --user-intense-shadow:      none;
-    --user-strike-opacity:      0.55;
-    --user-strike-color:        var(--rp-action-color);
-    --user-blockquote-border:   var(--border-color);
-    --user-blockquote-bg:       var(--app-bg);
-    --user-blockquote-color:    var(--text-color);
-    --user-code-bg:             var(--code-bg);
-    --user-code-color:          var(--rp-ooc-color);
-    --user-code-border:         var(--code-border);
-    --user-pre-bg:              var(--pre-bg);
-    --user-pre-border:          var(--pre-border);
-    --user-heading-color:       var(--text-color);
-    --user-h1-border:           var(--border-color);
+    /* User message — the raised bubble, in the character's colours (style.css
+       falls back to them for every --user-* the theme leaves out). */
     --user-hr-mid-color:        #504945;
-    --user-editable-bg:         color-mix(in srgb, var(--accent-color) 6%, transparent);
     --editable-bg:              color-mix(in srgb, var(--accent-color) 6%, transparent);
 }

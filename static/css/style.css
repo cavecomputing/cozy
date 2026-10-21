@@ -2146,8 +2146,10 @@ input[type="checkbox"]:checked::after {
     }
 }
 
+/* Every --user-* variable here and in the message text below falls back to
+   the character's own colour, so a theme names only what its bubble changes. */
 .message.user .msg-name {
-    color: var(--user-msg-name-color, rgba(255, 255, 255, 0.85));
+    color: var(--user-msg-name-color, var(--text-color));
 }
 
 .message.character .msg-name {
@@ -2155,8 +2157,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user {
-    background-color: var(--user-msg-bg, var(--accent-color));
-    color: var(--user-msg-color, white);
+    background-color: var(--user-msg-bg, var(--char-msg-bg));
+    color: var(--user-msg-color, var(--text-color));
     box-shadow: none;
     border-color: var(--user-msg-border, transparent);
 }
@@ -2258,8 +2260,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content em {
-    color: var(--user-em-color);
-    text-shadow: var(--user-em-shadow);
+    color: var(--user-em-color, var(--rp-action-color));
+    text-shadow: var(--user-em-shadow, none);
 }
 
 /* Bold — strong emphasis */
@@ -2269,7 +2271,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content strong {
-    color: var(--user-strong-color);
+    color: var(--user-strong-color, var(--rp-emphasis-color));
 }
 
 /* Bold + Italic — intense actions */
@@ -2283,8 +2285,8 @@ input[type="checkbox"]:checked::after {
 
 .message.user .message-content em strong,
 .message.user .message-content strong em {
-    color: var(--user-intense-color);
-    text-shadow: var(--user-intense-shadow);
+    color: var(--user-intense-color, var(--rp-intense-color));
+    text-shadow: var(--user-intense-shadow, none);
 }
 
 /* Strikethrough — corrections / redactions */
@@ -2295,8 +2297,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content s {
-    opacity: var(--user-strike-opacity);
-    text-decoration-color: var(--user-strike-color);
+    opacity: var(--user-strike-opacity, 0.55);
+    text-decoration-color: var(--user-strike-color, var(--rp-action-color));
 }
 
 /* Lists */
@@ -2319,9 +2321,9 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content blockquote {
-    border-color: var(--user-blockquote-border);
-    background-color: var(--user-blockquote-bg);
-    color: var(--user-blockquote-color);
+    border-color: var(--user-blockquote-border, var(--border-color));
+    background-color: var(--user-blockquote-bg, var(--app-bg));
+    color: var(--user-blockquote-color, var(--text-color));
 }
 
 /* Quoted dialogue — spoken words */
@@ -2332,7 +2334,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content .rp-dialogue {
-    color: var(--user-dialogue-color);
+    color: var(--user-dialogue-color, var(--rp-dialogue-color));
     font-weight: var(--user-dialogue-weight, var(--rp-dialogue-weight, 500));
     text-shadow: var(--user-dialogue-shadow, var(--rp-dialogue-shadow, none));
 }
@@ -2352,9 +2354,9 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content code {
-    background-color: var(--user-code-bg);
-    color: var(--user-code-color);
-    border-color: var(--user-code-border);
+    background-color: var(--user-code-bg, var(--code-bg));
+    color: var(--user-code-color, var(--rp-ooc-color));
+    border-color: var(--user-code-border, var(--code-border));
 }
 
 /* Code block — extended OOC / system text */
@@ -2368,8 +2370,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content pre {
-    background-color: var(--user-pre-bg);
-    border-color: var(--user-pre-border);
+    background-color: var(--user-pre-bg, var(--pre-bg));
+    border-color: var(--user-pre-border, var(--pre-border));
 }
 
 .message-content pre code {
@@ -2407,11 +2409,11 @@ input[type="checkbox"]:checked::after {
 .message.user .message-content h4,
 .message.user .message-content h5,
 .message.user .message-content h6 {
-    color: var(--user-heading-color);
+    color: var(--user-heading-color, var(--text-color));
 }
 
 .message.user .message-content h1 {
-    border-bottom-color: var(--user-h1-border);
+    border-bottom-color: var(--user-h1-border, var(--border-color));
 }
 
 /* Horizontal rule — scene separator, a plain hairline */
@@ -2423,7 +2425,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content hr {
-    background-color: var(--user-hr-mid-color);
+    background-color: var(--user-hr-mid-color, var(--border-color));
 }
 
 /* ── Editing a message ───────────────────────────────────────────────────── */
@@ -2444,7 +2446,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .message.user .message-content[contenteditable] {
-    background-color: var(--user-editable-bg);
+    background-color: var(--user-editable-bg, color-mix(in srgb, var(--accent-color) 6%, transparent));
 }
 
 /* ── Message actions (the floating toolbar) ──────────────────────────────── */
@@ -2515,12 +2517,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .msg-action-btn.save-msg-btn:hover   { color: var(--success-color); }
 .msg-action-btn.fork-msg-btn:hover   { color: var(--accent-color); }
 
-.message.user .msg-action-btn { color: var(--user-action-color, rgba(255, 255, 255, 0.5)); }
+.message.user .msg-action-btn { color: var(--user-action-color, var(--text-secondary)); }
 
 @media (hover: hover) {
     .message.user .msg-action-btn:hover {
-        background-color: var(--user-action-hover-bg, rgba(255, 255, 255, 0.15));
-        color: var(--user-action-hover-color, white);
+        background-color: var(--user-action-hover-bg, var(--hover-bg));
+        color: var(--user-action-hover-color, var(--text-color));
     }
 }
 

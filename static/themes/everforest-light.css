@@ -59,33 +59,7 @@
 
     /* User-message bubble */
     --user-msg-bg:              #edebd3;   /* a tint of the green, so the text keeps its own colours */
-    --user-msg-color:           var(--text-color);
-    --user-msg-name-color:      var(--text-color);
-    --user-action-color:        var(--text-secondary);
-    --user-action-hover-bg:     var(--hover-bg);
-    --user-action-hover-color:  var(--text-color);
-
-    /* User-message RP overrides */
-    --user-dialogue-color:      var(--rp-dialogue-color);
-    --user-em-color:            var(--rp-action-color);
-    --user-em-shadow:           none;
-    --user-strong-color:        var(--rp-emphasis-color);
-    --user-intense-color:       var(--rp-intense-color);
-    --user-intense-shadow:      none;
-    --user-strike-opacity:      0.55;
-    --user-strike-color:        var(--rp-action-color);
-    --user-blockquote-border:   var(--border-color);
-    --user-blockquote-bg:       var(--app-bg);
-    --user-blockquote-color:    var(--text-color);
     --user-code-bg:             var(--bg-color);
-    --user-code-color:          var(--rp-ooc-color);
-    --user-code-border:         var(--code-border);
-    --user-pre-bg:              var(--pre-bg);
-    --user-pre-border:          var(--pre-border);
-    --user-heading-color:       var(--text-color);
-    --user-h1-border:           var(--border-color);
-    --user-hr-mid-color:        var(--border-color);
-    --user-editable-bg:         color-mix(in srgb, var(--accent-color) 6%, transparent);
     --editable-bg:              rgba(0, 0, 0, 0.04);
 
 }

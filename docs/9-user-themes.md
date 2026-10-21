@@ -83,7 +83,7 @@ Use a unique filename unless you intentionally want this behavior.
 
 ## Theme variables
 
-The complete current variable list is in
+Every variable a theme needs is in
 [`static/themes/cozy.css`](../static/themes/cozy.css). Common groups include:
 
 - Page, sidebar, input, and message backgrounds
@@ -91,7 +91,6 @@ The complete current variable list is in
 - Accent, success, and danger colors
 - Borders, shadows, and corner radius
 - Roleplay Markdown colors
-- User-message colors
 - Context token meter segments (`--meter-system-prompt`, `--meter-character-card`,
   `--meter-persona`, `--meter-lorebook`, `--meter-author-note`,
   `--meter-auto-summary`, `--meter-message-history`, `--meter-current-draft`,
@@ -102,6 +101,12 @@ than a palette usually carries. The two signature themes, `cozy` and
 `cozy-light`, declare their own sets; every other built-in theme falls back to a
 shared default set tuned for a dark palette. Declare them to retune the meter
 for a lighter or quieter palette.
+
+The user's message has its own optional set, named `--user-*`
+(`--user-msg-bg`, `--user-em-color`, `--user-code-bg` and so on). Each falls
+back to the color the character's text uses, so declare only the ones your user
+bubble needs changed. [`everforest-dark.css`](../static/themes/everforest-dark.css)
+sets most of them.
 
 A few more variables are optional hooks. Of these, `cozy.css` sets only
 `--cool-color` and `--accent-alt`, so a theme importing it keeps Cozy's blue and
