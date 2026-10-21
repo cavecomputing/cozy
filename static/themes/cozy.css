@@ -24,7 +24,6 @@
 
     /* Accent (yellow). Labels, active rows, focus and the primary button. */
     --accent-color:   #fabd2f;
-    --accent-hover:   #fcca56;
     --danger-color:   #fe8019;   /* orange — the palette has no red that reads on its raised surfaces */
     --danger-bg-hover: color-mix(in srgb, var(--danger-color) 14%, transparent);
     --success-color:  #8ec07c;
@@ -57,7 +56,6 @@
     /* Buttons */
     --btn-primary-color:      var(--app-bg);
     --btn-danger-hover-color: var(--app-bg);
-    --scroll-bottom-hover-bg: var(--accent-hover);
 
     /* Overlays & backdrops */
     --overlay-bg:     rgba(17, 18, 19, 0.72);

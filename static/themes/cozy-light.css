@@ -24,7 +24,6 @@
        palette's yellow reads only 3.3:1 on paper, so labels, active rows and
        focus take it deepened. */
     --accent-color:   #79740e;
-    --accent-hover:   #66620b;
     --accent-text:    #8a5a0e;
     --danger-color:   #af3a03;   /* orange, as in cozy.css */
     --danger-bg-hover: color-mix(in srgb, var(--danger-color) 12%, transparent);
@@ -58,7 +57,6 @@
     --avatar-text-color:      #fff;
     --btn-primary-color:      #fff;
     --btn-danger-hover-color: var(--bg-color);
-    --scroll-bottom-hover-bg: var(--accent-hover);
 
     /* Overlays & backdrops */
     --overlay-bg:     rgba(40, 40, 40, 0.6);

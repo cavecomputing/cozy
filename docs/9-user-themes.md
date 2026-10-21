@@ -27,7 +27,6 @@ Create `data/themes/my-theme.css`:
     --text-secondary: #9ca8ba;
 
     --accent-color: #8fb8ff;
-    --accent-hover: #b2ceff;
     --border-color: #30394a;
 }
 ```
