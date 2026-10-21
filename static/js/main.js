@@ -951,8 +951,12 @@ function bindCharacterHandlers() {
             // A click with no detail came from Enter or Space, not a pointer.
             if (char) toggleCharMenu(menuBtn, char, e.detail === 0);
         } else if (selectBtn) {
+            const fromRecent = el.recentList.contains(item);
             toggleRecentMenu(false);
             selectCharacter(id);
+            // Picked from Recent: bring that character's row in the list into
+            // view, drawn by now since selectCharacter() redraws before it waits.
+            if (fromRecent) el.charList.querySelector(`[data-char-id="${id}"]`)?.scrollIntoView({ block: 'center' });
         }
     });
 
