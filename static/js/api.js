@@ -111,6 +111,9 @@ export const API = {
             fallback: 'Chat create failed',
         });
     },
+    async markChatOpened(chatId) {
+        return jsonRequest(`/api/chats/${chatId}/opened`, { method: 'POST', fallback: 'Could not record the open chat' });
+    },
     async renameChat(chatId, name) {
         return jsonRequest(`/api/chats/${chatId}`, {
             method: 'PUT',

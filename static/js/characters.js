@@ -236,12 +236,9 @@ export async function loadCharacters() {
             savePrefs();
             return;
         }
-        const target = (
-            state._savedActiveId
-                ? available.find(c => c.id === state._savedActiveId)
-                : null
-        ) || available[0];
-        if (target) await selectCharacter(target.id);
+        // Whoever's chat was last opened or written in, on any device.
+        const target = available.reduce((last, c) => ((c.last_used_at || '') > (last.last_used_at || '') ? c : last));
+        await selectCharacter(target.id);
     } catch (err) {
         console.error('Could not load characters:', err);
         showToast('Failed to load characters: ' + err.message);

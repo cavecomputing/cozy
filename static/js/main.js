@@ -1543,7 +1543,9 @@ async function init() {
     initPromptVarsPanel();
     loadPrefs();
     // Only the responses come early: loadCharacters() still waits for the
-    // group below, as the comment there requires.
+    // group below, as the comment there requires. The ids are what this browser
+    // last had open; the server decides what to resume, and when another device
+    // has moved on since, the early chats and messages simply go unused.
     prefetchSelection(state._savedActiveId, state._savedChatId);
     applyTheme(state.theme);
     bindResponsiveShellHandlers();

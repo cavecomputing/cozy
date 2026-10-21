@@ -461,6 +461,7 @@ def init_db():
                 parent_chat_id INTEGER DEFAULT NULL,
                 parent_msg_id INTEGER DEFAULT NULL,
                 fork_msg_id INTEGER DEFAULT NULL,
+                opened_at DATETIME DEFAULT NULL,
                 FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
             );
 
@@ -584,6 +585,8 @@ def init_db():
         for fork_col in ('parent_chat_id', 'parent_msg_id', 'fork_msg_id'):
             if chat_cols and fork_col not in chat_cols:
                 conn.execute(f'ALTER TABLE chats ADD COLUMN {fork_col} INTEGER DEFAULT NULL')
+        if chat_cols and 'opened_at' not in chat_cols:
+            conn.execute('ALTER TABLE chats ADD COLUMN opened_at DATETIME DEFAULT NULL')
 
         swipe_cols = [c[1] for c in conn.execute('PRAGMA table_info(message_swipes)').fetchall()]
         if swipe_cols and 'edited_at' not in swipe_cols:

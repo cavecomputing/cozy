@@ -162,11 +162,10 @@ export async function loadChats(charId) {
             // Auto-create a first chat for a new character
             await createNewChat(/*autoSelect=*/true, /*silent=*/true);
         } else {
-            // Restore last chat or pick most recent
-            const target = state._savedChatId
-                ? state.chats.find(c => c.id === state._savedChatId)
-                : null;
-            await selectChat(target ?? state.chats[state.chats.length - 1]);
+            // Resume the chat last opened or written in, on any device. One
+            // not opened since that was recorded goes by its last write.
+            const usedAt = c => (c.opened_at > c.updated_at ? c.opened_at : c.updated_at) || '';
+            await selectChat(state.chats.reduce((last, c) => (usedAt(c) >= usedAt(last) ? c : last)));
         }
     } catch (err) {
         console.error('Could not load chats:', err);
@@ -184,6 +183,9 @@ export async function selectChat(chat) {
     if (llm.abortController) llm.abortController.abort();
 
     state.activeChat = chat;
+    API.markChatOpened(chat.id)
+        .then(({ opened_at }) => { chat.opened_at = opened_at; })
+        .catch(err => console.error('Could not record the open chat:', err));
     loadAuthorNote();
     restoreDraft();
     updateComposerState();

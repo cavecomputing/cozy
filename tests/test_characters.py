@@ -796,6 +796,28 @@ class TestLastChatAt:
         assert self._last_chat_at(client, char_id) == newest['created_at']
 
 
+class TestLastUsedAt:
+    def _last_used_at(self, client, char_id):
+        listing = client.get('/api/characters').get_json()
+        return next(c for c in listing if c['id'] == char_id)['last_used_at']
+
+    def test_none_without_chats(self, client, sample_character):
+        assert self._last_used_at(client, sample_character['id']) is None
+
+    def test_newest_open_or_write_across_chats(self, client, sample_character, sample_chat):
+        char_id = sample_character['id']
+        other = client.post(f'/api/characters/{char_id}/chats', json={}).get_json()
+        with shared.get_db() as conn:
+            conn.execute("UPDATE chats SET updated_at='2026-01-01 10:00:00', opened_at='2026-01-02 09:00:00' WHERE id=?",
+                         (sample_chat['id'],))
+            conn.execute("UPDATE chats SET updated_at='2026-01-03 08:00:00', opened_at=NULL WHERE id=?",
+                         (other['id'],))
+        assert self._last_used_at(client, char_id) == '2026-01-03 08:00:00'
+        with shared.get_db() as conn:
+            conn.execute("UPDATE chats SET opened_at='2026-01-04 07:00:00' WHERE id=?", (sample_chat['id'],))
+        assert self._last_used_at(client, char_id) == '2026-01-04 07:00:00'
+
+
 class TestRetiredCharacterOrganization:
     def test_character_responses_omit_retired_fields(self, client, sample_character):
         character = client.get(f'/api/characters/{sample_character["id"]}').get_json()

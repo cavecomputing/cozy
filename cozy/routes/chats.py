@@ -400,6 +400,18 @@ def update_chat(chat_id):
         return jsonify(chat_to_dict(row))
 
 
+@chats_bp.route('/api/chats/<int:chat_id>/opened', methods=['POST'])
+def mark_chat_opened(chat_id):
+    """Record that this chat is the one on screen, so every device resumes it.
+    Its own time, not updated_at: opening a chat isn't using it, and the chat
+    list's "2 hours ago" reads updated_at."""
+    with get_db() as conn:
+        if conn.execute('UPDATE chats SET opened_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,)).rowcount == 0:
+            return not_found('Chat')
+        row = conn.execute('SELECT opened_at FROM chats WHERE id=?', (chat_id,)).fetchone()
+        return jsonify({'opened_at': row['opened_at']})
+
+
 @chats_bp.route('/api/chats/<int:chat_id>', methods=['DELETE'])
 def delete_chat(chat_id):
     with get_db() as conn:

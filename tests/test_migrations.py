@@ -581,6 +581,7 @@ class TestSchemaMigrationLedger:
             assert 'author_note' in columns('chats')
             assert 'lorebook_notice_dismissed' not in columns('chats')
             assert {'parent_chat_id', 'parent_msg_id', 'fork_msg_id'} <= set(columns('chats'))
+            assert 'opened_at' in columns('chats')
             assert 'edited_at' in columns('message_swipes')
             assert 'settings_json' in columns('api_presets')
             assert 'post_history_content' in columns('system_prompts')

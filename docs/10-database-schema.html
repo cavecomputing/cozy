@@ -461,6 +461,7 @@
           <tr><td class="c-name">parent_chat_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">For a fork, the chat it was cut from; <code>NULL</code> for any other chat. No declared FK. A fork made at the message this chat was itself cut at names that chat's parent instead, so branches that meet at one message share a parent and a <code>parent_msg_id</code>.</td></tr>
           <tr><td class="c-name">parent_msg_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">The message in the parent the fork was cut at. No declared FK.</td></tr>
           <tr><td class="c-name">fork_msg_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">This chat's own copy of that message: where its branch pill sits, and where the other branches land when switching to it. No declared FK.</td></tr>
+          <tr><td class="c-name">opened_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">Last time this chat was on screen, on any device. On load Cozy resumes the chat whose <code>opened_at</code> or <code>updated_at</code> is newest, and switching to a character does the same among its chats; <code>NULL</code> until first opened.</td></tr>
         </tbody>
       </table></div>
       <details><summary>CREATE TABLE</summary><pre>CREATE TABLE chats (
@@ -481,6 +482,7 @@
     parent_chat_id INTEGER DEFAULT NULL,
     parent_msg_id INTEGER DEFAULT NULL,
     fork_msg_id INTEGER DEFAULT NULL,
+    opened_at DATETIME DEFAULT NULL,
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 )</pre></details>
     </section>

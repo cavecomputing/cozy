@@ -10,7 +10,7 @@ export const state = {
     activeChat:       null,     // full chat object
     messages:         [],       // client-side cache of current chat's messages
     currentEdit:      null,
-    _savedActiveId:   null,     // restored from localStorage
+    _savedActiveId:   null,     // what this browser last had open: a prefetch guess only
     _savedChatId:     null,
     personas:         [],
     activePersona:    null,

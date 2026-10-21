@@ -1487,6 +1487,19 @@ class TestListChatsForCharacter:
         assert r.status_code == 404
 
 
+class TestChatOpened:
+    def test_records_when_opened_without_touching_updated_at(self, client, sample_chat):
+        r = client.post(f'/api/chats/{sample_chat["id"]}/opened')
+        assert r.status_code == 200
+        assert r.get_json()['opened_at']
+        chat = client.get(f'/api/characters/{sample_chat["character_id"]}/chats').get_json()[0]
+        assert chat['opened_at'] == r.get_json()['opened_at']
+        assert chat['updated_at'] == sample_chat['updated_at']
+
+    def test_unknown_chat_404(self, client):
+        assert client.post('/api/chats/99999/opened').status_code == 404
+
+
 class TestCharacterBasicFieldUpdate:
     def test_update_multiple_fields(self, client, sample_character):
         r = client.put(f'/api/characters/{sample_character["id"]}', json={

@@ -156,6 +156,12 @@ def list_characters():
             "JOIN chats c ON c.id = m.chat_id WHERE m.role = 'user' "
             'GROUP BY c.character_id'
         ).fetchall())
+        # When each character's chats were last opened or written in, on any
+        # device, so a fresh page picks up where you left off.
+        last_used_at = dict(conn.execute(
+            "SELECT character_id, MAX(MAX(COALESCE(opened_at, '')), MAX(updated_at)) "
+            'FROM chats GROUP BY character_id'
+        ).fetchall())
         result = []
         for row in rows:
             if row['missing']:
@@ -166,6 +172,7 @@ def list_characters():
                 )
                 result.append(_char_to_dict(row, card))
             result[-1]['last_chat_at'] = last_chat_at.get(row['id'])
+            result[-1]['last_used_at'] = last_used_at.get(row['id'])
         return jsonify(result)
 
 
