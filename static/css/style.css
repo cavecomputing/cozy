@@ -1499,26 +1499,23 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── User profile ────────────────────────────────────────────────────────── */
-/* User Profile Section — the persona as a plain row at the foot of the rail,
-   under a hairline, with the Settings gear beside it */
+/* User Profile Section — a raised card at the foot of the rail */
 #user-profile-container {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-    margin: 0 0.5rem;   /* sides match .sidebar-scrollable's padding */
-    padding: var(--space-3) 0 0.6rem;
-    border-top: 1px solid var(--line);
+    background-color: var(--surface-raised);
+    margin: 0 0.5rem 0.625rem;   /* sides match .sidebar-scrollable's padding */
+    padding: var(--space-2);
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
     flex-shrink: 0;
 }
 
 #user-profile {
-    flex: 1;
-    min-width: 0;
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    padding: 0.35rem 0.25rem 0.35rem 0.5rem;
+    padding: 0.35rem 0.6rem;
     border-radius: var(--radius-control);
     cursor: pointer;
     transition: background var(--motion-base);
@@ -1536,7 +1533,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .user-name {
-    font-size: var(--text-lg);
+    font-size: var(--text-xl);
     font-weight: 600;
     color: var(--text-color);
     white-space: nowrap;
@@ -1544,9 +1541,45 @@ input[type="checkbox"]:checked::after {
     text-overflow: ellipsis;
 }
 
+.profile-settings-row {
+    margin-top: var(--space-1);
+}
+
+/* A small ghost button, as .btn-secondary draws one. Its label wears
+   .section-label, so the eyebrow's caps, tracking and accent are undone here. */
+.profile-settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: var(--space-2) 0.7rem;   /* whole pixels, or the label rounds a pixel high */
+    border: 1px solid var(--line);
+    background-color: var(--surface-quiet);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+    color: var(--fg);
+    transition: border-color var(--motion-base), transform var(--motion-base);
+}
+
+.profile-settings-btn .section-label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: normal;
+    text-transform: none;
+    color: inherit;
+}
+
+@media (hover: hover) {
+    .profile-settings-btn:hover {
+        border-color: var(--fg-quiet);
+        transform: translateY(-1px);
+    }
+}
+
 .profile-settings-btn svg {
-    width: 18px;
-    height: 18px;
+    flex-shrink: 0;
 }
 
 .user-tagline {
@@ -6570,17 +6603,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     #user-profile-container {
-        margin: 0 0.6rem;
-    }
-
-    .profile-settings-btn {
-        width: var(--mobile-tap-target);
-        height: var(--mobile-tap-target);
-    }
-
-    .profile-settings-btn svg {
-        width: 22px;
-        height: 22px;
+        margin: 0 0.6rem 0.6rem;
     }
 
     #persona-dropup.dropup-content {
