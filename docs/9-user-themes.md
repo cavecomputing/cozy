@@ -117,8 +117,6 @@ green until it sets its own. Declare the others when your palette needs them:
 - `--card-shadow`, `--lift-shadow`: the shadows under cards and under a
   lifted button. The defaults suit
   a dark palette; light themes soften them.
-- `--user-focus-color`: the focus ring inside a user message, for themes whose
-  user bubble is filled with the accent.
 
 Theme files are intended to override CSS variables. Direct component selectors
 may break when Cozy's interface changes.

@@ -80,9 +80,8 @@
     /* The main pane's width beside the sidebar: what a settings panel fills. */
     --shell-pane-width: calc(100vw - var(--sidebar-width));
 
-    /* One radius, because all eight bundled themes set sm, md and lg to the
-       same 8px. The indirection is what keeps a user theme in $DATA_DIR that
-       declares only --radius-md working after the bundled ones drop it. */
+    /* One radius, which a theme names --radius-md: Cozy and Cozy Light set
+       10px, the other bundled themes take the 8px fallback. */
     --radius: var(--radius-md, 8px);
     --radius-pill: 999px;   /* circles stay 50%: that is geometry, not a token */
     /* Two ranks of corner: small controls (buttons, fields, tags) and cards.
@@ -142,7 +141,7 @@
 
     /* --status-warning replaces --warning-color, which was declared by no theme
        at all and always fell back to a hardcoded ochre. --rp-emphasis-color is
-       declared by all eight, so the warning takes each theme's emphasis hue.
+       declared by every bundled theme, so the warning takes its emphasis hue.
        It is deliberately NOT used for --fg-heading: it exists to colour bold
        text inside roleplay messages and is gold-family in every theme, so a
        heading keyed to it never expresses the theme's own identity. */
@@ -1974,9 +1973,9 @@ input[type="checkbox"]:checked::after {
     width: 34px;
     height: 34px;
     border-radius: var(--radius-control);
-    background-color: var(--scroll-bottom-bg, var(--accent-color));
-    color: var(--scroll-bottom-color, var(--btn-primary-color, #fff));
-    border: 1px solid var(--scroll-bottom-border, transparent);
+    background-color: var(--accent-color);
+    color: var(--btn-primary-color, #fff);
+    border: 1px solid transparent;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1985,7 +1984,7 @@ input[type="checkbox"]:checked::after {
     pointer-events: none;
     transition: opacity var(--motion-base) ease, transform var(--motion-base) ease, box-shadow var(--motion-base) ease;
     z-index: 10;
-    box-shadow: var(--scroll-bottom-shadow, var(--shadow-card));
+    box-shadow: var(--shadow-card);
 }
 
 .scroll-to-bottom-btn.visible {
@@ -1995,8 +1994,7 @@ input[type="checkbox"]:checked::after {
 
 @media (hover: hover) {
     .scroll-to-bottom-btn:hover {
-        background-color: var(--scroll-bottom-hover-bg, var(--scroll-bottom-bg, var(--accent-color)));
-        color: var(--scroll-bottom-hover-color, var(--scroll-bottom-color, var(--btn-primary-color, #fff)));
+        background-color: var(--scroll-bottom-hover-bg, var(--accent-color));
         box-shadow: var(--shadow-lift);
         transform: translateY(-1px);
     }
@@ -2229,7 +2227,7 @@ input[type="checkbox"]:checked::after {
 
 /* Markdown typography inside bubbles — RP-enhanced styles */
 .message-content img {
-    max-width: var(--img-max-width, 300px);
+    max-width: 100%;
     height: auto;
     display: block;
     border-radius: var(--radius);
@@ -2525,10 +2523,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         color: var(--user-action-hover-color, white);
     }
 }
-
-/* The accent ring vanishes on a bubble filled with the accent, so a theme that
-   fills it that way names a ring colour that reads on it. */
-.message.user :focus-visible { outline-color: var(--user-focus-color, var(--fg-accent)); }
 
 /* The copied tick, in the same green Save uses. The pointer is still on the
    button when it appears, so it has to outrank both hover rules — hence the

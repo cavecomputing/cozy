@@ -41,7 +41,6 @@
     --rp-intense-color:   #c9171d;   /* red — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(220, 50, 47, 0.25);
     --rp-strike-opacity:  0.45;
-    --img-max-width:      100%;
     --code-bg:            rgba(88, 110, 117, 0.12);
     --code-border:        rgba(88, 110, 117, 0.22);
     --pre-bg:             rgba(88, 110, 117, 0.10);
@@ -67,7 +66,7 @@
     --user-action-hover-bg:     var(--hover-bg);
     --user-action-hover-color:  var(--text-color);
 
-    /* User-message RP overrides (colors on accent bubbles) */
+    /* User-message RP overrides */
     --user-dialogue-color:      var(--rp-dialogue-color);
     --user-em-color:            var(--rp-action-color);
     --user-em-shadow:           none;

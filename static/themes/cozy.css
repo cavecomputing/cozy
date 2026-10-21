@@ -50,7 +50,6 @@
     --rp-intense-color:   #fe8019;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  none;
     --rp-strike-opacity:  0.5;
-    --img-max-width:      100%;
     --code-bg:            var(--bg-color);
     --code-border:        var(--border-color);
     --pre-bg:             var(--app-bg);

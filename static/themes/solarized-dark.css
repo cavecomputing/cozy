@@ -38,7 +38,6 @@
     --rp-intense-color:   #fe9f7c;   /* brighter orange — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(224, 90, 32, 0.22);
     --rp-strike-opacity:  0.5;
-    --img-max-width:      100%;
     --code-bg:            rgba(101, 123, 131, 0.18);
     --code-border:        rgba(101, 123, 131, 0.25);
     --pre-bg:             rgba(0, 43, 54, 0.6);
@@ -64,7 +63,7 @@
     --user-action-hover-bg:     rgba(253, 246, 227, 0.2);
     --user-action-hover-color:  #fdf6e3;
 
-    /* User-message RP overrides (readable on blue accent bg) */
+    /* User-message RP overrides */
     --user-dialogue-color:      #9cd87d;
     --user-em-color:            #afaea1;
     --user-em-shadow:           0 0 8px rgba(131, 137, 212, 0.4);

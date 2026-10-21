@@ -39,7 +39,6 @@
     --rp-intense-color:   #e69875;   /* orange — bold+italic intense actions */
     --rp-intense-shadow:  0 0 6px rgba(230, 152, 117, 0.25);
     --rp-strike-opacity:  0.5;
-    --img-max-width:      100%;
     --code-bg:            rgba(71, 82, 88, 0.5);
     --code-border:        rgba(71, 82, 88, 0.65);
     --pre-bg:             rgba(30, 35, 38, 0.65);
