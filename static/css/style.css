@@ -1509,7 +1509,7 @@ input[type="checkbox"]:checked::after {
 #user-profile-container {
     position: relative;
     background-color: var(--surface-raised);
-    margin: 0 0.5rem 1rem;   /* sides match .sidebar-scrollable's padding */
+    margin: 0 0.5rem 0.625rem;   /* sides match .sidebar-scrollable's padding */
     padding: var(--space-2);
     border-radius: var(--radius);
     border: 1px solid var(--line);
