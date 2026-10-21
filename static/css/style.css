@@ -1647,9 +1647,9 @@ input[type="checkbox"]:checked::after {
         left: 100%;
         right: auto;
         top: auto;
-        /* Keep the flyout covering the composer's bottom edge while its body
-           grows upward from that anchor. */
-        bottom: -12px;
+        /* Level with the card's and the composer's bottom edge (-1px for the
+           card's border), its body growing upward from that anchor. */
+        bottom: -1px;
         /* Push past user-profile-container's right margin (0.5rem) plus its
            border, with a small inward nudge so the left edge sits just inside the
            chat bubbles' left edge. */
