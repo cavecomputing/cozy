@@ -114,8 +114,8 @@ green until it sets its own. Declare the others when your palette needs them:
   derives one from `--rp-action-color`.
 - `--accent-alt`: a second accent for the icons beside settings card titles.
   Without it they take `--success-color`.
-- `--shell-shadow`, `--card-shadow`, `--lift-shadow`: the shadows under the
-  app's outer frame, under cards, and under a lifted button. The defaults suit
+- `--card-shadow`, `--lift-shadow`: the shadows under cards and under a
+  lifted button. The defaults suit
   a dark palette; light themes soften them.
 - `--user-focus-color`: the focus ring inside a user message, for themes whose
   user bubble is filled with the accent.

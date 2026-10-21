@@ -2,13 +2,13 @@
    yellow for labels and focus, green for done, blue for addresses, orange for
    warnings) */
 :root {
-    /* Corner radius for cards. Controls take 0.6 of it and the outer shell
-       1.4 (see --radius-control and --radius-shell in style.css). */
+    /* Corner radius for cards. Controls take 0.6 of it (see --radius-control
+       in style.css). */
     --radius-md: 10px;
 
-    /* Layout — the page behind the shell, the shell itself, raised cards on
-       it, and the inset wells. The sidebar shares the shell's surface so the
-       two read as one. */
+    /* Layout — the darker ground (the loading screen, the inset wells), the
+       app's surface, and raised cards on it. The sidebar shares the surface so
+       the two read as one. */
     --app-bg:         #1d2021;
     --bg-color:       #282828;
     --sidebar-bg:     var(--bg-color);

@@ -5,8 +5,8 @@
 :root {
     --radius-md: 10px;
 
-    /* Layout — the page behind the shell, the shell (the paper), raised cards
-       on it, and the inset wells. */
+    /* Layout — the ground (the loading screen), the app's surface (the
+       paper), raised cards on it, and the inset wells. */
     --app-bg:         #f9f5d7;
     --bg-color:       #fbf1c7;
     --sidebar-bg:     var(--bg-color);
@@ -34,7 +34,6 @@
 
     /* Elevation — soft shadows in the ink colour, never black on paper. */
     --shadow-md:          0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
-    --shell-shadow:       0 1px 2px rgba(60, 56, 54, 0.10), 0 8px 24px rgba(60, 56, 54, 0.07);
     --card-shadow:        0 1px 2px rgba(60, 56, 54, 0.07), 0 4px 12px rgba(60, 56, 54, 0.07);
     --lift-shadow:        0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
     --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);

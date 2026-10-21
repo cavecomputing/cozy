@@ -14,8 +14,7 @@ export function applyTheme(name) {
 }
 
 // The browser bar and an installed app's status or title bar take theme-color,
-// so match it to the page background (the shell's colour on a phone or once
-// installed, see style.css) — on the spot for the sheet already loaded, and
+// so match it to the page background — on the spot for the sheet already loaded, and
 // again once a newly chosen sheet arrives.
 function syncThemeColor() {
     const pageBg = getComputedStyle(document.body).backgroundColor;
