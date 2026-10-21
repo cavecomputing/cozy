@@ -94,6 +94,15 @@ def index():
     ), {'Cache-Control': 'no-cache'}
 
 
+# The page's scripts and stylesheet, under the build they belong to. Each build
+# names them by new URLs, so a browser can't run modules it kept from before an
+# update inside the updated page, as Safari did despite no-cache. Imports
+# between modules are relative, so they stay under the same prefix.
+@app.route('/assets/<build>/<path:filename>')
+def build_asset(build, filename):
+    return app.send_static_file(filename)
+
+
 @app.route('/api/themes', methods=['GET'])
 def list_themes():
     names = set()

@@ -1628,3 +1628,17 @@ class TestCrossSiteWrites:
                           headers={'Sec-Fetch-Site': 'cross-site'}).status_code == 200
         # No Sec-Fetch-Site and no Origin: curl, scripts, the test client.
         assert client.post('/api/personas', json={'name': 'Scripted'}).status_code == 201
+
+
+class TestBuildAssets:
+    def test_page_names_its_scripts_under_the_build(self, client):
+        page = client.get('/').get_data(as_text=True)
+        build = shared.BUILD_INFO.display
+        assert f'/assets/{build}/js/main.js' in page
+        assert f'/assets/{build}/css/style.css' in page
+        assert '/static/js/' not in page
+
+    def test_serves_the_static_file(self, client):
+        r = client.get(f'/assets/{shared.BUILD_INFO.display}/js/main.js')
+        assert r.status_code == 200
+        assert r.data == client.get('/static/js/main.js').data
