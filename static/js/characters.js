@@ -89,7 +89,7 @@ function charRow(char, lastWrote) {
     if (lastWrote) {
         const time = document.createElement('span');
         time.className = 'recent-time';
-        time.textContent = timeAgo(parseDbStamp(lastWrote));
+        time.textContent = timeAgo(parseDbStamp(lastWrote), new Date(), true);
         selectBtn.append(time);
         return li;
     }
@@ -116,7 +116,7 @@ export function toggleRecentMenu(open = el.recentChars.hidden, fromKeyboard = fa
 export function refreshRecentTimes() {
     el.recentList.querySelectorAll('.char-item').forEach(li => {
         li.querySelector('.recent-time').textContent =
-            timeAgo(parseDbStamp(lastChatAt.get(Number(li.dataset.charId))));
+            timeAgo(parseDbStamp(lastChatAt.get(Number(li.dataset.charId))), new Date(), true);
     });
 }
 

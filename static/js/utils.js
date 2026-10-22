@@ -90,15 +90,18 @@ export function shortStamp(date, now = new Date()) {
 }
 
 const relativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+// "5h ago" for the Recent menu, where a long name has to share the row.
+const narrowRelativeTime = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'narrow' });
 // Each unit, and how many of it make the next one up.
 const RELATIVE_UNITS = [[60, 'second'], [60, 'minute'], [24, 'hour'], [7, 'day'], [4.35, 'week'], [12, 'month'], [Infinity, 'year']];
 
-/** How long ago a date was, in the largest unit that fits: "3 hours ago", "yesterday". */
-export function timeAgo(date, now = new Date()) {
+/** How long ago a date was, in the largest unit that fits: "3 hours ago", "yesterday",
+ *  or "3h ago" when `narrow`. */
+export function timeAgo(date, now = new Date(), narrow = false) {
     // Never "in 3 seconds": a server clock a little ahead is not the future.
     let amount = Math.min(0, date - now) / 1000;
     for (const [size, unit] of RELATIVE_UNITS) {
-        if (Math.abs(amount) < size) return relativeTime.format(Math.trunc(amount), unit);
+        if (Math.abs(amount) < size) return (narrow ? narrowRelativeTime : relativeTime).format(Math.trunc(amount), unit);
         amount /= size;
     }
 }
