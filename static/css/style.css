@@ -1295,7 +1295,13 @@ input[type="checkbox"]:checked::after {
     min-height: 0;
 }
 
-/* The star after a pinned character's name. */
+/* The star after a pinned character's name. While the ⋯ shows it takes the
+   star's place, so the name doesn't shift on hover; the menu says Unpin. */
+.char-item:hover .char-pin-mark,
+.char-item:focus-within .char-pin-mark {
+    display: none;
+}
+
 .char-pin-mark {
     display: flex;
     flex-shrink: 0;
