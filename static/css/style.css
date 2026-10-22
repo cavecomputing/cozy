@@ -1141,11 +1141,22 @@ input[type="checkbox"]:checked::after {
     outline: none;
 }
 
+/* Rows fade out at both ends as the chat does, and the persona card sits in
+   the bottom fade (its negative top margin, --card-overlap), so the list
+   dissolves at the card's edge instead of being cut off above it. */
+#sidebar {
+    --list-fade: var(--space-6);
+    --card-overlap: 0.625rem;
+}
+
 .sidebar-scrollable {
     flex: 1;
     overflow-y: auto;
-    padding: 0.5rem 0.5rem 0.25rem;
+    padding: var(--list-fade) 0.5rem;
     scrollbar-width: none;
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--list-fade),
+                                #000 calc(100% - var(--list-fade) - var(--card-overlap)),
+                                transparent calc(100% - var(--card-overlap)));
 }
 
 .sidebar-scrollable::-webkit-scrollbar {
@@ -1508,7 +1519,7 @@ input[type="checkbox"]:checked::after {
 #user-profile-container {
     position: relative;
     background-color: var(--surface-raised);
-    margin: 0 0.5rem 0.625rem;   /* sides match .sidebar-scrollable's padding */
+    margin: calc(-1 * var(--card-overlap)) 0.5rem 0.625rem;   /* sides match .sidebar-scrollable's padding */
     padding: var(--space-2);
     border-radius: var(--radius);
     border: 1px solid var(--line);
@@ -6558,7 +6569,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     /* The drawer's own pan-y (above) stops at the nearest scroller, which is
        this list, so it needs the same to leave a leftward drag to Cozy. */
     .sidebar-scrollable {
-        padding: 0.5rem 0.6rem 0.4rem;
+        padding-inline: 0.6rem;
         touch-action: pan-y;
     }
 
@@ -6619,7 +6630,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     #user-profile-container {
-        margin: 0 0.6rem 0.6rem;
+        margin: calc(-1 * var(--card-overlap)) 0.6rem 0.6rem;
     }
 
     #persona-dropup.dropup-content {
