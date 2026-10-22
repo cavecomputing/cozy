@@ -239,6 +239,8 @@ export async function loadCharacters() {
         // Whoever's chat was last opened or written in, on any device.
         const target = available.reduce((last, c) => ((c.last_used_at || '') > (last.last_used_at || '') ? c : last));
         await selectCharacter(target.id);
+        // A long list opens on its top; bring the character you're with into view.
+        el.charList.querySelector('.char-item.active')?.scrollIntoView({ block: 'center' });
     } catch (err) {
         console.error('Could not load characters:', err);
         showToast('Failed to load characters: ' + err.message);
