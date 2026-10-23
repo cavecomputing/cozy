@@ -100,7 +100,15 @@ def index():
 # between modules are relative, so they stay under the same prefix.
 @app.route('/assets/<build>/<path:filename>')
 def build_asset(build, filename):
-    return app.send_static_file(filename)
+    resp = app.send_static_file(filename)
+    # A file under a committed build's URL never changes, so the browser can
+    # keep it for a year instead of asking after every script on each load. A
+    # dirty checkout or an unknown build keeps the same label from one edit to
+    # the next, so those stay on the default no-cache and revalidate.
+    info = shared.BUILD_INFO
+    if build == info.display and info.commit and not info.dirty:
+        resp.headers['Cache-Control'] = 'private, max-age=31536000, immutable'
+    return resp
 
 
 @app.route('/api/themes', methods=['GET'])

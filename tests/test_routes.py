@@ -5,13 +5,18 @@ import os
 import re
 from io import BytesIO
 
+import pytest
+
 from cozy import shared
 from cozy import defaults
+from cozy.build_info import BuildInfo
 import cozy.routes.llm as llm_module
 from cozy.routes import settings as settings_module
 from cozy.png_utils import make_minimal_png
 
 from .helpers import bundled_prompt_titles
+
+COMMIT = '0123456789abcdef0123456789abcdef01234567'
 
 
 class TestSettings:
@@ -1642,3 +1647,23 @@ class TestBuildAssets:
         r = client.get(f'/assets/{shared.BUILD_INFO.display}/js/main.js')
         assert r.status_code == 200
         assert r.data == client.get('/static/js/main.js').data
+
+    def test_committed_build_is_kept_for_a_year(self, client, monkeypatch):
+        # The URL changes with the build, so what it serves never does.
+        monkeypatch.setattr(shared, 'BUILD_INFO', BuildInfo(COMMIT))
+        r = client.get(f'/assets/{COMMIT[:12]}/js/main.js')
+        assert r.headers['Cache-Control'] == 'private, max-age=31536000, immutable'
+
+    @pytest.mark.parametrize('info', [BuildInfo(COMMIT, dirty=True), BuildInfo()])
+    def test_dirty_or_unknown_build_is_revalidated(self, client, monkeypatch, info):
+        # Its label stays the same across edits, so a kept file could be stale.
+        monkeypatch.setattr(shared, 'BUILD_INFO', info)
+        r = client.get(f'/assets/{info.display}/js/main.js')
+        assert r.status_code == 200
+        assert r.headers['Cache-Control'] == 'no-cache'
+
+    def test_another_builds_url_is_revalidated(self, client, monkeypatch):
+        monkeypatch.setattr(shared, 'BUILD_INFO', BuildInfo(COMMIT))
+        r = client.get('/assets/fedcba987654/js/main.js')
+        assert r.status_code == 200
+        assert r.headers['Cache-Control'] == 'no-cache'
