@@ -5,25 +5,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Git workflow
 
 The repository is **public and has users**, so anything that lands on `main` is something a stranger
-may run. Every change gets a human review before it becomes history.
+may run. The user reviews changes after they land rather than before, so the verification below is
+what keeps `main` working.
 
-**Never commit unless asked.** Finish the work, leave it in the working tree, and report what
-changed and how it was verified. The user reviews the diff themselves and then either asks for a
-commit or makes it manually — that decision is theirs, not a step to anticipate. Don't stage files,
-don't commit "so the work isn't lost", and don't treat a task being finished as permission.
-
-When a commit *is* requested: commit directly to `main`, since this project uses no feature branches
-or PRs. Only include files belonging to the task — leave unrelated pre-existing changes and stray
-untracked files alone.
+**Commit and push finished work without waiting to be asked.** When a task is done and verified,
+commit it directly to `main`, since this project uses no feature branches or PRs, and push. Then
+report what changed, how it was verified, and the commit hashes, so the user can review or revert
+it. Only include files belonging to the task — leave unrelated pre-existing changes and stray
+untracked files alone. Don't commit work that is half done or has failing tests.
 
 **One commit, one concern.** A commit has to be reviewable on its own and safe to revert on its own,
 so split unrelated work rather than bundling it: a bug fix and a docs correction that happened to
 land in the same session are two commits. Size is not the test — a change that genuinely touches
 twenty files is still one commit if it is one concern. Say in the message what broke and why the fix
 works, not just what you typed.
-
-**Never push.** The user always pushes themselves. Commit locally and stop there — do not run
-`git push`.
 
 [AGENTS.md](AGENTS.md) is a short pointer telling other agents to read this file, not a copy of it.
 This file is the single source of truth: **edit it directly and leave AGENTS.md alone** unless the
@@ -92,7 +87,7 @@ Production (Docker) runs gunicorn with the `gthread` worker class — required b
 Match the effort to the change; a public repo makes a broken `main` everyone's problem, but it does
 not make every edit worth a full boot-and-click cycle.
 
-Run the tests that cover what was touched, and the full suite before anything the user is likely to
+Run the tests that cover what was touched, and the full suite before every
 commit. `uv run pytest` is fast, so when in doubt run all of it. If a change is in a module with
 node-backed tests, confirm they actually ran rather than skipped (see Testing gotchas).
 
