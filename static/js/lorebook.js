@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // LOREBOOK
 // ═══════════════════════════════════════════════════════════════════════════
+import { parseThinkingContent } from './thinking.js';
 
 /**
  * Resolve which lorebook entries apply to the current conversation.
@@ -16,7 +17,9 @@ export function resolveLorebookEntries(book, messages) {
     const scanDepth = book.scan_depth || 20;
     const constants = enabled.filter(e => e.constant === true);
     const keywords  = enabled.filter(e => e.constant !== true);
-    const scanText  = messages.slice(-scanDepth).map(m => m.text || '').join('\n');
+    // Reasoning is never sent, so a key it mentions has nothing to answer.
+    const scanText  = messages.slice(-scanDepth)
+        .map(m => parseThinkingContent(m.text || '').response || '').join('\n');
 
     const matched = keywords.filter(entry => {
         if (!entry.keys || entry.keys.length === 0) return false;

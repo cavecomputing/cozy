@@ -24,3 +24,14 @@ def test_keys_match_whole_words_whatever_their_edges():
         assert.ok(!hits('Mira', 'mira was here', { case_sensitive: true }));
     """)
 
+
+def test_reasoning_does_not_trigger_entries():
+    """Reasoning never reaches the model, so a key it mentions has nothing to answer."""
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { resolveLorebookEntries } from './static/js/lorebook.js';
+
+        const book = { entries: [{ keys: ['dragon'], content: 'LORE' }] };
+        assert.deepEqual(resolveLorebookEntries(book, [{ text: '<think>a dragon?</think>Hello.' }]), []);
+        assert.deepEqual(resolveLorebookEntries(book, [{ text: '<think>hm</think>A dragon.' }]), ['LORE']);
+    """)
