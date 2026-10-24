@@ -71,3 +71,21 @@ def test_incomplete_thinking_is_normalized_for_message_edits():
         assert.equal(reparsed.thinking, 'Interrupted reasoning');
         assert.equal(reparsed.response, 'Edited answer');
     """)
+
+
+def test_a_lone_close_tag_ends_reasoning_the_template_opened():
+    """QwQ and R1-style templates put <think> in the prompt, so the reply only closes it."""
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { parseThinkingContent } from './static/js/thinking.js';
+
+        const parsed = parseThinkingContent('Let me weigh this.\n</think>\n\nThe answer.');
+        assert.equal(parsed.hasThinking, true);
+        assert.equal(parsed.thinking, 'Let me weigh this.');
+        assert.equal(parsed.response, 'The answer.');
+        // Edits reattach the segment, so it carries both tags.
+        assert.equal(parsed.thinkingSegment, '<think>Let me weigh this.\n</think>');
+
+        const plain = parseThinkingContent('No reasoning here.');
+        assert.equal(plain.hasThinking, false);
+    """)

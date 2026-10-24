@@ -200,6 +200,13 @@ def strip_thinking_content(text):
     rather than exposing a later block to the summarizer.
     """
     remaining = '' if text is None else str(text)
+    # A close tag with no opening one: the template opened the block, so
+    # everything before it is reasoning.
+    if not any(opening in remaining for opening, _ in THINKING_TAG_PAIRS):
+        for _, closing in THINKING_TAG_PAIRS:
+            if closing in remaining:
+                remaining = remaining.split(closing, 1)[1]
+                break
     while remaining:
         found = []
         for opening, closing in THINKING_TAG_PAIRS:

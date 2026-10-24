@@ -20,7 +20,14 @@ export function parseThinkingContent(text) {
             matched = pair;
         }
     }
-    if (!matched) return { thinking: null, response: text, hasThinking: false };
+    if (!matched) {
+        // A template that opens the block itself (QwQ, R1 distills on a
+        // backend that doesn't split reasoning out) leaves only the close tag
+        // in the reply; everything before it is the reasoning.
+        const orphan = THINKING_TAG_PAIRS.find(pair => text.includes(pair.close));
+        if (!orphan) return { thinking: null, response: text, hasThinking: false };
+        return parseThinkingContent(orphan.open + text);
+    }
 
     const closeIdx = text.indexOf(matched.close, bestOpen + matched.open.length);
     if (closeIdx === -1) {

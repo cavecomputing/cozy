@@ -601,6 +601,11 @@ def test_strip_thinking_content_handles_multiple_and_incomplete_blocks():
     assert strip_thinking_content('visible<|thinking|>unfinished') == 'visible'
 
 
+def test_strip_thinking_content_drops_reasoning_before_a_lone_close_tag():
+    assert strip_thinking_content('Let me weigh this.\n</think>\n\nThe answer.') == 'The answer.'
+    assert strip_thinking_content('No reasoning here.') == 'No reasoning here.'
+
+
 def test_enforce_cap_never_erases_a_nonempty_summary():
     capped, warning = enforce_cap({
         'lines': [{'section': 'story', 'text': 'important context ' * 20}],
