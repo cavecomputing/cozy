@@ -164,7 +164,7 @@ async function sendOnce(text) {
         }
     } finally {
         // Drop any draw still queued, so it can't repaint the bubble after the
-        // filtered reply has taken its place.
+        // finished reply has taken its place.
         cancelAnimationFrame(frame);
     }
 

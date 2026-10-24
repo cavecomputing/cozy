@@ -164,8 +164,8 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     let streamed = '';
     // Draw at most once every STREAM_DRAW_MS — see the same guard in send.js.
     // Here the bubble survives the stream, so a queued draw must also be
-    // cancelled: it would otherwise repaint the unfiltered stream over the
-    // saved swipe.
+    // cancelled: it would otherwise repaint a partial stream over the saved
+    // swipe.
     let frame = 0;
     let drawnAt = -Infinity;
     // Revealed toward what has arrived, at the pace send.js sets.
@@ -631,7 +631,7 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
     el.chatHistory.appendChild(container);
     // Scroll before the save rather than after it. The browser paints while
     // the request is out, and a finished reply that came out taller than its
-    // stream (an output filter, say) would sit pushed below the fold until then.
+    // stream would sit pushed below the fold until then.
     maybeScrollToBottom();
 
     if (persist && state.activeChat) {
