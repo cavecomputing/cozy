@@ -311,3 +311,23 @@ def test_rapid_second_regen_does_not_start_another_generation():
         assert.equal(generationCalls, 1);
         assert.equal(llm.generationActive, false);
     """)
+
+
+def test_stream_reads_a_provider_error_object_as_its_message():
+    """OpenRouter and others relay {"error": {"message": …}} mid-stream."""
+    run_node_module(STREAM_SETUP + r"""
+        stubStream([
+            'data: {"choices":[{"delta":{"content":"Hel"}}]}\n',
+            'data: {"error":{"message":"Provider returned error","code":502}}\n',
+        ]);
+        await assert.rejects(
+            API.streamChatCompletion({ model: 'm' }, () => {}),
+            err => err.message === 'Provider returned error',
+        );
+
+        stubStream(['data: {"error":"429 Too Many Requests."}\n']);
+        await assert.rejects(
+            API.streamChatCompletion({ model: 'm' }, () => {}),
+            err => err.message === '429 Too Many Requests.',
+        );
+    """)

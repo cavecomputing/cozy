@@ -232,7 +232,9 @@ export const API = {
             let json;
             // Ignore unparseable fragments (e.g. a line truncated mid-stream)
             try { json = JSON.parse(line.slice(6)); } catch { return; }
-            if (json.error) throw new Error(json.error);
+            // The proxy's own errors are strings; one relayed from the
+            // provider mid-stream is OpenAI's {message} object.
+            if (json?.error) throw new Error(json.error.message || json.error);
             finishReason = json.choices?.[0]?.finish_reason || finishReason;
             const delta = json.choices?.[0]?.delta || {};
             const reasonTok = delta.reasoning_content || delta.reasoning || '';
