@@ -983,3 +983,25 @@ def test_summary_is_attributed_and_unlimited_context_has_no_unused_segment():
         assert.match(analysis.messages[0].content, /The bridge is broken\./);
     """
     run_node_module(code)
+
+
+def test_dollar_signs_in_values_reach_the_prompt_as_written():
+    """A replacement string reads $&, $' and $$ as patterns; values are text."""
+    code = BASE_NODE_SETUP + r"""
+        state.activePersona = { name: 'Rich $$ Guy', description: "Says $' and $` and $& a lot." };
+        state.activeCharacter = { name: 'Mira', description: 'Charges $$5, $&.' };
+        state.activeChat = { author_note: 'Costs $$$.' };
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: 'START {{description}} | {{persona}} | {{author_note}} | {{user}} END',
+            post_history_content: '<turn>{{user_message}}</turn>',
+        }];
+        state.messages = [{ role: 'user', text: 'Give me $$$ and $& now' }];
+
+        const [system, user] = buildChatPayload().messages;
+        assert.equal(system.content,
+            "START Charges $$5, $&. | Says $' and $` and $& a lot. | Costs $$$. | Rich $$ Guy END");
+        assert.equal(user.content, '<turn>Give me $$$ and $& now</turn>');
+    """
+    run_node_module(code)

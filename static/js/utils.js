@@ -138,24 +138,27 @@ export function resolveTemplateVariables(template, context) {
             return body.replace(/^\n/, '').replace(/\n$/, '');
         }
     );
+    // Values go in through functions: a replacement string reads "$&", "$'"
+    // and "$$" in a card or message as patterns, and "$'" pasted the rest of
+    // the prompt in its place.
     return template
-        .replace(/\{\{user\}\}/gi,           context.user || '')
-        .replace(/\{\{char\}\}/gi,           context.char || '')
-        .replace(/\{\{personality\}\}/gi,    context.personality || '')
-        .replace(/\{\{scenario\}\}/gi,       context.scenario || '')
-        .replace(/\{\{description\}\}/gi,    context.description || '')
-        .replace(/\{\{persona\}\}/gi,        context.persona || '')
-        .replace(/\{\{mesExamples\}\}/gi,    context.mesExamples || '')
-        .replace(/\{\{lorebook\}\}/gi,       context.lorebook || '')
-        .replace(/\{\{author_note\}\}/gi,    context.author_note || '')
-        .replace(/\{\{summary\}\}/gi,        context.summary || '')
-        .replace(/\{\{system_prompt\}\}/gi,  context.system_prompt || '')
+        .replace(/\{\{user\}\}/gi,           () => context.user || '')
+        .replace(/\{\{char\}\}/gi,           () => context.char || '')
+        .replace(/\{\{personality\}\}/gi,    () => context.personality || '')
+        .replace(/\{\{scenario\}\}/gi,       () => context.scenario || '')
+        .replace(/\{\{description\}\}/gi,    () => context.description || '')
+        .replace(/\{\{persona\}\}/gi,        () => context.persona || '')
+        .replace(/\{\{mesExamples\}\}/gi,    () => context.mesExamples || '')
+        .replace(/\{\{lorebook\}\}/gi,       () => context.lorebook || '')
+        .replace(/\{\{author_note\}\}/gi,    () => context.author_note || '')
+        .replace(/\{\{summary\}\}/gi,        () => context.summary || '')
+        .replace(/\{\{system_prompt\}\}/gi,  () => context.system_prompt || '')
         .replace(/\{\{post_history_instructions\}\}/gi,
-                                                context.post_history_instructions || '')
-        .replace(/\{\{user_message\}\}/gi,   context.user_message || '')
-        .replace(/\{\{time\}\}/gi,           new Date().toLocaleTimeString())
-        .replace(/\{\{date\}\}/gi,           new Date().toLocaleDateString())
-        .replace(/\{\{idle_duration\}\}/gi,  context.idle_duration || '0')
+                                                () => context.post_history_instructions || '')
+        .replace(/\{\{user_message\}\}/gi,   () => context.user_message || '')
+        .replace(/\{\{time\}\}/gi,           () => new Date().toLocaleTimeString())
+        .replace(/\{\{date\}\}/gi,           () => new Date().toLocaleDateString())
+        .replace(/\{\{idle_duration\}\}/gi,  () => context.idle_duration || '0')
         .replace(/\{\{random:([^}]+)\}\}/gi, (_, choices) => {
             const arr = choices.split(',').map(s => s.trim());
             return arr[Math.floor(Math.random() * arr.length)] || '';
