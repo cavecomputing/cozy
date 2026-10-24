@@ -222,29 +222,36 @@ def llm_chat():
                     msg = _status_error(r.status_code, r.reason, url, r.text)
                     yield f'data: {json.dumps({"error": msg})}\n\n'
                     return
-                r.encoding = 'utf-8'
-                for line in r.iter_lines(decode_unicode=True):
-                    if not line:
+                # Split on \n alone. Decoded lines go through str.splitlines(),
+                # which also breaks at U+2028, U+2029 and U+0085 — characters
+                # JSON may carry unescaped — and the halves of that event were
+                # dropped as unparseable.
+                for raw in r.iter_lines(delimiter=b'\n'):
+                    line = raw.decode('utf-8', 'replace').rstrip('\r')
+                    # SSE allows "data:" with or without the space after it;
+                    # the browser reads this proxy's own "data: " form.
+                    if not line.startswith('data:'):
                         continue
-                    if line.startswith('data: [DONE]'):
+                    payload = line[5:].removeprefix(' ')
+                    if payload.startswith('[DONE]'):
                         saw_done = True
                         yield 'data: [DONE]\n\n'
                         break
-                    if line.startswith('data: '):
-                        yield line + '\n\n'
-                        # Collect tokens + finish_reason for response log
-                        try:
-                            chunk = json.loads(line[6:])
-                            choice = chunk.get('choices', [{}])[0]
-                            tok = choice.get('delta', {}).get('content', '')
-                            if tok:
-                                if full_response is not None:
-                                    full_response.append(tok)
-                                token_count += 1
-                            if choice.get('finish_reason'):
-                                finish_reason = choice['finish_reason']
-                        except (json.JSONDecodeError, IndexError):
-                            pass
+                    yield f'data: {payload}\n\n'
+                    # Collect tokens + finish_reason for response log
+                    try:
+                        choice = json.loads(payload).get('choices', [{}])[0]
+                        tok = (choice.get('delta') or {}).get('content', '')
+                        if tok:
+                            if full_response is not None:
+                                full_response.append(tok)
+                            token_count += 1
+                        if choice.get('finish_reason'):
+                            finish_reason = choice['finish_reason']
+                    except (ValueError, IndexError, AttributeError, TypeError):
+                        # Logging only: a chunk shaped unlike the rest must not
+                        # end the reply it belongs to.
+                        pass
         except http_requests.RequestException as e:
             # The raw exception for the log, the readable one for the toast.
             log.error('  LLM error: %s', e)

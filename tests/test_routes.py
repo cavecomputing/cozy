@@ -771,9 +771,9 @@ class TestLLMProxy:
             def raise_for_status(self):
                 return None
 
-            def iter_lines(self, decode_unicode=True):
-                yield 'data: {"choices":[{"delta":{"content":"ok"}}]}'
-                yield 'data: [DONE]'
+            def iter_lines(self, delimiter=None):
+                yield b'data: {"choices":[{"delta":{"content":"ok"}}]}'
+                yield b'data: [DONE]'
 
         def fake_post(url, json, headers, timeout, stream=False):
             captured['url'] = url
@@ -808,6 +808,46 @@ class TestLLMProxy:
             'role': 'system',
             'content': custom_system,
         }
+
+    def test_chat_relays_every_well_formed_event(self, client, monkeypatch):
+        """SSE shapes real servers send, through requests' own line reader.
+
+        "data:" without its space is valid SSE. U+2028, U+2029 and U+0085 may sit
+        unescaped in JSON, and str.splitlines() broke an event at each of them.
+        A null delta or a non-object chunk must not end the reply.
+        """
+        events = [
+            'data:{"choices":[{"delta":{"content":"no space "}}]}',
+            'data: {"choices":[{"delta":{"content":"a\u2028b\u2029c\u0085d "}}]}',
+            ': keepalive',
+            'data: {"choices":[{"delta":null}]}',
+            'data: "ping"',
+            'data: {"choices":[{"delta":{"content":"crlf"},"finish_reason":"stop"}]}',
+            'data:[DONE]',
+        ]
+        body = '\r\n\r\n'.join(events).encode('utf-8') + b'\r\n\r\n'
+
+        def fake_post(*args, **kwargs):
+            upstream = llm_module.http_requests.models.Response()
+            upstream.status_code = 200
+            upstream.raw = BytesIO(body)
+            return upstream
+
+        monkeypatch.setattr(llm_module.http_requests, 'post', fake_post)
+        client.put('/api/settings', json={'api_endpoint': 'http://upstream.test/v1'})
+        r = client.post('/api/llm/chat', json={
+            'model': 'test-model', 'messages': [{'role': 'user', 'content': 'hi'}],
+        })
+
+        lines = [line for line in r.get_data(as_text=True).split('\n') if line]
+        assert lines[-1] == 'data: [DONE]'
+        text = ''
+        for line in lines[:-1]:
+            assert line.startswith('data: ')
+            chunk = json.loads(line[6:])
+            if isinstance(chunk, dict):
+                text += (chunk['choices'][0]['delta'] or {}).get('content', '')
+        assert text == 'no space a\u2028b\u2029c\u0085d crlf'
 
     def test_chat_upstream_error_body_reaches_client(self, client, monkeypatch):
         """A 4xx from the provider must surface its response body, not just the status."""
