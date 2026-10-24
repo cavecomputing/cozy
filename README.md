@@ -129,7 +129,6 @@ this on a network you trust, or reach Cozy through a VPN. See
 - [Auto Summaries](docs/5-auto-summaries.md)
 - [Sampler settings](docs/6-sampler-settings.md)
 - [Security](docs/7-security.md)
-- [Regex output filters](docs/8-regex-output-filters.md)
 - [User themes](docs/9-user-themes.md)
 - [Database schema](https://cavecomputing.github.io/cozy/10-database-schema.html) — the browsable reference, with [notes on seeding and data](docs/10-database-schema.md)
 

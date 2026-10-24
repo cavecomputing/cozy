@@ -20,22 +20,20 @@ chat.
 
 ## Bundled content
 
-Three kinds of content ship with the repository and are copied into the user's
+Two kinds of content ship with the repository and are copied into the user's
 data at startup, each by its own seeder:
 
 | Content | Source | Bookkeeping |
 |---------|--------|-------------|
 | Character cards | `default_characters/` | `default_characters_seeded` |
 | Prompt presets | `default_prompts/` | none — restored every start |
-| Regex presets | `DEFAULT_REGEX_PRESETS` in `cozy/defaults.py` | `default_regex_seeded` |
 
-Both flags flip to `1` whether or not anything was inserted, and are never
-reset, so deleting a bundled character or regex preset keeps it deleted. A name
-already taken is skipped rather than duplicated.
+The flag flips to `1` whether or not anything was inserted, and is never
+reset, so deleting a bundled character keeps it deleted. A name already taken
+is skipped rather than duplicated.
 
 `default_characters_seeded` starts at `0` only on a fresh install; an upgraded
-install starts at `1`, so an existing library is never seeded. `default_regex_seeded`
-starts at `0` regardless, because existing installs are owed those presets too.
+install starts at `1`, so an existing library is never seeded.
 
 ### Prompt presets are restored on every start
 
@@ -84,9 +82,6 @@ greatest-title rule sorted `v10.0` below `v2.1`, and that caveat is gone.
 
 Seeded characters become ordinary cards on disk — the `characters` index picks
 them up on the next listing request, and deleting one deletes it for good.
-
-The bundled regex presets ship **inactive**: seeding deliberately leaves
-`active_regex_preset` alone, so bundled rules never silently rewrite replies.
 
 ## Database version and backups
 

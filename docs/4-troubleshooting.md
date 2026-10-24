@@ -89,21 +89,6 @@ ended without the server saying it was done: inspect both the Cozy logs and the
 LLM server logs. A proxy between Cozy and the LLM server may be buffering or
 closing the streaming response.
 
-## Replies arrive with text changed or missing
-
-A regex output filter rewrites each reply before it is saved, so a stray pattern
-can delete more than intended. Open **Settings → Regex** (tick **Show advanced
-configuration** in **Settings → General** first if the tab isn't there) and check which preset
-is selected; select **None** to switch filtering off. Filters change the stored
-message and cannot be undone.
-
-If the rule is meant to dress a reply up rather than correct it — building a
-stat card or a progress bar — tick **Display only** on it. The filter then
-rewrites the bubble and leaves the stored message alone, which is also the fix
-for a model that has started writing HTML into its replies by itself.
-
-See [Regex output filters](8-regex-output-filters.md).
-
 ## A summary run keeps failing
 
 Every batch is already retried once before a run stops, so an error that keeps

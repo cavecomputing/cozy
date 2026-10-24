@@ -12,7 +12,6 @@ import {
 import { updateContextViews, updateContextBoundary, placeContextBoundary } from './context-meter.js';
 import { noteChatActivity } from './characters.js';
 import { generateResponse } from './request-builder.js';
-import { applyDisplayFilters, applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 
@@ -22,16 +21,11 @@ import { flushLLMSettingsSave } from './llm-settings.js';
 
 /**
  * Render sanitised markdown into an element (resolves ST-style variables first).
- *
- * `applyDisplay` runs the display-only regex filters over the text on its way
- * to the screen. Callers pass it for character messages only, and pass the raw
- * stored text: the rewrite is thrown away with the DOM, so nothing here may
- * feed back into `dataset.rawText`, the DB or the next prompt.
  */
-export function renderMarkdown(targetEl, rawText, applyDisplay = false) {
+export function renderMarkdown(targetEl, rawText) {
     const c = state.activeCharacter || {};
     const p = state.activePersona || {};
-    const resolved = resolveTemplateVariables(applyDisplay ? applyDisplayFilters(rawText) : rawText, {
+    const resolved = resolveTemplateVariables(rawText, {
         user:         p.name || 'User',
         char:         c.name || '',
         personality:  c.personality || '',
@@ -128,7 +122,7 @@ function renderSwipeBody(msgBody, contentEl, text) {
     const parsed = parseThinkingContent(text);
     msgBody.querySelector('.thinking-block')?.remove();
     renderThinkingBlock(msgBody, parsed);
-    renderMarkdown(contentEl, parsed.hasThinking ? parsed.response : text, true);
+    renderMarkdown(contentEl, parsed.hasThinking ? parsed.response : text);
 }
 
 export async function generateSwipe(msgEl, swipes, idx) {
@@ -187,7 +181,7 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
         shown += Math.max(1, Math.ceil((streamed.length - shown) / 3));
         const parsed = parseThinkingContent(streamed.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
-        renderMarkdown(contentEl, parsed.response, true);
+        renderMarkdown(contentEl, parsed.response);
         fadeIn(contentEl);
         maybeScrollToBottom();
         if (shown < streamed.length) frame = requestAnimationFrame(drawStreamed);
@@ -229,11 +223,9 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
         cancelAnimationFrame(frame);
     }
 
-    // Filter before rendering so the swipe on screen matches the one stored.
-    newContent = applyOutputFilters(newContent);
     const parsed = parseThinkingContent(newContent);
     renderThinkingBlock(msgBody, parsed);
-    renderMarkdown(contentEl, parsed.response, true);
+    renderMarkdown(contentEl, parsed.response);
 
     swipes.push({ content: newContent });
     idx = swipes.length - 1;
@@ -476,7 +468,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     content.className = 'message-content';
 
     const parsed = parseThinkingContent(text);
-    renderMarkdown(content, parsed.hasThinking ? parsed.response : text, role !== 'user');
+    renderMarkdown(content, parsed.hasThinking ? parsed.response : text);
 
     msgBody.append(msgHeader, content);
 
@@ -584,7 +576,6 @@ export function rerenderMessageText() {
         renderMarkdown(
             messageEl.querySelector('.message-content'),
             parsed.hasThinking ? parsed.response : (messageEl.dataset.rawText || ''),
-            !messageEl.classList.contains('user'),
         );
     });
 }
@@ -793,9 +784,7 @@ export function finishEditing(save) {
     messageEl.dataset.rawText = rawText;
     const finalParsed = parseThinkingContent(rawText);
     renderThinkingBlock(messageEl.querySelector('.msg-body'), finalParsed, { collapse: true });
-    renderMarkdown(
-        contentDiv, finalParsed.hasThinking ? finalParsed.response : rawText, role !== 'user'
-    );
+    renderMarkdown(contentDiv, finalParsed.hasThinking ? finalParsed.response : rawText);
     delete messageEl.dataset.originalText;
 
     // Only now leave the editor. Its raw text held in pre-wrap is what keeps

@@ -369,6 +369,19 @@ def _retire_mirostat_and_typical_p(conn):
             )
 
 
+def _remove_regex_filters(conn):
+    """Drop the retired regex output filters and their settings.
+
+    The Regex tab rewrote character replies with find/replace presets. Replies
+    an at-save filter already rewrote keep that text; only the presets, the
+    active selection and the bundled presets' seeding flag go.
+    """
+    conn.execute('DROP TABLE IF EXISTS regex_presets')
+    conn.execute(
+        "DELETE FROM settings WHERE key IN ('active_regex_preset', 'default_regex_seeded')"
+    )
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -388,6 +401,7 @@ MIGRATIONS = (
     (16, 'drop_lorebook_notice_dismissed', _drop_lorebook_notice_dismissed),
     (17, 'delete_lorebook_global_overrides', _delete_lorebook_global_overrides),
     (18, 'retire_mirostat_and_typical_p', _retire_mirostat_and_typical_p),
+    (19, 'remove_regex_filters', _remove_regex_filters),
 )
 
 
@@ -528,13 +542,6 @@ def init_db():
                 created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS regex_presets (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                name          TEXT NOT NULL UNIQUE,
-                scripts_json  TEXT NOT NULL DEFAULT '[]',
-                created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-
             CREATE TABLE IF NOT EXISTS lorebooks (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 name        TEXT    NOT NULL,
@@ -670,9 +677,3 @@ def init_db():
 
         # Bundled prompts have no flag of their own — seed_default_prompts()
         # restores whatever is missing on every start.
-
-        # Bookkeeping for the bundled regex preset.
-        conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('default_regex_seeded', '0') "
-            "ON CONFLICT(key) DO NOTHING"
-        )

@@ -10,7 +10,6 @@ import {
 } from './thinking.js';
 import { clearDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
-import { applyOutputFilters } from './regex-filters.js';
 import { ensureSummaryReadyForSend, maybeTriggerSummary } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 
@@ -119,7 +118,7 @@ async function sendOnce(text) {
         shown += Math.max(1, Math.ceil((streamed.length - shown) / 3));
         const parsed = parseThinkingContent(streamed.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
-        renderMarkdown(contentEl, parsed.response, true);
+        renderMarkdown(contentEl, parsed.response);
         fadeIn(contentEl);
         maybeScrollToBottom();
         if (shown < streamed.length) frame = requestAnimationFrame(drawStreamed);
@@ -183,9 +182,6 @@ async function sendOnce(text) {
         if (!failed && !signal.aborted) showToast('The model returned no text');
         return;
     }
-    // Regex filters rewrite the reply before it is persisted, so the corrected
-    // text is what gets saved, shown, and read back into context next turn.
-    reply = applyOutputFilters(reply);
     // The finished reply goes in before the stream comes out. Taking the
     // stream out first shrinks the transcript by a whole reply for a moment,
     // and a browser that paints or settles its scroll in that moment leaves

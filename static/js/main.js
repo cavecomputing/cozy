@@ -33,12 +33,6 @@ import {
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, canLeaveLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
-import {
-    loadRegexPresets, selectRegexPreset, createRegexPreset, deleteRegexPreset,
-    addFilter, handleFilterListClick, handleFilterListInput,
-    updateTestPanel, importRegexPreset, handleRegexImportFile, exportRegexPreset,
-    flushRegexSave,
-} from './regex-filters.js';
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
@@ -73,9 +67,7 @@ marked.use({
         },
         renderer(token) {
             // Put back the marks the reply actually used. The job here is to
-            // style the speech, not to anglicise its punctuation — swapping
-            // German marks for English ones is what the Regex tab is for, and
-            // only when the user asks for it.
+            // style the speech, not to anglicise its punctuation.
             return `<span class="rp-dialogue">${token.open}${this.parser.parseInline(token.tokens)}${token.close}</span>`;
         },
     }],
@@ -94,7 +86,7 @@ function loadPrefs() {
         // Migrate section keys retained in preferences from earlier settings layouts.
         const savedSection     = p.settingsSection  || 'general';
         state.settingsSection  = savedSection === 'sampler' ? 'api'
-            : savedSection === 'appearance' ? 'general'
+            : savedSection === 'appearance' || savedSection === 'regex' ? 'general'
             : savedSection;
     } catch { /* ignore */ }
 }
@@ -105,8 +97,6 @@ function loadPrefs() {
 const isMobileSettings = () => window.matchMedia(MOBILE_SHELL_QUERY).matches;
 
 function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
-    // The Regex tab is advanced-only: never land on it while hidden.
-    if (key === 'regex' && !state.showAdvancedConfiguration) key = 'general';
     state.settingsSection = key;
     for (const sec of el.settingsPane.querySelectorAll('.settings-section')) {
         sec.hidden = sec.dataset.section !== key;
@@ -132,9 +122,9 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
 }
 
 /**
- * Close one `.export-dropdown` menu — the Import/export pairs on the Prompt
- * and Regex tabs and the Backup menu on About are the same three lines of
- * teardown, and Escape needs a fourth caller for whichever one is open.
+ * Close one `.export-dropdown` menu — the Import/export pair on the Prompt
+ * tab and the Backup menu on About are the same three lines of teardown, and
+ * Escape needs a third caller for whichever one is open.
  */
 function closeExportMenu(menu) {
     if (!menu || menu.hidden) return false;
@@ -307,8 +297,6 @@ function closeSettingsFlyout() {
     closeRenderedPrompts();
     setSamplerPopoverOpen(false);
     exitSettingsDetail();
-    // An edit made in the last half-second would otherwise die in the debounce.
-    void flushRegexSave();
     if (restoreFocus) (isMobileSettings() ? el.mobileMenuBtn : el.settingsBtn)?.focus();
 }
 
@@ -581,7 +569,6 @@ function bindSettingsHandlers() {
         if (!el.apiEndpoint?.value) state.settingsSection = 'api';
         // On desktop: restore the saved section. On mobile: show the list view first
         // (saved section stays "active" in the nav so reopening from the list is one tap away).
-        const requestedSection = state.settingsSection;
         applySettingsSection(state.settingsSection);
         exitSettingsDetail();
         el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
@@ -589,12 +576,6 @@ function bindSettingsHandlers() {
         const s = await loadLLMSettings();
         await loadSystemPrompts(s);
         applyAdvancedConfigurationVisibility();
-        // A first open may have bounced off the hidden Regex tab before
-        // settings loaded; restore it for advanced users.
-        if (requestedSection === 'regex' && state.showAdvancedConfiguration) {
-            applySettingsSection('regex');
-        }
-        await loadRegexPresets(s);
     };
     el.settingsBtn?.addEventListener('click', openSettings);
     el.settingsCloseBtn?.addEventListener('click', () => {
@@ -814,33 +795,6 @@ function bindSettingsHandlers() {
     el.syspromptImportFile?.addEventListener('change', handleSystemPromptImportFile);
     el.syspromptExport?.addEventListener('click', () => { closeSyspromptIoMenu(); exportSystemPrompt(); });
     el.promptPreviewExport?.addEventListener('click', exportPreviewPayload);
-    // Regex output filters
-    el.regexPresetSelect?.addEventListener('change', () => {
-        void selectRegexPreset(el.regexPresetSelect.value);
-    });
-    el.regexPresetNew?.addEventListener('click', createRegexPreset);
-    el.regexPresetDelete?.addEventListener('click', deleteRegexPreset);
-    el.regexAddFilter?.addEventListener('click', addFilter);
-    el.regexFilterList?.addEventListener('click', handleFilterListClick);
-    el.regexFilterList?.addEventListener('input', handleFilterListInput);
-    // Flag checkboxes fire `change`, not `input`, in some engines.
-    el.regexFilterList?.addEventListener('change', handleFilterListInput);
-    el.regexTestInput?.addEventListener('input', debounce(updateTestPanel, 200));
-    const closeRegexIoMenu = () => closeExportMenu(el.regexIoMenu);
-    el.regexIoBtn?.addEventListener('click', e => {
-        e.stopPropagation();
-        const willOpen = el.regexIoMenu?.hidden;
-        if (el.regexIoMenu) el.regexIoMenu.hidden = !willOpen;
-        el.regexIoDropdown?.classList.toggle('open', willOpen);
-        el.regexIoBtn?.setAttribute('aria-expanded', String(!!willOpen));
-    });
-    document.addEventListener('click', e => {
-        if (!el.regexIoMenu || el.regexIoMenu.hidden) return;
-        if (!e.target.closest('#regex-io-dropdown')) closeRegexIoMenu();
-    });
-    el.regexImport?.addEventListener('click', () => { closeRegexIoMenu(); importRegexPreset(); });
-    el.regexImportFile?.addEventListener('change', handleRegexImportFile);
-    el.regexExport?.addEventListener('click', () => { closeRegexIoMenu(); void exportRegexPreset(); });
     // Every help panel opens and closes the same way, so the markup carries the
     // wiring: data-help names the panel to open, data-submodal-close is the
     // header X. The request preview shares the close half.
@@ -1557,17 +1511,14 @@ async function init() {
     // The loading screen stays up until all of this settles, so every serial
     // await here is a full round trip added to perceived boot time — cheap on
     // localhost, not cheap behind a remote server. These four are independent,
-    // so they go out together; system prompts and regex presets still follow
-    // settings so they can reuse that response instead of refetching it.
+    // so they go out together; system prompts still follow settings so they
+    // can reuse that response instead of refetching it.
     await Promise.all([
         loadThemeList(),
         loadPersonas(),
-        loadLLMSettings().then(settings => Promise.all([
-            loadSystemPrompts(settings),
-            // Filters have to be live from the first reply, not just once the
-            // settings flyout has been opened.
-            loadRegexPresets(settings),
-        ]).then(() => applyAdvancedConfigurationVisibility())),
+        loadLLMSettings()
+            .then(settings => loadSystemPrompts(settings))
+            .then(() => applyAdvancedConfigurationVisibility()),
         loadLorebooks(),
     ]);
     // Deliberately not in the group above: loadCharacters() cascades into

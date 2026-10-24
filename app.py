@@ -159,7 +159,6 @@ for blueprint in (
 schema.init_db()
 defaults.seed_default_characters()
 defaults.seed_default_prompts()
-defaults.seed_default_regex_presets()
 
 
 # ── Optional password (COZY_PASSWORD) ──────────────────────────────────────

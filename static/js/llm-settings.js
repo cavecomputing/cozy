@@ -402,8 +402,7 @@ function applySettingsToUI(s) {
 
 // ── Advanced configuration gate ──────────────────────────────────────────
 // Surfaces hidden unless "Show advanced configuration" is checked in the
-// General tab: the Regex tab (nav item and page), the Prompt template
-// editors + Variables help, the buttons that author a prompt, the Summaries
+// General tab: the Prompt template editors + Variables help, the buttons that author a prompt, the Summaries
 // Behavior card, and the Extra request parameters card.
 //
 // What survives on the Prompt page is what a reader needs: the picker, the
@@ -421,8 +420,7 @@ export function applyAdvancedConfigurationVisibility() {
         + ' #settings-sysprompt-rename,'
         + ' #settings-sysprompt-delete,'
         + ' #summary-behavior-card,'
-        + ' #extra-params-card,'
-        + ' .settings-nav-item[data-section="regex"]'
+        + ' #extra-params-card'
     ).forEach(node => { node.hidden = !visible; });
     // The basic-mode hint holds the editor's place while it is hidden.
     if (el.promptBasicHint) el.promptBasicHint.hidden = visible;
@@ -430,10 +428,6 @@ export function applyAdvancedConfigurationVisibility() {
     // version fields become editable once advanced configuration is shown.
     if (el.promptMetaRow) el.promptMetaRow.hidden = !visible;
     if (el.syspromptDescriptionText) el.syspromptDescriptionText.hidden = visible;
-    // The Regex page itself still follows section switching: it is only
-    // shown when advanced is on AND it is the current section.
-    const regexSection = document.querySelector('.settings-section[data-section="regex"]');
-    if (regexSection) regexSection.hidden = !visible || state.settingsSection !== 'regex';
 }
 
 /**

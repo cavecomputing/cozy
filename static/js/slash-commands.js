@@ -363,9 +363,9 @@ async function switchCharacter(args) {
     await selectCharacter(preset.id);
 }
 
-/** The settings nav's own pages, minus Regex while advanced configuration hides it. */
+/** The settings nav's own pages. */
 function settingsPages() {
-    return [...el.settingsNav.querySelectorAll('.settings-nav-item:not([hidden])')]
+    return [...el.settingsNav.querySelectorAll('.settings-nav-item')]
         .map(button => ({ name: button.querySelector('span').textContent, button }));
 }
 
@@ -377,8 +377,8 @@ function openSettingsPage(args) {
     const typed = String(args).trim();
     const { preset: page, candidates } = matchPresetByName(settingsPages(), typed);
     if (typed && !page) return showToast(`No settings page matches "${typed}". Pages: ${candidates.join(', ')}`);
-    // Opening restores the saved page once settings load, Regex included,
-    // which would land on top of this one unless it is the saved page.
+    // Opening shows the saved page first, so make this the saved page rather
+    // than let the other one flash past.
     if (page) state.settingsSection = page.button.dataset.section;
     if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
     page?.button.click();

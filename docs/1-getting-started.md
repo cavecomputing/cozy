@@ -265,10 +265,6 @@ click it, or your change is lost.
 - Old messages fall out of long chats and the character forgets them →
   [Auto Summaries](5-auto-summaries.md). Turn it on for one chat at a time
   from the memory button next to the chat input.
-- Replies keep the same repeated formatting problem, such as wrong
-  quotation marks → [Regex output filters](8-regex-output-filters.md). Nothing is filtered
-  until you select a preset under **Settings → Regex**. That tab appears once
-  **Show advanced configuration** is ticked in **Settings → General**.
 - You want background facts the AI uses only when relevant, such as
   places, history, or side characters → manage them under
   **Settings → Lorebooks**, and attach them from the memory button next

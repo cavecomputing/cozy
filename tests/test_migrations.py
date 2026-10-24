@@ -254,6 +254,28 @@ class TestSchemaMigrationLedger:
         assert 'lorebook_scan_depth_override' not in settings
         assert 'lorebook_always_inject_all' not in settings
 
+    def test_regex_filters_are_removed(self, client):
+        with shared.get_db() as conn:
+            conn.execute("DELETE FROM schema_migrations WHERE name='remove_regex_filters'")
+            conn.execute(
+                'CREATE TABLE regex_presets (id INTEGER PRIMARY KEY, name TEXT, scripts_json TEXT)'
+            )
+            conn.execute("INSERT INTO regex_presets (name, scripts_json) VALUES ('Mine', '[]')")
+            conn.executemany(
+                'INSERT INTO settings (key, value) VALUES (?, ?)',
+                [('active_regex_preset', '1'), ('default_regex_seeded', '1')],
+            )
+
+        schema.init_db()
+
+        with shared.get_db() as conn:
+            assert conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE name='regex_presets'"
+            ).fetchone() is None
+            assert conn.execute(
+                "SELECT 1 FROM settings WHERE key IN ('active_regex_preset', 'default_regex_seeded')"
+            ).fetchone() is None
+
     def test_mirostat_and_typical_p_in_use_move_into_extra_params(self, client):
         """A retired sampler that was on keeps being sent; one left off is dropped."""
         live = {

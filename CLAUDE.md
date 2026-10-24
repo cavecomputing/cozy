@@ -37,17 +37,17 @@ single-process app, and it stays approachable only while changes stay small.
 - Prefer editing existing code over adding new code, and a few lines at the right call site over a
   new helper, module or class. Add a file only when something forces it — the node-importable rule
   is the usual reason (see Testing gotchas).
-- Reuse what is already here: `get_db()`, `card_store`, `regex-engine.js`, the existing CSS
-  variables, an existing `settings` row. A second implementation of something the repo already does
-  is the most expensive kind of code.
+- Reuse what is already here: `get_db()`, `card_store`, the existing CSS variables, an existing
+  `settings` row. A second implementation of something the repo already does is the most expensive
+  kind of code.
 - **No new dependency without asking first.**
 - Leave out what nothing needs yet: config knobs, feature flags, an abstraction with one caller,
   `try`/`except` around code that doesn't raise, re-validation of data the route already validated.
 - Deleting code is a legitimate way to finish a task. Say so when the fix turns out to be a removal.
 
 This governs the amount of code, not the amount of work. Deliver everything that was asked, run the
-verification the change calls for, and keep the duplication this file deliberately requires — the JS
-and Python copies of the regex escaping, the two acknowledgement locations.
+verification the change calls for, and keep the duplication this file deliberately requires — the two
+acknowledgement locations.
 
 ## Naming
 
@@ -113,7 +113,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [cozy/auth.py](cozy/auth.py) | The optional password: sign-in page, the guard in front of every route, sign-out. |
 | [cozy/shared.py](cozy/shared.py) | Paths, `get_db()`, and the small request helpers. `BASE_DIR` is the *repo root*, one level above the package — bundled content and `static/themes` hang off it. |
 | [cozy/schema.py](cozy/schema.py) | `init_db()` and the `MIGRATIONS` tuple. |
-| [cozy/defaults.py](cozy/defaults.py) | `DEFAULT_PROMPT_TEMPLATE`, `DEFAULT_REGEX_PRESETS`, and the three seeders. |
+| [cozy/defaults.py](cozy/defaults.py) | `DEFAULT_PROMPT_TEMPLATE` and the two seeders. |
 | [cozy/card_store.py](cozy/card_store.py) | Character-card reads/writes — the layer routes actually call. [cozy/png_utils.py](cozy/png_utils.py) is the raw tEXt-chunk reader beneath it. |
 | [cozy/thumbs.py](cozy/thumbs.py) | `/thumbs/...` WebP avatars, keyed by image content. Pure cache, safe to delete wholesale. |
 | [cozy/summarizer.py](cozy/summarizer.py) | Auto Summaries logic. **Keep it free of Flask, DB and network** so `cozy/routes/chats.py` and `cozy/routes/summaries.py` can both import it. |
@@ -130,20 +130,16 @@ Everything else is in `data/cozy_chat.db`; [docs/10-database-schema.html](https:
 
 ### Bundled content, and who owns it afterwards
 
-Three seeders run from [app.py](app.py): characters from
-[default_characters/](default_characters/), prompts from
-[default_prompts/](default_prompts/), and regex presets from `DEFAULT_REGEX_PRESETS` inline in
-[cozy/defaults.py](cozy/defaults.py) rather than a directory. Two hand their content over once
-and never look again; prompts do not.
+Two seeders run from [app.py](app.py): characters from
+[default_characters/](default_characters/) and prompts from
+[default_prompts/](default_prompts/). Characters are handed over once and never looked at again;
+prompts are not.
 
-- Characters and regex presets use a `*_seeded` flag. It flips to `'1'` whether or not anything was
-  inserted, and is **never reset**. A name already taken is skipped rather than duplicated.
+- Characters use the `default_characters_seeded` flag. It flips to `'1'` whether or not anything
+  was inserted, and is **never reset**. A name already taken is skipped rather than duplicated.
   **Never re-seed on a schedule.**
 - Characters seed on fresh installs only — an upgrade must not drop a card into a library the user
-  curates. Regex presets are owed to existing installs too, so `default_regex_seeded` starts at
-  `'0'` regardless of `fresh_install`.
-- Regex presets ship **inactive**: `active_regex_preset` is deliberately left alone so bundled rules
-  never silently rewrite replies.
+  curates.
 - Prompts are the exception to every line above: no flag, and **restored on every start**. Anything
   in [default_prompts/](default_prompts/) missing from `system_prompts` is reinserted, so the
   directory is the source of truth and a deleted preset comes back — removing one means deleting
@@ -160,7 +156,7 @@ and never look again; prompts do not.
   decimal part and never carries the `v`; the picker's badge adds that. See the prompt section of
   [docs/10-database-schema.md](docs/10-database-schema.md).
 
-A seeded character or regex preset is ordinary user data afterwards — deleting it keeps it deleted.
+A seeded character is ordinary user data afterwards — deleting it keeps it deleted.
 A seeded prompt is a copy of a file that outranks it.
 
 ### Two upgrade mechanisms, not interchangeable
@@ -240,37 +236,12 @@ and nothing changes.
 always streams SSE — so **never introduce middleware that buffers responses**. That is also why
 `app.py` uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE.
 
-### Regex output filters
+### Dialogue quote marks
 
-[regex-engine.js](static/js/regex-engine.js) is the one matcher, deliberately free of imports, DOM
-and app state so the settings preview, both save points ([send.js](static/js/send.js),
-[messages.js](static/js/messages.js)) and the renderer all run that same copy — which is what makes
-the preview honest. **Don't add a second implementation.**
-
-- A filter's `display` flag decides *where* it runs, one or the other, never both. `selectFilters()`
-  splits the preset and [regex-filters.js](static/js/regex-filters.js) wraps each half:
-  `applyOutputFilters()` rewrites
-  the stored reply at the save points; `applyDisplayFilters()` rewrites only the bubble inside
-  `renderMarkdown()`, leaving `dataset.rawText`, the DB row and the next prompt untouched. A missing
-  `display` key means the save-point half, which keeps presets written before the option existed
-  behaving exactly as they did.
-- The display pass is character-messages-only and fires on **every** draw of the same text —
-  greetings, old messages, each token of a stream — so it must stay free of side effects.
-- No per-filter enable toggle by design: a filter is live when its Find pattern compiles, and
-  selecting no preset is the off switch. A half-typed pattern is normal, so `runFilters()` skips
-  that row instead of throwing mid-send, and it drops any filter that would blank the reply.
-- Find and Replace are single-line `<input>`s that silently strip CR/LF, hence `escapeForInput()`
-  out and `expandEscapes()` in — the only reason patterns holding a real newline (every bundled
-  preset has one) survive an edit round trip.
-- [cozy/routes/settings.py](cozy/routes/settings.py) keeps its own copies of the slash-form splitter
-  and control-character escaping for the `/api/regex-presets` import/export, which accept both
-  Cozy's `{name, filters}` shape and SillyTavern regex scripts. **Escaping or slash-form changes
-  have to land on the JS and Python sides together.**
-
-Separately, [rp-dialogue.js](static/js/rp-dialogue.js) owns which quote marks count as speech for
-the `rpDialogue` extension — German `„…“`, guillemets, Japanese corner brackets — and the renderer
-puts back the marks the reply actually used rather than anglicising them. Converting punctuation is
-the Regex tab's job, and only when the user asks.
+[rp-dialogue.js](static/js/rp-dialogue.js) owns which quote marks count as speech for the
+`rpDialogue` extension — German `„…“`, guillemets, Japanese corner brackets — and the renderer puts
+back the marks the reply actually used rather than anglicising them. A reply is stored and shown
+as the model wrote it; nothing rewrites its text.
 
 ### Themes
 
@@ -304,6 +275,6 @@ That fixture patches attributes **on the `cozy.shared` module object**, which is
 
 When creating a character in tests, use `make_minimal_png()` from [cozy/png_utils.py](cozy/png_utils.py) — anything smaller is rejected by Pillow.
 
-Seventeen test files exercise frontend modules by shelling out to `node`: `test_request_builder.py`, `test_regex_engine.py`, `test_rp_dialogue.py`, `test_default_regex.py`, and the thirteen `test_*_frontend.py` files. Every one of them **skips** (not fails) when `node` isn't on PATH, so a green run on a machine without Node is covering none of that JS — check for skips before trusting a pass.
+Fifteen test files exercise frontend modules by shelling out to `node`: `test_request_builder.py`, `test_rp_dialogue.py`, and the thirteen `test_*_frontend.py` files. Every one of them **skips** (not fails) when `node` isn't on PATH, so a green run on a machine without Node is covering none of that JS — check for skips before trusting a pass.
 
-That testability is why [regex-engine.js](static/js/regex-engine.js) and [rp-dialogue.js](static/js/rp-dialogue.js) exist as separate modules at all. Frontend logic that needs coverage has to be importable under bare `node`: no `./state.js`, no DOM, and no page globals such as `marked` (a classic script from [static/vendor/](static/vendor/), not a module). Put new pure logic in its own module and keep the DOM wiring in the caller.
+That testability is why [rp-dialogue.js](static/js/rp-dialogue.js) exists as a separate module at all. Frontend logic that needs coverage has to be importable under bare `node`: no `./state.js`, no DOM, and no page globals such as `marked` (a classic script from [static/vendor/](static/vendor/), not a module). Put new pure logic in its own module and keep the DOM wiring in the caller.

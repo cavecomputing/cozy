@@ -316,7 +316,6 @@
         <a href="#settings">settings</a>
         <a href="#api_presets">api_presets</a>
         <a href="#system_prompts">system_prompts</a>
-        <a href="#regex_presets">regex_presets</a>
       </div>
       <div class="rail-group">
         <div class="rail-label">Bookkeeping</div>
@@ -336,9 +335,9 @@
         <code>cozy_chat.db</code> rather than transcribed. Character cards are not in here — they live on disk
         as PNGs, and this database only indexes them.</p>
       <div class="facts">
-        <span><b>11</b> tables</span>
+        <span><b>10</b> tables</span>
         <span><b>3</b> indexes</span>
-        <span><b>18</b> migrations applied</span>
+        <span><b>19</b> migrations applied</span>
         <span><b>WAL</b> journal mode</span>
         <span><b>synchronous</b> = NORMAL</span>
         <span><b>foreign_keys</b> = ON per connection</span>
@@ -497,7 +496,7 @@
           <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
           <tr><td class="c-name ref">chat_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>chats.id</code>, ON DELETE CASCADE.</td></tr>
           <tr><td class="c-name">role</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note"><code>CHECK(role IN ('user','character'))</code>.</td></tr>
-          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Stored text, after any save-point regex filters ran.</td></tr>
+          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Stored text.</td></tr>
           <tr><td class="c-name">persona_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Persona this line was spoken by. No declared FK.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
         </tbody>
@@ -666,27 +665,6 @@
 )</pre></details>
     </section>
 
-    <section id="regex_presets">
-      <div class="table-head"><h2>regex_presets</h2><span class="chip chip-pk">name UNIQUE</span></div>
-      <p class="purpose">A named, ordered list of find/replace filters. Bundled presets ship inactive —
-        <code>active_regex_preset</code> is deliberately left alone so nothing silently rewrites a reply.</p>
-      <div class="scroller"><table>
-        <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
-        <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL, UNIQUE.</td></tr>
-          <tr><td class="c-name">scripts_json</td><td class="c-type">TEXT</td><td class="c-def">'[]'</td><td class="c-note">Ordered filters; each carries find, replace, flags and a <code>display</code> flag deciding whether it rewrites the stored reply or only the bubble.</td></tr>
-          <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
-        </tbody>
-      </table></div>
-      <details><summary>CREATE TABLE</summary><pre>CREATE TABLE regex_presets (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    name          TEXT NOT NULL UNIQUE,
-    scripts_json  TEXT NOT NULL DEFAULT '[]',
-    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
-)</pre></details>
-    </section>
-
     <section id="schema_migrations">
       <div class="table-head"><h2>schema_migrations</h2><span class="chip chip-soft">the ledger</span></div>
       <p class="purpose">What this database has already had done to it. A recorded version whose name no longer
@@ -716,7 +694,7 @@
     </section>
 
     <section id="ledger">
-      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–18</span></div>
+      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–19</span></div>
       <p class="purpose">Ordered, and the order is the point: each runs once, in a serialized transaction, and a
         shipped entry is never renumbered, renamed or reordered.</p>
       <ol class="ledger">
@@ -738,6 +716,7 @@
         <li><span class="v">16</span><span class="n">drop_lorebook_notice_dismissed</span><span class="d">Drop <code>chats.lorebook_notice_dismissed</code>, left over from the retired "has a lorebook" banner.</span></li>
         <li><span class="v">17</span><span class="n">delete_lorebook_global_overrides</span><span class="d">Drop the retired install-wide lorebook Scan depth override and Always inject all entries settings.</span></li>
         <li><span class="v">18</span><span class="n">retire_mirostat_and_typical_p</span><span class="d">Retire the Mirostat and Typical-P samplers, in the settings and every API preset; one that was on moves into <code>extra_request_params</code>.</span></li>
+        <li><span class="v">19</span><span class="n">remove_regex_filters</span><span class="d">Drop the retired regex output filters: the <code>regex_presets</code> table and the <code>active_regex_preset</code> and <code>default_regex_seeded</code> settings. Replies a filter already rewrote keep that text.</span></li>
       </ol>
       <p class="note">Migrations 3–7 are the last to rewrite a prompt's text. The house prompt now ships as a
         file and a revision arrives as a <b>version bump</b> inside it; 14 only renames the rows left from when
@@ -759,15 +738,13 @@
         <div><span>summary_api_model</span><span>''</span></div>
         <div><span>summary_cap_pct</span><span>'10'</span></div>
         <div><span>default_characters_seeded</span><span>'1'</span></div>
-        <div><span>default_regex_seeded</span><span>'1'</span></div>
       </div>
-      <p class="note">The two <code>*_seeded</code> flags flip whether or not anything was inserted, and are
-        <b>never reset</b>. That is what makes a deleted bundled character or regex preset stay deleted.
-        <code>active_regex_preset</code> is missing on purpose — bundled filters ship inactive.</p>
+      <p class="note">The <code>*_seeded</code> flag flips whether or not anything was inserted, and is
+        <b>never reset</b>. That is what makes a deleted bundled character stay deleted.</p>
     </section>
 
     <section id="version">
-      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 18</span></div>
+      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 19</span></div>
       <div class="prose">
         <p>There is no separate version number. The highest entry in the migration registry <strong>is</strong> the
           schema this build understands, and the highest row in a database's ledger is the schema that database is
@@ -784,7 +761,7 @@
         <code>thumbs/</code> cache is keyed by image content and rebuilt on demand, so it is left out.</p>
     </section>
 
-    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 18</footer>
+    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 19</footer>
   </main>
 </div>
 

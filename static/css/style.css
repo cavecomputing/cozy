@@ -23,12 +23,11 @@
     9. Panels: Overlay and panel, panel layout, character editor, confirm dialog,
        toasts
    10. Settings: Shell and navigation, cards and rows, API and samplers, picker
-       rows, prompt page, lorebooks page, regex page, about page, help panels,
-       narrow panes
+       rows, prompt page, lorebooks page, about page, help panels, narrow panes
    11. Phone: desktop-only and phone-only, backdrops, sheet and page motion, touch
        screens; the phone block: base, controls, sidebar, chat, composer, panels,
-       settings, picker rows, prompt page, lorebooks page, regex page, about page,
-       help panels; smallest phones
+       settings, picker rows, prompt page, lorebooks page, about page, help
+       panels; smallest phones
    12. Reduced motion */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -129,7 +128,7 @@
     --fg-heading: var(--text-color);
 
     /* Two derived surfaces for boxes inside a panel: a card on the pane, and
-       something inset within that card (a lorebook entry, a regex filter). */
+       something inset within that card (a lorebook entry). */
     --surface-card:  var(--surface-raised);
     --surface-inset: color-mix(in srgb, var(--bg-color) 82%, var(--input-bg));
     /* The counterpart to --fg-heading, for reference and preview affordances
@@ -435,7 +434,6 @@ body.signin {
         text-box: trim-both cap alphabetic;
         padding-block: calc((1lh - 1cap) / 2);
     }
-    button > .advanced-badge { padding-block: calc(0.05rem + (1lh - 1cap) / 2); }
     :is(.prompt-picker, .lorebook-picker) .cozy-select-value > .cozy-select-badge {
         padding-block: calc(var(--space-1) + (1lh - 1cap) / 2);
     }
@@ -602,8 +600,7 @@ select.settings-select:focus-visible {
 }
 
 /* A value that cannot be saved, said beside the control that holds it. This
-   is the shape the regex filters already used — a coloured edge on the field
-   and the reason directly beneath it — generalised to every field. It stays
+   is a coloured edge on the field and the reason directly beneath it. It stays
    until the field changes: an error that clears itself on a timer is gone
    before a slow reader reaches it. */
 .field-error {
@@ -618,7 +615,7 @@ select.settings-select:focus-visible {
 }
 
 /* Every on/off control in the app is this pill switch: settings rows, lorebook
-   entry flags, regex flags, sampler toggles, and the Auto Summary switch in the
+   entry flags, sampler toggles, and the Auto Summary switch in the
    memory flyout, which used to be the only one drawn this way. Styling the bare
    input keeps it that way with no wrapper markup at any call site. Off is an
    inset track with a quiet knob; on fills the track with the accent. */
@@ -747,7 +744,7 @@ input[type="checkbox"]:checked::after {
     min-height: 150px;
 }
 
-/* Opt-in monospace for fields holding code-ish text (regex patterns, samples),
+/* Opt-in monospace for fields holding code-ish text (endpoints, keys, JSON),
    where character-level differences have to be legible. */
 .mono-input {
     font-family: var(--font-mono);
@@ -1077,7 +1074,6 @@ input[type="checkbox"]:checked::after {
    .empty-state, the full-bleed one with the glyph, is a different thing: a
    page with no character chosen, rather than a container with nothing in it. */
 .sampler-empty-state,
-.regex-filter-empty,
 .lorebook-empty-panel,
 .lorebook-entry-empty,
 .prompt-rendered-empty {
@@ -5438,6 +5434,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    min-height: 32px;
     white-space: nowrap;
     cursor: pointer;
 }
@@ -5533,163 +5530,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .lorebook-entry-field { grid-template-columns: minmax(0, 1fr); }
     .lorebook-entry-keys-wrap { flex-basis: 100%; }
 }
-
-/* ── Regex page ──────────────────────────────────────────────────────────── */
-.regex-filter-count {
-    color: var(--fg-quiet);
-    font-weight: 400;
-}
-
-.regex-filters {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding-top: var(--space-3);
-}
-
-/* A filter is an inset card inside the Filters card, like a lorebook entry. */
-.regex-filter {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--surface-inset);
-    gap: var(--space-4);
-    padding: var(--space-4);
-}
-
-/* An uncompilable pattern is an ordinary in-progress state, so this is only
-   an edge and the reason beneath it — no red fill. */
-.regex-filter.has-error {
-    border-color: var(--status-danger);
-}
-
-.regex-filter-header {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-.regex-filter-name {
-    flex: 1;
-    min-width: 0;
-    font-weight: 500;
-}
-
-.regex-filter-row {
-    display: flex;
-    gap: var(--space-5);
-}
-
-.regex-filter-field {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-}
-
-.regex-filter-field > span {
-    color: var(--fg-quiet);
-    font-size: var(--text-sm);
-    font-weight: 500;
-}
-
-/* The column gap has to beat .regex-filter-flag's own gap by enough that each
-   switch reads as belonging to the label on its right. At 0.7rem against that
-   0.3rem it was too close to call, and the switches — wider than the 16px
-   boxes this row was spaced for — ran the four flags together. */
-.regex-filter-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-3) var(--space-5);
-}
-
-.regex-filter-flags-label {
-    color: var(--fg-quiet);
-    font-size: var(--text-sm);
-    font-weight: 500;
-}
-
-.regex-filter-flag {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    color: var(--fg-quiet);
-    font-size: var(--text-sm);
-    cursor: pointer;
-}
-
-.regex-filter-flag code {
-    padding: 0.05rem 0.28rem;
-    border: 1px solid var(--code-border);
-    border-radius: var(--radius-control);
-    background: var(--code-bg);
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    color: var(--fg-cool);
-}
-
-/* Sits in the flag row but is not a flag — pushed to the far end so it reads
-   as its own control rather than a fifth checkbox in the group. */
-.regex-filter-display {
-    margin-left: auto;
-    font-weight: 500;
-}
-
-.regex-filter-error {
-    margin: 0;
-    color: var(--status-danger);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-}
-
-/* The shared .form-textarea min-height is sized for prompt editing; the sample
-   box only needs a few lines. */
-#settings-regex-test-input {
-    min-height: 0;
-}
-
-.regex-test-output {
-    margin: 0;
-    min-height: 3.2rem;
-    max-height: 220px;
-    overflow: auto;
-    padding: 0.4rem 0.6rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-control);
-    background: var(--pre-bg);
-    color: var(--fg);
-    font-family: var(--font-mono);
-    font-size: var(--text-md);
-    line-height: 1.5;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
-/* Tints the result only when the filters actually changed something, so "this
-   rule does nothing" is visible at a glance. */
-.regex-test-output.is-changed {
-    border-color: color-mix(in srgb, var(--fg-accent) 46%, var(--line));
-}
-
-:is(.regex-filter-flag, .lorebook-entry-toggle) { min-height: 32px; }
-
-/* The Preset card is its title row and nothing else, so the row's rule would
-   underline an empty card. */
-[data-section="regex"] .settings-card-header:only-child {
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-
-#settings-regex-add { margin-left: auto; }
-
-/* Import/export ends the picker row, so its menu opens leftward into the card. */
-#regex-io-menu { left: auto; right: 0; }
 
 /* ── About page ──────────────────────────────────────────────────────────── */
 .about-identity {
@@ -7215,12 +7055,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         font-size: var(--text-3xl);
     }
 
-    /* The ADV badge already takes the row's slack; split with the chevron,
-       it would float mid-row. */
-    .settings-nav-item:has(> .advanced-badge)::after {
-        margin-left: 0;
-    }
-
     /* List view (default on mobile open) — hide pane */
     .settings-shell:not(.in-detail) .settings-pane { display: none; }
 
@@ -7357,7 +7191,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         cursor: pointer;
     }
 
-    :is(.regex-filter-flag, .lorebook-entry-toggle) { min-height: 44px; }
+    .lorebook-entry-toggle { min-height: 44px; }
 
     .sampler-popover input[type="checkbox"] { margin-block: 0; }
 
@@ -7475,37 +7309,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .lorebook-picker .cozy-select-label { flex-basis: 100%; }
 
     .lorebook-picker .cozy-select-detail { max-width: 100%; flex: 1 1 110px; }
-
-    /* ── Regex page ──────────────────────────────────────────────────────── */
-    /* Find and Replace stop being readable side by side well before this. */
-    .regex-filter-row {
-        flex-direction: column;
-    }
-
-    .regex-filter-header .icon-btn {
-        width: var(--mobile-tap-target);
-        height: var(--mobile-tap-target);
-    }
-
-    .regex-filter-header { flex-wrap: wrap; }
-
-    .regex-filter-name { flex-basis: 100%; }
-
-    .regex-filter-flag { gap: var(--space-3); }
-
-    .regex-filter-flags-label { flex-basis: 100%; }
-
-    .regex-filter-display { flex-basis: 100%; margin-left: 0; }
-
-    .regex-test-output { max-height: none; }
-
-    /* "Import/export" overflows a third of a phone row, so on a phone it takes a
-       row of its own under New and Delete, as on the Prompt page. */
-    [data-section="regex"] .preset-select-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
-    #regex-io-dropdown { grid-column: 1 / -1; }
-
-    #regex-io-dropdown > .icon-btn { width: 100%; }
 
     /* ── About page ──────────────────────────────────────────────────────── */
     .about-identity { align-items: flex-start; }
