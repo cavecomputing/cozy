@@ -12,8 +12,16 @@ import { state, el, llm, SEND_SVG, STOP_SVG } from './state.js';
  */
 export const MOBILE_SHELL_QUERY = '(max-width: 768px), (max-height: 500px) and (hover: none)';
 export function autoResize(textarea) {
+    // The composer shares the column with the chat, so growing it shortens the
+    // chat from below, and the 'auto' pass briefly lengthens it, clamping
+    // scrollTop. Measured first and put back after, the gap to the chat's
+    // bottom holds, so the newest messages ride up with the composer.
+    const chat = el.chatHistory;
+    const fromBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight;
     textarea.style.height = 'auto';
     textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+    const scrollTop = chat.scrollHeight - chat.clientHeight - fromBottom;
+    if (Math.abs(chat.scrollTop - scrollTop) >= 1) chat.scrollTop = scrollTop;
 }
 
 export function sanitize(text) {
