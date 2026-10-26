@@ -1448,7 +1448,10 @@ input[type="checkbox"]:checked::after {
     padding: 0.35rem 0.5rem 0.3rem;
 }
 
+/* A small gap keeps the rows' fills (open character, hover) apart. */
 .recent-list {
+    display: grid;
+    gap: var(--space-1);
     list-style: none;
 }
 
