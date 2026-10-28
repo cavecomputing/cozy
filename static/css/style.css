@@ -1386,6 +1386,11 @@ input[type="checkbox"]:checked::after {
         background-color: var(--surface-quiet);
         color: var(--fg);
     }
+
+    .new-char-row:hover .new-char-icon {
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+    }
 }
 
 .new-char-icon {
@@ -1396,6 +1401,13 @@ input[type="checkbox"]:checked::after {
     flex-shrink: 0;
     border: 1px solid var(--line);
     border-radius: 7px;
+    transition: border-color var(--motion-base) ease, color var(--motion-base) ease;
+}
+
+/* Like "New persona": the + and its box take the accent. */
+.new-char-row:focus-visible .new-char-icon {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
 }
 
 /* ── Recent ──────────────────────────────────────────────────────────────── */
