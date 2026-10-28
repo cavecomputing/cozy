@@ -2690,6 +2690,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     from { opacity: 0; transform: translateY(6px); }
 }
 
+/* Every draw of a streaming reply replaces its text, and a finger keeps sending
+   touchmove to the element it first touched. Once that element is gone the
+   events never reach the chat, so a drag on the reply couldn't end the follow.
+   Letting touches land on the containers, which stay, keeps them coming. */
+.message-container.streaming :is(.message-content, .thinking-content) * {
+    pointer-events: none;
+}
+
 /* Streamed reply text fades in as it arrives; createTextFader() in messages.js
    applies it with its own duration and delay. */
 @keyframes streamFade {
