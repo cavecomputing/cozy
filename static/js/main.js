@@ -1458,13 +1458,16 @@ function bindScrollHandlers() {
     // most (scroll anchoring, a fling carrying on past a scrollTop write, a
     // scroll event reporting a stale height), and a scroll event can't tell
     // any of that from the reader.
+    // The bottom here means flush with it, not the button's 60px: a trackpad
+    // or finger scrolls up a few pixels per event, and restarting the follow
+    // anywhere near the bottom snapped each of those back on the next draw.
     let lastScrollTop = el.chatHistory.scrollTop;
     el.chatHistory.addEventListener('scroll', () => {
         const { scrollTop, scrollHeight, clientHeight } = el.chatHistory;
         const fromBottom = scrollHeight - scrollTop - clientHeight;
         const atBottom = fromBottom < 60;
         if (mouseHeld && scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
-        else if (atBottom) state.autoScroll = true;
+        else if (fromBottom < 1) state.autoScroll = true;
         lastScrollTop = scrollTop;
         el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
         drawOlderSoon();
