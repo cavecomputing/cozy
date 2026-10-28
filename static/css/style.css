@@ -7163,10 +7163,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .sampler-subsection-header { align-items: center; }
 
+    /* !important to beat the .modal-overlay inset, which otherwise pins the
+       top to the layout viewport while Safari scrolls the keyboard's view
+       down, leaving the chat showing under a settings page cut off above. */
     #settings-flyout.modal-overlay,
     .settings-submodal.modal-overlay {
-        top: var(--settings-viewport-top, 0px);
-        bottom: auto;
+        top: calc(var(--settings-viewport-top, 0px) + var(--frame-top)) !important;
+        bottom: auto !important;
         height: calc(var(--settings-viewport-height, 100dvh) - var(--frame-top) - var(--frame-bottom));
     }
 
