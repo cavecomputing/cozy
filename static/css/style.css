@@ -1177,7 +1177,7 @@ input[type="checkbox"]:checked::after {
     transition: background-color var(--motion-base) ease, color var(--motion-base) ease, opacity var(--motion-base) ease;
     color: var(--fg-quiet);
     font-family: var(--font-mono);
-    font-size: var(--text-lg);
+    font-size: var(--text-2xl);
     font-weight: 500;
     min-width: 0;
 }
@@ -1209,10 +1209,10 @@ input[type="checkbox"]:checked::after {
 .char-select-btn {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.7rem;
     flex: 1;
     min-width: 0;
-    padding: 0.35rem 0.6rem;
+    padding: 0.45rem 0.6rem;
     border: 0;
     border-radius: var(--radius);
     background: none;
@@ -1223,9 +1223,9 @@ input[type="checkbox"]:checked::after {
 }
 
 .char-select-btn .avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     border: 1px solid var(--line);
     font-size: 0.6rem;
 }
@@ -1364,10 +1364,10 @@ input[type="checkbox"]:checked::after {
 .new-char-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.7rem;
     flex: 1;
     min-width: 0;
-    padding: 0.35rem 0.6rem;
+    padding: 0.45rem 0.6rem;
     border: 0;
     border-radius: var(--radius);
     background: none;
@@ -1391,11 +1391,11 @@ input[type="checkbox"]:checked::after {
 .new-char-icon {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
     border: 1px solid var(--line);
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 /* ── Recent ──────────────────────────────────────────────────────────────── */
@@ -6436,19 +6436,19 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .char-item,
     .new-char-row {
-        font-size: var(--text-xl);
+        font-size: var(--text-3xl);
     }
 
     .char-select-btn .avatar,
     .new-char-icon {
-        width: 32px;
-        height: 32px;
+        width: 40px;
+        height: 40px;
         border-radius: var(--radius-control);
     }
 
     .recent-btn {
-        width: 48px;
-        height: 48px;
+        width: 56px;
+        height: 56px;
     }
 
     .recent-btn svg {
@@ -6473,6 +6473,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         min-height: 48px;
         padding-top: 0.45rem;
         padding-bottom: 0.45rem;
+    }
+
+    .char-select-btn,
+    .new-char-row {
+        min-height: 56px;
     }
 
     .char-archived-btn {
