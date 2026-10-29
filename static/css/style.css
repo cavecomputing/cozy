@@ -1440,15 +1440,17 @@ input[type="checkbox"]:checked::after {
     transition: border-color var(--motion-base), color var(--motion-base);
 }
 
-.recent-btn[aria-expanded="true"] {
-    border-color: var(--fg-quiet);
-    color: var(--fg);
+/* Takes the accent as the + of .add-row does, and holds it while open. */
+.recent-btn[aria-expanded="true"],
+.recent-btn:focus-visible {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
 }
 
 @media (hover: hover) {
     .recent-btn:hover {
-        border-color: var(--fg-quiet);
-        color: var(--fg);
+        border-color: var(--accent-color);
+        color: var(--accent-color);
     }
 }
 
