@@ -1433,8 +1433,8 @@ input[type="checkbox"]:checked::after {
     height: 38px;
     flex-shrink: 0;
     border: 1px solid var(--line);
-    border-radius: var(--radius-control);
-    background-color: var(--surface-quiet);
+    border-radius: 7px;
+    background: none;
     color: var(--fg-quiet);
     cursor: pointer;
     transition: border-color var(--motion-base), color var(--motion-base);
@@ -6453,6 +6453,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .recent-btn {
         width: 52px;
         height: 52px;
+        border-radius: var(--radius-control);
     }
 
     .recent-btn svg {
