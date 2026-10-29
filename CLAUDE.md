@@ -38,6 +38,11 @@ single-process app, and it stays approachable only while changes stay small.
 - **No new dependency without asking first.**
 - Leave out what nothing needs yet: config knobs, feature flags, an abstraction with one caller,
   `try`/`except` around code that doesn't raise, re-validation of data the route already validated.
+- **Change the style itself, never pile an override on top.** When a look changes, edit the rule
+  that owns it in [static/css/style.css](static/css/style.css), or give two elements one shared
+  class. Don't add a later rule, a longer selector or an `!important` to beat the old one, or set
+  styles from JS. A design mocked with injected override CSS gets rewritten into the real rules
+  before it ships.
 - Deleting code is a legitimate way to finish a task. Say so when the fix turns out to be a removal.
 
 This governs the amount of code, not the amount of work. Deliver everything that was asked, run the
