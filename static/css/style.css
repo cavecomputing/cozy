@@ -1754,7 +1754,6 @@ input[type="checkbox"]:checked::after {
     border-radius: var(--radius-control);
     cursor: pointer;
     font-size: var(--text-xl);
-    color: var(--text-color);
     transition: background var(--motion-base);
 }
 
@@ -1764,12 +1763,10 @@ input[type="checkbox"]:checked::after {
     }
 }
 
-/* "New persona" spans the menu, laid out as a persona row. Its colour is
-   .add-row's, restated because .persona-option comes later. */
+/* "New persona" spans the menu, laid out as a persona row. */
 .persona-create {
     width: 100%;
     font-family: inherit;
-    color: var(--fg-quiet);
 }
 
 .persona-create .add-row-icon {
