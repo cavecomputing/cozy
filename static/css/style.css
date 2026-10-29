@@ -1318,18 +1318,17 @@ input[type="checkbox"]:checked::after {
 }
 
 /* "Archived (N)": heads the archived rows and folds them away. Typography
-   comes from .section-label; the hairline under it is the eyebrow's, as under
-   "Characters". */
+   comes from .section-label; the shape is a character row's, rounded all
+   round with no rule under it. */
 .char-archived-btn {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     width: 100%;
     margin: 0.5rem 0 0.25rem;
-    padding: 0.45rem 0.75rem;
+    padding: 0.45rem 0.75rem 0.45rem 0.6rem;
     border: 0;
-    border-bottom: 1px solid var(--line);
-    border-radius: var(--radius-control) var(--radius-control) 0 0;
+    border-radius: var(--radius);
     background: none;
     text-align: left;
     cursor: pointer;
