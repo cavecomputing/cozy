@@ -1455,10 +1455,13 @@ input[type="checkbox"]:checked::after {
 
 /* The last few characters you wrote to, dropped from the clock across the
    sidebar's width: rows like the list's a size down, each with when you last
-   wrote. The list below still has everyone, ⋯ menus and all. */
+   wrote. The list below still has everyone, ⋯ menus and all. It fades in
+   from the clock's corner like the rows' ⋯ menu. */
 .recent-chars {
     right: 0;
     min-width: 0;
+    transform-origin: top right;
+    animation: rowMenuIn var(--motion-fast) ease-out;
 }
 
 .recent-title {
