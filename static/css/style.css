@@ -6296,9 +6296,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     /* The app runs edge to edge, stopping only at the safe area so it clears
        the notch, the status bar and the home indicator (all zero in a plain
-       upright tab). Every full-screen view (the drawer, the sheets, the modals)
-       fills this same box rather than the viewport, and since the box already
-       clears the insets none of them add their own. */
+       upright tab). Every full-screen view (the modals, the settings) fills this
+       same box rather than the viewport, and since the box already clears the
+       insets none of them add their own. The drawer and the bottom sheets are
+       the exception: they run to the screen's edge and pad their contents in
+       instead, or the chat shows as a band beneath them by the home indicator. */
     :root {
         --frame-top:    env(safe-area-inset-top, 0px);
         --frame-right:  env(safe-area-inset-right, 0px);
@@ -6391,9 +6393,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     /* ── Sidebar: an off-screen drawer ───────────────────────────────────── */
     #sidebar {
         position: fixed;
-        top: var(--frame-top);
+        top: 0;
         left: var(--frame-left);
-        bottom: var(--frame-bottom);
+        bottom: 0;
+        padding-block: var(--frame-top) var(--frame-bottom);
         width: min(88vw, 360px);
         max-width: 100vw;
         margin: 0;
@@ -6855,13 +6858,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         position: fixed;
         left: var(--frame-left);
         right: var(--frame-right);
-        bottom: var(--frame-bottom);
+        bottom: 0;
         width: auto;
         min-width: 0;
         max-width: none;
         max-height: min(60dvh, 440px);
         border-radius: var(--radius) var(--radius) 0 0;
-        padding: 0 0 0.35rem;
+        padding: 0 0 calc(0.35rem + var(--frame-bottom));
         z-index: 320;
         animation: sheetUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: var(--motion-base);
