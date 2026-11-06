@@ -19,7 +19,10 @@ from flask import Blueprint, request, jsonify
 
 from cozy.card_store import get_character_card_data
 from cozy.routes.chats import chat_to_dict
-from cozy.routes.llm import _error_detail, _summary_llm_settings
+from cozy.routes.llm import (
+    _error_detail, _summary_llm_settings, _upstream, from_anthropic_message, is_anthropic,
+    to_anthropic,
+)
 from cozy.routes.settings import get_settings
 from cozy.shared import get_db, not_found
 from cozy.summarizer import (
@@ -67,14 +70,14 @@ def call_summarizer(messages, cap_tokens=0):
         raise RuntimeError('No summarizer endpoint configured (Settings → Auto Summaries)')
     if not model:
         raise RuntimeError('No summarizer model configured (Settings → Auto Summaries)')
-    url = endpoint.rstrip('/') + '/chat/completions'
-    headers = {'Content-Type': 'application/json'}
-    if api_key:
-        headers['Authorization'] = f'Bearer {api_key}'
+    url, headers = _upstream(endpoint, api_key, 'chat/completions')
     payload = {'model': model, 'messages': messages, 'stream': False}
     budget = _completion_budget(get_settings(), cap_tokens)
     if budget:
         payload['max_tokens'] = budget
+    anthropic = is_anthropic(endpoint)
+    if anthropic:
+        payload = to_anthropic(payload)
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=180)
         r.raise_for_status()
@@ -84,6 +87,8 @@ def call_summarizer(messages, cap_tokens=0):
         body = r.json()
     except ValueError as e:
         raise RuntimeError('Summarizer endpoint returned invalid JSON') from e
+    if anthropic:
+        body = from_anthropic_message(body)
     if not isinstance(body, dict):
         raise RuntimeError('Summarizer endpoint returned a malformed response')
     choices = body.get('choices')

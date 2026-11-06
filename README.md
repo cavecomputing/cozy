@@ -17,7 +17,8 @@ download one, or do any of the thinking itself. You point it at an AI service
 you already have: a paid one online (OpenRouter and similar), or one running on
 your own computer (llama.cpp, Ollama, KoboldCpp, LM Studio). Almost all of them
 work, because almost all of them speak the same "OpenAI-style" language Cozy
-expects.
+expects. Anthropic's Claude API works too: Cozy recognises its address and
+switches to Claude's own format by itself.
 
 <p align="center">
   <img src="assets/5.png" alt="Chat view on desktop" width="49%">
@@ -63,6 +64,7 @@ And if you would like some more details on character cards, personas, etc., chec
    | Service | Endpoint |
    |---|---|
    | OpenRouter | `https://openrouter.ai/api/v1` |
+   | Anthropic (Claude) | `https://api.anthropic.com/v1` |
    | LM Studio | `http://localhost:1234/v1` |
    | Ollama | `http://localhost:11434/v1` |
    | llama.cpp | `http://localhost:8080/v1` |
@@ -77,7 +79,8 @@ And if you would like some more details on character cards, personas, etc., chec
    says otherwise.
 9. Chat with the default character or create a new character by clicking **New character** in the character sidebar.
 
-The server must provide an OpenAI-style streaming `/chat/completions` endpoint.
+The server must provide an OpenAI-style streaming `/chat/completions` endpoint, or be
+Anthropic's Claude API, which Cozy detects from the address.
 Model listing and advanced sampler support vary by server so verify the settings beforehand.
 
 Don't forget to also change the default persona: click **User** at the bottom of the sidebar, then the pencil beside it.

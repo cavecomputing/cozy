@@ -1,4 +1,10 @@
-"""LLM proxy routes — forward chat requests to OpenAI-compatible endpoints."""
+"""LLM proxy routes — forward chat requests to OpenAI-compatible endpoints.
+
+An endpoint on anthropic.com, or one whose path ends in /messages, speaks
+Claude's Messages API instead. The browser never knows: requests are
+translated on the way out and replies back into the Chat Completions shape
+api.js already reads.
+"""
 
 import json
 import logging
@@ -77,6 +83,114 @@ def _error_detail(e):
     return str(e)
 
 
+# ── Claude's Messages API ───────────────────────────────────────────────────
+
+ANTHROPIC_VERSION = '2026-10-21'
+
+# The Chat Completions fields Claude also takes. Everything else Cozy sends is a
+# sampler it doesn't have, and the Messages API rejects fields it doesn't know.
+# temperature, top_p and top_k are among them on this API version.
+ANTHROPIC_FIELDS = {'max_tokens', 'stop_sequences', 'metadata', 'thinking', 'output_config',
+                    'service_tier', 'inference_geo', 'cache_control', 'stream'}
+
+
+def is_anthropic(endpoint):
+    """Whether an endpoint speaks Claude's Messages API rather than Chat Completions."""
+    parts = urlsplit((endpoint or '').strip())
+    host = (parts.hostname or '').lower()
+    return (host == 'anthropic.com' or host.endswith('.anthropic.com')
+            or parts.path.rstrip('/').endswith('/messages'))
+
+
+def _upstream(endpoint, api_key, path):
+    """The URL and headers for one call to the model server.
+
+    ``path`` is the Chat Completions name, 'chat/completions' or 'models'. A
+    Claude endpoint may be typed as the bare host, the /v1 base, or the full
+    /v1/messages URL; all three reach the same two paths.
+    """
+    base = endpoint.strip().rstrip('/')
+    headers = {'Content-Type': 'application/json'}
+    if not is_anthropic(endpoint):
+        if api_key:
+            headers['Authorization'] = f'Bearer {api_key}'
+        return f'{base}/{path}', headers
+    base = base.removesuffix('/messages')
+    if not urlsplit(base).path:
+        base += '/v1'
+    headers['anthropic-version'] = ANTHROPIC_VERSION
+    if api_key:
+        headers['x-api-key'] = api_key
+    return f'{base}/{"messages" if path == "chat/completions" else path}', headers
+
+
+def to_anthropic(payload):
+    """A Chat Completions payload as a Messages API request.
+
+    System turns move to the top-level ``system`` field, and the samplers
+    Claude has no use for are dropped.
+    """
+    body = {key: value for key, value in payload.items() if key in ANTHROPIC_FIELDS}
+    body['model'] = payload.get('model')
+    body.setdefault('max_tokens', 8192)
+    stop = payload.get('stop')
+    if stop and 'stop_sequences' not in body:
+        body['stop_sequences'] = [stop] if isinstance(stop, str) else list(stop)
+    turns = payload.get('messages') or []
+    system = '\n\n'.join(m['content'] for m in turns if m.get('role') == 'system' and m.get('content'))
+    if system:
+        body['system'] = system
+    body['messages'] = [{'role': m['role'], 'content': m['content']} for m in turns
+                        if m.get('role') in ('user', 'assistant') and m.get('content')]
+    return body
+
+
+def _finish_reason(stop_reason):
+    return 'length' if stop_reason == 'max_tokens' else 'stop'
+
+
+def from_anthropic_message(body):
+    """A non-streaming Messages response in the Chat Completions shape.
+
+    Anything that isn't a Messages response passes through untouched, so the
+    caller's own checks for a malformed body still apply.
+    """
+    if not isinstance(body, dict) or not isinstance(body.get('content'), list):
+        return body
+    text = ''.join(block.get('text', '') for block in body['content']
+                   if isinstance(block, dict) and block.get('type') == 'text')
+    return {'choices': [{'message': {'role': 'assistant', 'content': text},
+                         'finish_reason': _finish_reason(body.get('stop_reason'))}]}
+
+
+def from_anthropic_event(event):
+    """One Messages stream event as the chunk the browser reads.
+
+    Returns a Chat Completions chunk, an ``{"error": ...}`` the browser shows,
+    '[DONE]' at the end of the message, or None for the bookkeeping events
+    (message_start, ping, block starts and stops) that carry nothing to show.
+    """
+    kind = event.get('type')
+    if kind == 'content_block_delta':
+        delta = event.get('delta') or {}
+        if delta.get('type') == 'text_delta':
+            return {'choices': [{'delta': {'content': delta.get('text', '')}}]}
+        if delta.get('type') == 'thinking_delta':
+            return {'choices': [{'delta': {'reasoning_content': delta.get('thinking', '')}}]}
+    elif kind == 'message_delta':
+        stop_reason = (event.get('delta') or {}).get('stop_reason')
+        if stop_reason == 'refusal':
+            return {'error': 'Claude declined to continue this reply.'}
+        if stop_reason:
+            return {'choices': [{'delta': {}, 'finish_reason': _finish_reason(stop_reason)}]}
+    elif kind == 'message_stop':
+        return '[DONE]'
+    elif kind == 'error':
+        error = event.get('error') or {}
+        return {'error': f"Claude's API reported an error: {error.get('message') or error.get('type') or 'unknown'}"}
+    return None
+
+
 def _llm_settings():
     """Return (endpoint, api_key, model) from DB."""
     s = get_settings()
@@ -105,19 +219,20 @@ def list_models():
         endpoint, api_key, _ = _llm_settings()
     if not endpoint:
         return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
-    url = endpoint.rstrip('/') + '/models'
-    headers = {}
-    if api_key:
-        headers['Authorization'] = f'Bearer {api_key}'
+    url, headers = _upstream(endpoint, api_key, 'models')
+    # Claude's list pages at 20 by default.
+    params = {'limit': 1000} if is_anthropic(endpoint) else None
     try:
-        r = http_requests.get(url, headers=headers, timeout=10)
+        r = http_requests.get(url, headers=headers, params=params, timeout=10)
         r.raise_for_status()
         body = r.json()
         # OpenAI-compatible APIs use {"data": [...]}; some providers
         # (e.g. aionlabs) return {"models": [...]} instead.
         data = body.get('data') or body.get('models') or []
         models = sorted(m.get('id', '') for m in data if m.get('id'))
-        model_details = {m['id']: m['context_length'] for m in data if m.get('context_length')}
+        # Claude names the context window max_input_tokens.
+        model_details = {m['id']: m.get('context_length') or m['max_input_tokens']
+                         for m in data if m.get('context_length') or m.get('max_input_tokens')}
         return jsonify({'ok': True, 'models': models, 'model_details': model_details})
     except http_requests.RequestException as e:
         return jsonify({'ok': False, 'error': _error_detail(e)}), 502
@@ -130,15 +245,17 @@ def test_llm():
         return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
     if not model:
         return jsonify({'ok': False, 'error': 'No model selected'}), 400
-    url = endpoint.rstrip('/') + '/chat/completions'
-    headers = {'Content-Type': 'application/json'}
-    if api_key:
-        headers['Authorization'] = f'Bearer {api_key}'
+    url, headers = _upstream(endpoint, api_key, 'chat/completions')
     payload = {
         'model': model,
         'messages': [{'role': 'user', 'content': 'Say "hello" and nothing else.'}],
         'max_tokens': 10,
     }
+    anthropic = is_anthropic(endpoint)
+    if anthropic:
+        # Current Claude models always think, and ten tokens can run out
+        # before the hello does.
+        payload = to_anthropic({**payload, 'max_tokens': 1024})
     try:
         r = http_requests.post(url, json=payload, headers=headers, timeout=15)
         r.raise_for_status()
@@ -146,6 +263,8 @@ def test_llm():
             body = r.json()
         except ValueError:
             return jsonify({'ok': False, 'error': 'Upstream returned a non-JSON response'}), 502
+        if anthropic:
+            body = from_anthropic_message(body)
         # Providers may return null content (reasoning-only output), an
         # empty choices list, or a non-dict body — none of those may 500.
         message = {}
@@ -173,10 +292,8 @@ def llm_chat():
         return jsonify({'ok': False, 'error': 'No model specified'}), 400
 
     data['stream'] = True
-    url = endpoint.rstrip('/') + '/chat/completions'
-    headers = {'Content-Type': 'application/json'}
-    if api_key:
-        headers['Authorization'] = f'Bearer {api_key}'
+    url, headers = _upstream(endpoint, api_key, 'chat/completions')
+    anthropic = is_anthropic(endpoint)
 
     # Log safe request metadata at INFO. Full prompt content can contain
     # private chat text, so keep previews out of production logs.
@@ -211,7 +328,8 @@ def llm_chat():
             # on weak hardware) can take minutes on prompt prefill before the
             # first token; the user stops a runaway generation with the Stop
             # button instead. See issue #6.
-            with http_requests.post(url, json=data, headers=headers, timeout=(10, None), stream=True) as r:
+            body = to_anthropic(data) if anthropic else data
+            with http_requests.post(url, json=body, headers=headers, timeout=(10, None), stream=True) as r:
                 if not r.ok:
                     # Read the body before raising — the provider's actual
                     # complaint (bad model id, rejected parameter, …) lives
@@ -233,6 +351,14 @@ def llm_chat():
                     if not line.startswith('data:'):
                         continue
                     payload = line[5:].removeprefix(' ')
+                    if anthropic:
+                        try:
+                            chunk = from_anthropic_event(json.loads(payload))
+                        except (ValueError, AttributeError):
+                            continue
+                        if chunk is None:
+                            continue
+                        payload = chunk if chunk == '[DONE]' else json.dumps(chunk)
                     if payload.startswith('[DONE]'):
                         saw_done = True
                         yield 'data: [DONE]\n\n'

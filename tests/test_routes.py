@@ -1093,6 +1093,187 @@ class TestLLMProxy:
         assert r.get_json()['ok'] is False
 
 
+class TestClaudeEndpoint:
+    """A Claude endpoint gets the Messages API, with no setting to say so.
+
+    The container these tests were written in can't reach Anthropic, so the
+    upstream is faked with the request and event shapes from the API docs.
+    """
+
+    @pytest.mark.parametrize('endpoint, url', [
+        ('https://api.anthropic.com', 'https://api.anthropic.com/v1/messages'),
+        ('https://api.anthropic.com/v1/', 'https://api.anthropic.com/v1/messages'),
+        ('https://api.anthropic.com/v1/messages', 'https://api.anthropic.com/v1/messages'),
+        ('http://proxy.test/claude/v1/messages', 'http://proxy.test/claude/v1/messages'),
+        ('http://localhost:8080/v1', 'http://localhost:8080/v1/chat/completions'),
+        ('https://openrouter.ai/api/v1', 'https://openrouter.ai/api/v1/chat/completions'),
+    ])
+    def test_endpoint_picks_the_format(self, endpoint, url):
+        assert llm_module._upstream(endpoint, 'k', 'chat/completions')[0] == url
+
+    def test_headers_carry_the_key_and_version(self):
+        _, headers = llm_module._upstream('https://api.anthropic.com/v1', 'sk-ant-x', 'models')
+        assert headers['x-api-key'] == 'sk-ant-x'
+        assert headers['anthropic-version'] == llm_module.ANTHROPIC_VERSION
+        assert 'Authorization' not in headers
+
+    def test_payload_moves_system_and_drops_samplers(self):
+        body = llm_module.to_anthropic({
+            'model': 'claude-opus-5-5',
+            'messages': [
+                {'role': 'system', 'content': 'Stay in character.'},
+                {'role': 'user', 'content': '[Start]'},
+                {'role': 'assistant', 'content': 'Hello there.'},
+                {'role': 'user', 'content': 'Hi!'},
+            ],
+            'max_tokens': 512, 'temperature': 0.8, 'min_p': 0.05, 'seed': 7,
+            'stop': 'User:', 'stream': True,
+        })
+        assert body == {
+            'model': 'claude-opus-5-5',
+            'max_tokens': 512,
+            'stream': True,
+            'stop_sequences': ['User:'],
+            'system': 'Stay in character.',
+            'messages': [
+                {'role': 'user', 'content': '[Start]'},
+                {'role': 'assistant', 'content': 'Hello there.'},
+                {'role': 'user', 'content': 'Hi!'},
+            ],
+        }
+
+    def test_payload_without_max_tokens_gets_one(self):
+        body = llm_module.to_anthropic({'model': 'm', 'messages': [{'role': 'user', 'content': 'x'}]})
+        assert body['max_tokens'] > 0
+        assert 'system' not in body
+
+    def test_chat_stream_reads_like_chat_completions(self, client, monkeypatch):
+        captured = {}
+        events = [
+            {'type': 'message_start', 'message': {'id': 'msg_1'}},
+            {'type': 'content_block_start', 'index': 0, 'content_block': {'type': 'thinking', 'thinking': ''}},
+            {'type': 'content_block_delta', 'index': 0, 'delta': {'type': 'thinking_delta', 'thinking': 'Hmm.'}},
+            {'type': 'content_block_delta', 'index': 0, 'delta': {'type': 'signature_delta', 'signature': 'x'}},
+            {'type': 'content_block_stop', 'index': 0},
+            {'type': 'ping'},
+            {'type': 'content_block_delta', 'index': 1, 'delta': {'type': 'text_delta', 'text': 'Hel'}},
+            {'type': 'content_block_delta', 'index': 1, 'delta': {'type': 'text_delta', 'text': 'lo'}},
+            {'type': 'message_delta', 'delta': {'stop_reason': 'max_tokens'}, 'usage': {'output_tokens': 3}},
+            {'type': 'message_stop'},
+        ]
+
+        class Upstream:
+            ok = True
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def iter_lines(self, delimiter=None):
+                for event in events:
+                    yield f'event: {event["type"]}'.encode()
+                    yield f'data: {json.dumps(event)}'.encode()
+                    yield b''
+
+        def fake_post(url, json, headers, timeout, stream=False):
+            captured.update(url=url, json=json, headers=headers)
+            return Upstream()
+
+        monkeypatch.setattr(llm_module.http_requests, 'post', fake_post)
+        client.put('/api/settings', json={
+            'api_endpoint': 'https://api.anthropic.com/v1',
+            'api_key': 'sk-ant-test',
+        })
+        r = client.post('/api/llm/chat', json={
+            'model': 'claude-opus-5-5', 'max_tokens': 512, 'temperature': 1.0,
+            'messages': [{'role': 'system', 'content': 'S'}, {'role': 'user', 'content': 'hi'}],
+        })
+        chunks = [line[6:] for line in r.get_data(as_text=True).split('\n') if line.startswith('data: ')]
+
+        assert captured['url'] == 'https://api.anthropic.com/v1/messages'
+        assert captured['headers']['x-api-key'] == 'sk-ant-test'
+        assert captured['json']['stream'] is True
+        assert 'temperature' not in captured['json']
+        assert captured['json']['system'] == 'S'
+        assert [json.loads(c) for c in chunks[:-1]] == [
+            {'choices': [{'delta': {'reasoning_content': 'Hmm.'}}]},
+            {'choices': [{'delta': {'content': 'Hel'}}]},
+            {'choices': [{'delta': {'content': 'lo'}}]},
+            {'choices': [{'delta': {}, 'finish_reason': 'length'}]},
+        ]
+        assert chunks[-1] == '[DONE]'
+
+    @pytest.mark.parametrize('event, shown', [
+        ({'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}},
+         "Claude's API reported an error: Overloaded"),
+        ({'type': 'message_delta', 'delta': {'stop_reason': 'refusal'}},
+         'Claude declined to continue this reply.'),
+    ])
+    def test_stream_problems_reach_the_toast(self, event, shown):
+        assert llm_module.from_anthropic_event(event) == {'error': shown}
+
+    def test_http_error_names_claudes_reason(self):
+        body = json.dumps({'type': 'error', 'error': {
+            'type': 'not_found_error', 'message': 'model: claude-nope'}})
+        assert 'model: claude-nope' in llm_module._status_error(
+            404, 'Not Found', 'https://api.anthropic.com/v1/messages', body)
+
+    def test_test_connection_reads_the_text_block(self, client, monkeypatch):
+        captured = {}
+
+        class Reply:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {'type': 'message', 'stop_reason': 'end_turn', 'content': [
+                    {'type': 'thinking', 'thinking': ''},
+                    {'type': 'text', 'text': 'hello'},
+                ]}
+
+        def fake_post(url, json, headers, timeout):
+            captured.update(url=url, json=json)
+            return Reply()
+
+        monkeypatch.setattr(llm_module.http_requests, 'post', fake_post)
+        client.put('/api/settings', json={
+            'api_endpoint': 'https://api.anthropic.com/v1',
+            'api_model': 'claude-opus-5-5',
+        })
+        assert client.post('/api/llm/test').get_json() == {'ok': True, 'reply': 'hello'}
+        assert captured['url'] == 'https://api.anthropic.com/v1/messages'
+
+    def test_models_list_reads_claudes_shape(self, client, monkeypatch):
+        captured = {}
+
+        class Models:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {'data': [
+                    {'type': 'model', 'id': 'claude-opus-5-5', 'max_input_tokens': 1000000},
+                    {'type': 'model', 'id': 'claude-haiku-5-5', 'max_input_tokens': 1000000},
+                ], 'has_more': False}
+
+        def fake_get(url, headers, params, timeout):
+            captured.update(url=url, headers=headers, params=params)
+            return Models()
+
+        monkeypatch.setattr(llm_module.http_requests, 'get', fake_get)
+        client.put('/api/settings', json={
+            'api_endpoint': 'https://api.anthropic.com/v1/messages',
+            'api_key': 'sk-ant-test',
+        })
+        body = client.get('/api/llm/models').get_json()
+        assert captured['url'] == 'https://api.anthropic.com/v1/models'
+        assert captured['headers']['x-api-key'] == 'sk-ant-test'
+        assert body['models'] == ['claude-haiku-5-5', 'claude-opus-5-5']
+        assert body['model_details']['claude-opus-5-5'] == 1000000
+
+
 # ── Messages: delete + cascade ─────────────────────────────────────────────
 
 class TestMessageDelete:

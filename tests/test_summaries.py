@@ -726,6 +726,43 @@ def test_call_summarizer_rejects_length_truncated_completion(client, monkeypatch
         summaries.call_summarizer([{'role': 'user', 'content': 'summarize'}], 500)
 
 
+@pytest.mark.parametrize('stop_reason, outcome', [('end_turn', CANNED), ('max_tokens', 'cut off')])
+def test_call_summarizer_speaks_claudes_api(client, monkeypatch, stop_reason, outcome):
+    """A Claude summarizer endpoint gets a Messages request and its reply is
+    read from the text block; max_tokens still fails the batch as cut off."""
+    client.put('/api/settings', json={
+        'summary_api_endpoint': 'https://api.anthropic.com/v1',
+        'summary_api_key': 'sk-ant-test',
+        'summary_api_model': 'claude-haiku-5-5',
+    })
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {'type': 'message', 'stop_reason': stop_reason,
+                    'content': [{'type': 'text', 'text': CANNED}]}
+
+    def fake_post(url, json, headers, timeout):
+        captured.update(url=url, json=json, headers=headers)
+        return FakeResponse()
+
+    monkeypatch.setattr(summaries.http_requests, 'post', fake_post)
+    messages = [{'role': 'system', 'content': 'rules'}, {'role': 'user', 'content': 'summarize'}]
+    if outcome == CANNED:
+        assert summaries.call_summarizer(messages, 500) == CANNED.strip()
+    else:
+        with pytest.raises(RuntimeError, match=outcome):
+            summaries.call_summarizer(messages, 500)
+    assert captured['url'] == 'https://api.anthropic.com/v1/messages'
+    assert captured['headers']['x-api-key'] == 'sk-ant-test'
+    assert captured['json']['system'] == 'rules'
+    assert captured['json']['messages'] == [{'role': 'user', 'content': 'summarize'}]
+    assert captured['json']['max_tokens'] > 0
+
+
 def test_run_job_folds_and_advances_watermark(client, sample_chat, monkeypatch):
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',

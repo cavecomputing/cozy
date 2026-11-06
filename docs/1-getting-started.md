@@ -28,6 +28,7 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
    | Service | Endpoint |
    |---|---|
    | OpenRouter | `https://openrouter.ai/api/v1` |
+   | Anthropic (Claude) | `https://api.anthropic.com/v1` |
    | LM Studio | `http://localhost:1234/v1` |
    | Ollama | `http://localhost:11434/v1` |
    | llama.cpp | `http://localhost:8080/v1` |
@@ -38,6 +39,13 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
    for your service, look in that service's documentation for its
    OpenAI-compatible base URL. Cozy adds `/models` and `/chat/completions`
    to this URL itself, so do not type those parts.
+
+   Anthropic's Claude API needs no setting of its own. An address on
+   `anthropic.com`, or any address ending in `/messages`, is spoken to in
+   Claude's format, with the key sent the way Claude expects. The sampler
+   settings are not sent there, because current Claude models only sample
+   one way. Max response tokens still applies, and current Claude
+   models think before they answer, which spends from it.
 5. If your server requires an **API key**, paste it into the **API key**
    field. Servers on your own computer usually need no key. Keys are stored
    in your data directory and hidden in API responses.
