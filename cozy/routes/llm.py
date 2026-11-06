@@ -93,6 +93,8 @@ ANTHROPIC_VERSION = '2026-10-21'
 ANTHROPIC_FIELDS = {'max_tokens', 'stop_sequences', 'metadata', 'thinking', 'output_config',
                     'service_tier', 'inference_geo', 'cache_control', 'stream'}
 
+CACHED = {'type': 'ephemeral'}
+
 
 def is_anthropic(endpoint):
     """Whether an endpoint speaks Claude's Messages API rather than Chat Completions."""
@@ -127,8 +129,11 @@ def _upstream(endpoint, api_key, path):
 def to_anthropic(payload):
     """A Chat Completions payload as a Messages API request.
 
-    System turns move to the top-level ``system`` field, and the samplers
-    Claude has no use for are dropped.
+    System turns move to the top-level ``system`` field, and two cache
+    breakpoints go in: one on the system prompt, which outlives many turns, and
+    one on the latest reply, the end of the history the next request repeats.
+    The final user turn is left out of the cache because the post-history
+    template rewrites it every turn, so a breakpoint there would never be read.
     """
     body = {key: value for key, value in payload.items() if key in ANTHROPIC_FIELDS}
     body['model'] = payload.get('model')
@@ -139,9 +144,14 @@ def to_anthropic(payload):
     turns = payload.get('messages') or []
     system = '\n\n'.join(m['content'] for m in turns if m.get('role') == 'system' and m.get('content'))
     if system:
-        body['system'] = system
-    body['messages'] = [{'role': m['role'], 'content': m['content']} for m in turns
-                        if m.get('role') in ('user', 'assistant') and m.get('content')]
+        body['system'] = [{'type': 'text', 'text': system, 'cache_control': CACHED}]
+    messages = [{'role': m['role'], 'content': m['content']} for m in turns
+                if m.get('role') in ('user', 'assistant') and m.get('content')]
+    for message in reversed(messages):
+        if message['role'] == 'assistant':
+            message['content'] = [{'type': 'text', 'text': message['content'], 'cache_control': CACHED}]
+            break
+    body['messages'] = messages
     return body
 
 

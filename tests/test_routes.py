@@ -1117,7 +1117,7 @@ class TestClaudeEndpoint:
         assert headers['anthropic-version'] == llm_module.ANTHROPIC_VERSION
         assert 'Authorization' not in headers
 
-    def test_payload_moves_system_and_drops_samplers(self):
+    def test_payload_moves_system_drops_samplers_and_caches(self):
         body = llm_module.to_anthropic({
             'model': 'claude-opus-5-5',
             'messages': [
@@ -1134,10 +1134,12 @@ class TestClaudeEndpoint:
             'max_tokens': 512,
             'stream': True,
             'stop_sequences': ['User:'],
-            'system': 'Stay in character.',
+            'system': [{'type': 'text', 'text': 'Stay in character.',
+                        'cache_control': {'type': 'ephemeral'}}],
             'messages': [
                 {'role': 'user', 'content': '[Start]'},
-                {'role': 'assistant', 'content': 'Hello there.'},
+                {'role': 'assistant', 'content': [{'type': 'text', 'text': 'Hello there.',
+                                                   'cache_control': {'type': 'ephemeral'}}]},
                 {'role': 'user', 'content': 'Hi!'},
             ],
         }
@@ -1196,7 +1198,7 @@ class TestClaudeEndpoint:
         assert captured['headers']['x-api-key'] == 'sk-ant-test'
         assert captured['json']['stream'] is True
         assert 'temperature' not in captured['json']
-        assert captured['json']['system'] == 'S'
+        assert captured['json']['system'][0]['text'] == 'S'
         assert [json.loads(c) for c in chunks[:-1]] == [
             {'choices': [{'delta': {'reasoning_content': 'Hmm.'}}]},
             {'choices': [{'delta': {'content': 'Hel'}}]},

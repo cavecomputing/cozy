@@ -42,9 +42,11 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
 
    Anthropic's Claude API needs no setting of its own. An address on
    `anthropic.com`, or any address ending in `/messages`, is spoken to in
-   Claude's format, with the key sent the way Claude expects. The sampler
-   settings are not sent there, because current Claude models only sample
-   one way. Max response tokens still applies, and current Claude
+   Claude's format, with the key sent the way Claude expects. Two things
+   differ there: the sampler settings are not sent, because current Claude
+   models only sample one way, and prompt caching is switched on, so the
+   system prompt and chat history that each reply repeats cost less after
+   the first turn. Max response tokens still applies, and current Claude
    models think before they answer, which spends from it.
 5. If your server requires an **API key**, paste it into the **API key**
    field. Servers on your own computer usually need no key. Keys are stored

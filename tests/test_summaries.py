@@ -758,7 +758,7 @@ def test_call_summarizer_speaks_claudes_api(client, monkeypatch, stop_reason, ou
             summaries.call_summarizer(messages, 500)
     assert captured['url'] == 'https://api.anthropic.com/v1/messages'
     assert captured['headers']['x-api-key'] == 'sk-ant-test'
-    assert captured['json']['system'] == 'rules'
+    assert captured['json']['system'][0]['text'] == 'rules'
     assert captured['json']['messages'] == [{'role': 'user', 'content': 'summarize'}]
     assert captured['json']['max_tokens'] > 0
 

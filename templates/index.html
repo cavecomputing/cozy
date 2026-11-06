@@ -1255,7 +1255,7 @@
                     <p class="sampler-help-intro">Four setups that cover most users. Paste the URL into the Endpoint field above.</p>
                     <dl class="sampler-help-list sampler-help-list--urls">
                         <div class="sampler-help-row"><dt><code>https://api.openai.com/v1</code></dt><dd>OpenAI's own API. Needs an OpenAI key, and model ids are plain names such as <code>gpt-4o</code>.</dd></div>
-                        <div class="sampler-help-row"><dt><code>https://api.anthropic.com/v1</code></dt><dd>Anthropic's Claude API, detected from the address. Needs an Anthropic key, and model ids look like <code>claude-opus-5-5</code>. Samplers are not sent.</dd></div>
+                        <div class="sampler-help-row"><dt><code>https://api.anthropic.com/v1</code></dt><dd>Anthropic's Claude API, detected from the address. Needs an Anthropic key, and model ids look like <code>claude-opus-5-5</code>. Samplers are not sent; prompt caching is on.</dd></div>
                         <div class="sampler-help-row"><dt><code>https://openrouter.ai/api/v1</code></dt><dd>OpenRouter, a gateway where one key reaches models from many providers. Model ids are prefixed with the vendor, e.g. <code>anthropic/claude-sonnet-4</code>.</dd></div>
                         <div class="sampler-help-row"><dt><code>http://localhost:8080/v1</code></dt><dd>A local <code>llama-server</code> (llama.cpp), which serves <code>/v1/chat/completions</code> and <code>/v1/models</code> on port 8080 by default. No key needed unless you set one.</dd></div>
                     </dl>
