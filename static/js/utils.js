@@ -391,12 +391,11 @@ export function templateHasVar(name) {
 
 /**
  * Show the neutral ⊘ marker when the active prompt template has no
- * {{variable}} for something. Card fields pass `inUse` so an empty field stays
- * unmarked; the memory flyout marks its cards either way, since the point
- * there is to say the feature has nowhere to go before you fill it in.
+ * {{variable}} for something, so the memory flyout says a feature has nowhere
+ * to go before you fill it in.
  */
-export function markUnusedVar(marker, varName, inUse = true) {
-    if (marker) marker.hidden = !(inUse && !templateHasVar(varName));
+export function markUnusedVar(marker, varName) {
+    if (marker) marker.hidden = templateHasVar(varName);
 }
 
 function updateComposerContextControls(hasChat, hasCharacter) {

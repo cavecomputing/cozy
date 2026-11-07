@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, markUnusedVar, withBusy } from './utils.js';
+import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, templateHasVar, withBusy } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList } from './lorebooks.js';
 import { renderMessages } from './messages.js';
@@ -45,10 +45,10 @@ const fields = {
     version:       document.getElementById('cf-version'),
 };
 
-// Fields that map to prompt template variables. When a field has content but
-// the active template doesn't reference its {{variable}}, that content is
-// silently dropped from the prompt — so we surface a neutral marker next to the
-// label. (mes_example → mesExamples camelCase does not auto-derive.)
+// Fields that map to prompt template variables. When the active template
+// doesn't reference a field's {{variable}}, whatever is typed there is never
+// sent — so we surface a neutral marker next to the label.
+// (mes_example → mesExamples camelCase does not auto-derive.)
 const PROMPT_FIELD_VARS = [
     ['description',   'description'],
     ['personality',   'personality'],
@@ -67,16 +67,20 @@ const fieldMarkers = {
     post_history:  document.getElementById('cf-post-history-marker'),
 };
 
-/** Show/hide the ⊘ marker for each prompt field based on content + template use. */
+/**
+ * Mark each prompt field the active template leaves out, empty or not, and
+ * let its placeholder say so: an example of what to write would invite text
+ * that is never sent.
+ */
 function updateFieldMarkers() {
+    const promptName = state.systemPrompts.find(p => p.id === state.activeSystemPromptId)?.name;
     for (const [key, varName] of PROMPT_FIELD_VARS) {
-        markUnusedVar(fieldMarkers[key], varName, fields[key].value.trim() !== '');
+        const field = fields[key];
+        const sent = templateHasVar(varName);
+        fieldMarkers[key].hidden = sent;
+        field.dataset.placeholder ??= field.placeholder;
+        field.placeholder = sent ? field.dataset.placeholder : `Not sent by ${promptName}, your current prompt.`;
     }
-}
-
-// Live-update markers as the user types into (or clears) any prompt field.
-for (const [key] of PROMPT_FIELD_VARS) {
-    fields[key].addEventListener('input', updateFieldMarkers);
 }
 
 const altGreetingsList = document.getElementById('alt-greetings-list');
