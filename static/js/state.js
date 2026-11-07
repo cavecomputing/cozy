@@ -107,6 +107,8 @@ export function initElements() {
         mobileMenuBtn:     document.getElementById('mobile-menu-btn'),
         mobileBackdrop:    document.getElementById('mobile-backdrop'),
         apiEndpoint:       document.getElementById('settings-api-endpoint'),
+        apiEndpointHint:   document.getElementById('api-endpoint-hint'),
+        samplerCard:       document.getElementById('sampler-card'),
         apiKey:            document.getElementById('settings-api-key'),
         apiModel:          document.getElementById('settings-model'),
         refreshModels:     document.getElementById('settings-refresh-models'),

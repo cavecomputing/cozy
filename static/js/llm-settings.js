@@ -3,6 +3,7 @@ import { loadSamplerSettings, updateContextSizeWarning, SAMPLER_FIELDS } from '.
 import { API } from './api.js';
 import { showToast, withBusy, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog, promptDialog } from './confirm.js';
+import { isClaudeEndpoint } from './endpoint-format.js';
 
 const MODEL_SEARCH_DEBOUNCE_MS = 250;
 const SETTINGS_SAVE_DEBOUNCE_MS = 500;
@@ -375,6 +376,7 @@ function applySettingsToUI(s) {
     state.apiModel    = s.api_model || '';
     state.activePresetId = s.active_api_preset || null;
     if (el.apiEndpoint) el.apiEndpoint.value = apiEndpoint;
+    showEndpointFormat();
     if (el.apiKey) {
         el.apiKey.value = apiKeySet ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : '';
         el.apiKey.placeholder = apiKeySet ? 'Key saved (edit to change)' : 'sk-...';
@@ -401,6 +403,13 @@ function applySettingsToUI(s) {
     if (el.summaryModel) el.summaryModel.value = state.summaryApiModel;
     if (el.summaryCapInput) el.summaryCapInput.value = state.summaryCapPct;
     state.modelContextLength = state.modelDetails[state.apiModel] ?? null;
+}
+
+/** Say on the API page when the endpoint gets Claude's format, which sends no samplers. */
+export function showEndpointFormat() {
+    const claude = isClaudeEndpoint(el.apiEndpoint?.value);
+    if (el.apiEndpointHint) el.apiEndpointHint.textContent = claude ? 'Claude Messages API' : 'OpenAI-compatible';
+    el.samplerCard?.classList.toggle('samplers-unsent', claude);
 }
 
 /** Show the main connection in the summarizer's empty fields, so blank visibly means "use these". */

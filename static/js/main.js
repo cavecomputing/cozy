@@ -23,6 +23,7 @@ import {
     selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
     activatePreset, createNewPreset, renamePreset, deletePreset, searchModelsFromInput,
     searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache, showSummaryFallbacks,
+    showEndpointFormat,
 } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, renameSystemPrompt,
@@ -683,6 +684,7 @@ function bindSettingsHandlers() {
         clearModelListCache();
         queueLLMSettingsSave({ api_endpoint: el.apiEndpoint.value });
         renderMemorySummaryCard();
+        showEndpointFormat();
     });
     el.apiEndpoint?.addEventListener('blur', flushLLMSettingsSave);
     el.apiKey?.addEventListener('input', () => {

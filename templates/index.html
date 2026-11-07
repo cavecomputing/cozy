@@ -321,7 +321,7 @@
                                                step="1" min="1" max="32768" value="512">
                                     </div>
                                 </section>
-                                <section class="settings-card sampler-card">
+                                <section id="sampler-card" class="settings-card sampler-card">
                                     <div class="sampler-subsection">
                                     <header class="settings-card-header">
                                         <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>
@@ -333,6 +333,7 @@
                                             <div id="sampler-popover" class="sampler-popover" hidden></div>
                                         </div>
                                     </header>
+                                    <p class="sampler-unsent-note">Not sent to Claude, which sets its own sampling.</p>
                                     <p id="sampler-core-empty" class="sampler-empty-state" hidden>No core samplers active. Use Active samplers to add day-to-day controls here.</p>
                                     <!-- Temperature -->
                                     <div class="settings-row" data-sampler="temperature">

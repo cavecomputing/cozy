@@ -1115,6 +1115,20 @@ input[type="checkbox"]:checked::after {
     margin-top: var(--space-3);
 }
 
+/* An endpoint in Claude's format gets no samplers (cozy/routes/llm.py drops
+   them), so the card says so and its controls fade back until the endpoint
+   changes again. */
+.sampler-unsent-note {
+    display: none;
+    margin: var(--space-3) 0 0;
+    font-size: var(--text-md);
+    color: var(--text-secondary);
+}
+
+.samplers-unsent .sampler-unsent-note { display: block; }
+
+.samplers-unsent .sampler-subsection > :not(header, .sampler-unsent-note) { opacity: 0.45; }
+
 /* ═══════════════════════════════════════════════════════════════════════════
    SIDEBAR
    ═══════════════════════════════════════════════════════════════════════════ */
