@@ -66,7 +66,7 @@ export function renderLorebookList() {
     if (!el.lorebookList) return;
     el.lorebookList.innerHTML = '';
     const entries = listEntries();
-    const placeholder = new Option(entries.length ? 'Choose a lorebook…' : 'No lorebooks yet', '');
+    const placeholder = new Option('Choose a lorebook…', '');
     placeholder.disabled = true;
     placeholder.hidden = entries.length > 0;
     el.lorebookList.appendChild(placeholder);
@@ -82,7 +82,9 @@ export function renderLorebookList() {
     el.lorebookList.value = editing ? `${editing.kind}:${editing.id}` : '';
     document.getElementById('settings-lorebook-export').hidden = !editing;
     document.getElementById('settings-lorebook-delete').hidden = !editing;
-    // Once there is a book, the picker's own "Choose a lorebook…" says enough.
+    // With no books the empty state below says so; a picker of nothing would
+    // only say it again. Once there is a book, the picker says enough.
+    el.lorebookList.hidden = !entries.length;
     el.lorebookEmptyMeta.hidden = entries.length > 0;
 }
 

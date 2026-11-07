@@ -774,6 +774,12 @@ input[type="checkbox"]:checked::after {
     width: 100%;
 }
 
+/* Hiding the native select hides the whole picker, so a caller can toggle it
+   before or after the select is enhanced. */
+.cozy-select:has(> .cozy-select__native[hidden]) {
+    display: none;
+}
+
 /* The native <select> is kept as the data model + event source, but hidden */
 .cozy-select__native {
     position: absolute;
