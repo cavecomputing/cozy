@@ -449,9 +449,7 @@ function buildMessageEl(role, text, isGreeting = false, timestamp = null, swipes
     msgName.textContent = role === 'user'
         ? (p?.name || 'You')
         : (char?.name || 'Character');
-    // Your own bubble shows no picture, and names you only when it was sent
-    // as a persona other than the one you are now.
-    if (role === 'user') msgName.hidden = msgName.textContent === (state.activePersona?.name || 'You');
+    // Your own bubble shows no picture; its name says which persona sent it.
     const msgTime = document.createElement('span');
     msgTime.className = 'msg-time';
     const sentAt = parseDbStamp(timestamp);
@@ -575,15 +573,12 @@ export function drawOlderNearTop() {
  * variables are resolved at render time from state.activePersona, so switching
  * persona leaves every drawn message naming the old one until something
  * rebuilds them — a full renderMessages() would do it, but it also scrolls to
- * the bottom and drops a stream in progress. Your bubbles' names follow the
- * switch too: shown on those sent as someone else.
+ * the bottom and drops a stream in progress.
  */
 export function rerenderMessageText() {
     el.chatHistory.querySelectorAll('.message').forEach(messageEl => {
         // An open edit is showing raw text in a contenteditable, not a render.
         if (messageEl.classList.contains('editing')) return;
-        const userName = messageEl.matches('.user') && messageEl.querySelector('.msg-name');
-        if (userName) userName.hidden = userName.textContent === (state.activePersona?.name || 'You');
         const parsed = parseThinkingContent(messageEl.dataset.rawText || '');
         renderMarkdown(
             messageEl.querySelector('.message-content'),
