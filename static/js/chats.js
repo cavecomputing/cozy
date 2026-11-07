@@ -2,7 +2,7 @@ import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
     chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs, branchesAt,
-    parseDbStamp, timeAgo,
+    parseDbStamp, timeAgo, MOBILE_SHELL_QUERY,
 } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills } from './messages.js';
@@ -16,6 +16,7 @@ import { onChatSelected } from './summaries.js';
 // SIDEBAR — CHAT LIST
 // ═══════════════════════════════════════════════════════════════════════════
 export function renderChats() {
+    closeChatMenu();   // its row is about to be replaced
     el.flyoutChatList.innerHTML = '';
 
     if (!state.activeCharacter || state.chats.length === 0) return;
@@ -37,14 +38,58 @@ function buildChatItem(chat) {
 
     const actions = document.createElement('div');
     actions.className = 'chat-item-actions';
-    actions.innerHTML = `
-        <button class="icon-btn chat-export-btn" title="Export chat" aria-label="Export chat">${icons.DOWNLOAD}</button>
-        <button class="icon-btn chat-rename-btn" title="Rename chat" aria-label="Rename chat">${icons.EDIT}</button>
-        <button class="icon-btn chat-delete-btn" title="Delete chat" aria-label="Delete chat">${icons.TRASH}</button>
-    `;
+    actions.innerHTML = `<button class="icon-btn chat-menu-btn" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">${icons.MORE}</button>`;
 
     li.append(selectBtn, actions);
     return li;
+}
+
+/** Close the chat rows' menu. Returns true when it was open. */
+export function closeChatMenu() {
+    if (el.chatRowMenu.hidden) return false;
+    el.chatRowMenu.hidden = true;
+    const trigger = el.flyoutChatList.querySelector('.chat-menu-btn[aria-expanded="true"]');
+    trigger?.setAttribute('aria-expanded', 'false');
+    // As closeCharMenu(): a pointer's ⋯ lets go of focus, or it keeps showing.
+    if (!el.chatRowMenu.dataset.keyboard && document.activeElement === trigger) trigger.blur();
+    return true;
+}
+
+/** Open the menu for chat `chatId` from its ⋯, or close it when it is that
+ *  row's menu already showing. Works as toggleCharMenu() does, placed in the
+ *  chat flyout's coordinates instead of the sidebar's. */
+export function toggleChatMenu(trigger, chatId, fromKeyboard = false) {
+    const menu = el.chatRowMenu;
+    const sameRow = !menu.hidden && menu.dataset.chatId === String(chatId);
+    closeChatMenu();
+    if (sameRow) return;
+
+    menu.dataset.chatId = chatId;
+    menu.dataset.keyboard = fromKeyboard ? '1' : '';
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    (fromKeyboard ? menu.querySelector('button') : trigger).focus({ preventScroll: true });
+
+    const box = el.chatFlyout.getBoundingClientRect();
+    const at = trigger.getBoundingClientRect();
+    const height = menu.offsetHeight;
+    if (window.matchMedia(MOBILE_SHELL_QUERY).matches) {
+        // The sheet spans the screen, so the menu drops under the ⋯ with right
+        // edges aligned, or sits above it when the sheet's bottom is too near.
+        const fitsBelow = at.bottom + 4 + height <= box.bottom;
+        menu.style.top = `${(fitsBelow ? at.bottom + 4 : at.top - 4 - height) - box.top}px`;
+        menu.style.left = 'auto';
+        menu.style.right = `${box.right - at.right}px`;
+        menu.style.transformOrigin = fitsBelow ? 'top right' : 'bottom right';
+    } else {
+        // Out past the flyout's right edge, level with the row, and no lower
+        // than the flyout's foot, which sits on the composer.
+        const row = trigger.closest('.chat-item').getBoundingClientRect();
+        menu.style.top = `${Math.min(row.top, box.bottom - height) - box.top}px`;
+        menu.style.left = `${at.right + 6 - box.left}px`;
+        menu.style.right = 'auto';
+        menu.style.transformOrigin = 'top left';
+    }
 }
 
 function buildChatSelectButton(chat) {

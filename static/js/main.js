@@ -10,7 +10,7 @@ import {
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
-import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch } from './chats.js';
+import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
@@ -953,34 +953,7 @@ function bindCharacterHandlers() {
     }, true);
     // The menu is placed once, so it can't follow the rows as the list scrolls.
     el.charList.parentElement.addEventListener('scroll', closeCharMenu, { passive: true });
-    // Keys while the menu is open. Escape closes it and stops there, instead of
-    // reaching the document handlers that close the mobile sidebar and every
-    // open flyout. The arrows walk the items, from the ⋯ as well, wrapping at
-    // either end. Tab leaves for wherever it would have gone from the ⋯.
-    // Focus goes back to the ⋯ before the menu closes: an unhovered row shows
-    // its ⋯ only while the menu is open or focus is in the row, and focusing
-    // a hidden button quietly drops focus out of the list.
-    el.sidebar.addEventListener('keydown', e => {
-        if (el.charRowMenu.hidden) return;
-        const trigger = el.sidebar.querySelector('.char-menu-btn[aria-expanded="true"]');
-        const items = [...el.charRowMenu.querySelectorAll('li:not([hidden]) > button')];
-        const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            trigger?.focus();
-            closeCharMenu();
-        } else if (step) {
-            e.preventDefault();
-            el.charRowMenu.dataset.keyboard = '1';
-            const at = items.indexOf(document.activeElement);
-            const next = at === -1 ? (step > 0 ? 0 : items.length - 1) : (at + step + items.length) % items.length;
-            items[next].focus();
-        } else if (e.key === 'Tab' && el.charRowMenu.contains(document.activeElement)) {
-            trigger?.focus();
-            closeCharMenu();
-        }
-    });
+    bindRowMenuKeys(el.sidebar, el.charRowMenu, '.char-menu-btn', closeCharMenu);
     // The same keys while Recent is open, walking its characters and
     // returning to the clock.
     el.sidebar.addEventListener('keydown', e => {
@@ -999,6 +972,37 @@ function bindCharacterHandlers() {
         } else if (e.key === 'Tab' && el.recentChars.contains(document.activeElement)) {
             el.recentBtn.focus();
             toggleRecentMenu(false);
+        }
+    });
+}
+
+// Keys while a row's ⋯ menu is open. Escape closes it and stops there, instead
+// of reaching the document handlers that close the mobile sidebar and every
+// open flyout. The arrows walk the items, from the ⋯ as well, wrapping at
+// either end. Tab leaves for wherever it would have gone from the ⋯.
+// Focus goes back to the ⋯ before the menu closes: an unhovered row shows
+// its ⋯ only while the menu is open or focus is in the row, and focusing
+// a hidden button quietly drops focus out of the list.
+function bindRowMenuKeys(container, menu, triggerSelector, closeMenu) {
+    container.addEventListener('keydown', e => {
+        if (menu.hidden) return;
+        const trigger = container.querySelector(`${triggerSelector}[aria-expanded="true"]`);
+        const items = [...menu.querySelectorAll('li:not([hidden]) > button')];
+        const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            trigger?.focus();
+            closeMenu();
+        } else if (step) {
+            e.preventDefault();
+            menu.dataset.keyboard = '1';
+            const at = items.indexOf(document.activeElement);
+            const next = at === -1 ? (step > 0 ? 0 : items.length - 1) : (at + step + items.length) % items.length;
+            items[next].focus();
+        } else if (e.key === 'Tab' && menu.contains(document.activeElement)) {
+            trigger?.focus();
+            closeMenu();
         }
     });
 }
@@ -1043,35 +1047,48 @@ function bindChatHandlers() {
         Flyouts.closeAllExcept(null);
     });
 
-    // Chat list — select / rename / delete (in flyout)
+    // Chat list — select, or open a row's ⋯ menu (in flyout)
     el.flyoutChatList.addEventListener('click', e => {
         // Ignore clicks inside an active rename input
         if (e.target.classList.contains('chat-rename-input')) return;
 
-        const exportBtn = e.target.closest('.chat-export-btn');
-        const renameBtn = e.target.closest('.chat-rename-btn');
-        const deleteBtn = e.target.closest('.chat-delete-btn');
+        const menuBtn   = e.target.closest('.chat-menu-btn');
         const selectBtn = e.target.closest('.chat-select-btn');
         const item      = e.target.closest('.chat-item');
         if (!item) return;
         const chatId = parseInt(item.dataset.chatId, 10);
         const chat   = state.chats.find(c => c.id === chatId);
 
-        if (exportBtn) {
+        if (menuBtn) {
             e.stopPropagation();
-            exportChat(chatId);
-        } else if (renameBtn) {
-            e.stopPropagation();
-            if (chat) startChatRename(item, chat);
-        } else if (deleteBtn) {
-            e.stopPropagation();
-            deleteChat(chatId);
+            // A click with no detail came from Enter or Space, not a pointer.
+            toggleChatMenu(menuBtn, chatId, e.detail === 0);
         } else if (selectBtn && chat) {
             selectChat(chat);
             el.chatFlyout.hidden = true;
             el.chatFlyoutBtn.setAttribute('aria-expanded', 'false');
         }
     });
+
+    // Row menu — acts on the chat it was opened from
+    el.chatRowMenu.addEventListener('click', e => {
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+        const chatId = parseInt(el.chatRowMenu.dataset.chatId, 10);
+        const chat   = state.chats.find(c => c.id === chatId);
+        const item   = el.flyoutChatList.querySelector(`[data-chat-id="${chatId}"]`);
+        closeChatMenu();
+        if (action === 'export') exportChat(chatId);
+        else if (action === 'rename') { if (chat && item) startChatRename(item, chat); }
+        else deleteChat(chatId);
+    });
+    // As the character menu: a click anywhere else closes it (capture phase,
+    // since the ⋯ stops its clicks), and so does scrolling the rows it sits by.
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#chat-row-menu, .chat-menu-btn')) closeChatMenu();
+    }, true);
+    el.flyoutChatList.addEventListener('scroll', closeChatMenu, { passive: true });
+    bindRowMenuKeys(el.chatFlyout, el.chatRowMenu, '.chat-menu-btn', closeChatMenu);
 
     // New chat button (in flyout)
     el.flyoutNewChatBtn.addEventListener('click', () => createNewChat(true, false));

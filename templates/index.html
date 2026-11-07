@@ -1030,6 +1030,24 @@
                         <input id="flyout-import-chat-file" type="file" accept=".jsonl,application/jsonl,text/plain,application/json" hidden>
                     </div>
                     <ul id="flyout-chat-list" class="chat-list"></ul>
+                    <!-- The chat rows' ⋯ menu, as #char-row-menu is the
+                         characters': one for every row, outside the list so
+                         its scrolling can't clip it. -->
+                    <ul class="export-menu char-row-menu" id="chat-row-menu" role="menu" hidden>
+                        <li><button type="button" data-action="export" role="menuitem">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export</span>
+                        </button></li>
+                        <li><button type="button" data-action="rename" role="menuitem">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            <span>Rename</span>
+                        </button></li>
+                        <li class="export-menu-sep" role="separator"></li>
+                        <li><button type="button" data-action="delete" class="char-row-menu-danger" role="menuitem">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            <span>Delete</span>
+                        </button></li>
+                    </ul>
                 </div>
                 <!-- Memory flyout popover: author's note + active lorebook -->
                 <div id="memory-flyout" class="chat-flyout memory-flyout" role="dialog" aria-label="Chat memory" hidden>

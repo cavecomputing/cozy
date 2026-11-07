@@ -1282,21 +1282,25 @@ input[type="checkbox"]:checked::after {
 }
 
 /* While a row's menu is open the row keeps its hover look and its ⋯ stays
-   pressed, so the menu still reads as that row's with the pointer on it. */
-.char-item:not(.active):has(.char-menu-btn[aria-expanded="true"]) {
+   pressed, so the menu still reads as that row's with the pointer on it. The
+   chat rows' ⋯ menu works the same way. */
+.char-item:not(.active):has(.char-menu-btn[aria-expanded="true"]),
+.chat-item:not(.active):has(.chat-menu-btn[aria-expanded="true"]) {
     background-color: var(--surface-quiet);
     color: var(--fg);
 }
 
 /* The row's own hover fill is the shared hover colour, so the ⋯ hovers and
    presses a step darker to show against it. */
-.char-item-actions .char-menu-btn[aria-expanded="true"] {
+.char-item-actions .char-menu-btn[aria-expanded="true"],
+.chat-item-actions .chat-menu-btn[aria-expanded="true"] {
     background-color: color-mix(in srgb, var(--text-color) 12%, transparent);
     color: var(--text-color);
 }
 
 @media (hover: hover) {
-    .char-item-actions .char-menu-btn:hover {
+    .char-item-actions .char-menu-btn:hover,
+    .chat-item-actions .chat-menu-btn:hover {
         background-color: color-mix(in srgb, var(--text-color) 12%, transparent);
         color: var(--text-color);
     }
@@ -1526,8 +1530,9 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── Character row menu ──────────────────────────────────────────────────── */
-/* The character rows' ⋯ menu. toggleCharMenu() places it from the row that
-   opened it and sets the corner it grows from. It outranks the settings and
+/* The character rows' ⋯ menu, and the chat rows' (#chat-row-menu).
+   toggleCharMenu() and toggleChatMenu() place it from the row that opened it
+   and set the corner it grows from. It outranks the settings and
    character-editor panels (500), which open beside the same sidebar. */
 .char-row-menu {
     z-index: 550;
@@ -2959,7 +2964,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     cursor: text;
 }
 
-/* Actions — pencil + trash, shown on hover */
+/* Actions — the ⋯, shown on hover and while its menu is open */
 .chat-item-actions {
     display: flex;
     align-items: center;
@@ -2972,7 +2977,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .chat-item:hover .chat-item-actions,
-.chat-item:focus-within .chat-item-actions {
+.chat-item:focus-within .chat-item-actions,
+.chat-item-actions:has([aria-expanded="true"]) {
     opacity: 1;
     pointer-events: auto;
 }
@@ -2987,20 +2993,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     width: 20px;
     height: 20px;
     color: var(--text-secondary);
-}
-
-@media (hover: hover) {
-    .chat-item-actions .icon-btn:hover {
-        background-color: var(--hover-bg);
-        color: var(--text-color);
-    }
-}
-
-@media (hover: hover) {
-    .chat-item-actions .chat-delete-btn:hover {
-        color: var(--danger-color);
-        background-color: var(--danger-bg-hover);
-    }
 }
 
 /* ── Chat flyout ─────────────────────────────────────────────────────────── */
