@@ -373,29 +373,39 @@ function bindSheetBackdropHandlers() {
 // carries on out or springs back. The drawer goes left, and can be taken
 // anywhere since a vertical touch on it is the list's to scroll (the browser
 // takes that one over and cancels ours); a sheet goes down, from its grabber.
+// The drawer also comes in the same way, dragged from the screen's left edge.
 // Touch and pen only: a mouse has the buttons.
 const DRAG_SLOP_PX = 8;            // before it is a drag at all
 const DRAG_CLOSE_PX = 80;          // far enough to mean it
 const DRAG_FLICK_PX_PER_MS = 0.5;  // or quick enough to mean it from less
+// How far in from the left edge a drag can start and still open the drawer.
+// In a Safari tab with a page to go back to, Safari keeps the strip nearest the
+// edge for its own Back and cancels ours; starting a little further in still
+// opens the drawer. The installed app has no such gesture.
+const DRAG_EDGE_PX = 32;
+
+const flicked = (dist, ms) => dist > 20 && dist / ms > DRAG_FLICK_PX_PER_MS;
+
+// Carries a dragged panel the rest of the way from wherever the finger left it,
+// then hands it back to its classes.
+function settleDrag(panel, backdrop, transform, opacity, done) {
+    panel.style.transition = 'transform var(--motion-base) ease-out';
+    panel.style.transform = transform;
+    if (backdrop) {
+        backdrop.style.transition = 'opacity var(--motion-base)';
+        backdrop.style.opacity = opacity;
+    }
+    setTimeout(() => {
+        done();
+        panel.style.transition = panel.style.transform = '';
+        if (backdrop) backdrop.style.transition = backdrop.style.opacity = '';
+    }, 180);
+}
 
 function bindDragToClose(panel, handle, { vertical, close, backdrop, when = () => true }) {
     const toward = vertical ? 1 : -1;   // which way along the axis is out
     const axis = vertical ? 'Y' : 'X';
     let drag = null;                    // the touch being followed
-
-    const settle = away => {
-        panel.style.transition = 'transform var(--motion-base) ease-out';
-        panel.style.transform = `translate${axis}(${away ? toward * 100 : 0}%)`;
-        if (backdrop) {
-            backdrop.style.transition = 'opacity var(--motion-base)';
-            backdrop.style.opacity = away ? 0 : 1;
-        }
-        setTimeout(() => {
-            if (away) close();
-            panel.style.transition = panel.style.transform = '';
-            if (backdrop) backdrop.style.transition = backdrop.style.opacity = '';
-        }, 180);
-    };
 
     handle.addEventListener('pointerdown', e => {
         if (e.pointerType === 'mouse' || !when()) return;
@@ -424,14 +434,57 @@ function bindDragToClose(panel, handle, { vertical, close, backdrop, when = () =
         const { live, dist, at } = drag;
         drag = null;
         if (!live) return;
-        const flicked = dist > 20 && dist / (e.timeStamp - at) > DRAG_FLICK_PX_PER_MS;
-        settle(e.type === 'pointerup' && (dist > DRAG_CLOSE_PX || flicked));
+        const away = e.type === 'pointerup' && (dist > DRAG_CLOSE_PX || flicked(dist, e.timeStamp - at));
+        settleDrag(panel, backdrop, `translate${axis}(${away ? toward * 100 : 0}%)`, away ? 0 : 1,
+            () => { if (away) close(); });
     };
     handle.addEventListener('pointerup', release);
     handle.addEventListener('pointercancel', release);
     // Closed from under the finger. Taking the capture fires one of these at
     // the row the touch began on too, which bubbles here and is not an end.
     handle.addEventListener('lostpointercapture', e => e.target === handle && release(e));
+}
+
+// The drawer shows while the finger brings it in, but is only opened (focus,
+// the chat made inert) once let go far enough; short of that it goes back.
+function bindEdgeSwipeToOpen() {
+    const panel = el.sidebar, backdrop = el.mobileBackdrop;
+    const drawerShell = window.matchMedia(MOBILE_SHELL_QUERY);
+    const offset = dist => `translateX(calc(-100% - var(--frame-left) + ${dist}px))`;
+    let drag = null;
+
+    const main = document.getElementById('main-content');
+    main.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' || e.clientX > DRAG_EDGE_PX || !drawerShell.matches || panelOpen()) return;
+        drag = { id: e.pointerId, x: e.clientX, at: e.timeStamp, dist: 0, live: false };
+    });
+
+    main.addEventListener('pointermove', e => {
+        if (e.pointerId !== drag?.id) return;
+        const dist = e.clientX - drag.x;
+        if (!drag.live) {
+            if (dist < DRAG_SLOP_PX) return;
+            drag.live = true;
+            panel.style.transition = backdrop.style.transition = 'none';
+            panel.classList.add('mobile-open');
+            backdrop.classList.add('show');
+        }
+        drag.dist = Math.min(Math.max(0, dist), panel.offsetWidth);
+        panel.style.transform = offset(drag.dist);
+        backdrop.style.opacity = drag.dist / panel.offsetWidth;
+    });
+
+    const release = e => {
+        if (e.pointerId !== drag?.id) return;
+        const { live, dist, at } = drag;
+        drag = null;
+        if (!live) return;
+        const open = e.type === 'pointerup' && (dist > DRAG_CLOSE_PX || flicked(dist, e.timeStamp - at));
+        settleDrag(panel, backdrop, open ? 'translateX(0)' : offset(0), open ? 1 : 0,
+            () => open ? openMobileSidebar() : closeMobileSidebar({ restoreFocus: false }));
+    };
+    main.addEventListener('pointerup', release);
+    main.addEventListener('pointercancel', release);
 }
 
 function bindSwipeToClose() {
@@ -1562,6 +1615,7 @@ async function init() {
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
     bindSwipeToClose();
+    bindEdgeSwipeToOpen();
     bindBackButton();
     bindSettingsHandlers();
     initStorageStats();

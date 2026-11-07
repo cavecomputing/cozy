@@ -6505,9 +6505,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     /* ── Chat ────────────────────────────────────────────────────────────── */
+    /* A sideways drag on the chat is Cozy's, to bring the drawer in from the
+       left edge (bindEdgeSwipeToOpen in main.js); up and down still scroll. */
     #main-content {
         width: 100%;
         min-width: 0;
+        touch-action: pan-y pinch-zoom;
     }
 
     #main-content > header {
@@ -6539,6 +6542,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     #chat-scroll {
         gap: var(--space-6);
         border-radius: 0;
+        /* #main-content's pan-y stops at the nearest scroller, which is this. */
+        touch-action: pan-y pinch-zoom;
     }
 
     .message-container.user {
