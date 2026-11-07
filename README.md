@@ -57,7 +57,7 @@ And if you would like some more details on character cards, personas, etc., chec
 1. Connect to Cozy.
 2. Open `Settings` in the bottom left.
 3. Navigate to `API`.
-4. Click `+ New` to name and create a preset.
+4. Optionally, click `Save as preset` and type a name to keep these settings as a preset.
 5. Under `Connection` enter the base `Endpoint` URL for your LLM server.
    Some common ones:
 
