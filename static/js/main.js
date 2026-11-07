@@ -429,7 +429,9 @@ function bindDragToClose(panel, handle, { vertical, close, backdrop, when = () =
     };
     handle.addEventListener('pointerup', release);
     handle.addEventListener('pointercancel', release);
-    handle.addEventListener('lostpointercapture', release);   // closed from under the finger
+    // Closed from under the finger. Taking the capture fires one of these at
+    // the row the touch began on too, which bubbles here and is not an end.
+    handle.addEventListener('lostpointercapture', e => e.target === handle && release(e));
 }
 
 function bindSwipeToClose() {
