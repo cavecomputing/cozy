@@ -4118,15 +4118,24 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     #settings-back-btn { display: none; }
 }
 
+/* Settings covers the character rail rather than opening beside it, so its
+   own menu stands where the characters were and the window has two columns,
+   not three. "Back to chat" brings the rail back. The phone's full-screen
+   .modal-overlay inset wins over this. */
+#settings-flyout {
+    left: 0;
+    margin-left: 0;
+}
+
 /* settings-modal uses .modal base styles */
 .settings-modal {
-    width: var(--shell-pane-width);
-    max-width: var(--shell-pane-width);
+    width: 100vw;
+    max-width: 100vw;
     border-right: 0;
     box-shadow: none;
     /* The pane's own width, not the viewport's, decides whether the two-column
-       layouts inside it still fit — the sidebar and the nav column come out of
-       that budget first. The @container rules further down read this. */
+       layouts inside it still fit — the nav column comes out of that budget
+       first. The @container rules further down read this. */
     container-type: inline-size;
     --settings-nav-width: clamp(180px, 16vw, 230px);
     --settings-gutter: clamp(var(--space-5), 2.5vw, 2.25rem);
