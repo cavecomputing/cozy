@@ -403,6 +403,13 @@ function applySettingsToUI(s) {
     state.modelContextLength = state.modelDetails[state.apiModel] ?? null;
 }
 
+/** Show the main connection in the summarizer's empty fields, so blank visibly means "use these". */
+export function showSummaryFallbacks() {
+    if (el.summaryEndpoint) el.summaryEndpoint.placeholder = el.apiEndpoint?.value.trim() || 'https://api.openai.com/v1';
+    if (el.summaryModel) el.summaryModel.placeholder = el.apiModel?.value.trim() || 'model-name';
+    if (el.summaryKey && !state.summaryApiKeySet) el.summaryKey.placeholder = el.apiKey?.value ? 'Main key' : 'sk-...';
+}
+
 // ── Advanced configuration gate ──────────────────────────────────────────
 // Surfaces hidden unless "Show advanced configuration" is checked in the
 // General tab: the Prompt template editors + Variables help, the buttons that author a prompt, the Summaries

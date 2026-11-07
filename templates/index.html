@@ -683,26 +683,20 @@
                                 <header class="settings-card-header">
                                     <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a6 6 0 0 1-12 0V8z"></path></svg>
                                     <h4>Summarizer model</h4>
-                                    <p>Optional separate endpoint for summaries — usually cheaper or faster. Blank fields reuse the main connection.</p>
+                                    <p>A cheaper or faster model for summaries, if you want one. Blank fields use the main connection, shown in grey.</p>
                                 </header>
                                 <div class="settings-row settings-row--field">
-                                    <div class="settings-row-text">
-                                        <label class="settings-row-label" for="settings-summary-endpoint">Endpoint</label>
-                                        <span id="summary-endpoint-hint" class="settings-row-hint">Blank = use main endpoint</span>
-                                    </div>
-                                    <input type="text" id="settings-summary-endpoint" aria-describedby="summary-endpoint-hint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
+                                    <label class="settings-row-label" for="settings-summary-endpoint">Endpoint</label>
+                                    <input type="text" id="settings-summary-endpoint" class="form-input mono-input" placeholder="https://api.openai.com/v1" spellcheck="false">
                                 </div>
                                 <div class="settings-row settings-row--field">
                                     <label class="settings-row-label" for="settings-summary-key">API key</label>
                                     <input type="password" id="settings-summary-key" class="form-input mono-input" placeholder="sk-...">
                                 </div>
                                 <div class="settings-row settings-row--field">
-                                    <div class="settings-row-text">
-                                        <label class="settings-row-label" for="settings-summary-model">Model</label>
-                                        <span id="summary-model-hint" class="settings-row-hint">Blank = use main model</span>
-                                    </div>
+                                    <label class="settings-row-label" for="settings-summary-model">Model</label>
                                     <div class="settings-model-row model-picker-row">
-                                        <input type="text" id="settings-summary-model" aria-describedby="summary-model-hint" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="summary-model-picker-menu" aria-expanded="false">
+                                        <input type="text" id="settings-summary-model" class="form-input mono-input" placeholder="model-name" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="summary-model-picker-menu" aria-expanded="false">
                                         <button id="settings-summary-refresh-models" class="icon-btn" title="Browse available models" aria-label="Browse available models" aria-haspopup="listbox" aria-expanded="false">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                             <span class="settings-action-label">Browse</span>

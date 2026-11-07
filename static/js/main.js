@@ -22,7 +22,7 @@ import {
     browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
     selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
     activatePreset, createNewPreset, renamePreset, deletePreset, searchModelsFromInput,
-    searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache,
+    searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache, showSummaryFallbacks,
 } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, renameSystemPrompt,
@@ -118,6 +118,7 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     if (key === 'about' && !el.settingsFlyout.hidden) {
         void loadStorageStats();
     }
+    if (key === 'summaries') showSummaryFallbacks();
     savePrefs();
 }
 
