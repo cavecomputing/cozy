@@ -1695,7 +1695,6 @@ input[type="checkbox"]:checked::after {
            chat bubbles' left edge. */
         margin-left: 20px;
         width: 340px;
-        min-height: 172px;
         max-height: min(70vh, 520px);
         padding: 0;
         border-radius: var(--radius);
