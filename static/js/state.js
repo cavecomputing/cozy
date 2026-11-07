@@ -197,7 +197,7 @@ export function initElements() {
         lorebookScanDepth:   document.getElementById('settings-lorebook-scan-depth'),
         lorebookMaxEntries:  document.getElementById('settings-lorebook-max-entries'),
         lorebookEntries:     document.getElementById('settings-lorebook-entries'),
-        lorebookEmptyEntries: document.getElementById('settings-lorebook-empty-entries'),
+        lorebookEntriesCard: document.getElementById('settings-lorebook-entries-card'),
         lorebookEntriesCount: document.getElementById('settings-lorebook-entries-count'),
         lorebookEntrySearch: document.getElementById('settings-lorebook-entry-search'),
         lorebookAddEntry:    document.getElementById('settings-lorebook-add-entry'),

@@ -616,11 +616,11 @@
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                                             <span class="settings-action-label">Import</span>
                                         </button>
-                                        <button id="settings-lorebook-export" class="icon-btn" title="Export selected lorebook" aria-label="Export lorebook" disabled>
+                                        <button id="settings-lorebook-export" class="icon-btn" title="Export selected lorebook" aria-label="Export lorebook" hidden>
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                             <span class="settings-action-label">Export</span>
                                         </button>
-                                        <button id="settings-lorebook-delete" class="icon-btn" title="Delete selected lorebook" aria-label="Delete lorebook" disabled>
+                                        <button id="settings-lorebook-delete" class="icon-btn" title="Delete selected lorebook" aria-label="Delete lorebook" hidden>
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                             <span class="settings-action-label">Delete</span>
                                         </button>
@@ -628,8 +628,8 @@
                                     </div>
                                 </header>
                                 <div id="settings-lorebook-empty-meta" class="lorebook-empty-panel">
-                                    <strong>Select a lorebook</strong>
-                                    <span>Choose a book from the dropdown to edit its name, save location, and scan settings.</span>
+                                    <strong>No lorebooks yet</strong>
+                                    <span>A lorebook holds world details the model is reminded of when a keyword comes up. Start one with New, or Import a SillyTavern lorebook or character book.</span>
                                 </div>
                                 <div id="settings-lorebook-meta" hidden>
                                     <div class="settings-row settings-row--field">
@@ -666,22 +666,18 @@
                                     </div>
                                 </div>
                             </section>
-                            <section class="settings-card">
+                            <section id="settings-lorebook-entries-card" class="settings-card" hidden>
                                 <header class="settings-card-header">
                                     <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
                                     <h4>Entries <span id="settings-lorebook-entries-count" class="lorebook-entries-count"></span></h4>
                                     <input type="search" id="settings-lorebook-entry-search" class="form-input lorebook-entry-search"
-                                        placeholder="Search keys and comments…" aria-label="Search entries" hidden>
-                                    <button id="settings-lorebook-add-entry" class="btn btn-secondary btn-sm" hidden>
+                                        placeholder="Search keys and comments…" aria-label="Search entries">
+                                    <button id="settings-lorebook-add-entry" class="btn btn-secondary btn-sm">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                         <span>Add entry</span>
                                     </button>
                                 </header>
-                                <div id="settings-lorebook-empty-entries" class="lorebook-empty-panel">
-                                    <strong>No entry selected</strong>
-                                    <span>Entries for the selected lorebook will appear here.</span>
-                                </div>
-                                <div id="settings-lorebook-entries" class="lorebook-entries" hidden></div>
+                                <div id="settings-lorebook-entries" class="lorebook-entries"></div>
                             </section>
                         </div>
                     </div>

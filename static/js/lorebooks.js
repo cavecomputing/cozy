@@ -66,7 +66,7 @@ export function renderLorebookList() {
     if (!el.lorebookList) return;
     el.lorebookList.innerHTML = '';
     const entries = listEntries();
-    const placeholder = new Option(entries.length ? 'Choose a lorebook…' : 'No lorebooks yet — create or import one', '');
+    const placeholder = new Option(entries.length ? 'Choose a lorebook…' : 'No lorebooks yet', '');
     placeholder.disabled = true;
     placeholder.hidden = entries.length > 0;
     el.lorebookList.appendChild(placeholder);
@@ -80,19 +80,19 @@ export function renderLorebookList() {
         el.lorebookList.appendChild(option);
     }
     el.lorebookList.value = editing ? `${editing.kind}:${editing.id}` : '';
-    document.getElementById('settings-lorebook-export').disabled = !editing;
-    document.getElementById('settings-lorebook-delete').disabled = !editing;
+    document.getElementById('settings-lorebook-export').hidden = !editing;
+    document.getElementById('settings-lorebook-delete').hidden = !editing;
+    // Once there is a book, the picker's own "Choose a lorebook…" says enough.
+    el.lorebookEmptyMeta.hidden = entries.length > 0;
 }
 
 // ── Editor ─────────────────────────────────────────────────────────────────
 
+/** With no book open, the page is just the picker; the Entries card waits
+ *  for a book. */
 function setEditorVisible(visible) {
     if (el.lorebookMeta)     el.lorebookMeta.hidden = !visible;
-    if (el.lorebookEntries)  el.lorebookEntries.hidden = !visible;
-    if (el.lorebookAddEntry) el.lorebookAddEntry.hidden = !visible;
-    if (el.lorebookEntrySearch) el.lorebookEntrySearch.hidden = !visible;
-    if (el.lorebookEmptyMeta) el.lorebookEmptyMeta.hidden = visible;
-    if (el.lorebookEmptyEntries) el.lorebookEmptyEntries.hidden = visible;
+    if (el.lorebookEntriesCard) el.lorebookEntriesCard.hidden = !visible;
 }
 
 function readEntryRow(row) {

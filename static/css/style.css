@@ -7238,13 +7238,18 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .model-picker-item { min-height: 44px; }
 
     /* ── Picker rows ─────────────────────────────────────────────────────── */
+    /* The picker takes a line to itself, and the buttons share the next one
+       evenly however many of them show: three for a preset, four for a
+       chosen lorebook, two for none. */
     :is(.preset-select-row, .prompt-select-row) {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        display: flex;
+        flex-wrap: wrap;
         gap: var(--space-3);
     }
 
-    :is(.preset-select-row, .prompt-select-row) > .cozy-select { grid-column: 1 / -1; }
+    :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex-basis: 100%; }
+
+    :is(.preset-select-row, .prompt-select-row) > .icon-btn { flex: 1 1 0; }
 
     .prompt-select-row .export-dropdown > .icon-btn { width: 100%; }
 
@@ -7258,7 +7263,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .settings-model-row .icon-btn { min-height: var(--mobile-tap-target); }
 
-    .prompt-select-row .export-dropdown { grid-column: 1 / -1; }
+    .prompt-select-row .export-dropdown { flex-basis: 100%; }
 
     /* ── Prompt page ─────────────────────────────────────────────────────── */
     /* Preview keeps its desktop padding over the phone .icon-btn padding. */
