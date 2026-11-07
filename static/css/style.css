@@ -1359,8 +1359,8 @@ input[type="checkbox"]:checked::after {
     line-height: 1.4;
 }
 
-/* "New character" and "New persona": a + in an avatar-sized box, which takes
-   the accent on hover and focus. */
+/* "New character" and "New persona": a + on an avatar-sized tile, whose edge
+   takes the accent on hover and focus. */
 .add-row {
     border: 0;
     background: none;
@@ -1393,8 +1393,9 @@ input[type="checkbox"]:checked::after {
     width: 32px;
     height: 32px;
     flex-shrink: 0;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: 7px;
+    background-color: var(--surface-quiet);
     transition: border-color var(--motion-base) ease, color var(--motion-base) ease;
 }
 
@@ -1428,19 +1429,24 @@ input[type="checkbox"]:checked::after {
 .recent-btn {
     display: grid;
     place-items: center;
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: 7px;
     background: none;
     color: var(--fg-quiet);
     cursor: pointer;
-    transition: border-color var(--motion-base), color var(--motion-base);
+    transition: border-color var(--motion-base), color var(--motion-base), background-color var(--motion-base);
 }
 
-/* Takes the accent as the + of .add-row does, and holds it while open. */
-.recent-btn[aria-expanded="true"],
+/* No box of its own: a clock in the column of the stars and ⋯ below it. It
+   takes the accent as the + of .add-row does, and a tile while open. */
+.recent-btn[aria-expanded="true"] {
+    background-color: var(--surface-quiet);
+    color: var(--accent-color);
+}
+
 .recent-btn:focus-visible {
     border-color: var(--accent-color);
     color: var(--accent-color);
@@ -1448,7 +1454,6 @@ input[type="checkbox"]:checked::after {
 
 @media (hover: hover) {
     .recent-btn:hover {
-        border-color: var(--accent-color);
         color: var(--accent-color);
     }
 }
