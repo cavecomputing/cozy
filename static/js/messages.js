@@ -111,6 +111,9 @@ function updateSwipeNav(msgEl, swipes, idx, isGreeting) {
     next.disabled = isGreeting && atEnd;
     next.title = atEnd ? (isGreeting ? 'No more greetings' : 'Generate new') : 'Next';
     next.classList.toggle('swipe-generate', atEnd && !isGreeting);
+    const oneSwipe = swipes.length === 1;
+    nav.querySelector('.swipe-prev').hidden = nav.querySelector('.swipe-counter').hidden = oneSwipe;
+    nav.hidden = oneSwipe && isGreeting;
 }
 
 /**
@@ -364,7 +367,13 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
 
         const next = buildSwipeButton('next', nextTitle, nextDisabled);
         next.classList.toggle('swipe-generate', atEnd && !isGreeting);
-        nav.append(buildSwipeButton('prev', 'Previous', idx <= 1), counter, next);
+        const prev = buildSwipeButton('prev', 'Previous', idx <= 1);
+        // One swipe has nothing to page through: a reply shows only the arrow
+        // that makes a second, and a greeting without alternates nothing.
+        const oneSwipe = swipeCount === 1;
+        prev.hidden = counter.hidden = oneSwipe;
+        nav.hidden = oneSwipe && isGreeting;
+        nav.append(prev, counter, next);
         bar.append(nav);
     }
     appendMessageActionButtons(bar);
