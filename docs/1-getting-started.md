@@ -196,6 +196,10 @@ A fresh install starts with one persona called **User**.
 3. Save. To switch to a different persona later, click your name again
    and pick another one.
 
+Your own messages carry no picture, and no name while they're from the
+persona you're using now. One sent as a different persona shows that
+persona's name.
+
 You are done with this section when your persona has your name instead of
 **User**.
 

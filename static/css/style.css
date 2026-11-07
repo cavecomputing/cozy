@@ -6690,10 +6690,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         grid-row: 2;
     }
 
-    .message.user .avatar {
-        display: none;
-    }
-
     .msg-time,
     .msg-edited {
         font-size: var(--text-xs);
