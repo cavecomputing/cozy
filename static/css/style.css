@@ -4427,15 +4427,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--accent-alt, var(--status-success));
 }
 
-.settings-card-suffix {
-    font-size: var(--text-xl);
-    color: var(--fg-quiet);
-}
-
-.settings-card-suffix::before {
-    content: "| " / "";
-}
-
 /* The gear may not set the title row's height, or the Samplers title would
    sit lower than its neighbour's. On the toolbar, not the button, so the
    popover still opens below the gear. */

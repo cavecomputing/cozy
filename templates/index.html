@@ -236,7 +236,6 @@
                         <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
                             <div class="settings-page-title">
                                 <h3>API</h3>
-                                <p>The endpoint that serves the model, and the context and sampler settings sent with every request.</p>
                             </div>
                             <div class="prompt-header-actions">
                                 <button id="settings-sysprompt-preview" class="icon-btn" title="Preview assembled request" aria-label="Preview request">
@@ -256,7 +255,6 @@
                                 <header class="settings-card-header">
                                     <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a6 6 0 0 1-12 0V8z"></path></svg>
                                     <h4>Connection</h4>
-                                    <span class="settings-card-suffix">preset</span>
                                     <div class="preset-select-row">
                                         <select id="settings-api-preset" class="form-input settings-select" aria-label="API preset"></select>
                                         <button id="settings-preset-new" class="icon-btn" title="New preset" aria-label="New preset">
@@ -328,7 +326,6 @@
                                     <header class="settings-card-header">
                                         <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>
                                         <h4>Samplers</h4>
-                                        <span class="settings-card-suffix">core</span>
                                         <div class="sampler-toolbar">
                                             <button id="sampler-configure-btn" class="icon-btn" title="Active samplers" aria-label="Active samplers" aria-haspopup="true" aria-expanded="false">
                                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -458,7 +455,6 @@
                         <header class="settings-page-header settings-page-header--with-action settings-page-header--icons">
                             <div class="settings-page-title">
                                 <h3>Prompt</h3>
-                                <p>The template that instructs an AI model how to behave.</p>
                             </div>
                             <div class="prompt-header-actions">
                                 <button id="settings-sysprompt-help" class="icon-btn" data-help="prompt-help-modal" title="Template syntax help" aria-label="Template syntax help">
@@ -735,7 +731,6 @@
                     <div class="settings-section" data-section="about" hidden>
                         <header class="settings-page-header">
                             <h3>About</h3>
-                            <p>What this is, who it borrows from, and where to find the source.</p>
                         </header>
                         <div class="settings-section-body settings-section-stack">
                             <section class="settings-card about-identity">
@@ -751,7 +746,6 @@
                                 <header class="settings-card-header">
                                     <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
                                     <h4>Acknowledgements</h4>
-                                    <p>Bundled content that came from someone else, and people who helped along the way.</p>
                                 </header>
                                 <div class="settings-row settings-row--field about-credit">
                                     <h5 class="settings-row-label">Sasha</h5>
@@ -778,7 +772,6 @@
                                         </ul>
                                         <input type="file" id="about-backup-file" accept="application/zip,.zip" hidden>
                                     </div>
-                                    <p>A snapshot of the space Cozy is using for your local data.</p>
                                 </header>
                                 <div id="about-storage-content" aria-live="polite" aria-busy="false">
                                     <div class="about-storage-status">
