@@ -340,13 +340,15 @@ function renderPresetDropdown() {
     const selectedExists = state.apiPresets.some(p => String(p.id) === selected);
     el.apiPreset.innerHTML = '';
 
-    // Placeholder option — visible label when nothing is selected.
-    // When presets exist, hide it from the menu so users can't re-select "nothing".
+    // The picker appears once there is a preset to pick; until then it would
+    // only say "(no presets)". Its placeholder labels "nothing selected" and
+    // stays out of the menu so nobody can re-select nothing.
+    el.apiPreset.hidden = state.apiPresets.length === 0;
     const placeholder = document.createElement('option');
     placeholder.value = '';
     placeholder.disabled = true;
-    placeholder.textContent = state.apiPresets.length === 0 ? '(no presets)' : 'Select preset…';
-    if (state.apiPresets.length > 0) placeholder.hidden = true;
+    placeholder.textContent = 'Select preset…';
+    placeholder.hidden = true;
     placeholder.selected = !selectedExists;
     el.apiPreset.appendChild(placeholder);
 
@@ -478,7 +480,7 @@ function collectPresetSettings() {
 }
 
 export async function createNewPreset() {
-    const name = await promptDialog({ title: 'New API preset', confirmLabel: 'Create' });
+    const name = await promptDialog({ title: 'Save as preset', confirmLabel: 'Save' });
     if (!name || !name.trim()) return;
     try {
         await flushLLMSettingsSave({ strict: true });
@@ -491,7 +493,7 @@ export async function createNewPreset() {
             await activatePreset(String(created.id));
             updatePresetButtonStates();
         }
-        showToast('Preset created', 'success');
+        showToast('Preset saved', 'success');
     } catch (e) {
         showToast(e?.message || 'Failed to create preset');
         console.warn(e);

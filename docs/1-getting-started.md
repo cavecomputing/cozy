@@ -17,11 +17,11 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
 1. Click **Settings** at the bottom left of the screen. A settings panel
    opens.
 2. Click **API** in the list of sections on the left.
-3. Click **+ New** to create a connection preset, then type a name for it and
-   confirm. A preset stores all the connection settings described below,
-   so you can keep one preset per server and switch between them. A new
-   preset starts as a copy of whatever is currently on the page.
-   **Rename** renames the selected preset.
+3. Optionally, click **Save as preset** and type a name to keep the
+   connection settings described below under that name. Once you have a
+   preset, a picker appears beside the button, so you can keep one preset
+   per server and switch between them. A new preset is a copy of whatever
+   is currently on the page. **Rename** renames the selected preset.
 4. Under **Connection**, type your server's base **Endpoint** URL into the
    **Endpoint** field. It normally ends in `/v1`. Some common ones:
 

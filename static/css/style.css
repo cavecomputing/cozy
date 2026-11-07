@@ -7224,8 +7224,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     /* ── Picker rows ─────────────────────────────────────────────────────── */
     /* The picker takes a line to itself, and the buttons share the next one
-       evenly however many of them show: three for a preset, four for a
-       chosen lorebook, two for none. */
+       however many of them show: three for a preset, four for a chosen
+       lorebook, two for none. Each grows from its label's width, so a longer
+       label like "Save as preset" stays on one line. */
     :is(.preset-select-row, .prompt-select-row) {
         display: flex;
         flex-wrap: wrap;
@@ -7234,7 +7235,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex-basis: 100%; }
 
-    :is(.preset-select-row, .prompt-select-row) > .icon-btn { flex: 1 1 0; }
+    :is(.preset-select-row, .prompt-select-row) > .icon-btn { flex: 1 1 auto; }
 
     .prompt-select-row .export-dropdown > .icon-btn { width: 100%; }
 
