@@ -27,7 +27,8 @@ export function renderPersonaList() {
 
         const info = document.createElement('div');
         info.className = 'persona-info';
-        if (p.is_default) {
+        // A lone persona is the default by definition, so the badge would say nothing.
+        if (p.is_default && state.personas.length > 1) {
             const badge = document.createElement('span');
             badge.className = 'persona-default-badge';
             badge.innerHTML = `${icons.STAR}<span>Default</span>`;
