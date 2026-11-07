@@ -4517,33 +4517,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .settings-row--field > .cozy-select { max-width: 20rem; }
 
-/* A note that sits on the page rather than in a card: a mono label, then the
-   sentence. The label is in the accent, the one hue every theme keeps legible
-   as small text on a raised surface; the danger hue fails that in most. */
-.settings-callout {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-4);
-    margin: 0;
-    padding: 0.625rem 0.875rem;
-    background-color: var(--surface-raised);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    font-size: var(--text-md);
-    line-height: 1.5;
-    color: var(--fg);
-}
-
-.settings-callout-label {
-    flex-shrink: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--fg-accent);
-}
-
 .settings-section-body {
     background-color: transparent;
     max-width: none;
@@ -5259,10 +5232,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-family: var(--font-mono);
 }
 
-/* The callout holding the editor's place while advanced configuration is off. */
+/* The line under the preset's description while advanced configuration is
+   off, saying where the template editor went. */
 .prompt-basic-hint {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-md);
+    color: var(--text-secondary);
 }
 
 .prompt-basic-hint-link {
@@ -7264,7 +7239,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     .prompt-section-controls,
-    .prompt-basic-hint,
     .prompt-section-right {
         grid-column: auto;
         grid-row: auto;
@@ -7322,8 +7296,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         align-items: center;
         min-height: 44px;
     }
-
-    .prompt-basic-hint-link { min-height: 44px; padding: var(--space-3); }
 
     /* ── Lorebooks page ──────────────────────────────────────────────────── */
     /* The description keeps its desktop floor over the phone field height. */
