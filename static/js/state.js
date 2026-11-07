@@ -161,7 +161,7 @@ export function initElements() {
         samplerConfigureBtn:   document.getElementById('sampler-configure-btn'),
         samplerPopover:        document.getElementById('sampler-popover'),
         samplerCoreEmpty:      document.getElementById('sampler-core-empty'),
-        samplerAdvancedEmpty:  document.getElementById('sampler-advanced-empty'),
+        samplerAdvanced:       document.getElementById('sampler-advanced'),
         personaList:     document.getElementById('persona-list'),
         personaForm:     document.getElementById('persona-inline-form'),
         personaCreateBtn: document.getElementById('persona-create-btn'),

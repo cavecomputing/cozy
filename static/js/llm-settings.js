@@ -328,9 +328,10 @@ export async function testLLMConnection() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function updatePresetButtonStates() {
+    // Rename and Delete appear once there is a preset for them to act on.
     const hasActive = !!el.apiPreset?.value;
-    if (el.presetDelete) el.presetDelete.disabled = !hasActive;
-    if (el.presetRename) el.presetRename.disabled = !hasActive;
+    if (el.presetDelete) el.presetDelete.hidden = !hasActive;
+    if (el.presetRename) el.presetRename.hidden = !hasActive;
 }
 
 function renderPresetDropdown() {

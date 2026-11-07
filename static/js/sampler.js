@@ -178,7 +178,8 @@ export function applySamplerVisibility() {
     const hasCoreActive = activeGroups.some(group => CORE_GROUPS.has(group));
     const hasAdvancedActive = activeGroups.some(group => !CORE_GROUPS.has(group));
     if (el.samplerCoreEmpty) el.samplerCoreEmpty.hidden = hasCoreActive;
-    if (el.samplerAdvancedEmpty) el.samplerAdvancedEmpty.hidden = hasAdvancedActive;
+    // The Advanced block appears with its first sampler; ⚙ is how you add one.
+    if (el.samplerAdvanced) el.samplerAdvanced.hidden = !hasAdvancedActive;
 }
 
 export function loadSamplerSettings(settings) {

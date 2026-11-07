@@ -4487,8 +4487,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--text-secondary);
 }
 
-.settings-card-header code,
-.settings-callout code {
+.settings-card-header code {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     background: var(--code-bg);
