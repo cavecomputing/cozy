@@ -221,7 +221,7 @@ you want.
   **Settings → General**. Do not rename a bundled preset: Cozy restores the
   original under its old name on the next start, because the files in
   `default_prompts/` are the source of truth for those.
-- **Theme** — **Settings → General → Appearance** changes the colors. This
+- **Theme** — **Settings → General** changes the colors. This
   choice is stored in the browser, so each browser can have its own theme.
   You can also add your own theme file to `data/themes/`; see
   [User themes](9-user-themes.md).
