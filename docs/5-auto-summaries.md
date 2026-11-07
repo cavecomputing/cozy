@@ -122,12 +122,12 @@ then on, sending waits for memory again as usual.
 
 ## Stop and reset
 
-Two buttons sit in the **Auto Summary** header, left of the enable switch. Neither
-of them changes your chat messages.
+Two buttons sit in the **Auto Summary** header, left of the enable switch, while
+Auto Summary is on for the chat. Neither of them changes your chat messages.
 
 ### Stop
 
-Enabled only while a run is in progress. Use it when a long backfill —
+Shown only while a run is in progress. Use it when a long backfill —
 "Summarizing… (batch 1/20)" — is more than you want to wait for.
 
 **Every batch already finished is kept.** Cozy saves after each one, so stopping

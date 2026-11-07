@@ -1067,7 +1067,6 @@
                         <div class="memory-card-body memory-authornote">
                             <textarea id="author-note-input" class="form-textarea" rows="3" placeholder="Things to remember for this chat…" disabled></textarea>
                             <div class="memory-authornote-counter" id="author-note-counter" aria-live="polite"></div>
-                            <p class="memory-authornote-hint">Injected via <code>&#123;&#123;author_note&#125;&#125;</code> in your prompt template.</p>
                         </div>
                     </section>
                     <section class="memory-card">
@@ -1090,10 +1089,10 @@
                             <span class="section-label">Auto Summary</span>
                             <span id="summary-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Auto Summary not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{summary}}{% endraw %}, so the summary will not be sent even with Auto Summary on. (This may be intentional.)">⊘</span>
                             <div class="summary-header-actions">
-                                <button id="summary-cancel-btn" class="icon-btn summary-cancel-btn" type="button" disabled title="Stop summarizing" aria-label="Stop the summary run, keeping entries already written">
+                                <button id="summary-cancel-btn" class="icon-btn summary-cancel-btn" type="button" hidden title="Stop summarizing" aria-label="Stop the summary run, keeping entries already written">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
                                 </button>
-                                <button id="summary-reset-btn" class="icon-btn summary-reset-btn" type="button" disabled title="Reset and summarize again" aria-label="Clear the summary for this chat and summarize its history again">
+                                <button id="summary-reset-btn" class="icon-btn summary-reset-btn" type="button" hidden title="Reset and summarize again" aria-label="Clear the summary for this chat and summarize its history again">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
                                 </button>
                             </div>
@@ -1101,13 +1100,12 @@
                                 title="Summarize aged-out history for this chat"
                                 aria-label="Summarize aged-out history for this chat">
                         </header>
-                        <div class="memory-card-body">
+                        <div id="summary-body" class="memory-card-body">
                             <div id="summary-status" class="summary-status" aria-live="polite"></div>
                             <p id="summary-config-hint" class="memory-authornote-hint summary-config-hint" hidden>
                                 No summarizer configured — set a model in <button type="button" class="summary-settings-link" id="summary-open-settings">Settings → Auto Summaries</button>.
                             </p>
                             <div id="summary-lines" class="summary-lines" hidden></div>
-                            <p class="memory-authornote-hint">Injected via <code>&#123;&#123;summary&#125;&#125;</code> in your prompt template. Each batch of messages becomes one entry, and the oldest roll off once the cap is reached — use the Author's Note above for anything that must always be remembered.</p>
                         </div>
                     </section>
                 </div>

@@ -859,11 +859,14 @@ export function renderMemorySummaryCard() {
     }
     markUnusedVar(el.summaryMarker, 'summary');
     const busy = chat?.summary_status === 'running';
-    // Cancel is the mirror of Reset: live only while a run is in flight.
-    if (el.summaryCancelBtn) el.summaryCancelBtn.disabled = !enabled || !busy;
+    // With Auto Summary off the card is just its header and switch. Stop shows
+    // only while a run is in flight; Reset shows while summaries are on and
+    // waits out a run, or an empty summary, disabled.
+    if (el.summaryBody) el.summaryBody.hidden = !enabled;
+    if (el.summaryCancelBtn) el.summaryCancelBtn.hidden = !enabled || !busy;
     if (el.summaryResetBtn) {
-        el.summaryResetBtn.disabled = !enabled || busy
-            || !(chat?.summary?.lines?.length);
+        el.summaryResetBtn.hidden = !enabled;
+        el.summaryResetBtn.disabled = busy || !(chat?.summary?.lines?.length);
     }
     renderStatus();
     renderLines(enabled);

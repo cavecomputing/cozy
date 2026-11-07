@@ -3511,16 +3511,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--text-secondary);
 }
 
-.memory-authornote-hint code {
-    padding: 0.05rem 0.25rem;
-    border-radius: var(--radius-control);
-    background: var(--code-bg);
-    border: 1px solid var(--code-border);
-    color: var(--fg-cool);
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-}
-
 /* Auto Summary card (memory flyout) */
 .memory-card-header input[type="checkbox"] {
     margin-left: 0.35rem;
@@ -3626,8 +3616,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .summary-reset-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
 
-/* Live only mid-run, so it should read as the one actionable control while busy. */
-.summary-cancel-btn:not(:disabled) { color: var(--danger-color, #e5534b); }
+/* Shown only mid-run, where it is the one control that acts. */
+.summary-cancel-btn { color: var(--danger-color, #e5534b); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PANELS

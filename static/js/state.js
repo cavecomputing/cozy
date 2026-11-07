@@ -210,6 +210,7 @@ export function initElements() {
         summaryLines:        document.getElementById('summary-lines'),
         summaryCancelBtn:    document.getElementById('summary-cancel-btn'),
         summaryResetBtn:     document.getElementById('summary-reset-btn'),
+        summaryBody:         document.getElementById('summary-body'),
         summaryConfigHint:   document.getElementById('summary-config-hint'),
         summaryMarker:       document.getElementById('summary-marker'),
         // Auto Summaries — summarizer settings tab

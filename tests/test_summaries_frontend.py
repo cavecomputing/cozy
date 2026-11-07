@@ -1824,13 +1824,13 @@ def test_reset_that_fails_starts_no_run():
     run_node_module(code)
 
 
-def test_cancel_button_is_live_only_while_a_run_is_in_flight():
+def test_cancel_button_shows_only_while_a_run_is_in_flight():
     code = r"""
         import assert from 'node:assert/strict';
         import { state, el } from './static/js/state.js';
         import { renderMemorySummaryCard } from './static/js/summaries.js';
 
-        const cancelBtn = { disabled: false };
+        const cancelBtn = { hidden: false };
         Object.assign(el, {
             summaryToggle: { checked: false, disabled: false, title: '' },
             summaryCancelBtn: cancelBtn,
@@ -1846,13 +1846,13 @@ def test_cancel_button_is_live_only_while_a_run_is_in_flight():
                 summary_status_detail: '',
             };
             renderMemorySummaryCard();
-            return cancelBtn.disabled;
+            return cancelBtn.hidden;
         }
 
-        assert.equal(evaluate('running'), false, 'live while running');
-        assert.equal(evaluate('idle'), true, 'dead when idle');
-        assert.equal(evaluate('error'), true, 'dead after a failure');
-        assert.equal(evaluate('running', false), true, 'dead when summaries are off');
+        assert.equal(evaluate('running'), false, 'shown while running');
+        assert.equal(evaluate('idle'), true, 'hidden when idle');
+        assert.equal(evaluate('error'), true, 'hidden after a failure');
+        assert.equal(evaluate('running', false), true, 'hidden when summaries are off');
     """
     run_node_module(code)
 
