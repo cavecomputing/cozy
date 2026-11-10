@@ -42,15 +42,9 @@ def read_character_card(path):
     """Parse embedded card data from a PNG file. Returns dict or None."""
     try:
         with open(path, 'rb') as f:
-            card = extract_png_chara(f.read())
+            return extract_png_chara(f.read())
     except OSError:
         return None
-    # A chunk that decodes to something else, or to a card whose `data` is not
-    # an object, counts as no card. Every reader indexes into it, and one such
-    # file used to answer 500 for the whole character list.
-    if not isinstance(card, dict) or not isinstance(card.get('data', card), dict):
-        return None
-    return card
 
 
 # Both of the above pull an entire card off disk — often more than a megabyte —
@@ -238,12 +232,17 @@ def card_data_fields(card_data):
 
 
 def ensure_png(image_bytes):
-    """Convert any supported image format to PNG bytes."""
+    """Convert any supported image format to PNG bytes.
+
+    Raises ValueError when Pillow cannot read *image_bytes* as an image.
+    """
     if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':
         return image_bytes
-    img = Image.open(io.BytesIO(image_bytes))
     buf = io.BytesIO()
-    img.save(buf, format='PNG')
+    try:
+        Image.open(io.BytesIO(image_bytes)).save(buf, format='PNG')
+    except (OSError, Image.DecompressionBombError) as e:
+        raise ValueError('not a readable image') from e
     return buf.getvalue()
 
 

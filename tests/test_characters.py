@@ -494,6 +494,48 @@ class TestAvatarUpload:
         assert r.status_code == 404
 
 
+# ── Uploads that are not what they claim to be ─────────────────────────────
+
+class TestMalformedUploads:
+    """Each of these used to answer 500 "Internal server error"."""
+
+    @pytest.mark.parametrize('data', [['a', 'list'], 'a string', {'name': 5}, {'name': ['x']}])
+    def test_create_rejects_data_that_is_not_a_card(self, client, data):
+        r = client.post('/api/characters', data={'data': json.dumps(data)},
+                        content_type='multipart/form-data')
+        assert r.status_code == 400
+        assert os.listdir(shared.CHARACTERS_DIR) == []
+
+    def test_create_rejects_an_unreadable_image(self, client):
+        r = client.post('/api/characters', data={
+            'data': json.dumps({'name': 'Pic'}),
+            'image': (BytesIO(b'not an image at all'), 'pic.jpg', 'image/jpeg'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+        assert 'image' in r.get_json()['error']
+        assert os.listdir(shared.CHARACTERS_DIR) == []
+
+    @pytest.mark.parametrize('chunk', [['a', 'list'], {'spec': 'chara_card_v2', 'data': 'text'}])
+    def test_import_rejects_a_png_whose_chunk_is_not_a_card(self, client, chunk):
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(write_png_chara(make_minimal_png(), chunk)), 'odd.png', 'image/png'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+        assert os.listdir(shared.CHARACTERS_DIR) == []
+
+    def test_avatar_rejects_an_unreadable_image_and_keeps_the_card(self, client, sample_character):
+        path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
+        with open(path, 'rb') as f:
+            before = f.read()
+        r = client.post(f'/api/characters/{sample_character["id"]}/avatar', data={
+            'avatar': (BytesIO(b'not an image at all'), 'pic.jpg', 'image/jpeg'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+        assert 'image' in r.get_json()['error']
+        with open(path, 'rb') as f:
+            assert f.read() == before
+
+
 # ── A save that fails partway ──────────────────────────────────────────────
 
 class TestInterruptedSave:

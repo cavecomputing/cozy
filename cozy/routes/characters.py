@@ -19,6 +19,7 @@ from cozy.png_utils import make_minimal_png, write_png_chara, extract_png_chara
 characters_bp = Blueprint('characters', __name__)
 
 ALLOWED_UPDATE_KEYS = set(CARD_DATA_DEFAULTS)
+UNREADABLE_IMAGE = 'That file is not an image Cozy can read'
 
 
 def _unique_filename(name):
@@ -183,14 +184,19 @@ def create_character():
         data = json.loads(request.form.get('data', '{}'))
     except (json.JSONDecodeError, UnicodeDecodeError):
         return jsonify({'error': 'Invalid character data'}), 400
-    if not data.get('name', '').strip():
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid character data'}), 400
+    if not isinstance(data.get('name'), str) or not data['name'].strip():
         return jsonify({'error': 'name is required'}), 400
 
     card = normalize_to_v2(data)
     # The card data lives inside the PNG, so a character created without a
     # picture still needs one: the placeholder JSON imports already use.
     image = request.files.get('image')
-    png_bytes = ensure_png(image.read()) if image else make_minimal_png()
+    try:
+        png_bytes = ensure_png(image.read()) if image else make_minimal_png()
+    except ValueError:
+        return jsonify({'error': UNREADABLE_IMAGE}), 400
     png_bytes = write_png_chara(png_bytes, card)
 
     filename = _unique_filename(data['name'])
@@ -450,7 +456,10 @@ def upload_avatar(char_id):
             card_data = normalize_to_v2({'name': row['filename'].rsplit('.', 1)[0]})
 
         # Convert new image to PNG and embed card data
-        png_bytes = ensure_png(file.read())
+        try:
+            png_bytes = ensure_png(file.read())
+        except ValueError:
+            return jsonify({'error': UNREADABLE_IMAGE}), 400
         png_bytes = write_png_chara(png_bytes, card_data)
 
         write_file_atomic(filepath, png_bytes)

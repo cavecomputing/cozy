@@ -2,7 +2,6 @@
 
 import json
 import base64
-import binascii
 import hashlib
 import struct
 import zlib
@@ -79,6 +78,20 @@ def write_png_chara(png_bytes: bytes, card: dict) -> bytes:
     return bytes(out)
 
 
+def _decode_card(b64_text: str) -> dict:
+    """
+    Decode a 'chara' chunk's base64 JSON. Raises ValueError unless it is a
+    card: an object whose `data`, when it has one, is an object too. Every
+    reader indexes into both, so anything else has to count as no card.
+    """
+    padded = b64_text.rstrip('=')
+    padded += '=' * (-len(padded) % 4)
+    card = json.loads(base64.b64decode(padded))
+    if not isinstance(card, dict) or not isinstance(card.get('data', card), dict):
+        raise ValueError('not a character card')
+    return card
+
+
 def extract_png_chara(file_bytes: bytes):
     """
     Pull Character Card V2 JSON out of a PNG's tEXt or iTXt 'chara' chunk.
@@ -102,10 +115,8 @@ def extract_png_chara(file_bytes: bytes):
                 key  = chunk_data[:nul].decode('latin-1')
                 val  = chunk_data[nul + 1:].decode('latin-1')
                 if key.lower() == 'chara':          # case-insensitive: older TavernAI used "Chara"
-                    padded = val.rstrip('=')
-                    padded += '=' * (-len(padded) % 4)
-                    return json.loads(base64.b64decode(padded))
-            except (ValueError, UnicodeDecodeError, json.JSONDecodeError, binascii.Error):
+                    return _decode_card(val)
+            except ValueError:
                 pass
 
         elif chunk_type == 'iTXt':
@@ -123,10 +134,8 @@ def extract_png_chara(file_bytes: bytes):
                     val_bytes = zlib.decompress(val_bytes)
                 val = val_bytes.decode('utf-8')
                 if key.lower() == 'chara':          # case-insensitive match
-                    padded = val.rstrip('=')
-                    padded += '=' * (-len(padded) % 4)
-                    return json.loads(base64.b64decode(padded))
-            except (ValueError, UnicodeDecodeError, json.JSONDecodeError, binascii.Error, zlib.error):
+                    return _decode_card(val)
+            except (ValueError, zlib.error):
                 pass
 
         pos += 12 + chunk_len
