@@ -2,6 +2,7 @@
 
 import json
 import os
+from urllib.parse import quote
 
 from flask import Blueprint, request, jsonify, Response
 from werkzeug.utils import secure_filename
@@ -58,7 +59,7 @@ def _char_to_dict(row, card_data=None):
         'missing': bool(row['missing']),
         'created_at': row['created_at'],
         'avatar_url': None if has_placeholder_image(path)
-                      else f"/characters/{row['filename']}?v={row['crc']}",
+                      else f"/characters/{quote(row['filename'])}?v={row['crc']}",
         'pinned': pinned,
         'pinned_at': row['pinned_at'],
         'archived': bool(row['archived']),

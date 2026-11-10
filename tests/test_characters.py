@@ -549,6 +549,24 @@ class TestSync:
         target = next(c for c in chars if c['id'] == sample_character['id'])
         assert target['missing'] is True
 
+    def test_avatar_url_fetches_a_card_whose_filename_needs_escaping(self, client):
+        """A card dropped into the folder keeps whatever name it had. Its
+        avatar_url goes into a CSS url('…') and an <img src>, so a quote, a
+        '#', a '?' or a '%' has to arrive escaped or the picture never loads."""
+        filename = "Sam's 100% #1 elf?.png"
+        with open(os.path.join(shared.CHARACTERS_DIR, filename), 'wb') as f:
+            f.write(write_png_chara(_solid_png((2, 2), (0, 0, 255)), v2_card(name='Sam')))
+
+        chars = client.get('/api/characters').get_json()
+        url = next(c for c in chars if c['filename'] == filename)['avatar_url']
+
+        assert "'" not in url
+        r = client.get(url)
+        assert r.status_code == 200
+        assert r.data[:8] == b'\x89PNG\r\n\x1a\n'
+        # The sidebar asks for the thumbnail at the same name.
+        assert client.get(url.replace('/characters/', '/thumbs/characters/128/')).status_code == 200
+
     def test_new_file_on_disk_creates_row(self, client):
         # Drop a fresh card directly into the dir — list endpoint should pick it up
         card = v2_card(name='WalkIn')
