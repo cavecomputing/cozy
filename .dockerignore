@@ -19,6 +19,11 @@ tests
 .DS_Store
 data
 docs
+assets
+README.md
+CLAUDE.md
+AGENTS.md
 docker/Dockerfile
 docker/compose.yml
+compose.yml
 .gitignore
