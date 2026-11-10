@@ -1631,7 +1631,13 @@ async function init() {
     enhanceSettingsSelects();
 }
 
-init().then(() => {
+init().catch(err => {
+    // Still lift the loading screen below: a spinner that never ends says
+    // nothing, and a reload is the way out either way.
+    console.error('Cozy failed to start:', err);
+    showToast('Cozy hit an error while starting. The browser console has the details.',
+        'error', 60000, { label: 'Reload', onClick: () => location.reload() });
+}).then(() => {
     // Wait for all avatar images currently in the DOM to finish loading
     const imgs = document.querySelectorAll('[data-has-image="true"]');
     const imgPromises = Array.from(imgs).map(imgEl => {
