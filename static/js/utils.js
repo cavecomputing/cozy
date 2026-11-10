@@ -420,7 +420,7 @@ function updateComposerContextControls(hasChat, hasCharacter) {
         const label = hasChat ? activeLorebookLabel() : 'Memory';
         el.memoryFlyoutBtn.disabled = !hasChat;
         el.memoryFlyoutBtn.title = hasChat
-            ? `Memory — Author's Note & lorebook (${label})`
+            ? `Memory — Author's Note, Auto Summary & lorebook (${label})`
             : (hasCharacter ? 'Create or select a chat to use memory' : 'Select a character to use memory');
         el.memoryFlyoutBtn.setAttribute('aria-label', el.memoryFlyoutBtn.title);
         if (!hasChat && el.memoryFlyout) {
