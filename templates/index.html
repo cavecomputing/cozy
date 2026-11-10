@@ -1263,7 +1263,7 @@
                     <h3>Presets and preview</h3>
                     <p class="sampler-help-intro">Once a connection works, keep it one click away.</p>
                     <dl class="sampler-help-list">
-                        <div class="sampler-help-row"><dt>Presets</dt><dd>Use <strong>New</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</dd></div>
+                        <div class="sampler-help-row"><dt>Presets</dt><dd>Use <strong>Save as preset</strong> to keep one preset per server. Every connection setting belongs to the selected preset, so switching servers is one dropdown change.</dd></div>
                         <div class="sampler-help-row"><dt>Preview</dt><dd>The <strong>eye</strong> icon shows the exact assembled request for the active character and persona — useful for checking what the model actually sees.</dd></div>
                     </dl>
                 </div>
@@ -1279,7 +1279,7 @@
                             <dd>How "wild" the writing is. Low (0.5) = safe and predictable. High (1.3+) = creative but risks nonsense. Most models like 0.7–1.0.</dd>
                         </div>
                         <div class="sampler-help-row">
-                            <dt>Dynamic Temp <span class="sampler-advanced-badge">ADV</span></dt>
+                            <dt>Dynamic Temp</dt>
                             <dd>Lets temperature flex up or down on the fly based on how confident the model is. <em>Range</em> sets how far it can swing; <em>Exponent</em> shapes the curve. Off when range is 0.</dd>
                         </div>
                         <div class="sampler-help-row">
@@ -1380,7 +1380,7 @@
 
                 <div class="sampler-help-section">
                     <h3>Where the text goes</h3>
-                    <p>The used entries are joined with <code>---</code> lines and placed where <code>&#123;&#123;lorebook&#125;&#125;</code> sits in the prompt template. If the template does not contain it, nothing is sent, and the memory flyout shows a &#8857; marker next to Active Lorebook.</p>
+                    <p>The used entries are joined with <code>---</code> lines and placed where <code>&#123;&#123;lorebook&#125;&#125;</code> sits in the prompt template. If the template does not contain it, nothing is sent, and the memory flyout shows a &#8856; marker next to Active Lorebook.</p>
                 </div>
 
                 <div class="sampler-help-section">
@@ -1420,7 +1420,7 @@
                         <div class="sampler-help-row"><dt>Nothing at first</dt><dd>While the whole chat still fits in the context window, nothing is summarized. Work starts the moment the oldest message falls outside it.</dd></div>
                         <div class="sampler-help-row"><dt>Batches in, entries out</dt><dd>Cozy folds about 3,200 tokens of chat at a time into exactly one compact entry — less on a small context, never more than an eighth of Max context tokens. It counts text, not messages, so long replies make a batch of fewer messages and short ones a batch of more. Catching up several batches runs as one numbered run, such as batch 1/12.</dd></div>
                         <div class="sampler-help-row"><dt>Rolling window</dt><dd>New entries are appended on the end. When the summary reaches its size cap, the oldest entries roll off to make room. The summary remembers the recent past, not the whole chat.</dd></div>
-                        <div class="sampler-help-row"><dt>Where it is sent</dt><dd>The summary reaches the model only through <code>&#123;&#123;summary&#125;&#125;</code> in the prompt template. Without it, nothing is sent, and the memory flyout shows a &#8857; marker next to Auto Summary.</dd></div>
+                        <div class="sampler-help-row"><dt>Where it is sent</dt><dd>The summary reaches the model only through <code>&#123;&#123;summary&#125;&#125;</code> in the prompt template. Without it, nothing is sent, and the memory flyout shows a &#8856; marker next to Auto Summary.</dd></div>
                     </dl>
                     <ul class="prompt-help-tips">
                         <li>Summaries are off for new chats. Open the memory flyout (the button beside the chat input) and turn on <strong>Auto Summary</strong> for each chat that should have one.</li>
