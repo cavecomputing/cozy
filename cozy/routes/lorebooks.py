@@ -179,7 +179,6 @@ def create_lorebook():
     if not name:
         return jsonify({'error': 'name is required'}), 400
     book = data.get('book') if isinstance(data.get('book'), dict) else _empty_book(name)
-    book.setdefault('name', name)
     book['name'] = name
     with get_db() as conn:
         cur = conn.execute(

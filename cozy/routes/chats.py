@@ -16,13 +16,11 @@ chats_bp = Blueprint('chats', __name__)
 def chat_to_dict(row):
     """Coerce the SQLite Row into a plain dict with normalised lorebook flags."""
     d = dict(row)
-    d['active_lorebook_id'] = d.get('active_lorebook_id')
     d['active_lorebook_embedded'] = bool(d.get('active_lorebook_embedded') or 0)
-    if 'summary_enabled' in d:
-        d['summary_enabled'] = bool(d.get('summary_enabled') or 0)
-        # Expose a structured companion to the stored JSON. The summary is written by
-        # the background worker alone; generic chat updates never accept this field.
-        d['summary'] = parse_summary_json(d.get('summary_json'))
+    d['summary_enabled'] = bool(d.get('summary_enabled') or 0)
+    # Expose a structured companion to the stored JSON. The summary is written by
+    # the background worker alone; generic chat updates never accept this field.
+    d['summary'] = parse_summary_json(d.get('summary_json'))
     return d
 
 
@@ -306,9 +304,7 @@ def update_chat(chat_id):
         # Do not load the generated summary into this read/modify/write path. Summary
         # content is worker-owned and has its own endpoints under /summary.
         row = conn.execute(
-            'SELECT id, name, active_lorebook_id, active_lorebook_embedded, '
-            'author_note, summary_enabled '
-            'FROM chats WHERE id=?',
+            'SELECT active_lorebook_id, active_lorebook_embedded FROM chats WHERE id=?',
             (chat_id,),
         ).fetchone()
         if not row:

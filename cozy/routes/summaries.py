@@ -82,7 +82,7 @@ def call_summarizer(messages, cap_tokens=0):
         r = http_requests.post(url, json=payload, headers=headers, timeout=180)
         r.raise_for_status()
     except http_requests.RequestException as e:
-        raise RuntimeError(_error_detail(e))
+        raise RuntimeError(_error_detail(e)) from e
     try:
         body = r.json()
     except ValueError as e:

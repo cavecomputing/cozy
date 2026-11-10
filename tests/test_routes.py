@@ -1338,13 +1338,13 @@ class TestMessageDelete:
 class TestFork:
     def test_fork_copies_messages_and_swipes(self, client, sample_chat):
         chat_id = sample_chat['id']
-        m1 = client.post(f'/api/chats/{chat_id}/messages', json={
+        client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'user', 'content': 'Hello',
         }).get_json()
         m2 = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'character', 'content': 'Hi there!',
         }).get_json()
-        m3 = client.post(f'/api/chats/{chat_id}/messages', json={
+        client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'user', 'content': 'How are you?',
         }).get_json()
         client.post(f'/api/messages/{m2["id"]}/swipes', json={'content': 'Hey!'})
@@ -1473,7 +1473,7 @@ class TestFork:
 
     def test_fork_on_last_message(self, client, sample_chat):
         chat_id = sample_chat['id']
-        m1 = client.post(f'/api/chats/{chat_id}/messages', json={
+        client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'user', 'content': 'A',
         }).get_json()
         m2 = client.post(f'/api/chats/{chat_id}/messages', json={

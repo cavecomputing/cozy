@@ -217,7 +217,6 @@ function clearActiveCharacterState() {
     state.activeChat = null;
     state.messages = [];
     el.currentCharName.textContent = 'Cozy';
-    el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
     updateComposerState();
     renderChats();
     renderMessages();
@@ -266,7 +265,6 @@ export async function selectCharacter(charId) {
 
     // Clear current chat view while chats load
     state.chats    = [];
-    state.activeChat = null;
     state.messages  = [];
     el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
 
