@@ -1906,7 +1906,7 @@ input[type="checkbox"]:checked::after {
     align-items: center;
     gap: 0.3rem;
     width: fit-content;
-    padding: 0.12rem 0.45rem 0.12rem 0.35rem;
+    padding: 0.12rem 0.4rem;
     border: 1px solid var(--line);
     border-radius: var(--radius-pill);
     background-color: var(--surface-sunken);
