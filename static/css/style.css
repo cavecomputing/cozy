@@ -24,7 +24,7 @@
        toasts
    10. Settings: Shell and navigation, cards and rows, API and samplers, picker
        rows, prompt page, lorebooks page, about page, help panels, narrow panes
-   11. Phone: desktop-only and phone-only, backdrops, sheet and page motion, touch
+   11. Phone: phone-only, backdrops, sheet and page motion, touch
        screens; the phone block: base, controls, sidebar, chat, composer, panels,
        settings, picker rows, prompt page, lorebooks page, about page, help
        panels; smallest phones
@@ -6196,9 +6196,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    PHONE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Desktop-only and phone-only ─────────────────────────────────────────── */
-.desktop-only { display: flex; }
-
+/* ── Phone-only ──────────────────────────────────────────────────────────── */
 .mobile-only { display: none; }
 
 /* ── Backdrops ───────────────────────────────────────────────────────────── */
@@ -6288,10 +6286,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 @media (max-width: 768px), (max-height: 500px) and (hover: none) {
     /* ── Base ────────────────────────────────────────────────────────────── */
     .mobile-only { display: flex; }
-
-    .desktop-only {
-        display: none !important;
-    }
 
     /* The app runs edge to edge, stopping only at the safe area so it clears
        the notch, the status bar and the home indicator (all zero in a plain
