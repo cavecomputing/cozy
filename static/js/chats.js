@@ -200,7 +200,11 @@ export function startChatRename(li, chat) {
 
 export async function loadChats(charId) {
     try {
-        state.chats = await API.getChats(charId);
+        const chats = await API.getChats(charId);
+        // Another character picked while these were on their way owns the
+        // screen now; opening one of these chats would put it under them.
+        if (state.activeCharacter?.id !== charId) return;
+        state.chats = chats;
         renderChats();
 
         if (state.chats.length === 0) {
@@ -261,6 +265,9 @@ export async function selectChat(chat) {
     let messagesLoaded = false;
     try {
         const rows = await API.getMessages(chat.id);
+        // A chat picked while these were on their way owns the screen now.
+        // Drawn under it, they would also be sent as its history.
+        if (state.activeChat?.id !== chat.id) return;
         // Normalise DB rows to the shape appendMessage expects
         state.messages = rows.map(r => {
             const swipes = r.swipes || [{ content: r.content }];
@@ -280,6 +287,7 @@ export async function selectChat(chat) {
         });
         messagesLoaded = true;
     } catch (err) {
+        if (state.activeChat?.id !== chat.id) return;
         state.messages = [];
         console.error('Could not load messages:', err);
         showToast('Failed to load messages: ' + err.message);
@@ -301,6 +309,7 @@ export async function selectChat(chat) {
                 if (altGreetings.length > 0) {
                     await API.updateMessage(saved.id, greeting).catch(() => {});
                 }
+                if (state.activeChat?.id !== chat.id) return;
                 const swipes = [{ content: greeting }, ...altGreetings.map(ag => ({ content: ag }))];
                 state.messages.push({
                     role: saved.role, text: greeting, id: saved.id,

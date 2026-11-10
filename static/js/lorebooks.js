@@ -645,7 +645,8 @@ async function setActiveLorebook(sel) {
     else if (sel.kind === 'standalone') fields.active_lorebook_id = sel.id;
     try {
         const updated = await API.updateChat(chat.id, fields);
-        state.activeChat = updated;
+        // The user may have moved to another chat while this was in flight.
+        if (state.activeChat?.id === chat.id) state.activeChat = updated;
         const idx = state.chats.findIndex(c => c.id === chat.id);
         if (idx >= 0) state.chats[idx] = updated;
         renderLorebookFlyout();
