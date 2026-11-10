@@ -133,7 +133,7 @@ export function chatStamp() {
  * @param {object} context  — { user, char, personality, scenario, description,
  *                              persona, mesExamples, lorebook, author_note, summary,
  *                              system_prompt, post_history_instructions,
- *                              user_message, idle_duration }
+ *                              user_message }
  * @returns {string} the resolved string
  */
 export function resolveTemplateVariables(template, context) {
@@ -166,7 +166,10 @@ export function resolveTemplateVariables(template, context) {
         .replace(/\{\{user_message\}\}/gi,   () => context.user_message || '')
         .replace(/\{\{time\}\}/gi,           () => new Date().toLocaleTimeString())
         .replace(/\{\{date\}\}/gi,           () => new Date().toLocaleDateString())
-        .replace(/\{\{idle_duration\}\}/gi,  () => context.idle_duration || '0')
+        // SillyTavern's macro for the time since the last message. Cozy keeps
+        // no such clock, so it reads as 0 rather than reaching the model as
+        // braces, which is what a variable not listed here does.
+        .replace(/\{\{idle_duration\}\}/gi,  () => '0')
         .replace(/\{\{random:([^}]+)\}\}/gi, (_, choices) => {
             const arr = choices.split(',').map(s => s.trim());
             return arr[Math.floor(Math.random() * arr.length)] || '';
