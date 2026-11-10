@@ -148,7 +148,7 @@ def _norm_heading(line):
 # but a dash only separates when it is surrounded by whitespace — otherwise ``Jean-Luc``
 # would be split into two people.
 _BOND_PARTICIPANT_SPLIT = re.compile(r'\s*[&/,]\s*|\s+(?:and|[-–—])\s+')
-_BULLET_PREFIX = re.compile(r'^[-*••]\s*')
+_BULLET_PREFIX = re.compile(r'^[-*•]\s*')
 
 
 def bond_key(text):

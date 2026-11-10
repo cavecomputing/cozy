@@ -185,7 +185,7 @@ def _completion_budget(settings, cap_tokens):
 
     The cap-derived floor keeps a large configured summary workable when the main
     connection's allowance is small. Neither number bounds the *stored* summary —
-    ``validate_append_entries`` rejects oversized entries and ``enforce_cap`` trims what
+    ``fit_append_entries`` cuts oversized entries down and ``enforce_cap`` trims what
     is kept — so this is a safety valve, and a generous one costs nothing.
     """
     floor = int(cap_tokens * 1.25) if cap_tokens and cap_tokens > 0 else 0

@@ -2,8 +2,9 @@
 // RP DIALOGUE — recognising quoted speech inside a reply
 //
 // Split out of main.js so the matching can be exercised under bare node:
-// `marked` is a CDN global and can't be imported there, but deciding "is this
-// quoted speech, and where does it end" is plain string work.
+// `marked` is a page global (a classic script from static/vendor) and can't be
+// imported there, but deciding "is this quoted speech, and where does it end"
+// is plain string work.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**

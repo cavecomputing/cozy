@@ -203,10 +203,10 @@ if __name__ == '__main__':
         datefmt='%H:%M:%S',
     )
 
-    # Use Flask's built-in server with livereload extras.
-    # livereload.Server wraps WSGI and buffers responses, which breaks SSE
-    # streaming.  Flask's dev server supports streaming natively and the
-    # ``extra_files`` watcher gives us auto-reload on template/static changes.
+    # Flask's built-in server, not livereload.Server: that one wraps WSGI and
+    # buffers responses, which breaks SSE streaming.  Flask's dev server
+    # streams natively, and under --debug the ``extra_files`` watcher gives
+    # auto-reload on template/static changes.
     #
     # Debug is opt-in because this is also how the README tells everyone to
     # run Cozy: it serves Werkzeug's PIN-locked Python console at /console,
