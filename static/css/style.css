@@ -5787,11 +5787,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     align-items: center;
     gap: 0.55rem;
     margin-top: 0.55rem;
-    padding: 0.55rem 0.6rem;
+    /* The tiles' 12px inline, so its icon and size line up with theirs. */
+    padding: var(--space-4);
     border-radius: var(--radius);
     border: 0;
     background: transparent;
-    padding-block: var(--space-4);
 }
 
 .about-storage-cache-icon {
