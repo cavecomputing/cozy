@@ -246,9 +246,16 @@ export async function loadCharacters() {
     }
 }
 
+// The character whose chats selectCharacter() is waiting on.
+let loadingCharId = null;
+
 export async function selectCharacter(charId) {
     const char = state.characters.find(c => c.id === charId);
     if (!char || char.missing) return;
+    // A second click on a character that is still loading is the same ask.
+    // Run twice, as a double-click does, a new character got two first chats
+    // and a chat with nothing in it yet got its greeting twice.
+    if (loadingCharId === charId && state.activeCharacter?.id === charId) return;
 
     // Before the message list is torn down below — selectChat's own flush comes
     // too late for a character switch.
@@ -268,7 +275,9 @@ export async function selectCharacter(charId) {
     state.messages  = [];
     el.chatHistory.querySelectorAll('.message-container').forEach(c => c.remove());
 
+    loadingCharId = charId;
     await loadChats(charId);
+    if (loadingCharId === charId) loadingCharId = null;
     savePrefs();
 }
 
