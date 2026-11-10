@@ -31,7 +31,8 @@ def make_minimal_png() -> bytes:
 
 def write_png_chara(png_bytes: bytes, card: dict) -> bytes:
     """
-    Inject (or replace) a 'chara' tEXt chunk into a PNG byte string.
+    Inject a 'chara' tEXt chunk into a PNG byte string, replacing any
+    'chara' chunk (tEXt or iTXt) already there.
     The card dict is serialised to JSON, base64-encoded, and stored as the
     chunk value — exactly the format readers like SillyTavern expect.
     """
@@ -53,8 +54,10 @@ def write_png_chara(png_bytes: bytes, card: dict) -> bytes:
         except struct.error:
             break
 
-        # Skip any existing 'chara' tEXt chunk so we don't duplicate
-        if ctype == b'tEXt':
+        # Skip any existing 'chara' chunk so we don't duplicate. iTXt counts
+        # too: extract_png_chara() returns the first one in the file, so an
+        # old iTXt card left ahead of ours would shadow every edit.
+        if ctype in (b'tEXt', b'iTXt'):
             chunk_data = png_bytes[pos + 8:pos + 8 + clen]
             try:
                 nul = chunk_data.index(b'\x00')

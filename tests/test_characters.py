@@ -1,7 +1,10 @@
 """Tests for character routes — V1/V2 import, export, avatar upload, sync."""
 
+import base64
 import json
 import os
+import struct
+import zlib
 from io import BytesIO
 
 from PIL import Image
@@ -164,6 +167,22 @@ class TestPngRoundtrip:
         # And it must remain a valid PNG (signature + IEND survive)
         assert png2[:8] == b'\x89PNG\r\n\x1a\n'
         assert b'IEND' in png2
+
+    def test_replacing_an_itxt_chara_chunk_reads_back_the_new_card(self):
+        """A card kept in an iTXt chunk is replaced too. extract_png_chara()
+        returns the first chara chunk in the file, so one left in place ahead
+        of the new tEXt chunk would shadow every later edit."""
+        payload = b'chara\x00\x00\x00\x00\x00' + base64.b64encode(
+            json.dumps(v2_card(name='First')).encode())
+        itxt = (struct.pack('>I', len(payload)) + b'iTXt' + payload
+                + struct.pack('>I', zlib.crc32(b'iTXt' + payload)))
+        plain = make_minimal_png()
+        png1 = plain[:-12] + itxt + plain[-12:]   # before IEND
+        assert extract_png_chara(png1)['data']['name'] == 'First'
+
+        png2 = write_png_chara(png1, v2_card(name='Second'))
+        assert extract_png_chara(png2)['data']['name'] == 'Second'
+        assert b'iTXt' not in png2
 
     def test_extract_returns_none_on_non_png(self):
         assert extract_png_chara(b'not a png') is None
