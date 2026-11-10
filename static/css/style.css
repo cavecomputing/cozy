@@ -5030,6 +5030,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     align-items: center;
     gap: var(--space-2);
     flex: none;
+    /* Right-hand even when it wraps under the title, as on the phone's API page. */
+    margin-left: auto;
 }
 
 .prompt-builder-tabs {
