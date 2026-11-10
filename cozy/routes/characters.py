@@ -152,11 +152,15 @@ def list_characters():
         ).fetchall()
         # When each character was last written to, for the sidebar's Recent.
         # Your own messages only: opening a character saves its greeting, and
-        # looking at someone is not chatting with them.
+        # looking at someone is not chatting with them. Each chat is walked
+        # back from its newest message to your last one through the
+        # (chat_id, id) index, which reads a row or two per chat; joining and
+        # taking MAX(created_at) read every message in the database, on a
+        # request the page waits for at every load.
         last_chat_at = dict(conn.execute(
-            'SELECT c.character_id, MAX(m.created_at) FROM messages m '
-            "JOIN chats c ON c.id = m.chat_id WHERE m.role = 'user' "
-            'GROUP BY c.character_id'
+            'SELECT c.character_id, MAX((SELECT created_at FROM messages '
+            "WHERE chat_id = c.id AND role = 'user' ORDER BY id DESC LIMIT 1)) "
+            'FROM chats c GROUP BY c.character_id'
         ).fetchall())
         # When each character's chats were last opened or written in, on any
         # device, so a fresh page picks up where you left off.

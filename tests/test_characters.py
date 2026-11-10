@@ -945,6 +945,13 @@ class TestLastChatAt:
                              json={'role': 'user', 'content': 'b'}).get_json()
         assert self._last_chat_at(client, char_id) == newest['created_at']
 
+    def test_replies_after_yours_do_not_hide_it(self, client, sample_character, sample_chat):
+        url = f'/api/chats/{sample_chat["id"]}/messages'
+        mine = client.post(url, json={'role': 'user', 'content': 'a'}).get_json()
+        for reply in ('b', 'c'):
+            client.post(url, json={'role': 'character', 'content': reply})
+        assert self._last_chat_at(client, sample_character['id']) == mine['created_at']
+
 
 class TestLastUsedAt:
     def _last_used_at(self, client, char_id):
