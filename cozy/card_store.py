@@ -42,9 +42,15 @@ def read_character_card(path):
     """Parse embedded card data from a PNG file. Returns dict or None."""
     try:
         with open(path, 'rb') as f:
-            return extract_png_chara(f.read())
+            card = extract_png_chara(f.read())
     except OSError:
         return None
+    # A chunk that decodes to something else, or to a card whose `data` is not
+    # an object, counts as no card. Every reader indexes into it, and one such
+    # file used to answer 500 for the whole character list.
+    if not isinstance(card, dict) or not isinstance(card.get('data', card), dict):
+        return None
+    return card
 
 
 # Both of the above pull an entire card off disk — often more than a megabyte —

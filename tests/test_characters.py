@@ -7,6 +7,7 @@ import struct
 import zlib
 from io import BytesIO
 
+import pytest
 from PIL import Image
 
 from cozy import card_store
@@ -566,6 +567,29 @@ class TestSync:
         assert r.data[:8] == b'\x89PNG\r\n\x1a\n'
         # The sidebar asks for the thumbnail at the same name.
         assert client.get(url.replace('/characters/', '/thumbs/characters/128/')).status_code == 200
+
+    @pytest.mark.parametrize('card', [
+        {'spec': 'chara_card_v2', 'data': 'the name is Bob'},
+        {'spec': 'chara_card_v2', 'data': 5},
+        {'data': ['name']},
+        ['not', 'a', 'card'],
+    ])
+    def test_a_malformed_card_does_not_take_the_list_down(self, client, sample_character, card):
+        """One file whose chunk decodes to something that is not a card used
+        to answer 500 for the whole library. It lists as a PNG with no card."""
+        with open(os.path.join(shared.CHARACTERS_DIR, 'bad.png'), 'wb') as f:
+            f.write(write_png_chara(make_minimal_png(), card))
+        with open(os.path.join(shared.CHARACTERS_DIR, 'bare.png'), 'wb') as f:
+            f.write(_solid_png((1, 2), (9, 9, 9)))
+
+        r = client.get('/api/characters')
+        assert r.status_code == 200
+        by_file = {c['filename']: c for c in r.get_json()}
+        assert by_file[sample_character['filename']]['name'] == sample_character['name']
+        assert by_file['bad.png']['name'] == by_file['bare.png']['name']
+        # Opening it works as well as listing it.
+        assert client.get(f"/api/characters/{by_file['bad.png']['id']}/chats").status_code == 200
+        assert client.post(f"/api/characters/{by_file['bad.png']['id']}/chats", json={}).status_code == 201
 
     def test_new_file_on_disk_creates_row(self, client):
         # Drop a fresh card directly into the dir — list endpoint should pick it up
