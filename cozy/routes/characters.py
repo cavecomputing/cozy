@@ -11,7 +11,7 @@ from cozy import shared
 from cozy.card_store import (
     CARD_DATA_DEFAULTS, card_data_fields, ensure_png, file_crc, file_crc_cached, get_character_card,
     has_placeholder_image, normalize_to_v2, normalize_character_book, read_character_card, read_character_card_cached,
-    write_character_card,
+    write_character_card, write_file_atomic,
 )
 from cozy.shared import get_db, json_download, not_found
 from cozy.png_utils import make_minimal_png, write_png_chara, extract_png_chara
@@ -195,8 +195,7 @@ def create_character():
 
     filename = _unique_filename(data['name'])
     filepath = os.path.join(shared.CHARACTERS_DIR, filename)
-    with open(filepath, 'wb') as f:
-        f.write(png_bytes)
+    write_file_atomic(filepath, png_bytes)
 
     crc = file_crc(filepath)
     with get_db() as conn:
@@ -256,8 +255,7 @@ def import_character():
     name = data.get('name', 'character')
     filename = _unique_filename(name)
     filepath = os.path.join(shared.CHARACTERS_DIR, filename)
-    with open(filepath, 'wb') as f:
-        f.write(png_bytes)
+    write_file_atomic(filepath, png_bytes)
 
     crc = file_crc(filepath)
     with get_db() as conn:
@@ -296,8 +294,7 @@ def import_over_character(char_id):
             with open(filepath, 'rb') as f:
                 png_bytes = write_png_chara(f.read(), card_data)
 
-        with open(filepath, 'wb') as f:
-            f.write(png_bytes)
+        write_file_atomic(filepath, png_bytes)
 
         crc = file_crc(filepath)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))
@@ -456,8 +453,7 @@ def upload_avatar(char_id):
         png_bytes = ensure_png(file.read())
         png_bytes = write_png_chara(png_bytes, card_data)
 
-        with open(filepath, 'wb') as f:
-            f.write(png_bytes)
+        write_file_atomic(filepath, png_bytes)
 
         crc = file_crc(filepath)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))

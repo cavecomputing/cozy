@@ -494,6 +494,53 @@ class TestAvatarUpload:
         assert r.status_code == 404
 
 
+# ── A save that fails partway ──────────────────────────────────────────────
+
+class TestInterruptedSave:
+    """The PNG is the only copy of a character, so a write that dies halfway
+    (a full disk, a crash) has to leave the card as it was."""
+
+    @pytest.fixture
+    def failing_disk(self, monkeypatch):
+        real_open = open
+
+        def open_then_fail(path, mode='r', *args, **kwargs):
+            f = real_open(path, mode, *args, **kwargs)
+            if 'w' in mode:
+                def write_half(data, write=f.write):
+                    write(data[:len(data) // 2])
+                    raise OSError(28, 'No space left on device')
+                f.write = write_half
+            return f
+
+        monkeypatch.setattr(card_store, 'open', open_then_fail, raising=False)
+        monkeypatch.setattr(characters_module, 'open', open_then_fail, raising=False)
+
+    def _card_on_disk(self, char):
+        return card_store.read_character_card(
+            os.path.join(shared.CHARACTERS_DIR, char['filename']))
+
+    def test_failed_edit_keeps_the_card(self, client, sample_character, failing_disk):
+        before = self._card_on_disk(sample_character)
+        r = client.put(f'/api/characters/{sample_character["id"]}', json={'description': 'Rewritten.'})
+        assert r.status_code == 500
+        assert self._card_on_disk(sample_character) == before
+
+    def test_failed_lorebook_save_keeps_the_card(self, client, sample_character, failing_disk):
+        before = self._card_on_disk(sample_character)
+        with pytest.raises(OSError):
+            card_store.set_character_book(sample_character['id'], {'entries': [{'keys': ['a'], 'content': 'b'}]})
+        assert self._card_on_disk(sample_character) == before
+
+    def test_failed_avatar_upload_keeps_the_card(self, client, sample_character, failing_disk):
+        before = self._card_on_disk(sample_character)
+        r = client.post(f'/api/characters/{sample_character["id"]}/avatar', data={
+            'avatar': (BytesIO(_solid_png((4, 4), (255, 0, 0))), 'red.png', 'image/png'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 500
+        assert self._card_on_disk(sample_character) == before
+
+
 # ── Delete behavior ────────────────────────────────────────────────────────
 
 class TestCharacterDelete:

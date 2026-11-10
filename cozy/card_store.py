@@ -247,13 +247,28 @@ def ensure_png(image_bytes):
     return buf.getvalue()
 
 
+def write_file_atomic(path, data):
+    """Write *data* to *path* whole or not at all.
+
+    A card's PNG is the only copy of its character, and writing over it in
+    place truncates it first: a crash or a full disk partway through left a
+    card that no longer opened. The bytes go to a sibling file and are renamed
+    over the original only once they are all on disk. The sibling's name does
+    not end in .png, so the folder scan never mistakes it for a card.
+    """
+    tmp = path + '.tmp'
+    with open(tmp, 'wb') as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
 def write_character_card(path, card):
     """Embed card data in an existing PNG file and return its CRC."""
     with open(path, 'rb') as f:
         png_bytes = f.read()
-    png_bytes = write_png_chara(png_bytes, card)
-    with open(path, 'wb') as f:
-        f.write(png_bytes)
+    write_file_atomic(path, write_png_chara(png_bytes, card))
     return file_crc(path)
 
 
@@ -279,8 +294,6 @@ def set_character_book(char_id, new_book):
             'spec_version': '2.0',
             'data': existing_data,
         }
-        png_bytes = write_png_chara(png_bytes, card)
-        with open(path, 'wb') as f:
-            f.write(png_bytes)
+        write_file_atomic(path, write_png_chara(png_bytes, card))
 
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (file_crc(path), char_id))
