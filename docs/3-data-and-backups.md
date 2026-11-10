@@ -55,9 +55,10 @@ know what changed in the database since. An older one restores fine: Cozy
 migrates it on the way in, exactly as it would at startup, and puts back any
 bundled prompt preset that postdates it.
 
-Restoring is not a sandbox. Cozy checks that the archive is one of its own and
-that its database opens before it deletes anything, but it does not police what
-is inside beyond that — restore archives you made, not ones you were sent.
+Restoring is not a sandbox. Cozy checks that the archive is one of its own,
+that the disk has room for it unpacked and that its database opens before it
+deletes anything, but it does not police what is inside beyond that — restore
+archives you made, not ones you were sent.
 
 ## Back up by hand
 

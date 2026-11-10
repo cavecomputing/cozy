@@ -719,6 +719,20 @@ def _stage_backup(archive, staged):
             shutil.copyfileobj(source, out)
 
 
+def _room_to_restore(archive, workspace):
+    """Whether *archive* fits unpacked, both where it is staged and where it lands.
+
+    Staging in *workspace* running out of room only fails the restore, but the
+    data directory is emptied before the staged copy moves in, so a backup too
+    large for that disk would be found out after the old data was gone. The
+    sizes come from the archive's own index, and zipfile never writes more for
+    a member than its index says.
+    """
+    unpacked = sum(member.file_size for member in archive.infolist())
+    emptied = shutil.disk_usage(shared.DATA_DIR).free + _directory_stats(shared.DATA_DIR)['bytes']
+    return unpacked <= min(shutil.disk_usage(workspace).free, emptied)
+
+
 def _replace_data_dir(staged):
     """Empty the data directory and move the staged backup into its place."""
     for entry in os.scandir(shared.DATA_DIR):
@@ -768,6 +782,10 @@ def restore_backup():
                         'This backup was made by a newer version of Cozy '
                         f'(database version {version}, this build understands '
                         f'{known_version}). Update Cozy, then restore it.'}), 409
+                if not _room_to_restore(archive, workspace):
+                    return jsonify({'error':
+                        'There is not enough free disk space to unpack this '
+                        'backup. Nothing was changed.'}), 507
                 _stage_backup(archive, staged)
             if not _usable_database(os.path.join(staged, os.path.basename(shared.DATABASE))):
                 raise ValueError('the database in it is unreadable')

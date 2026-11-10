@@ -194,10 +194,12 @@ owns and deletes: `send_file` plus a delete-on-close left a full copy of the
 data directory in the system temp directory after every backup.
 
 Restore is destructive: it empties `$DATA_DIR` and unpacks the archive in its
-place. Two rules keep that from being a data-loss bug, and both have tests:
+place. Three rules keep that from being a data-loss bug, and each has a test:
 the archive's database is opened and read **while still staged**, so a broken
-backup is refused before anything is deleted, and the route holds
-`_RESTORE_LOCK` so two restores can't interleave a wipe with a move. The
+backup is refused before anything is deleted; an archive that would not fit
+unpacked is refused before it is staged (`_room_to_restore()`), because the
+wipe comes before the move; and the route holds `_RESTORE_LOCK` so two
+restores can't interleave a wipe with a move. The
 per-request `max_content_length` has to be a **number** — Flask falls back to
 the app-wide 20 MB cap when it is `None`, which would 413 any real backup.
 

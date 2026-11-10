@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import shutil
 import tempfile
 import zipfile
 
@@ -163,6 +164,38 @@ class TestBackupRestore:
         assert r.status_code == 400
         names = [c['name'] for c in client.get('/api/characters').get_json()]
         assert names == ['Still Here']
+
+    def test_a_backup_too_big_for_the_disk_is_refused_before_anything_is_deleted(
+            self, client, monkeypatch):
+        """The data directory is emptied before the backup moves in, so one
+        that will not fit has to be turned away while the old data is there."""
+        create_character(client, 'Still Here')
+        backup = client.get('/api/backup').data
+        with zipfile.ZipFile(io.BytesIO(backup)) as archive:
+            unpacked = sum(member.file_size for member in archive.infolist())
+        on_disk = sum(os.path.getsize(os.path.join(directory, name))
+                      for directory, _, names in os.walk(shared.DATA_DIR) for name in names)
+        real_usage = shutil.disk_usage
+
+        def data_disk_nearly_full(path):
+            usage = real_usage(path)
+            if os.path.abspath(path) != os.path.abspath(shared.DATA_DIR):
+                return usage
+            return usage._replace(free=unpacked - on_disk - 1)
+
+        monkeypatch.setattr(shutil, 'disk_usage', data_disk_nearly_full)
+        r = restore(client, backup)
+        assert r.status_code == 507
+        assert 'disk space' in r.get_json()['error']
+        names = [c['name'] for c in client.get('/api/characters').get_json()]
+        assert names == ['Still Here']
+
+        # Free space alone is still a byte short here. It fits because the
+        # room the old data gives up counts.
+        monkeypatch.setattr(shutil, 'disk_usage', lambda path: real_usage(path)._replace(
+            free=unpacked - 1 if os.path.abspath(path) == os.path.abspath(shared.DATA_DIR)
+            else real_usage(path).free))
+        assert restore(client, backup).status_code == 200
 
     def test_a_backup_larger_than_the_upload_cap_is_accepted(self, client):
         """A backup is the whole library, so the app-wide upload cap — sized
