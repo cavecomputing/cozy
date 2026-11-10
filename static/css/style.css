@@ -3754,6 +3754,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    .modal-header has — that is what puts the two dividers on one line. */
 #char-modal .modal-header {
     min-height: 44px;
+    /* On the 12px edge the avatar, tabs, fields and footer share. */
+    padding-inline: var(--space-4);
 }
 
 .modal-identity {
