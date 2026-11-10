@@ -132,6 +132,8 @@ def test_estimate_tokens_matches_heuristic():
     ('A & B: allies', 'B and A: allies'),
     ('Kael/Lina: healer', 'Lina , Kael : healer'),
     ('A & B: allies.', 'A & B: something else entirely'),     # identity is the head only
+    ('Анна and Мария: sisters', 'Мария – Анна: closer now'),   # not only ASCII names
+    ('花子 and 太郎: siblings', '太郎 and 花子: closer now'),
 ])
 def test_bond_key_identifies_the_same_relationship(a, b):
     assert bond_key(a) == bond_key(b)
@@ -141,6 +143,7 @@ def test_bond_key_identifies_the_same_relationship(a, b):
     ('Cerina and Luna: sisters', 'Cerina and Kael: allies'),
     ('A & B: allies', 'A & C: allies'),
     ('Preserve this exact shared moment.', 'Exact pinned bond.'),  # colon-less legacy
+    ('Анна and Bob: allies', 'Мария and Bob: rivals'),             # not only ASCII names
 ])
 def test_bond_key_separates_different_relationships(a, b):
     assert bond_key(a) != bond_key(b)

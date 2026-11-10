@@ -169,7 +169,7 @@ def bond_key(text):
     head = re.sub(r'\s+', ' ', head).strip().lower()
     parts = []
     for part in _BOND_PARTICIPANT_SPLIT.split(head):
-        cleaned = re.sub(r'[^a-z0-9 ]', '', part or '').strip()
+        cleaned = re.sub(r'[^\w ]', '', part or '').strip()
         cleaned = re.sub(r'\s+', ' ', cleaned)
         if cleaned:
             parts.append(cleaned)
