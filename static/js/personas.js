@@ -87,7 +87,8 @@ export function renderPersonaList() {
                     showToast('Failed to delete persona: ' + err.message);
                 }
             });
-            actions.appendChild(del);
+            // Before the pencil, so every row's pencil shares the right-hand column.
+            actions.prepend(del);
         }
         opt.appendChild(actions);
 
