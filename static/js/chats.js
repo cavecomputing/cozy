@@ -275,10 +275,7 @@ export async function selectChat(chat) {
             let idx = swipes.findIndex(s => s.content === r.content);
             if (idx === -1) idx = 0;
             // Build persona snapshot from DB join data
-            const persona = r.persona_id ? {
-                name: r.persona_name || 'You',
-                avatar_url: r.persona_avatar_url || null,
-            } : null;
+            const persona = r.persona_id ? { name: r.persona_name || 'You' } : null;
             return {
                 role: r.role, text: r.content, id: r.id,
                 created_at: r.created_at, swipes, activeSwipeIndex: idx,

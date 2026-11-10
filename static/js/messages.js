@@ -654,13 +654,13 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
                 role, text, id: saved.id, created_at: saved.created_at,
                 swipes: saved.swipes || [{ content: text }],
                 activeSwipeIndex: 0,
-                persona: p ? { name: p.name, avatar_url: p.avatar_url } : null,
+                persona: p ? { name: p.name } : null,
             });
         } catch (err) {
             console.error('Could not save message:', err);
             showToast('Message failed to save: ' + err.message);
             state.messages.push({ role, text, swipes: [{ content: text }], activeSwipeIndex: 0,
-                persona: p ? { name: p.name, avatar_url: p.avatar_url } : null });
+                persona: p ? { name: p.name } : null });
         }
     }
 

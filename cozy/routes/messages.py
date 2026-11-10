@@ -3,16 +3,14 @@
 from flask import Blueprint, request, jsonify
 
 from cozy.routes.chats import chat_to_dict, default_chat_name
-from cozy.shared import get_db, not_found, persona_avatar_url
+from cozy.shared import get_db, not_found
 from cozy.summarizer import fork_summary
 
 messages_bp = Blueprint('messages', __name__)
 
 
 MESSAGE_WITH_PERSONA_SQL = '''
-    SELECT m.*, p.name AS persona_name, p.tagline AS persona_tagline,
-           p.avatar_path AS persona_avatar_path,
-           p.updated_at AS persona_updated_at
+    SELECT m.*, p.name AS persona_name
     FROM messages m
     LEFT JOIN personas p ON m.persona_id = p.id
 '''
@@ -29,12 +27,6 @@ def _swipe_to_dict(row):
 
 def _message_to_dict(row, swipes=None):
     message = dict(row)
-    message['persona_avatar_url'] = persona_avatar_url(
-        message.get('persona_avatar_path'),
-        message.get('persona_updated_at'),
-    )
-    message.pop('persona_avatar_path', None)
-    message.pop('persona_updated_at', None)
     message['swipes'] = swipes or [{'id': None, 'content': row['content']}]
     return message
 
