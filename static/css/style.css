@@ -6183,6 +6183,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 @container (max-width: 640px) {
     .settings-row.settings-row--field { grid-template-columns: minmax(0, 1fr); }
+    /* Under its label a select runs the row's width, as the switches do. */
+    .settings-row--field > .cozy-select { max-width: none; }
     .about-storage-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
