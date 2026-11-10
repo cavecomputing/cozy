@@ -289,7 +289,7 @@ function setAutoSummary(args) {
     el.summaryToggle.checked = on;
     el.summaryToggle.dispatchEvent(new Event('change'));
     if (on && !summarizerConfigured()) {
-        return showToast('Auto summaries on for this chat, but no summarizer is set up yet: see Settings → Auto Summaries');
+        return showToast('Auto summaries on for this chat, but no summarizer is set up yet: see Settings → Summaries');
     }
     showToast(`Auto summaries ${on ? 'on' : 'off'} for this chat`, 'success');
 }
