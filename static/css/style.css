@@ -1450,11 +1450,14 @@ input[type="checkbox"]:checked::after {
     margin-bottom: 0.25rem;
 }
 
+/* Sized and placed like a row's ⋯, 4px from the end, so its tile while open
+   matches the ⋯'s pressed one and the clock stays in the ⋯ column. */
 .recent-btn {
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
+    margin-right: var(--space-1);
     flex-shrink: 0;
     border: 1px solid transparent;
     border-radius: 7px;
@@ -6435,9 +6438,16 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     .recent-btn {
-        width: 52px;
-        height: 52px;
+        position: relative;
+        width: 28px;
+        height: var(--mobile-tap-target);
         border-radius: var(--radius-control);
+    }
+
+    .recent-btn::after {
+        content: '';
+        position: absolute;
+        inset: 0 0 0 -16px;
     }
 
     .recent-btn svg {
