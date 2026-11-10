@@ -12,7 +12,7 @@ import json
 from flask import Blueprint, request, jsonify
 
 from cozy.card_store import (
-    coerce_keys, get_character_card, normalize_character_book, safe_int,
+    get_character_card, normalize_character_book, safe_int,
     set_character_book,
 )
 from cozy.shared import get_db, json_download, not_found, safe_download_name
@@ -113,51 +113,29 @@ def _normalize_imported_book(raw):
         book['token_budget'] = safe_int(raw.get('token_budget'), 0)
     book['max_entries'] = safe_int(raw.get('max_entries'), 20)
 
-    raw_entries = raw['entries']
-    if isinstance(raw_entries, dict):
-        # SillyTavern world info: object keyed by index — flatten in numeric order
-        try:
-            keys = sorted(raw_entries.keys(), key=lambda k: int(k))
-        except (TypeError, ValueError):
-            keys = list(raw_entries.keys())
-        raw_entries = [raw_entries[k] for k in keys]
-    if not isinstance(raw_entries, list):
+    if not isinstance(raw['entries'], (list, dict)):
         raise ValueError('Lorebook "entries" must be an array or object')
 
-    for re in raw_entries:
-        if not isinstance(re, dict):
-            continue
-        keys = coerce_keys(re.get('keys') if 'keys' in re else re.get('key'))
-        secondary = coerce_keys(
-            re.get('secondary_keys') if 'secondary_keys' in re else re.get('keysecondary')
-        )
-
-        if 'enabled' in re:
-            enabled = bool(re['enabled'])
-        elif 'disable' in re:
-            enabled = not bool(re['disable'])
-        else:
-            enabled = True
-
+    # normalize_character_book() settles the SillyTavern spellings: entries
+    # keyed by index, key/keysecondary, order, disable. What is left to do
+    # here is keep only the fields the V2 spec names.
+    for raw_entry in normalize_character_book(raw)['entries']:
         entry = {
-            'keys': keys,
-            'secondary_keys': secondary,
-            'content': str(re.get('content', '') or ''),
-            'comment': str(re.get('comment', '') or ''),
-            'enabled': enabled,
-            'constant': bool(re.get('constant', False)),
-            'selective': bool(re.get('selective', False)),
-            'case_sensitive': bool(re.get('case_sensitive', False)),
-            'insertion_order': safe_int(
-                re.get('insertion_order') if 'insertion_order' in re else re.get('order'),
-                100,
-            ),
-            'extensions': re['extensions'] if isinstance(re.get('extensions'), dict) else {},
+            'keys': raw_entry['keys'],
+            'secondary_keys': raw_entry['secondary_keys'],
+            'content': str(raw_entry.get('content', '') or ''),
+            'comment': str(raw_entry.get('comment', '') or ''),
+            'enabled': raw_entry['enabled'],
+            'constant': bool(raw_entry.get('constant', False)),
+            'selective': bool(raw_entry.get('selective', False)),
+            'case_sensitive': bool(raw_entry.get('case_sensitive', False)),
+            'insertion_order': raw_entry['insertion_order'],
+            'extensions': raw_entry['extensions'],
         }
         # Preserve optional V2 spec fields when present
         for opt in ('name', 'priority', 'id', 'position'):
-            if opt in re and re[opt] is not None:
-                entry[opt] = re[opt]
+            if raw_entry.get(opt) is not None:
+                entry[opt] = raw_entry[opt]
         book['entries'].append(entry)
 
     return book
