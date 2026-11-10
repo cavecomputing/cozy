@@ -46,14 +46,14 @@ Summarization sends old chat content to the selected LLM server and may add API
 cost or local processing time.
 
 **Reasoning models need room to think.** Cozy allows each summarizer call
-whichever is larger of the size cap's own requirement and your **Max Response
-Tokens** — the same allowance the main connection reserves for a reply, which is
+whichever is larger of the size cap's own requirement and your **Max response
+tokens** — the same allowance the main connection reserves for a reply, which is
 free to reuse because Cozy never sends a chat request while a summary is running.
 On a reasoning model such as Gemini Flash or a local QwQ build, the thinking
 tokens are spent out of that same allowance before a single word of the summary
 is written, so a low Max response tokens can cut the reply off mid-summary. If
 runs keep failing with *"cut off by its completion token limit"*, raise **Max
-Response Tokens** in **Settings → API → Context & generation**, or point the
+response tokens** in **Settings → API → Context & generation**, or point the
 summarizer at a non-reasoning model — it only has to write a few bullets.
 
 **Each batch gets one retry.** When the summarizer can't be reached or answers in
