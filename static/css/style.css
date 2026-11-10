@@ -6473,11 +6473,29 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         min-height: var(--mobile-tap-target);
     }
 
-    .char-item-actions .icon-btn,
     .chat-item-actions .icon-btn,
     .persona-actions .icon-btn {
         width: var(--mobile-tap-target);
         height: var(--mobile-tap-target);
+    }
+
+    /* A character row's ⋯ draws a 28px tile 4px from the row's end, so its dots
+       sit as far in as the avatar does from the start, and its hit area reaches
+       back to the full 44px over the free space beside it. */
+    .char-item-actions {
+        margin-right: var(--space-1);
+    }
+
+    .char-item-actions .icon-btn {
+        position: relative;
+        width: 28px;
+        height: var(--mobile-tap-target);
+    }
+
+    .char-item-actions .icon-btn::after {
+        content: '';
+        position: absolute;
+        inset: 0 0 0 -16px;
     }
 
     #user-profile-container {
