@@ -4254,8 +4254,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
     .settings-nav { grid-area: 2 / 1; }
     .settings-pane { grid-area: 1 / 2 / 3; }
+    /* The eyebrow starts on the nav icons' edge, and Back's chevron, which
+       sits 5px into its box, on it too. */
     #settings-title {
-        padding: 0 var(--space-1) var(--space-2);
+        padding: 0 var(--space-4) var(--space-2);
         border-bottom: 1px solid var(--line);
     }
     #settings-close-btn {
@@ -4263,7 +4265,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         align-self: flex-start;
         gap: var(--space-2);
         min-height: 0;
-        padding: 0 var(--space-1);
+        padding: 0 var(--space-2);
         font-family: var(--font-mono);
         font-size: var(--text-sm);
         color: var(--fg-quiet);
