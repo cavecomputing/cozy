@@ -171,7 +171,7 @@ def _normalise_swipes(message, warnings, line_no):
         return [content], 0
     try:
         swipe_id = int(message.get('swipe_id', 0))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):   # OverflowError: Infinity
         swipe_id = 0
         warnings.append(f'Line {line_no}: invalid swipe_id; selected the first swipe')
     if content not in swipes:

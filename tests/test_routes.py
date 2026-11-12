@@ -710,6 +710,20 @@ class TestChatJsonlImportExport:
             ('character', 'Opening line'), ('user', 'Reply'),
         ]
 
+    @pytest.mark.parametrize('swipe_id', ['Infinity', 'NaN', '"two"', '[1]'])
+    def test_import_survives_a_swipe_id_that_is_not_a_number(self, client, sample_character, swipe_id):
+        """json.loads reads a bare Infinity, and int() raises OverflowError on
+        it rather than the ValueError the others give."""
+        payload = ('{"user_name": "Alice"}\n'
+                   '{"is_user": false, "mes": "A", "swipes": ["A", "B"], "swipe_id": %s}' % swipe_id)
+        r = client.post(
+            f'/api/chats/import?character_id={sample_character["id"]}',
+            data={'file': (BytesIO(payload.encode('utf-8')), 'odd.jsonl')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        assert r.get_json()['warnings'] == ['Line 2: invalid swipe_id; selected the first swipe']
+
     def test_import_rejects_invalid_jsonl(self, client, sample_character):
         r = client.post(
             f'/api/chats/import?character_id={sample_character["id"]}',
