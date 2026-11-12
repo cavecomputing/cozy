@@ -7,6 +7,7 @@ a shipped entry must never be renumbered, renamed or reordered.
 """
 
 import json
+import logging
 import math
 import os
 
@@ -20,6 +21,8 @@ from cozy.defaults import (
     _DEFAULT_PROMPT_TEMPLATE_V4,
 )
 from cozy.shared import get_db
+
+log = logging.getLogger('cozy')
 
 
 def _retire_duplicate_greeting_cleanup(_conn):
@@ -406,7 +409,9 @@ MIGRATIONS = (
 
 
 def _run_migrations(conn):
-    """Run pending migrations in version order within the caller's transaction."""
+    """Run pending migrations in version order within the caller's transaction,
+    and return the names of those that ran."""
+    applied = []
     previous_version = 0
     for version, name, migrate in MIGRATIONS:
         if version <= previous_version:
@@ -430,6 +435,8 @@ def _run_migrations(conn):
             'INSERT INTO schema_migrations (version, name) VALUES (?, ?)',
             (version, name),
         )
+        applied.append(name)
+    return applied
 
 
 def init_db():
@@ -627,7 +634,12 @@ def init_db():
                 (_DEFAULT_POST_HISTORY_TEMPLATE_V1,)
             )
 
-        _run_migrations(conn)
+        applied = _run_migrations(conn)
+        if fresh_install:
+            log.info('Created the database at %s', shared.DATABASE)
+        elif applied:
+            log.info('Migrated the database to version %d: %s',
+                     MIGRATIONS[-1][0], ', '.join(applied))
 
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "

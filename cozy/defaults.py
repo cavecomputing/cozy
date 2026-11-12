@@ -154,6 +154,7 @@ def seed_default_characters():
         if row is None or row['value'] != '0':
             return
 
+        seeded = []
         if os.path.isdir(shared.BUNDLED_CHARACTERS_DIR):
             os.makedirs(shared.CHARACTERS_DIR, exist_ok=True)
             for filename in sorted(os.listdir(shared.BUNDLED_CHARACTERS_DIR)):
@@ -170,6 +171,9 @@ def seed_default_characters():
                     # start. Log it and leave the flag unset so a later run retries.
                     log.exception('Could not seed bundled character %s', filename)
                     return
+                seeded.append(filename[:-len('.png')])
+        if seeded:
+            log.info('Added the bundled characters: %s', ', '.join(seeded))
 
         conn.execute(
             "UPDATE settings SET value='1' WHERE key='default_characters_seeded'"
@@ -288,6 +292,7 @@ def seed_default_prompts():
                 (title, version, description, content, post_history),
             )
             existing.add((title, version))
+            log.info('Added the bundled prompt %s %s', title, version)
             last_id = cursor.lastrowid
             # The greatest version wins, not the last file read — filenames no
             # longer carry the version, so their order says nothing about it.
