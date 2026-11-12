@@ -251,6 +251,17 @@ class TestCacheKeying:
         client.get(f'/thumbs/characters/128/{char["filename"]}')
         assert len(_thumb_files()) == 2
 
+    def test_the_key_memo_holds_one_entry_per_file(self, client):
+        """It was keyed by the file's stat as well, so every edit of a card
+        added an entry that nothing ever took out again."""
+        char = _make_char(client, _png(600, 900))
+        url = f'/thumbs/characters/128/{char["filename"]}'
+        client.get(url)
+        for text in ('First.', 'Second.', 'Third.'):
+            client.put(f'/api/characters/{char["id"]}', json={'description': text})
+            assert client.get(url).status_code == 200
+        assert len(thumbs._key_memo) == 1
+
     def test_identical_artwork_shares_one_thumbnail(self, client):
         artwork = _png(600, 900)
         first = _make_char(client, artwork)

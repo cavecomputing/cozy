@@ -49,8 +49,9 @@ WEBP_METHOD = 4
 # a copy it could hand to someone who hasn't signed in.
 IMMUTABLE = 'private, max-age=31536000, immutable'
 
-# (path, mtime_ns, size) -> content key. Saves re-reading the source on every
-# request; a changed file misses the memo because its stat differs.
+# path -> ((mtime_ns, size), content key). Saves re-reading the source on every
+# request; a changed file misses because its stat differs, and its new key
+# takes the old one's place, so the memo holds one entry per file.
 _key_memo = {}
 # Content keys that Pillow could not decode, so a corrupt file is not decoded
 # again on every request. Keyed by content, so replacing the file retries.
@@ -74,10 +75,10 @@ def _key_for(src_path):
         st = os.stat(src_path)
     except OSError:
         return None
-    memo_key = (src_path, st.st_mtime_ns, st.st_size)
-    key = _key_memo.get(memo_key)
-    if key is not None:
-        return key
+    stamp = (st.st_mtime_ns, st.st_size)
+    hit = _key_memo.get(src_path)
+    if hit is not None and hit[0] == stamp:
+        return hit[1]
 
     key = None
     try:
@@ -94,7 +95,7 @@ def _key_for(src_path):
             digest_size=8,
         ).hexdigest()
 
-    _key_memo[memo_key] = key
+    _key_memo[src_path] = (stamp, key)
     return key
 
 
