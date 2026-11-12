@@ -5939,7 +5939,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--text-color);
 }
 
-.settings-help-body p { margin: 0 0 0.6rem; color: var(--text-secondary); }
+/* :where() keeps this at the weight of a bare `p`, so a paragraph with a class
+   of its own (the callout, a topic's intro and footnote) sets its own margin
+   and colour. */
+:where(.settings-help-body) p { margin: 0 0 0.6rem; color: var(--text-secondary); }
 
 .settings-help-body strong { color: var(--text-color); }
 
@@ -5948,12 +5951,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 /* The panel's lead note, as a callout: a raised card on the panel rather
    than a tinted strip with an accent edge. */
 .prompt-help-callout {
-    margin: 0 0 1rem !important;
+    margin: 0 0 1rem;
     padding: 0.625rem 0.875rem;
     background: var(--surface-raised);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    color: var(--fg) !important;
+    color: var(--fg);
     font-size: var(--text-lg);
 }
 
@@ -6081,13 +6084,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .sampler-help-intro {
-    margin: 0 0 0.5rem !important;
+    margin: 0 0 0.5rem;
     font-size: var(--text-lg);
 }
 
 /* An aside under a topic's list: a callout inset in the topic's card. */
 .sampler-help-footnote {
-    margin: 0.6rem 0 0 !important;
+    margin: 0.6rem 0 0;
     padding: 0.625rem 0.875rem;
     background-color: var(--surface-inset);
     border: 1px solid var(--line);
