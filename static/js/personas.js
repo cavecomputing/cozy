@@ -280,17 +280,28 @@ export function showPersonaForm(editPersona = null) {
         const desc = descInput.value.trim();
 
         saveBtnEl.disabled = true;
+        let persona;
         try {
-            let persona;
-            if (editPersona) {
-                persona = await API.updatePersona(editPersona.id, { name, tagline, description: desc });
-            } else {
-                persona = await API.createPersona({ name, tagline, description: desc });
-            }
-            if (selectedFile) {
+            persona = editPersona
+                ? await API.updatePersona(editPersona.id, { name, tagline, description: desc })
+                : await API.createPersona({ name, tagline, description: desc });
+        } catch (err) {
+            // Nothing was saved, so the form stays open with what was typed.
+            console.error(err);
+            showToast(err.message || 'Connection failed', 'error');
+            saveBtnEl.disabled = false;
+            return;
+        }
+        // Saved. A picture that then fails (wrong type, too large) is reported
+        // on its own, and the list below still gets the persona it was for.
+        if (selectedFile) {
+            try {
                 persona = await API.uploadPersonaAvatar(persona.id, selectedFile);
+            } catch (err) {
+                showToast(`Persona saved, but its picture was not: ${err.message}`, 'error');
             }
-            // Refresh list
+        }
+        try {
             state.personas = await API.getPersonas();
             state.activePersona = state.personas.find(p => p.id === persona.id) || state.activePersona;
             updateUserProfile();
