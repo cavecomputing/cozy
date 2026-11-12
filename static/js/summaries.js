@@ -537,7 +537,7 @@ export async function ensureSummaryReadyForSend(signal, {
     const chatId = chat.id;
     try {
         if (!summarizerConfigured()) {
-            throw new Error('Configure an Auto Summaries endpoint and model');
+            throw new Error('Set a summarizer endpoint and model in Settings → Summaries');
         }
         let previousWatermark = chat.summary_up_to_msg_id || 0;
         let stalledRuns = 0;

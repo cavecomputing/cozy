@@ -1136,7 +1136,7 @@ def test_send_guard_warns_about_an_unconfigured_memory_gap_only_when_needed():
 
         await ensureSummaryReadyForSend();
         assert.equal(toasts.length, 1);
-        assert.match(toasts[0], /Configure an Auto Summaries endpoint and model/);
+        assert.match(toasts[0], /Set a summarizer endpoint and model in Settings → Summaries/);
 
         // With no context limit, nothing ages out, so there is nothing to warn about.
         el.settingsContextTokens.value = '0';

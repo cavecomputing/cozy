@@ -67,9 +67,9 @@ def call_summarizer(messages, cap_tokens=0):
     """One non-streaming summarizer completion. Mirrors ``test_llm`` in routes/llm.py."""
     endpoint, api_key, model = _summary_llm_settings()
     if not endpoint:
-        raise RuntimeError('No summarizer endpoint configured (Settings → Auto Summaries)')
+        raise RuntimeError('No summarizer endpoint configured (Settings → Summaries)')
     if not model:
-        raise RuntimeError('No summarizer model configured (Settings → Auto Summaries)')
+        raise RuntimeError('No summarizer model configured (Settings → Summaries)')
     url, headers = _upstream(endpoint, api_key, 'chat/completions')
     payload = {'model': model, 'messages': messages, 'stream': False}
     budget = _completion_budget(get_settings(), cap_tokens)

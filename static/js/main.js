@@ -1193,7 +1193,7 @@ function bindMemoryHandlers() {
         if (el.settingsFlyout?.hidden !== false) el.settingsBtn?.click();
         applySettingsSection('lorebooks', { drillIntoOnMobile: true });
     });
-    // Summary config hint — deep-link to the Auto Summaries settings tab
+    // Summary config hint — deep-link to the Summaries settings page
     el.summaryConfigHint?.querySelector('#summary-open-settings')?.addEventListener('click', e => {
         e.stopPropagation();
         el.memoryFlyout.hidden = true;
