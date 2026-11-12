@@ -297,6 +297,16 @@ def test_the_password_only_counts_in_the_form(anon):
     assert anon.get('/').status_code == 302
 
 
+def test_sign_ins_are_logged_without_the_password(locked, caplog):
+    with caplog.at_level('INFO', logger='cozy'):
+        locked.test_client().post('/login', data={'password': PASSWORD})
+        locked.test_client().post('/login', data={'password': 'a wrong guess'})
+    assert [r.getMessage() for r in caplog.records] == [
+        'Signed in from 127.0.0.1', 'Wrong password from 127.0.0.1',
+    ]
+    assert 'a wrong guess' not in caplog.text and PASSWORD not in caplog.text
+
+
 def test_wrong_password_holds_off_every_sign_in_for_a_second(anon, monkeypatch):
     now = 1000.0
     monkeypatch.setattr(auth.time, 'monotonic', lambda: now)

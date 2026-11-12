@@ -7,6 +7,7 @@ the password is set, so without one Cozy runs exactly as it always has.
 
 import hashlib
 import hmac
+import logging
 import os
 import secrets
 import threading
@@ -21,6 +22,8 @@ from cozy.shared import get_db
 
 # The password that signs a device in. Unset or empty means no sign-in at all.
 PASSWORD = os.environ.get('COZY_PASSWORD', '')
+
+log = logging.getLogger('cozy')
 
 bp = Blueprint('auth', __name__)
 
@@ -154,9 +157,12 @@ def login():
         if not right:
             next_try = time.monotonic() + WRONG_PASSWORD_WAIT
     if not right:
+        # The address is the reverse proxy's when there is one; see above.
+        log.warning('Wrong password from %s', request.remote_addr)
         # So whoever mistyped can try again as soon as they see this.
         time.sleep(WRONG_PASSWORD_WAIT)
         return render_template('login.html', error='That password is wrong.'), 401
+    log.info('Signed in from %s', request.remote_addr)
     session.clear()
     session['signed_in'] = True
     session.permanent = request.form.get('remember') == 'on'
