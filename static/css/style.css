@@ -1134,7 +1134,12 @@ input[type="checkbox"]:checked::after {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Rail ────────────────────────────────────────────────────────────────── */
+/* Rows fade out at both ends as the chat does, and the persona card sits in
+   the bottom fade (its negative top margin, --card-overlap), so the list
+   dissolves at the card's edge instead of being cut off above it. */
 #sidebar {
+    --list-fade: var(--space-6);
+    --card-overlap: 0.625rem;
     position: relative;
     width: 240px;
     background-color: var(--sidebar-bg);
@@ -1155,14 +1160,6 @@ input[type="checkbox"]:checked::after {
    phone drawer has somewhere to put the keyboard when it opens. */
 #sidebar:focus {
     outline: none;
-}
-
-/* Rows fade out at both ends as the chat does, and the persona card sits in
-   the bottom fade (its negative top margin, --card-overlap), so the list
-   dissolves at the card's edge instead of being cut off above it. */
-#sidebar {
-    --list-fade: var(--space-6);
-    --card-overlap: 0.625rem;
 }
 
 .sidebar-scrollable {
@@ -7233,8 +7230,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         cursor: pointer;
     }
 
-    .lorebook-entry-toggle { min-height: 44px; }
-
     .sampler-popover input[type="checkbox"] { margin-block: 0; }
 
     .settings-submodal.modal-overlay { z-index: 600; }
@@ -7349,7 +7344,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         min-height: 0;
     }
 
-    .lorebook-entry-toggle { white-space: normal; }
+    .lorebook-entry-toggle {
+        min-height: 44px;
+        white-space: normal;
+    }
 
     .lorebook-picker .cozy-select-label { flex-basis: 100%; }
 
