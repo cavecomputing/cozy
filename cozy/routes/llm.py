@@ -218,6 +218,21 @@ def _summary_llm_settings():
     )
 
 
+def _listed_models(body):
+    """The models in a /models response, each a dict with a text ``id``.
+
+    OpenAI-compatible servers answer ``{"data": [...]}``. Some providers
+    (aionlabs) use ``{"models": [...]}``, some send the list with nothing
+    around it, and some list bare names instead of objects.
+    """
+    if isinstance(body, dict):
+        body = body.get('data') or body.get('models')
+    if not isinstance(body, list):
+        return []
+    models = ({'id': m} if isinstance(m, str) else m for m in body)
+    return [m for m in models if isinstance(m, dict) and m.get('id') and isinstance(m['id'], str)]
+
+
 @llm_bp.route('/api/llm/models', methods=['GET'])
 def list_models():
     profile = request.args.get('profile', 'main')
@@ -236,11 +251,8 @@ def list_models():
     try:
         r = http_requests.get(url, headers=headers, params=params, timeout=10)
         r.raise_for_status()
-        body = r.json()
-        # OpenAI-compatible APIs use {"data": [...]}; some providers
-        # (e.g. aionlabs) return {"models": [...]} instead.
-        data = body.get('data') or body.get('models') or []
-        models = sorted(m.get('id', '') for m in data if m.get('id'))
+        data = _listed_models(r.json())
+        models = sorted(m['id'] for m in data)
         # Claude names the context window max_input_tokens.
         model_details = {m['id']: m.get('context_length') or m['max_input_tokens']
                          for m in data if m.get('context_length') or m.get('max_input_tokens')}

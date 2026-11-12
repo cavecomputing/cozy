@@ -991,6 +991,31 @@ class TestLLMProxy:
         assert body['models'] == ['aion-labs/aion-2.0', 'aion-labs/aion-rp-llama-3.1-8b']
         assert body['model_details']['aion-labs/aion-2.0'] == 131072
 
+    @pytest.mark.parametrize('upstream, listed', [
+        ([{'id': 'b-model', 'context_length': 8192}, {'id': 'a-model'}], ['a-model', 'b-model']),
+        ({'models': ['b-model', 'a-model']}, ['a-model', 'b-model']),
+        ({'data': [{'id': 'a-model'}, 'b-model', None, 7, {'id': None}, {'name': 'no id'}]},
+         ['a-model', 'b-model']),
+        ({'data': 'nothing listed'}, []),
+        ('nothing listed', []),
+    ])
+    def test_models_endpoint_reads_other_shapes_of_list(self, client, monkeypatch, upstream, listed):
+        """A list with no object around it failed on `.get`, and the picker
+        showed "Failed to fetch: Internal server error"."""
+        class ModelsResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return upstream
+
+        monkeypatch.setattr(llm_module.http_requests, 'get',
+                            lambda *a, **kw: ModelsResponse())
+        client.put('/api/settings', json={'api_endpoint': 'http://upstream.test/v1'})
+        r = client.get('/api/llm/models')
+        assert r.status_code == 200
+        assert r.get_json()['models'] == listed
+
     def test_models_endpoint_uses_summary_profile_credentials(self, client, monkeypatch):
         captured = {}
 
