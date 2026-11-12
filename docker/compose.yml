@@ -12,3 +12,6 @@ services:
       # Optional: put COZY_PASSWORD='…' in docker/.env to require a password.
       # Left unset, Cozy has no sign-in. See docs/7-security.md.
       - COZY_PASSWORD=${COZY_PASSWORD:-}
+      # Optional: COZY_LOG_LEVEL=DEBUG (or WARNING) in docker/.env. See
+      # docs/4-troubleshooting.md.
+      - COZY_LOG_LEVEL=${COZY_LOG_LEVEL:-INFO}

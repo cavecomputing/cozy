@@ -14,7 +14,14 @@ from cozy import defaults
 from cozy import schema
 from cozy import thumbs
 
+# Here rather than under __main__, so gunicorn's workers log the way
+# `uv run app.py` does; set up under __main__ alone, `docker logs` showed
+# nothing below a warning. COZY_LOG_LEVEL takes a level name, and DEBUG adds
+# the opening words of each prompt and reply.
+logging.basicConfig(format='%(asctime)s %(levelname)-7s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 log = logging.getLogger('cozy')
+log.setLevel(os.environ.get('COZY_LOG_LEVEL', 'INFO').upper())
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -196,12 +203,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     BIND_HOST = args.host
     BIND_PORT = args.port
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s [%(name)s] %(message)s',
-        datefmt='%H:%M:%S',
-    )
 
     # Flask's built-in server, not livereload.Server: that one wraps WSGI and
     # buffers responses, which breaks SSE streaming.  Flask's dev server

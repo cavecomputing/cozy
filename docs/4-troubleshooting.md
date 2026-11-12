@@ -15,6 +15,21 @@ Python: read the terminal where `uv run app.py` is running.
 
 The default address is <http://localhost:5000>.
 
+## See more in the logs
+
+Cozy logs at `INFO` by default. Set `COZY_LOG_LEVEL` to change that: `WARNING`
+keeps only problems, and `DEBUG` adds the first words of every prompt and
+reply, so turn it back off once you have found what you were after.
+
+Python:
+
+```bash
+COZY_LOG_LEVEL=DEBUG uv run app.py
+```
+
+Docker: put `COZY_LOG_LEVEL=DEBUG` in `docker/.env`, then run
+`docker compose -f docker/compose.yml up -d`.
+
 ## Port 5000 is already in use
 
 Stop the program using port 5000 or change Cozy's port. Under Docker, change the
