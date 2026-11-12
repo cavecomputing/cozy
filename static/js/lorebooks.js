@@ -390,6 +390,21 @@ export async function saveLorebook() {
     const isStandalone = target.kind === 'standalone';
     const wantsStandalone = dest === 'standalone';
     const wantsEmbeddedCharId = dest.startsWith('embedded:') ? parseInt(dest.slice(9), 10) : null;
+    // A card holds one lorebook, so moving this one into a character replaces
+    // the book that character already has.
+    const movingIn = wantsEmbeddedCharId != null && !(target.kind === 'embedded' && target.id === wantsEmbeddedCharId);
+    const destination = movingIn && state.characters.find(c => c.id === wantsEmbeddedCharId);
+    const replaced = destination?.character_book?.entries?.length;
+    if (replaced) {
+        const ok = await confirmDialog({
+            title: `Replace ${destination.name}'s lorebook?`,
+            message: `${destination.name} already has an embedded lorebook with `
+                + `${replaced === 1 ? '1 entry' : `${replaced} entries`}. `
+                + 'Saving this book there replaces it. This cannot be undone.',
+            confirmLabel: 'Replace',
+        });
+        if (!ok) return;
+    }
     // What is being sent, so typing that lands while the request is out
     // still counts as unsaved.
     const sent = editorForm();
