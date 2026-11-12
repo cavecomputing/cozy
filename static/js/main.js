@@ -138,6 +138,26 @@ function closeExportMenu(menu) {
 }
 
 /**
+ * Wire one `.export-dropdown`: its button opens and closes the menu, and a
+ * click anywhere outside the pair closes it. Returns the closer, for the
+ * menu's own items to call.
+ */
+function bindExportMenu(button, menu) {
+    const dropdown = menu.closest('.export-dropdown');
+    button.addEventListener('click', e => {
+        e.stopPropagation();
+        if (closeExportMenu(menu)) return;
+        menu.hidden = false;
+        dropdown.classList.add('open');
+        button.setAttribute('aria-expanded', 'true');
+    });
+    document.addEventListener('click', e => {
+        if (!dropdown.contains(e.target)) closeExportMenu(menu);
+    });
+    return () => closeExportMenu(menu);
+}
+
+/**
  * Peel whichever dropdown is open inside Settings, innermost first. Returns
  * true when one was closed, which is how Escape knows to stop.
  */
@@ -160,18 +180,7 @@ function closeOpenSettingsMenu() {
 // reloads afterwards: every list on screen belongs to the database that just
 // went away.
 function bindBackupHandlers() {
-    const closeMenu = () => closeExportMenu(el.backupMenu);
-    el.backupBtn?.addEventListener('click', e => {
-        e.stopPropagation();
-        const willOpen = el.backupMenu?.hidden;
-        if (el.backupMenu) el.backupMenu.hidden = !willOpen;
-        el.backupDropdown?.classList.toggle('open', willOpen);
-        el.backupBtn?.setAttribute('aria-expanded', String(!!willOpen));
-    });
-    document.addEventListener('click', e => {
-        if (!el.backupMenu || el.backupMenu.hidden) return;
-        if (!e.target.closest('#about-backup-dropdown')) closeMenu();
-    });
+    const closeMenu = bindExportMenu(el.backupBtn, el.backupMenu);
     el.backupExport?.addEventListener('click', () => {
         closeMenu();
         showToast('Preparing backup…', 'success', 2000);
@@ -838,18 +847,7 @@ function bindSettingsHandlers() {
         if (!e.target.closest('#prompt-rendered-flyout')) closeRenderedPrompts();
     });
     // Import / export dropdown
-    const closeSyspromptIoMenu = () => closeExportMenu(el.syspromptIoMenu);
-    el.syspromptIoBtn?.addEventListener('click', e => {
-        e.stopPropagation();
-        const willOpen = el.syspromptIoMenu?.hidden;
-        if (el.syspromptIoMenu) el.syspromptIoMenu.hidden = !willOpen;
-        el.syspromptIoDropdown?.classList.toggle('open', willOpen);
-        el.syspromptIoBtn?.setAttribute('aria-expanded', String(!!willOpen));
-    });
-    document.addEventListener('click', e => {
-        if (!el.syspromptIoMenu || el.syspromptIoMenu.hidden) return;
-        if (!e.target.closest('#sysprompt-io-dropdown')) closeSyspromptIoMenu();
-    });
+    const closeSyspromptIoMenu = bindExportMenu(el.syspromptIoBtn, el.syspromptIoMenu);
     el.syspromptImport?.addEventListener('click', () => { closeSyspromptIoMenu(); importSystemPrompt(); });
     el.syspromptImportFile?.addEventListener('change', handleSystemPromptImportFile);
     el.syspromptExport?.addEventListener('click', () => { closeSyspromptIoMenu(); exportSystemPrompt(); });
