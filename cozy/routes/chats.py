@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, Response
 
 from cozy.card_store import get_character_card_data
-from cozy.shared import get_db, not_found, safe_download_name
+from cozy.shared import get_db, json_body, not_found, safe_download_name, text_field
 from cozy.summarizer import parse_summary_json
 
 chats_bp = Blueprint('chats', __name__)
@@ -198,8 +198,7 @@ def create_chat(char_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
             return not_found('Character')
-        data = request.get_json(silent=True) or {}
-        name = (data.get('name') or '').strip() or default_chat_name()
+        name = text_field(json_body(), 'name') or default_chat_name()
         embedded_default = 1 if _character_has_lorebook(conn, char_id) else 0
         cur = conn.execute(
             'INSERT INTO chats (character_id, name, active_lorebook_embedded) '
@@ -319,7 +318,7 @@ def update_chat(chat_id):
         params = []
 
         if 'name' in data:
-            name = (data.get('name') or '').strip()
+            name = text_field(data, 'name')
             if name:
                 updates.append('name=?')
                 params.append(name)

@@ -13,7 +13,7 @@ from cozy.card_store import (
     has_placeholder_image, normalize_to_v2, normalize_character_book, read_character_card, read_character_card_cached,
     write_character_card, write_file_atomic,
 )
-from cozy.shared import get_db, json_download, not_found
+from cozy.shared import get_db, json_body, json_download, not_found
 from cozy.png_utils import make_minimal_png, write_png_chara, extract_png_chara
 
 characters_bp = Blueprint('characters', __name__)
@@ -390,7 +390,7 @@ def export_character(char_id):
 
 @characters_bp.route('/api/characters/<int:char_id>', methods=['PUT'])
 def update_character(char_id):
-    data = request.get_json(silent=True) or {}
+    data = json_body()
     with get_db() as conn:
         row = conn.execute('SELECT * FROM characters WHERE id=?', (char_id,)).fetchone()
         if not row or row['missing']:

@@ -15,7 +15,7 @@ from cozy.card_store import (
     get_character_card, normalize_character_book, safe_int,
     set_character_book,
 )
-from cozy.shared import get_db, json_download, not_found, safe_download_name
+from cozy.shared import get_db, json_body, json_download, not_found, safe_download_name, text_field
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
 
@@ -152,8 +152,8 @@ def list_lorebooks():
 
 @lorebooks_bp.route('/api/lorebooks', methods=['POST'])
 def create_lorebook():
-    data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
+    data = json_body()
+    name = text_field(data, 'name')
     if not name:
         return jsonify({'error': 'name is required'}), 400
     book = data.get('book') if isinstance(data.get('book'), dict) else _empty_book(name)
@@ -178,7 +178,7 @@ def get_lorebook(book_id):
 
 @lorebooks_bp.route('/api/lorebooks/<int:book_id>', methods=['PUT'])
 def update_lorebook(book_id):
-    data = request.get_json(silent=True) or {}
+    data = json_body()
     with get_db() as conn:
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (book_id,)).fetchone()
         if not row:
@@ -191,9 +191,8 @@ def update_lorebook(book_id):
         # Determine the canonical name. Explicit `name` field wins; otherwise
         # fall back to whatever is on the (possibly new) book; otherwise keep
         # the existing column value.
-        name = (data.get('name') or '').strip()
-        if not name:
-            name = (existing.get('name') or row['name'] or '').strip() or 'Untitled'
+        name = (text_field(data, 'name') or text_field(existing, 'name')
+                or (row['name'] or '').strip() or 'Untitled')
         existing['name'] = name
 
         conn.execute(

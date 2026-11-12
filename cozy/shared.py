@@ -11,7 +11,7 @@ import os
 import sqlite3
 from contextlib import contextmanager
 
-from flask import jsonify, Response
+from flask import jsonify, request, Response
 
 from cozy.build_info import get_build_info
 
@@ -76,6 +76,27 @@ os.makedirs(THUMBS_DIR, exist_ok=True)
 def not_found(resource):
     """Standard 404 JSON response used by all route modules."""
     return jsonify({'error': f'{resource} not found'}), 404
+
+
+def json_body():
+    """The request's JSON object.
+
+    A body that is missing, unparseable, or JSON of another shape (a list, a
+    bare string) reads as ``{}``, so the route answers with its own "name is
+    required" instead of failing on ``.get``.
+    """
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def text_field(data, key):
+    """A string field of a request body, stripped.
+
+    Anything that is not a string — absent, null, a number, a list — reads as
+    ``''``, which every caller already treats as "not given".
+    """
+    value = data.get(key)
+    return value.strip() if isinstance(value, str) else ''
 
 
 def safe_download_name(name, fallback='download'):

@@ -1884,3 +1884,53 @@ class TestBuildAssets:
         r = client.get('/assets/fedcba987654/js/main.js')
         assert r.status_code == 200
         assert r.headers['Cache-Control'] == 'no-cache'
+
+
+# ── Malformed request bodies ────────────────────────────────────────────────
+
+# Every way a field can fail to be the text or number a route reads it as.
+NOT_WHAT_WAS_ASKED_FOR = (5, 1.5, True, None, [1], {'a': 1}, 'x')
+BODY_FIELDS = (
+    'name', 'content', 'tagline', 'description', 'version', 'post_history_content',
+    'role', 'persona_id', 'book', 'entries', 'author_note', 'model', 'messages',
+    'api_endpoint', 'api_key', 'api_model', 'context_max_tokens', 'active_samplers',
+    'active_lorebook_id', 'active_lorebook_embedded', 'summary_enabled',
+    'swipe_index', 'up_to_msg_id', 'pinned', 'archived', 'tags', 'alternate_greetings',
+)
+
+
+def test_no_route_fails_on_a_malformed_json_body(client, sample_chat, sample_persona, monkeypatch):
+    """A body a script got wrong is the caller's mistake, so it gets a 4xx.
+
+    Swept over the url_map so a route added later is covered without a test of
+    its own. Each route gets JSON that is not an object, then every field it
+    might read holding every wrong type.
+    """
+    def unreachable(*args, **kwargs):
+        raise llm_module.http_requests.ConnectionError('no upstream in tests')
+    monkeypatch.setattr(llm_module.http_requests, 'post', unreachable)
+    monkeypatch.setattr(llm_module.http_requests, 'get', unreachable)
+
+    # One of everything a path can name, each with id 1.
+    assert client.post(f'/api/chats/{sample_chat["id"]}/messages',
+                       json={'role': 'user', 'content': 'hi'}).status_code == 201
+    assert client.post('/api/system-prompts', json={'name': 'Mine'}).status_code == 201
+    assert client.post('/api/presets', json={'name': 'Local'}).status_code == 201
+    assert client.post('/api/lorebooks', json={'name': 'World'}).status_code == 201
+    client.put('/api/settings', json={'api_endpoint': 'http://upstream.invalid/v1'})
+
+    bodies = [[1], 'x', 5, None, {}]
+    bodies += [{field: value} for field in BODY_FIELDS for value in NOT_WHAT_WAS_ASKED_FOR]
+    failed = []
+    for rule in client.application.url_map.iter_rules():
+        # A summary run starts a worker thread that would outlive this test;
+        # those routes check their own bodies in test_summaries.py.
+        if '/summary/' in rule.rule or rule.rule in ('/login', '/logout'):
+            continue
+        path = re.sub(r'<[^>]+>', '1', rule.rule)
+        for method in sorted(rule.methods & {'POST', 'PUT'}):
+            for body in bodies:
+                # 502 is a route saying the model server is unreachable.
+                if client.open(path, method=method, json=body).status_code == 500:
+                    failed.append(f'{method} {rule.rule} {json.dumps(body)}')
+    assert failed == []

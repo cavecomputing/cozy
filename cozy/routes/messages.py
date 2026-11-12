@@ -3,7 +3,7 @@
 from flask import Blueprint, request, jsonify
 
 from cozy.routes.chats import chat_to_dict, default_chat_name
-from cozy.shared import get_db, not_found
+from cozy.shared import get_db, json_body, not_found, text_field
 from cozy.summarizer import fork_summary
 
 messages_bp = Blueprint('messages', __name__)
@@ -151,9 +151,9 @@ def add_message(chat_id):
     with get_db() as conn:
         if not conn.execute('SELECT id FROM chats WHERE id=?', (chat_id,)).fetchone():
             return not_found('Chat')
-        data       = request.get_json(silent=True) or {}
+        data       = json_body()
         role       = data.get('role', '')
-        content    = (data.get('content') or '').strip()
+        content    = text_field(data, 'content')
         persona_id = data.get('persona_id')
         if role not in ('user', 'character'):
             return jsonify({'error': 'role must be "user" or "character"'}), 400
@@ -193,8 +193,7 @@ def add_swipe(msg_id):
         msg = conn.execute('SELECT * FROM messages WHERE id=?', (msg_id,)).fetchone()
         if not msg:
             return not_found('Message')
-        data = request.get_json(silent=True) or {}
-        content = (data.get('content') or '').strip()
+        content = text_field(json_body(), 'content')
         if not content:
             return jsonify({'error': 'content is required'}), 400
         # Seed original content as first swipe if none exist yet
@@ -219,8 +218,8 @@ def add_swipe(msg_id):
 
 @messages_bp.route('/api/messages/<int:msg_id>', methods=['PUT'])
 def update_message(msg_id):
-    data = request.get_json(silent=True) or {}
-    content = (data.get('content') or '').strip()
+    data = json_body()
+    content = text_field(data, 'content')
     if not content:
         return jsonify({'error': 'content required'}), 400
     with get_db() as conn:

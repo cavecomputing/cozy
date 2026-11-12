@@ -17,7 +17,7 @@ from cozy.defaults import (
     DEFAULT_POST_HISTORY_TEMPLATE, VERSION_RE, seed_default_prompts, version_key,
 )
 from cozy.schema import MIGRATIONS, init_db
-from cozy.shared import get_db, json_download, not_found, safe_download_name
+from cozy.shared import get_db, json_body, json_download, not_found, safe_download_name, text_field
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -189,7 +189,7 @@ def storage_stats():
 
 @settings_bp.route('/api/settings', methods=['PUT'])
 def write_settings():
-    data = request.get_json(silent=True) or {}
+    data = json_body()
     with get_db() as conn:
         for key in SETTINGS_KEYS:
             if key in data:
@@ -224,62 +224,76 @@ def list_system_prompts():
         return jsonify(sorted((dict(r) for r in rows), key=_prompt_order))
 
 
+# What a prompt holds besides its name, and what each is when a new prompt
+# leaves it out.
+NEW_PROMPT_TEXT = {
+    'version': '',
+    'description': '',
+    'content': '',
+    'post_history_content': DEFAULT_POST_HISTORY_TEMPLATE,
+}
+
+
+def _prompt_text(data, fallback):
+    """Read a prompt's text fields out of a request body or an imported file.
+
+    A field ``data`` leaves out takes its value from ``fallback``: the defaults
+    for a new prompt, the stored row for an edit. Returns ``(fields, invalid)``,
+    where ``invalid`` is None, or the 400 response for a field that is not a
+    string or a version that is not a number.
+    """
+    fields = {}
+    for key in NEW_PROMPT_TEXT:
+        fields[key] = data.get(key, fallback[key])
+        if not isinstance(fields[key], str):
+            return None, (jsonify({'error': f'"{key}" must be a string'}), 400)
+    fields['version'] = fields['version'].strip()
+    return fields, _invalid_version(fields['version'])
+
+
+def _insert_prompt(conn, name, fields):
+    """Store a new prompt and return its row as a dict."""
+    cur = conn.execute(
+        'INSERT INTO system_prompts (name, version, description, content, post_history_content) '
+        'VALUES (?, ?, ?, ?, ?)',
+        (name, fields['version'], fields['description'], fields['content'],
+         fields['post_history_content'])
+    )
+    return dict(conn.execute(
+        'SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)
+    ).fetchone())
+
+
 @settings_bp.route('/api/system-prompts', methods=['POST'])
 def create_system_prompt():
-    data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
+    data = json_body()
+    name = text_field(data, 'name')
     if not name:
         return jsonify({'error': 'name is required'}), 400
-    content = (data.get('content') or '').strip()
-    post_history_content = data.get('post_history_content', DEFAULT_POST_HISTORY_TEMPLATE)
-    if not isinstance(post_history_content, str):
-        return jsonify({'error': '"post_history_content" must be a string'}), 400
-    description = data.get('description', '')
-    if not isinstance(description, str):
-        return jsonify({'error': '"description" must be a string'}), 400
-    version = data.get('version', '')
-    if not isinstance(version, str):
-        return jsonify({'error': '"version" must be a string'}), 400
-    version = version.strip()
-    bad_version = _invalid_version(version)
-    if bad_version:
-        return bad_version
+    fields, invalid = _prompt_text(data, NEW_PROMPT_TEXT)
+    if invalid:
+        return invalid
+    fields['content'] = fields['content'].strip()
     with get_db() as conn:
         if conn.execute(
-            'SELECT 1 FROM system_prompts WHERE name = ? AND version = ?', (name, version)
+            'SELECT 1 FROM system_prompts WHERE name = ? AND version = ?', (name, fields['version'])
         ).fetchone():
             return jsonify({'error': f'A prompt named "{name}" already exists'}), 409
-        cur = conn.execute(
-            'INSERT INTO system_prompts (name, version, description, content, post_history_content) '
-            'VALUES (?, ?, ?, ?, ?)',
-            (name, version, description, content, post_history_content)
-        )
-        row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)).fetchone()
-        return jsonify(dict(row)), 201
+        return jsonify(_insert_prompt(conn, name, fields)), 201
 
 
 @settings_bp.route('/api/system-prompts/<int:prompt_id>', methods=['PUT'])
 def update_system_prompt(prompt_id):
-    data = request.get_json(silent=True) or {}
+    data = json_body()
     with get_db() as conn:
         row = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         if not row:
             return not_found('System prompt')
-        name = (data.get('name') or '').strip() or row['name']
-        description = data.get('description', row['description'])
-        version = data.get('version', row['version'])
-        content = data.get('content', row['content'])
-        post_history_content = data.get('post_history_content', row['post_history_content'])
-        if not isinstance(description, str):
-            return jsonify({'error': '"description" must be a string'}), 400
-        if not isinstance(version, str):
-            return jsonify({'error': '"version" must be a string'}), 400
-        if not isinstance(post_history_content, str):
-            return jsonify({'error': '"post_history_content" must be a string'}), 400
-        version = version.strip()
-        bad_version = _invalid_version(version)
-        if bad_version:
-            return bad_version
+        name = text_field(data, 'name') or row['name']
+        fields, invalid = _prompt_text(data, row)
+        if invalid:
+            return invalid
+        version = fields['version']
         # Name and version identify a prompt together, so a rename only clashes
         # with a row that matches both — the same prompt at another version is
         # meant to sit beside this one.
@@ -291,7 +305,8 @@ def update_system_prompt(prompt_id):
         conn.execute(
             'UPDATE system_prompts SET name = ?, version = ?, description = ?, content = ?, '
             'post_history_content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            (name, version, description, content, post_history_content, prompt_id)
+            (name, version, fields['description'], fields['content'],
+             fields['post_history_content'], prompt_id)
         )
         updated = conn.execute('SELECT * FROM system_prompts WHERE id = ?', (prompt_id,)).fetchone()
         return jsonify(dict(updated))
@@ -334,41 +349,19 @@ def import_system_prompt():
     if not isinstance(payload, dict):
         return jsonify({'error': 'Expected a JSON object'}), 400
 
-    content = payload.get('content', '')
-    if not isinstance(content, str):
-        return jsonify({'error': '"content" must be a string'}), 400
-    post_history_content = payload.get('post_history_content', DEFAULT_POST_HISTORY_TEMPLATE)
-    if not isinstance(post_history_content, str):
-        return jsonify({'error': '"post_history_content" must be a string'}), 400
-    description = payload.get('description', '')
-    if not isinstance(description, str):
-        return jsonify({'error': '"description" must be a string'}), 400
-    version = payload.get('version', '')
-    if not isinstance(version, str):
-        return jsonify({'error': '"version" must be a string'}), 400
-    version = version.strip()
-    bad_version = _invalid_version(version)
-    if bad_version:
-        return bad_version
-    raw_name = payload.get('name')
-    name = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else 'Imported Prompt'
+    fields, invalid = _prompt_text(payload, NEW_PROMPT_TEXT)
+    if invalid:
+        return invalid
+    name = text_field(payload, 'name') or 'Imported Prompt'
 
     with get_db() as conn:
         if conn.execute(
-            'SELECT 1 FROM system_prompts WHERE name = ? AND version = ?', (name, version)
+            'SELECT 1 FROM system_prompts WHERE name = ? AND version = ?', (name, fields['version'])
         ).fetchone():
             return jsonify({
                 'error': f'A prompt named "{name}" at that version already exists'
             }), 409
-        cur = conn.execute(
-            'INSERT INTO system_prompts (name, version, description, content, post_history_content) '
-            'VALUES (?, ?, ?, ?, ?)',
-            (name, version, description, content, post_history_content)
-        )
-        row = conn.execute(
-            'SELECT * FROM system_prompts WHERE id = ?', (cur.lastrowid,)
-        ).fetchone()
-        return jsonify(dict(row)), 201
+        return jsonify(_insert_prompt(conn, name, fields)), 201
 
 
 @settings_bp.route('/api/system-prompts/<int:prompt_id>/export', methods=['GET'])
@@ -460,8 +453,8 @@ def list_presets():
 
 @settings_bp.route('/api/presets', methods=['POST'])
 def create_preset():
-    data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
+    data = json_body()
+    name = text_field(data, 'name')
     if not name:
         return jsonify({'error': 'name is required'}), 400
     # If no real key was provided, inherit the current one from settings
@@ -479,8 +472,9 @@ def create_preset():
         cur = conn.execute(
             'INSERT INTO api_presets (name, api_endpoint, api_key, api_model, '
             'context_max_tokens, settings_json) VALUES (?, ?, ?, ?, ?, ?)',
-            (name, data.get('api_endpoint', ''), key_val,
-             data.get('api_model', ''), data.get('context_max_tokens', '32768'),
+            (name, _setting_value(data.get('api_endpoint')), key_val,
+             _setting_value(data.get('api_model')),
+             _setting_value(data.get('context_max_tokens', '32768')),
              _pack_preset_settings(data))
         )
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (cur.lastrowid,)).fetchone()
@@ -489,12 +483,12 @@ def create_preset():
 
 @settings_bp.route('/api/presets/<int:preset_id>', methods=['PUT'])
 def update_preset(preset_id):
-    data = request.get_json(silent=True) or {}
+    data = json_body()
     with get_db() as conn:
         row = conn.execute('SELECT * FROM api_presets WHERE id = ?', (preset_id,)).fetchone()
         if not row:
             return not_found('Preset')
-        name = (data.get('name') or '').strip() or row['name']
+        name = text_field(data, 'name') or row['name']
         if name != row['name']:
             clash = conn.execute(
                 'SELECT 1 FROM api_presets WHERE name = ? AND id != ?',
@@ -502,9 +496,9 @@ def update_preset(preset_id):
             ).fetchone()
             if clash:
                 return jsonify({'error': f'A preset named "{name}" already exists'}), 409
-        endpoint = data.get('api_endpoint', row['api_endpoint'])
-        model = data.get('api_model', row['api_model'])
-        ctx_tokens = data.get('context_max_tokens', row['context_max_tokens'])
+        endpoint = _setting_value(data.get('api_endpoint', row['api_endpoint']))
+        model = _setting_value(data.get('api_model', row['api_model']))
+        ctx_tokens = _setting_value(data.get('context_max_tokens', row['context_max_tokens']))
         # Missing or masked leaves the key alone; explicit empty clears it.
         key_val = _setting_value(data.get('api_key', ''))
         if 'api_key' not in data or is_masked_secret(key_val):

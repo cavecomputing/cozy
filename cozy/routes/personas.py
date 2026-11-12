@@ -5,7 +5,7 @@ import os
 from flask import Blueprint, request, jsonify
 
 from cozy import shared
-from cozy.shared import get_db, not_found, persona_avatar_url
+from cozy.shared import get_db, json_body, not_found, persona_avatar_url, text_field
 
 personas_bp = Blueprint('personas', __name__)
 
@@ -25,12 +25,12 @@ def list_personas():
 
 @personas_bp.route('/api/personas', methods=['POST'])
 def create_persona():
-    data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
+    data = json_body()
+    name = text_field(data, 'name')
     if not name:
         return jsonify({'error': 'name is required'}), 400
-    tagline = (data.get('tagline') or '').strip()
-    description = (data.get('description') or '').strip()
+    tagline = text_field(data, 'tagline')
+    description = text_field(data, 'description')
     with get_db() as conn:
         cur = conn.execute(
             'INSERT INTO personas (name, tagline, description) VALUES (?,?,?)', (name, tagline, description)
@@ -45,8 +45,8 @@ def update_persona(persona_id):
         row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
         if not row:
             return not_found('Persona')
-        data = request.get_json(silent=True) or {}
-        name = (data.get('name') or '').strip() or row['name']
+        data = json_body()
+        name = text_field(data, 'name') or row['name']
         # Fall back only when the key is absent — an explicit '' clears the field
         tagline = str(data.get('tagline', row['tagline']) or '').strip()
         description = str(data.get('description', row['description']) or '').strip()

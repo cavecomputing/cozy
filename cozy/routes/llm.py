@@ -14,6 +14,7 @@ import requests as http_requests
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 
 from cozy.routes.settings import get_settings
+from cozy.shared import json_body
 
 log = logging.getLogger('cozy')
 
@@ -295,7 +296,7 @@ def llm_chat():
     endpoint, api_key, _ = _llm_settings()
     if not endpoint:
         return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
-    data = request.get_json(silent=True)
+    data = json_body()
     if not data:
         return jsonify({'ok': False, 'error': 'Invalid or missing JSON body'}), 400
     if not data.get('model'):
