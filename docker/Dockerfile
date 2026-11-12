@@ -24,7 +24,10 @@ RUN groupadd -g "${GID}" cozy \
 
 WORKDIR /app
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# A numbered uv, so the same commit builds the same image next month: `latest`
+# moved to whatever uv shipped that day. Bump it along with the other
+# dependencies.
+COPY --from=ghcr.io/astral-sh/uv:0.13.8 /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
