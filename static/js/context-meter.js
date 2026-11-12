@@ -29,6 +29,14 @@ function canJumpToBoundary(analysis) {
         && analysis.firstSelectedMessageId !== state.messages[0].id;
 }
 
+// Which template a segment came from, named only when the other template has
+// the same kind of segment: one "Lorebook" needs no telling apart.
+function templateOf(segment, analysis) {
+    const twice = analysis.segments.some(other => other !== segment && other.id === segment.id);
+    if (!twice) return '';
+    return { system: 'System template', user: 'User template' }[segment.zone] || '';
+}
+
 export function tooltipForSegment(segment, analysis) {
     const formatted = segment.tokens.toLocaleString();
     const pct = analysis.maxTokens > 0
@@ -47,12 +55,8 @@ export function tooltipForSegment(segment, analysis) {
     }
     if (segment.id === 'unused') detail += '<br>Available for future conversation context.';
     if (segment.id === 'response_reserve') detail += '<br>Held back so the model has room to answer.';
-    const hasDuplicate = analysis.segments
-        .some(other => other !== segment && other.id === segment.id);
-    const zoneLabel = segment.zone === 'system' ? 'System template'
-        : (segment.zone === 'user' ? 'User template' : '');
-    const placement = hasDuplicate && zoneLabel ? ` · ${zoneLabel}` : '';
-    return `<strong>${segment.label}${placement}</strong><br>${detail}`;
+    const template = templateOf(segment, analysis);
+    return `<strong>${segment.label}${template && ` · ${template}`}</strong><br>${detail}`;
 }
 
 function renderSegments(analysis) {
@@ -72,16 +76,12 @@ function renderSegments(analysis) {
         button.dataset.segmentKey = segment.key;
         button.dataset.tip = tooltipForSegment(segment, analysis);
         button.style.flexBasis = `${(segment.tokens / denominator) * 100}%`;
-        const hasDuplicate = analysis.segments
-            .some(other => other !== segment && other.id === segment.id);
-        const zoneLabel = segment.zone === 'system' ? 'System template'
-            : (segment.zone === 'user' ? 'User template' : '');
-        const placement = hasDuplicate && zoneLabel ? `, ${zoneLabel}` : '';
+        const template = templateOf(segment, analysis);
         const jumps = segment.id === 'message_history' && canJumpToBoundary(analysis);
         button.classList.toggle('context-meter-segment--jump', jumps);
         button.setAttribute(
             'aria-label',
-            `${segment.label}${placement}: approximately ${segment.tokens.toLocaleString()} tokens`
+            `${segment.label}${template && `, ${template}`}: approximately ${segment.tokens.toLocaleString()} tokens`
             + (jumps ? '. Activate to scroll to the start of the context window' : ''),
         );
         bar.appendChild(button);
