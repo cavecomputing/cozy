@@ -37,7 +37,7 @@ import { loadLorebooks, renderLorebookList, selectLorebook, canLeaveLorebook, ne
 import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
-import { saveDraft } from './drafts.js';
+import { clearAllDrafts, saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
 import { updateContextMeter, updateContextViews, initContextMeter, setContextMeterVisible } from './context-meter.js';
 import { enhanceSettingsSelects } from './custom-select.js';
@@ -191,6 +191,7 @@ function bindBackupHandlers() {
         if (!ok) return;
         try {
             await API.restoreBackup(file);
+            clearAllDrafts();
             showToast('Backup restored — reloading…', 'success');
             setTimeout(() => window.location.reload(), 900);
         } catch (err) {

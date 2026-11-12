@@ -26,3 +26,11 @@ export function clearDraft(chatId = state.activeChat?.id) {
     const key = draftKey(chatId);
     if (key) localStorage.removeItem(key);
 }
+
+// Drafts are filed by chat id, and a restored backup hands the same ids to
+// other chats.
+export function clearAllDrafts() {
+    Object.keys(localStorage)
+        .filter(key => key.startsWith(DRAFT_PREFIX))
+        .forEach(key => localStorage.removeItem(key));
+}

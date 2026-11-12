@@ -7,7 +7,7 @@ import {
 import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills } from './messages.js';
 import { renderLorebookFlyout, loadAuthorNote, flushAuthorNote } from './lorebooks.js';
-import { restoreDraft, saveDraft } from './drafts.js';
+import { clearDraft, restoreDraft, saveDraft } from './drafts.js';
 import { renderPersonaList, updateUserProfile } from './personas.js';
 import { updateContextViews } from './context-meter.js';
 import { onChatSelected } from './summaries.js';
@@ -396,6 +396,7 @@ export async function deleteChat(chatId) {
     if (!ok) return;
     try {
         await API.deleteChat(chatId);
+        clearDraft(chatId);
         const idx = state.chats.findIndex(c => c.id === chatId);
         if (idx >= 0) state.chats.splice(idx, 1);
 
