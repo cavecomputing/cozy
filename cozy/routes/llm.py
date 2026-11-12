@@ -8,6 +8,7 @@ api.js already reads.
 
 import json
 import logging
+import time
 from urllib.parse import urlsplit
 
 import requests as http_requests
@@ -258,7 +259,9 @@ def list_models():
                          for m in data if m.get('context_length') or m.get('max_input_tokens')}
         return jsonify({'ok': True, 'models': models, 'model_details': model_details})
     except http_requests.RequestException as e:
-        return jsonify({'ok': False, 'error': _error_detail(e)}), 502
+        error = _error_detail(e)
+        log.warning('Model list failed: %s', error)
+        return jsonify({'ok': False, 'error': error}), 502
 
 
 @llm_bp.route('/api/llm/test', methods=['POST'])
@@ -300,7 +303,9 @@ def test_llm():
             reply = str(reply)
         return jsonify({'ok': True, 'reply': reply.strip()})
     except http_requests.RequestException as e:
-        return jsonify({'ok': False, 'error': _error_detail(e)}), 502
+        error = _error_detail(e)
+        log.warning('Connection test failed: %s', error)
+        return jsonify({'ok': False, 'error': error}), 502
 
 
 @llm_bp.route('/api/llm/chat', methods=['POST'])
@@ -318,22 +323,24 @@ def llm_chat():
     url, headers = _upstream(endpoint, api_key, 'chat/completions')
     anthropic = is_anthropic(endpoint)
 
-    # Log safe request metadata at INFO. Full prompt content can contain
-    # private chat text, so keep previews out of production logs.
-    log.info('── LLM REQUEST ──')
-    log.info('  URL:      %s', url)
-    log.info('  Model:    %s', data.get('model'))
-    log.info('  Messages: %d', len(data.get('messages', [])))
+    # One line at INFO says what was asked of which server. Chat text is
+    # private, so previews and the samplers (Extra request parameters can
+    # carry anything) wait for DEBUG, and credentials typed into the endpoint
+    # never reach the log.
+    parts = urlsplit(url)
+    logged_url = parts._replace(netloc=parts.netloc.rpartition('@')[2], query='').geturl()
+    log.info('Chat request: model %s, %d messages, to %s',
+             data.get('model'), len(data.get('messages', [])), logged_url)
     if log.isEnabledFor(logging.DEBUG):
         for msg in data.get('messages', []):
             role = msg.get('role', '?')
             content = msg.get('content', '')
             preview = (content[:120] + '\u2026') if len(content) > 120 else content
-            log.debug('    [%s] %s', role, preview)
-    samplers = {k: v for k, v in data.items()
-                if k not in ('model', 'messages', 'stream')}
-    if samplers:
-        log.info('  Samplers: %s', json.dumps(samplers))
+            log.debug('  [%s] %s', role, preview)
+        samplers = {k: v for k, v in data.items()
+                    if k not in ('model', 'messages', 'stream')}
+        if samplers:
+            log.debug('  Samplers: %s', json.dumps(samplers))
 
     def generate():
         token_count = 0
@@ -345,6 +352,10 @@ def llm_chat():
         #   saw_done False         -> upstream/proxy severed the stream early
         finish_reason = None
         saw_done = False
+        error = None
+        stopped = False
+        started = time.monotonic()
+        first_chunk_after = None
         try:
             # (connect, read) tuple: bound the connection attempt at 10s, but
             # never time out waiting for tokens. Slow local backends (llama.cpp
@@ -358,8 +369,8 @@ def llm_chat():
                     # complaint (bad model id, rejected parameter, …) lives
                     # there, and raise_for_status() discards it.
                     r.encoding = 'utf-8'
-                    log.error('  LLM error: %s %s from %s — %s',
-                              r.status_code, r.reason, url, (r.text or '').strip()[:500])
+                    error = (f'{r.status_code} {r.reason} from {logged_url}: '
+                             f'{(r.text or "").strip()[:500]}')
                     msg = _status_error(r.status_code, r.reason, url, r.text)
                     yield f'data: {json.dumps({"error": msg})}\n\n'
                     return
@@ -386,6 +397,8 @@ def llm_chat():
                         saw_done = True
                         yield 'data: [DONE]\n\n'
                         break
+                    if first_chunk_after is None:
+                        first_chunk_after = time.monotonic() - started
                     yield f'data: {payload}\n\n'
                     # Collect tokens + finish_reason for response log
                     try:
@@ -403,22 +416,31 @@ def llm_chat():
                         pass
         except http_requests.RequestException as e:
             # The raw exception for the log, the readable one for the toast.
-            log.error('  LLM error: %s', e)
+            error = e
             yield f'data: {json.dumps({"error": _error_detail(e)})}\n\n'
+        except GeneratorExit:
+            # The browser went away: the Stop button, or a closed tab.
+            stopped = True
+            raise
         finally:
-            log.info('── LLM RESPONSE ──')
-            log.info('  Tokens: %d chunks', token_count)
-            log.info('  Finish: %s', finish_reason or '(none)')
-            if not saw_done and finish_reason is None:
+            took = time.monotonic() - started
+            first = '' if first_chunk_after is None else f', first after {first_chunk_after:.1f}s'
+            if error:
+                log.error('Chat request failed after %.1fs: %s', took, error)
+            elif stopped:
+                log.info('Chat reply stopped after %.1fs%s: %d chunks', took, first, token_count)
+            elif not saw_done and finish_reason is None:
                 # No [DONE] and no finish_reason: the upstream connection ended
                 # mid-stream. Usually a reverse proxy / load balancer timeout or
                 # response buffering in front of the endpoint. Surfaces to the
                 # user as a silently truncated reply.
-                log.warning('  Stream ended without [DONE] or finish_reason '
-                            '(upstream proxy closed/buffered the connection early?)')
-            elif finish_reason == 'length':
-                log.info('  Note: hit max_tokens — raise sampler_max_tokens, or '
-                         'reasoning output is consuming the token budget.')
+                log.warning('Chat reply ended without [DONE] or a finish reason after '
+                            '%.1fs%s: %d chunks (a proxy closed or buffered the stream?)',
+                            took, first, token_count)
+            else:
+                # 'length' means max_tokens ran out, often to reasoning output.
+                log.info('Chat reply in %.1fs%s: %d chunks, finish %s',
+                         took, first, token_count, finish_reason or '(none)')
             if full_response is not None:
                 text = ''.join(full_response)
                 preview = (text[:200] + '\u2026') if len(text) > 200 else text

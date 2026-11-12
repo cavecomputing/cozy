@@ -839,6 +839,39 @@ class TestLLMProxy:
             'content': custom_system,
         }
 
+    def test_chat_log_leaves_out_credentials_and_chat_text(self, client, monkeypatch, caplog):
+        """A request and its reply are a line each at INFO, and neither carries
+        the key, a password typed into the endpoint, or what was said."""
+        def fake_post(*args, **kwargs):
+            upstream = llm_module.http_requests.models.Response()
+            upstream.status_code = 200
+            upstream.raw = BytesIO(
+                b'data: {"choices":[{"delta":{"content":"a private reply"}}]}\n\n'
+                b'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n'
+                b'data: [DONE]\n\n'
+            )
+            return upstream
+
+        monkeypatch.setattr(llm_module.http_requests, 'post', fake_post)
+        client.put('/api/settings', json={
+            'api_endpoint': 'http://me:hunter2@upstream.test/v1',
+            'api_key': 'sk-secret',
+        })
+        with caplog.at_level('INFO', logger='cozy'):
+            client.post('/api/llm/chat', json={
+                'model': 'test-model', 'temperature': 0.7,
+                'messages': [{'role': 'user', 'content': 'a private line'}],
+            }).get_data()
+
+        lines = [r.getMessage() for r in caplog.records]
+        assert lines[0] == ('Chat request: model test-model, 1 messages, '
+                            'to http://upstream.test/v1/chat/completions')
+        assert lines[1].startswith('Chat reply in ')
+        assert lines[1].endswith(': 1 chunks, finish stop')
+        assert len(lines) == 2
+        for secret in ('hunter2', 'sk-secret', 'a private', 'temperature'):
+            assert secret not in '\n'.join(lines)
+
     def test_chat_relays_every_well_formed_event(self, client, monkeypatch):
         """SSE shapes real servers send, through requests' own line reader.
 
