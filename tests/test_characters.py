@@ -569,6 +569,15 @@ class TestMalformedUploads:
         with open(os.path.join(shared.CHARACTERS_DIR, got['filename']), 'rb') as f:
             assert extract_png_chara(f.read()) == card
 
+    def test_avatar_names_the_allowed_types_in_one_order(self, client, sample_character):
+        """They were joined straight from a set, so the list read differently
+        from one start of the server to the next."""
+        r = client.post(f'/api/characters/{sample_character["id"]}/avatar', data={
+            'avatar': (BytesIO(b'%PDF-'), 'pic.pdf', 'application/pdf'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+        assert r.get_json()['error'] == 'File type not allowed (use gif, jpeg, jpg, png, webp)'
+
     def test_avatar_rejects_an_unreadable_image_and_keeps_the_card(self, client, sample_character):
         path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
         with open(path, 'rb') as f:

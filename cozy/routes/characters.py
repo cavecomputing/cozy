@@ -451,7 +451,7 @@ def upload_avatar(char_id):
         file = request.files['avatar']
         ext = shared.validate_image_extension(file)
         if not ext:
-            return jsonify({'error': f'File type not allowed (use {", ".join(shared.ALLOWED_IMG)})'}), 400
+            return jsonify({'error': f'File type not allowed (use {", ".join(sorted(shared.ALLOWED_IMG))})'}), 400
 
         # Read card data from current file
         filepath = os.path.join(shared.CHARACTERS_DIR, row['filename'])

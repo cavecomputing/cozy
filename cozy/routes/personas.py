@@ -87,7 +87,7 @@ def upload_persona_avatar(persona_id):
         file = request.files['avatar']
         ext = shared.validate_image_extension(file)
         if not ext:
-            return jsonify({'error': f'File type not allowed (use {", ".join(shared.ALLOWED_IMG)})'}), 400
+            return jsonify({'error': f'File type not allowed (use {", ".join(sorted(shared.ALLOWED_IMG))})'}), 400
         if row['avatar_path']:
             old = os.path.join(shared.PERSONAS_DIR, row['avatar_path'])
             if os.path.exists(old):
