@@ -4105,18 +4105,18 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     padding: 0.75rem 1rem 1rem;
 }
 
-/* Mobile-only drill-down back arrow — never show on desktop */
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
+    /* Mobile-only drill-down back arrow — never show on desktop */
     #settings-back-btn { display: none; }
-}
 
-/* Settings covers the character rail rather than opening beside it, so its
-   own menu stands where the characters were and the window has two columns,
-   not three. "Back to chat" brings the rail back. The phone's full-screen
-   .modal-overlay inset wins over this. */
-#settings-flyout {
-    left: 0;
-    margin-left: 0;
+    /* Settings covers the character rail rather than opening beside it, so
+       its own menu stands where the characters were and the window has two
+       columns, not three. "Back to chat" brings the rail back. On a phone
+       every panel is full screen already, so this is for the desktop only. */
+    #settings-flyout {
+        left: 0;
+        margin-left: 0;
+    }
 }
 
 /* settings-modal uses .modal base styles */
@@ -6935,9 +6935,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     /* ── Panels: full screen ─────────────────────────────────────────────── */
     .modal-overlay {
-        position: fixed !important;
-        inset: var(--frame-top) var(--frame-right) var(--frame-bottom) var(--frame-left) !important;
-        margin-left: 0 !important;
+        position: fixed;
+        inset: var(--frame-top) var(--frame-right) var(--frame-bottom) var(--frame-left);
+        margin-left: 0;
         background: var(--bg-color);
         overflow: hidden;
         display: flex;
@@ -6997,16 +6997,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         flex: 1;
     }
 
-    #char-modal.modal-overlay,
-    #prompt-preview-modal.modal-overlay,
-    #prompt-help-modal.modal-overlay {
-        bottom: var(--frame-bottom) !important;
-    }
-
     .form-row,
     .alt-greeting-item {
         flex-direction: column;
-        align-items: stretch !important;
+        align-items: stretch;
     }
 
     #toast-container {
@@ -7180,13 +7174,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .sampler-subsection-header { align-items: center; }
 
-    /* !important to beat the .modal-overlay inset, which otherwise pins the
-       top to the layout viewport while Safari scrolls the keyboard's view
-       down, leaving the chat showing under a settings page cut off above. */
+    /* Over the .modal-overlay inset, which otherwise pins the top to the
+       layout viewport while Safari scrolls the keyboard's view down, leaving
+       the chat showing under a settings page cut off above. */
     #settings-flyout.modal-overlay,
     .settings-submodal.modal-overlay {
-        top: calc(var(--settings-viewport-top, 0px) + var(--frame-top)) !important;
-        bottom: auto !important;
+        top: calc(var(--settings-viewport-top, 0px) + var(--frame-top));
+        bottom: auto;
         height: calc(var(--settings-viewport-height, 100dvh) - var(--frame-top) - var(--frame-bottom));
     }
 
