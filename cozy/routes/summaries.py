@@ -426,6 +426,7 @@ def _run_summary_job(chat_id, up_to_msg_id, require_running=False, job_token=Non
     one entry per batch. Persists after each batch. Never raises out — terminal state is
     written to ``summary_status`` (``idle`` on success, ``error`` on failure)."""
     warning = ''
+    started = time.monotonic()
     try:
         _assert_summary_active(
             chat_id, require_running=require_running, job_token=job_token
@@ -546,6 +547,10 @@ def _run_summary_job(chat_id, up_to_msg_id, require_running=False, job_token=Non
             if batch_warning or write_warning:
                 warning = batch_warning or write_warning
 
+        log.info('Summarized %d messages of chat %s in %d batches, %.1fs',
+                 len(ids), chat_id, total, time.monotonic() - started)
+        if warning:
+            log.warning('Summary of chat %s: %s', chat_id, warning)
         _set_status(
             chat_id,
             status='idle',
