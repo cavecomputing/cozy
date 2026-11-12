@@ -144,6 +144,13 @@ export function renderSamplerPopover() {
     pop.append(rows, footer);
 }
 
+// Imported lazily: llm-settings.js imports this module.
+function saveActiveSamplers() {
+    import('./llm-settings.js')
+        .then(mod => mod.queueLLMSettingsSave({ active_samplers: [...state.activeSamplers].join(',') }))
+        .catch(err => console.error('Failed to save sampler settings:', err));
+}
+
 export function toggleSampler(group, active) {
     if (active) {
         state.activeSamplers.add(group);
@@ -151,15 +158,14 @@ export function toggleSampler(group, active) {
         state.activeSamplers.delete(group);
     }
     applySamplerVisibility();
-    // Import lazily to avoid a circular dependency.
-    import('./llm-settings.js').then(mod => mod.queueLLMSettingsSave({ active_samplers: [...state.activeSamplers].join(',') })).catch(err => console.error('Failed to save sampler settings:', err));
+    saveActiveSamplers();
 }
 
 export function resetActiveSamplers() {
     state.activeSamplers = new Set(DEFAULT_ACTIVE_GROUPS);
     renderSamplerPopover();
     applySamplerVisibility();
-    import('./llm-settings.js').then(mod => mod.queueLLMSettingsSave({ active_samplers: [...state.activeSamplers].join(',') })).catch(err => console.error('Failed to save sampler settings:', err));
+    saveActiveSamplers();
 }
 
 export function applySamplerVisibility() {
