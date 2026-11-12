@@ -45,4 +45,5 @@ EXPOSE 5000
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
 # --timeout 0 disables the worker timeout so long-running SSE streams from slow
 # local backends aren't killed mid-response (gthread's default is 30s). See #6.
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "4", "--timeout", "0", "app:app"]
+# docker/gunicorn.conf.py prints Cozy's banner once gunicorn is listening.
+CMD ["gunicorn", "--config", "docker/gunicorn.conf.py", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "4", "--timeout", "0", "app:app"]

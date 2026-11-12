@@ -1,14 +1,18 @@
 import os
 import glob
+import socket
 import logging
 import argparse
 from urllib.parse import urlsplit
 
+import flask.cli
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.serving import get_interface_ip, is_running_from_reloader
 
 from cozy import auth
+from cozy import banner
 from cozy import shared
 from cozy import defaults
 from cozy import schema
@@ -203,6 +207,19 @@ if __name__ == '__main__':
     args = parser.parse_args()
     BIND_HOST = args.host
     BIND_PORT = args.port
+
+    # The banner says where Cozy is, which is all Flask's and werkzeug's own
+    # start-up lines said, and a line per request (avatars and scripts
+    # included) is for development. werkzeug's warnings and errors still show.
+    if not args.debug:
+        flask.cli.show_server_banner = lambda *_: None
+        logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    # Under --debug the reloader runs this file again in a child process.
+    if not is_running_from_reloader():
+        hosts = [BIND_HOST]
+        if BIND_HOST == '0.0.0.0':
+            hosts = ['127.0.0.1', get_interface_ip(socket.AF_INET)]
+        banner.print_banner([f'http://{host}:{BIND_PORT}' for host in hosts])
 
     # Flask's built-in server, not livereload.Server: that one wraps WSGI and
     # buffers responses, which breaks SSE streaming.  Flask's dev server
