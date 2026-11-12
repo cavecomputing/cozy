@@ -688,6 +688,28 @@ class TestChatJsonlImportExport:
         assert messages[1]['content'] == 'Alt B'
         assert [s['content'] for s in messages[1]['swipes']] == ['Alt A', 'Alt B']
 
+    def test_import_keeps_the_first_message_of_a_file_with_no_header(self, client, sample_character):
+        """The first line was always taken for SillyTavern's header, so a file
+        that opens on a message lost that message without a word."""
+        payload = '\n'.join(json.dumps(line) for line in [
+            {'name': 'TestChar', 'is_user': False, 'mes': 'Opening line', 'extra': {}},
+            {'name': 'Alice', 'is_user': True, 'mes': 'Reply'},
+        ]).encode('utf-8')
+
+        r = client.post(
+            f'/api/chats/import?character_id={sample_character["id"]}',
+            data={'file': (BytesIO(payload), 'other-tool.jsonl')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        imported = r.get_json()
+        assert imported['name'] == 'other-tool'
+        assert imported['warnings'] == ['Line 1: ignored extra metadata']
+        messages = client.get(f'/api/chats/{imported["id"]}/messages').get_json()
+        assert [(m['role'], m['content']) for m in messages] == [
+            ('character', 'Opening line'), ('user', 'Reply'),
+        ]
+
     def test_import_rejects_invalid_jsonl(self, client, sample_character):
         r = client.post(
             f'/api/chats/import?character_id={sample_character["id"]}',

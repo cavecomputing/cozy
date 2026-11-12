@@ -241,8 +241,11 @@ def import_chat():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
-    header = rows[0]
-    messages = rows[1:]
+    # SillyTavern opens a chat file with a line about the chat, not a message.
+    # A file from elsewhere can start straight in, and its first line is kept.
+    has_header = 'mes' not in rows[0]
+    header = rows[0] if has_header else {}
+    messages = rows[1:] if has_header else rows
     warnings = []
     with get_db() as conn:
         if not conn.execute('SELECT id FROM characters WHERE id=?', (char_id,)).fetchone():
@@ -257,7 +260,7 @@ def import_chat():
         )
         chat_id = cur.lastrowid
 
-        for line_no, message in enumerate(messages, start=2):
+        for line_no, message in enumerate(messages, start=2 if has_header else 1):
             if message.get('is_system'):
                 warnings.append(f'Line {line_no}: skipped system message; Cozy does not store hidden/system chat rows')
                 continue
