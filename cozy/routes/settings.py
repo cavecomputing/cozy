@@ -1,6 +1,7 @@
 """Settings and system prompt routes."""
 
 import json
+import logging
 import os
 import shutil
 import sqlite3
@@ -18,6 +19,8 @@ from cozy.defaults import (
 )
 from cozy.schema import MIGRATIONS, init_db
 from cozy.shared import get_db, json_body, json_download, not_found, safe_download_name, text_field
+
+log = logging.getLogger('cozy')
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -361,7 +364,9 @@ def import_system_prompt():
             return jsonify({
                 'error': f'A prompt named "{name}" at that version already exists'
             }), 409
-        return jsonify(_insert_prompt(conn, name, fields)), 201
+        prompt = _insert_prompt(conn, name, fields)
+        log.info('Imported the prompt %s %s', name, fields['version'])
+        return jsonify(prompt), 201
 
 
 @settings_bp.route('/api/system-prompts/<int:prompt_id>/export', methods=['GET'])
@@ -661,6 +666,7 @@ def download_backup():
     try:
         _write_backup(zip_path)
         size = os.path.getsize(zip_path)
+        log.info('Made a backup of %.1f MB', size / 1e6)
     except Exception:
         shutil.rmtree(workspace, ignore_errors=True)
         raise
@@ -798,4 +804,5 @@ def restore_backup():
         with get_db() as conn:
             upsert_setting(conn, 'secret_key', secret['value'])
     seed_default_prompts()
+    log.info('Restored a backup made at database version %d', version)
     return jsonify({'success': True, 'schema_version': version})

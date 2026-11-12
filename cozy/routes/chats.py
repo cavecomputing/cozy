@@ -1,6 +1,7 @@
 """Chat CRUD routes."""
 
 import json
+import logging
 import os
 from datetime import datetime, timezone
 
@@ -9,6 +10,8 @@ from flask import Blueprint, request, jsonify, Response
 from cozy.card_store import get_character_card_data
 from cozy.shared import get_db, json_body, not_found, safe_download_name, text_field
 from cozy.summarizer import parse_summary_json
+
+log = logging.getLogger('cozy')
 
 chats_bp = Blueprint('chats', __name__)
 
@@ -290,6 +293,8 @@ def import_chat():
                     )
 
         conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
+        log.info('Imported a chat of %d lines for character %d, with %d warnings',
+                 len(messages), char_id, len(warnings))
         row = conn.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
         result = chat_to_dict(row)
         result['warnings'] = warnings

@@ -1,6 +1,7 @@
 """Character routes — file-based character card storage with PNG embedding."""
 
 import json
+import logging
 import os
 from urllib.parse import quote
 
@@ -15,6 +16,8 @@ from cozy.card_store import (
 )
 from cozy.shared import get_db, json_body, json_download, not_found
 from cozy.png_utils import make_minimal_png, write_png_chara, extract_png_chara
+
+log = logging.getLogger('cozy')
 
 characters_bp = Blueprint('characters', __name__)
 
@@ -263,9 +266,11 @@ def import_character():
     if png_bytes is None:
         png_bytes = write_png_chara(make_minimal_png(), card_data)
 
-    filename = _unique_filename(card_data_fields(card_data)['name'])
+    name = card_data_fields(card_data)['name']
+    filename = _unique_filename(name)
     filepath = os.path.join(shared.CHARACTERS_DIR, filename)
     write_file_atomic(filepath, png_bytes)
+    log.info('Imported the character %s', name)
 
     crc = file_crc(filepath)
     with get_db() as conn:
@@ -305,6 +310,7 @@ def import_over_character(char_id):
                 png_bytes = write_png_chara(f.read(), card_data)
 
         write_file_atomic(filepath, png_bytes)
+        log.info('Imported a new card over the character %s', card_data_fields(card_data)['name'])
 
         crc = file_crc(filepath)
         conn.execute('UPDATE characters SET crc=? WHERE id=?', (crc, char_id))

@@ -8,6 +8,7 @@ reverse move is done client-side with a create plus a character update.
 """
 
 import json
+import logging
 
 from flask import Blueprint, request, jsonify
 
@@ -16,6 +17,8 @@ from cozy.card_store import (
     set_character_book,
 )
 from cozy.shared import get_db, json_body, json_download, not_found, safe_download_name, text_field
+
+log = logging.getLogger('cozy')
 
 lorebooks_bp = Blueprint('lorebooks', __name__)
 
@@ -268,6 +271,7 @@ def import_lorebook():
             'INSERT INTO lorebooks (name, book) VALUES (?, ?)',
             (name, json.dumps(book))
         )
+        log.info('Imported the lorebook %s', name)
         row = conn.execute('SELECT * FROM lorebooks WHERE id=?', (cur.lastrowid,)).fetchone()
         return jsonify(_full_dict(row)), 201
 
