@@ -1814,10 +1814,6 @@ input[type="checkbox"]:checked::after {
     background-color: var(--surface-raised);
 }
 
-.persona-inline-form[hidden] {
-    display: none !important;
-}
-
 .pf-row {
     display: flex;
     align-items: center;
@@ -2787,10 +2783,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .thinking-content.open { display: block; }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
-.empty-state[hidden] {
-    display: none !important;
-}
-
 .empty-state {
     position: absolute;
     inset: 0.625rem;
@@ -3025,7 +3017,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .chat-flyout[hidden] {
-    display: none !important;
     opacity: 0;
     transform: translateY(8px);
     pointer-events: none;
@@ -3659,7 +3650,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .modal-overlay[hidden] {
-    display: none !important;
     opacity: 0;
     transform: translateX(-8px);
 }
@@ -3979,7 +3969,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .confirm-overlay[hidden] {
-    display: none !important;
     opacity: 0;
     pointer-events: none;
 }
