@@ -1945,7 +1945,7 @@ input[type="checkbox"]:checked::after {
 .persona-delete-btn {
     opacity: 0;
     transition: opacity var(--motion-base);
-    padding: 2px !important;
+    padding: 2px;
 }
 
 .persona-option:hover .persona-edit-btn,
