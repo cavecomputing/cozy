@@ -273,14 +273,22 @@ def write_file_atomic(path, data):
     place truncates it first: a crash or a full disk partway through left a
     card that no longer opened. The bytes go to a sibling file and are renamed
     over the original only once they are all on disk. The sibling's name does
-    not end in .png, so the folder scan never mistakes it for a card.
+    not end in .png, so the folder scan never mistakes it for a card, and a
+    write that fails takes its sibling with it.
     """
     tmp = path + '.tmp'
-    with open(tmp, 'wb') as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    try:
+        with open(tmp, 'wb') as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.remove(tmp)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def write_character_card(path, card):

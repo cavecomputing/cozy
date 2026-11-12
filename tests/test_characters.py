@@ -614,6 +614,12 @@ class TestInterruptedSave:
         assert r.status_code == 500
         assert self._card_on_disk(sample_character) == before
 
+    def test_failed_edit_leaves_no_half_written_file(self, client, sample_character, failing_disk):
+        """The half that did reach the disk stayed beside the card as a .tmp,
+        counted in Storage and carried into every backup."""
+        client.put(f'/api/characters/{sample_character["id"]}', json={'description': 'Rewritten.'})
+        assert os.listdir(shared.CHARACTERS_DIR) == [sample_character['filename']]
+
     def test_failed_lorebook_save_keeps_the_card(self, client, sample_character, failing_disk):
         before = self._card_on_disk(sample_character)
         with pytest.raises(OSError):
