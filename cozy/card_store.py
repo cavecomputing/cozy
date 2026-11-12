@@ -219,11 +219,31 @@ def normalize_character_book(raw_book):
     return book
 
 
+def _typed_like(value, default):
+    """Return *value* as the kind of thing *default* is.
+
+    Cards are written by other tools and by hand, so a field can hold the
+    wrong type: a null description, a version typed as the number 1.2, tags as
+    one string. The page expects text to be text and lists to be lists.
+    """
+    if isinstance(default, str):
+        if isinstance(value, str):
+            return value
+        # A bare number is still a name or a version worth showing.
+        is_number = isinstance(value, (int, float)) and not isinstance(value, bool)
+        return str(value) if is_number else ''
+    if isinstance(default, list):
+        return [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
+    if isinstance(default, dict):
+        return value if isinstance(value, dict) else {}
+    return value
+
+
 def card_data_fields(card_data):
     """Return API-facing character data fields with V2 defaults applied."""
     data = card_data.get('data', card_data) if isinstance(card_data, dict) else {}
     fields = {
-        key: data[key] if key in data else deepcopy(default)
+        key: _typed_like(data[key], default) if key in data else deepcopy(default)
         for key, default in CARD_DATA_DEFAULTS.items()
     }
     fields['character_book'] = normalize_character_book(fields.get('character_book'))

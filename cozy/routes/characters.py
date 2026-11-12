@@ -239,11 +239,14 @@ def _card_from_upload(file):
         except (UnicodeDecodeError, json.JSONDecodeError):
             return None, None, (jsonify({'error': 'Invalid JSON file'}), 400)
 
-        is_v2 = isinstance(card_data, dict) and card_data.get('spec') == 'chara_card_v2'
-        is_v1 = isinstance(card_data, dict) and 'name' in card_data and 'data' not in card_data
-        if not is_v2 and not is_v1:
-            if not (isinstance(card_data, dict) and isinstance(card_data.get('data'), dict)):
-                return None, None, (jsonify({'error': 'File does not appear to be a valid Character Card (V1 or V2)'}), 400)
+        # A V2 card keeps its fields under "data"; a V1 card is the fields
+        # themselves, and has a name if it has nothing else.
+        is_card = isinstance(card_data, dict) and (
+            isinstance(card_data['data'], dict) if 'data' in card_data
+            else 'name' in card_data or card_data.get('spec') == 'chara_card_v2'
+        )
+        if not is_card:
+            return None, None, (jsonify({'error': 'File does not appear to be a valid Character Card (V1 or V2)'}), 400)
         return None, normalize_to_v2(card_data), None
 
     return None, None, (jsonify({'error': 'Unsupported file – use .json or .png'}), 400)
@@ -260,10 +263,7 @@ def import_character():
     if png_bytes is None:
         png_bytes = write_png_chara(make_minimal_png(), card_data)
 
-    # Derive filename from character name
-    data = card_data.get('data', card_data)
-    name = data.get('name', 'character')
-    filename = _unique_filename(name)
+    filename = _unique_filename(card_data_fields(card_data)['name'])
     filepath = os.path.join(shared.CHARACTERS_DIR, filename)
     write_file_atomic(filepath, png_bytes)
 

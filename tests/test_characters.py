@@ -523,6 +523,52 @@ class TestMalformedUploads:
         assert r.status_code == 400
         assert os.listdir(shared.CHARACTERS_DIR) == []
 
+    def test_import_rejects_a_json_card_whose_data_is_not_an_object(self, client):
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(json.dumps({'spec': 'chara_card_v2', 'data': 'text'}).encode()), 'odd.json'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+        assert os.listdir(shared.CHARACTERS_DIR) == []
+
+    @pytest.mark.parametrize('name, shown', [(123, '123'), (None, 'character'), (['x'], 'character')])
+    @pytest.mark.parametrize('as_png', [True, False])
+    def test_import_takes_a_card_whose_name_is_not_text(self, client, name, shown, as_png):
+        """The filename is built from the name, which failed on anything but a
+        string. A number is shown as written; nothing usable falls back to the
+        filename, as an empty name always has."""
+        card = v2_card(name='Placeholder')
+        card['data']['name'] = name
+        upload = (BytesIO(_png_with_card(card)), 'odd.png') if as_png \
+            else (BytesIO(json.dumps(card).encode()), 'odd.json')
+        r = client.post('/api/characters/import', data={'file': upload},
+                        content_type='multipart/form-data')
+        assert r.status_code == 201
+        assert r.get_json()['name'] == shown
+        assert [c['name'] for c in client.get('/api/characters').get_json()] == [shown]
+
+    def test_fields_of_the_wrong_type_reach_the_page_as_the_right_one(self, client):
+        """A hand-written card can hold a null description or tags as one
+        string. The file is left as its author wrote it; what the API reports
+        is text where the page expects text and a list where it expects one."""
+        card = v2_card(name='Odd')
+        card['data'].update({
+            'description': None, 'first_mes': 5, 'character_version': 1.2,
+            'tags': 'a,b', 'alternate_greetings': [None, 'Hi again'], 'extensions': [],
+        })
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(_png_with_card(card)), 'odd.png'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 201
+        got = r.get_json()
+        assert got['description'] == ''
+        assert got['first_mes'] == '5'
+        assert got['character_version'] == '1.2'
+        assert got['tags'] == []
+        assert got['alternate_greetings'] == ['Hi again']
+        assert got['extensions'] == {}
+        with open(os.path.join(shared.CHARACTERS_DIR, got['filename']), 'rb') as f:
+            assert extract_png_chara(f.read()) == card
+
     def test_avatar_rejects_an_unreadable_image_and_keeps_the_card(self, client, sample_character):
         path = os.path.join(shared.CHARACTERS_DIR, sample_character['filename'])
         with open(path, 'rb') as f:
