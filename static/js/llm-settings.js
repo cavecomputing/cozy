@@ -249,8 +249,6 @@ async function fetchPickerModels(profile, { force = false, filter = '' } = {}) {
         }
     } catch (e) {
         renderModelMenu(profile, [], 'Failed to fetch: ' + e.message);
-        const empty = menu.querySelector('.model-picker-empty');
-        if (empty) empty.textContent = 'Failed to fetch: ' + e.message;
         setModelMenuOpen(profile, true);
     } finally {
         button.classList.remove('spinning');
