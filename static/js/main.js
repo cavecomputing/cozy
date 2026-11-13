@@ -1467,6 +1467,13 @@ function bindComposerHandlers() {
                 }
                 return;
             }
+            // With your own message last, or nothing at all, there is no reply
+            // to swipe, so Right asks for one, as Send does with nothing typed.
+            if (e.key === 'ArrowRight' && !row?.classList.contains('character')) {
+                e.preventDefault();
+                handleSend('');
+                return;
+            }
         }
         // On touch shells Enter is the on-screen keyboard's line-break key, not
         // a submit shortcut, so leave it alone there; desktop keeps Enter-to-send.

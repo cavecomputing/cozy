@@ -245,7 +245,8 @@ you want.
   picks the exact one.
 - **Arrow keys** — with the chat box empty, **↑** edits your last message,
   and **←** and **→** step through the latest reply's swipes. **→** on its
-  last swipe asks for a new one, as the button does.
+  last swipe asks for a new one, as the button does, and with your own
+  message last it asks for a reply, as **Send** does with nothing typed.
 - **`/` to type** — pressed anywhere outside a text box, **/** jumps to the
   chat box, ready to type. The slash itself isn't typed.
 - **Branches** — the branching-arrows button on a reply forks the chat there:
