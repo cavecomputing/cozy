@@ -11,7 +11,7 @@ import {
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
-import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop, shownText } from './messages.js';
+import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderNearTop, shownText } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -1326,29 +1326,26 @@ function bindMessageHandlers() {
             finishEditing(false);
         } else if (e.target.closest('.delete-msg-btn')) {
             if (!isEditing) {
-                const swipes = msgEl.dataset.swipes ? JSON.parse(msgEl.dataset.swipes) : [];
+                const msg = drawnMessages.get(msgEl);
                 // The trash icon sits in the hover bar next to swipe/edit, so a
                 // stray tap used to nuke a message outright. It asks first,
                 // unless Shift is held: Discord's way to clear several in a row.
                 const ok = e.shiftKey || await confirmDialog({
                     title: 'Delete this message?',
-                    message: swipes.length > 1
-                        ? `All ${swipes.length} swipes of it will be deleted. This cannot be undone.`
+                    message: msg.swipes.length > 1
+                        ? `All ${msg.swipes.length} swipes of it will be deleted. This cannot be undone.`
                         : 'This cannot be undone.',
                 });
                 // A re-render (chat switch, reload) during the dialog would
                 // leave msgEl orphaned and state.messages pointing elsewhere.
                 if (!ok || !document.contains(msgEl)) return;
-                const stateMsg = findStateMsg(swipes, msgEl);
-                if (stateMsg) {
-                    const stateIdx = state.messages.indexOf(stateMsg);
-                    if (stateIdx !== -1) state.messages.splice(stateIdx, 1);
-                    if (stateMsg.id) {
-                        API.deleteMessage(stateMsg.id).catch(err => {
-                            console.error('Message delete failed:', err);
-                            showToast('Failed to delete message: ' + err.message);
-                        });
-                    }
+                const at = state.messages.indexOf(msg);
+                if (at !== -1) state.messages.splice(at, 1);
+                if (msg.id) {
+                    API.deleteMessage(msg.id).catch(err => {
+                        console.error('Message delete failed:', err);
+                        showToast('Failed to delete message: ' + err.message);
+                    });
                 }
                 msgEl.closest('.message-container').remove();
             }
@@ -1356,7 +1353,7 @@ function bindMessageHandlers() {
             const copyBtn = e.target.closest('.copy-msg-btn');
             // What the bubble says, not what is stored: the stored text carries
             // the model's reasoning and {{char}} as written.
-            copyText(shownText(msgEl.dataset.rawText || ''))
+            copyText(shownText(drawnMessages.get(msgEl).text))
                 .then(ok => ok
                     ? flashCopied(copyBtn)
                     : showToast('Could not copy message'));

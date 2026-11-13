@@ -1,9 +1,9 @@
 """Paging through a reply's swipes, and editing the one on screen.
 
-A message's swipes are held in three places: the server, `state.messages`, and
-JSON on the bubble (`data-swipes`). These pin what each of them is told when a
-swipe is shown or rewritten, so a change to how swipes are held can be shown to
-leave that alone.
+A message's swipes are held by the server and, in the page, by its entry in
+`state.messages`. The bubble keeps no copy: `drawnMessages` links it to the
+entry it was drawn from. These pin what the entry and the server are told when
+a swipe is shown or rewritten.
 """
 
 from helpers import run_node_module
@@ -14,7 +14,7 @@ SETUP = r"""
     import { state, el } from './static/js/state.js';
     import { API } from './static/js/api.js';
     import {
-        handleSwipeAction, startEditing, finishEditing, flushEdit,
+        handleSwipeAction, startEditing, finishEditing, flushEdit, drawnMessages,
     } from './static/js/messages.js';
 
     globalThis.DOMPurify = { sanitize: value => value };
@@ -59,7 +59,7 @@ SETUP = r"""
 
     const takes = () => [{ content: 'first take' }, { content: 'second take' }, { content: 'third take' }];
     state.messages = [
-        { id: 1, role: 'user', text: 'hello there' },
+        { id: 1, role: 'user', text: 'hello there', swipes: [{ content: 'hello there' }], activeSwipeIndex: 0 },
         { id: 2, role: 'character', text: 'second take', swipes: takes(), activeSwipeIndex: 1 },
     ];
 
@@ -72,15 +72,16 @@ SETUP = r"""
     API.addSwipe = async () => ({});
 
     /** A bubble as buildMessageEl() leaves it, as far as these paths read it. */
-    function bubble(role, dataset) {
-        const classes = new Set(['message', role]);
+    function bubble(msg) {
+        const classes = new Set(['message', msg.role]);
+        const dataset = { msgId: String(msg.id) };
         const parts = {
             '.message-content': stubEl(),
             '.msg-body': { querySelector() { return null; }, insertBefore() {} },
             '.msg-edited': stubEl(),
         };
         const actionsBar = stubEl();
-        return {
+        const msgEl = {
             dataset, style: {}, parts, actionsBar,
             classList: {
                 add: name => classes.add(name),
@@ -91,39 +92,33 @@ SETUP = r"""
             closest: () => ({ querySelector: () => actionsBar }),
             getBoundingClientRect: () => ({ width: 200 }),
         };
+        drawnMessages.set(msgEl, msg);
+        return msgEl;
     }
-    const reply = bubble('character', {
-        msgId: '2',
-        rawText: 'second take',
-        swipes: JSON.stringify(takes()),
-        activeSwipeIndex: '1',
-    });
-    const shown = () => JSON.parse(reply.dataset.swipes).map(swipe => swipe.content);
+    const reply = state.messages[1];
+    const replyEl = bubble(reply);
+    const shown = () => reply.swipes.map(swipe => swipe.content);
     const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 """
 
 
 def test_paging_back_and_forward_shows_and_saves_the_neighbouring_swipe():
     run_node_module(SETUP + r"""
-        await handleSwipeAction(reply, true);
+        await handleSwipeAction(replyEl, true);
 
-        assert.equal(reply.dataset.rawText, 'first take');
-        assert.equal(reply.dataset.activeSwipeIndex, 0);
-        assert.equal(state.messages[1].text, 'first take');
-        assert.equal(state.messages[1].activeSwipeIndex, 0);
+        assert.equal(reply.text, 'first take');
+        assert.equal(reply.activeSwipeIndex, 0);
         // The server is told which swipe is on show by its place, not its text.
         assert.deepEqual(selections, [[2, 0]]);
 
         // Already at the first: stays there.
-        await handleSwipeAction(reply, true);
-        assert.equal(reply.dataset.activeSwipeIndex, 0);
+        await handleSwipeAction(replyEl, true);
+        assert.equal(reply.activeSwipeIndex, 0);
 
-        await handleSwipeAction(reply, false);
-        await handleSwipeAction(reply, false);
-        assert.equal(reply.dataset.rawText, 'third take');
-        assert.equal(reply.dataset.activeSwipeIndex, 2);
-        assert.equal(state.messages[1].text, 'third take');
-        assert.equal(state.messages[1].activeSwipeIndex, 2);
+        await handleSwipeAction(replyEl, false);
+        await handleSwipeAction(replyEl, false);
+        assert.equal(reply.text, 'third take');
+        assert.equal(reply.activeSwipeIndex, 2);
         assert.deepEqual(selections.at(-1), [2, 2]);
         assert.deepEqual(updates, []);
 
@@ -135,17 +130,17 @@ def test_paging_back_and_forward_shows_and_saves_the_neighbouring_swipe():
 
 def test_next_on_the_last_swipe_of_the_newest_reply_generates_one():
     run_node_module(SETUP + r"""
-        reply.dataset.activeSwipeIndex = '2';
-        reply.dataset.rawText = 'third take';
+        reply.activeSwipeIndex = 2;
+        reply.text = 'third take';
         globalThis.requestAnimationFrame = fn => setTimeout(fn, 0);
         globalThis.cancelAnimationFrame = id => clearTimeout(id);
 
-        await handleSwipeAction(reply, false);
+        await handleSwipeAction(replyEl, false);
 
         assert.equal(generations, 1);
         assert.deepEqual(shown(), ['first take', 'second take', 'third take', 'a new take']);
-        assert.equal(reply.dataset.activeSwipeIndex, 3);
-        assert.equal(state.messages[1].text, 'a new take');
+        assert.equal(reply.activeSwipeIndex, 3);
+        assert.equal(reply.text, 'a new take');
     """)
 
 
@@ -153,96 +148,85 @@ def test_next_on_the_last_swipe_of_an_older_reply_does_nothing():
     """A new swipe answers the end of the chat, so only the newest reply gets one."""
     run_node_module(SETUP + r"""
         state.messages.push({ id: 3, role: 'user', text: 'and then?' });
-        reply.dataset.activeSwipeIndex = '2';
-        reply.dataset.rawText = 'third take';
+        reply.activeSwipeIndex = 2;
+        reply.text = 'third take';
 
-        await handleSwipeAction(reply, false);
+        await handleSwipeAction(replyEl, false);
 
         assert.equal(generations, 0);
-        assert.equal(reply.dataset.activeSwipeIndex, '2');
+        assert.equal(reply.activeSwipeIndex, 2);
         assert.deepEqual(selections, []);
     """)
 
 
 def test_next_on_the_last_greeting_does_nothing():
     run_node_module(SETUP + r"""
-        reply.dataset.isGreeting = 'true';
-        reply.dataset.activeSwipeIndex = '2';
-        reply.dataset.rawText = 'third take';
+        replyEl.dataset.isGreeting = 'true';
+        reply.activeSwipeIndex = 2;
+        reply.text = 'third take';
 
-        await handleSwipeAction(reply, false);
+        await handleSwipeAction(replyEl, false);
 
         assert.equal(generations, 0);
-        assert.equal(reply.dataset.activeSwipeIndex, '2');
+        assert.equal(reply.activeSwipeIndex, 2);
         assert.deepEqual(selections, []);
     """)
 
 
 def test_an_edit_rewrites_the_swipe_on_screen_and_names_it_to_the_server():
     run_node_module(SETUP + r"""
-        startEditing(reply);
-        assert.equal(reply.parts['.message-content'].textContent, 'second take');
-        reply.parts['.message-content'].textContent = '  second take, reworded  ';
+        startEditing(replyEl);
+        assert.equal(replyEl.parts['.message-content'].textContent, 'second take');
+        replyEl.parts['.message-content'].textContent = '  second take, reworded  ';
         finishEditing(true);
 
-        assert.equal(reply.dataset.rawText, 'second take, reworded');
+        assert.equal(reply.text, 'second take, reworded');
         assert.deepEqual(shown(), ['first take', 'second take, reworded', 'third take']);
-        assert.equal(state.messages[1].text, 'second take, reworded');
-        assert.deepEqual(
-            state.messages[1].swipes.map(swipe => swipe.content),
-            ['first take', 'second take, reworded', 'third take'],
-        );
-        // Only the rewritten swipe is marked edited, in both copies.
-        const edited = JSON.parse(reply.dataset.swipes).map(swipe => Boolean(swipe.edited_at));
-        assert.deepEqual(edited, [false, true, false]);
-        assert.deepEqual(state.messages[1].swipes.map(swipe => Boolean(swipe.edited_at)), edited);
+        assert.equal(reply.activeSwipeIndex, 1);
+        // Only the rewritten swipe is marked edited.
+        assert.deepEqual(reply.swipes.map(swipe => Boolean(swipe.edited_at)), [false, true, false]);
         // The index goes along, because two swipes can hold the same text.
         assert.deepEqual(updates, [[2, 'second take, reworded', 1]]);
         assert.equal(state.currentEdit, null);
-        assert.equal(reply.classList.contains('editing'), false);
+        assert.equal(replyEl.classList.contains('editing'), false);
     """)
 
 
 def test_an_edit_keeps_the_reasoning_that_came_before_the_reply():
     run_node_module(SETUP + r"""
         const thought = '<think>weighing it up</think>\n\nsecond take';
-        reply.dataset.rawText = thought;
-        const withThought = takes();
-        withThought[1].content = thought;
-        reply.dataset.swipes = JSON.stringify(withThought);
+        reply.text = thought;
+        reply.swipes[1].content = thought;
 
-        startEditing(reply);
+        startEditing(replyEl);
         // Only the reply is put up for editing.
-        assert.equal(reply.parts['.message-content'].textContent, 'second take');
-        reply.parts['.message-content'].textContent = 'a different answer';
+        assert.equal(replyEl.parts['.message-content'].textContent, 'second take');
+        replyEl.parts['.message-content'].textContent = 'a different answer';
         finishEditing(true);
 
-        assert.equal(reply.dataset.rawText, '<think>weighing it up</think>\n\na different answer');
+        assert.equal(reply.text, '<think>weighing it up</think>\n\na different answer');
         assert.deepEqual(updates, [[2, '<think>weighing it up</think>\n\na different answer', 1]]);
     """)
 
 
 def test_saving_an_edit_unchanged_does_not_mark_the_swipe_edited():
     run_node_module(SETUP + r"""
-        startEditing(reply);
+        startEditing(replyEl);
         finishEditing(true);
 
-        assert.deepEqual(JSON.parse(reply.dataset.swipes), takes());
-        assert.deepEqual(state.messages[1].swipes, takes());
+        assert.deepEqual(reply.swipes, takes());
         assert.deepEqual(updates, [[2, 'second take', 1]]);
     """)
 
 
 def test_cancelling_an_edit_changes_and_sends_nothing():
     run_node_module(SETUP + r"""
-        startEditing(reply);
-        reply.parts['.message-content'].textContent = 'typed, then thought better of';
+        startEditing(replyEl);
+        replyEl.parts['.message-content'].textContent = 'typed, then thought better of';
         finishEditing(false);
 
-        assert.equal(reply.dataset.rawText, 'second take');
-        assert.deepEqual(JSON.parse(reply.dataset.swipes), takes());
-        assert.deepEqual(state.messages[1].swipes, takes());
-        assert.equal(state.messages[1].text, 'second take');
+        assert.equal(reply.text, 'second take');
+        assert.deepEqual(reply.swipes, takes());
         assert.deepEqual(updates, []);
         assert.equal(state.currentEdit, null);
     """)
@@ -250,17 +234,17 @@ def test_cancelling_an_edit_changes_and_sends_nothing():
 
 def test_an_emptied_edit_stays_open_until_it_is_flushed_back():
     run_node_module(SETUP + r"""
-        startEditing(reply);
-        reply.parts['.message-content'].textContent = '   ';
+        startEditing(replyEl);
+        replyEl.parts['.message-content'].textContent = '   ';
         finishEditing(true);
         // Nothing to save, so the editor stays open for more typing.
-        assert.equal(state.currentEdit.element, reply);
-        assert.equal(reply.classList.contains('editing'), true);
+        assert.equal(state.currentEdit.element, replyEl);
+        assert.equal(replyEl.classList.contains('editing'), true);
 
         // Leaving the chat puts the original back, since nothing can be saved.
         flushEdit();
         assert.equal(state.currentEdit, null);
-        assert.equal(reply.dataset.rawText, 'second take');
+        assert.equal(reply.text, 'second take');
         assert.deepEqual(updates, []);
     """)
 
@@ -268,15 +252,14 @@ def test_an_emptied_edit_stays_open_until_it_is_flushed_back():
 def test_opening_a_second_edit_saves_the_first():
     """state.currentEdit is one slot; a second edit used to strand the first."""
     run_node_module(SETUP + r"""
-        const question = bubble('user', { msgId: '1', rawText: 'hello there' });
-        startEditing(question);
-        question.parts['.message-content'].textContent = 'hello again';
-        startEditing(reply);
+        const questionEl = bubble(state.messages[0]);
+        startEditing(questionEl);
+        questionEl.parts['.message-content'].textContent = 'hello again';
+        startEditing(replyEl);
 
-        assert.equal(question.dataset.rawText, 'hello again');
-        assert.equal(question.classList.contains('editing'), false);
+        assert.equal(questionEl.classList.contains('editing'), false);
         assert.equal(state.messages[0].text, 'hello again');
-        // A message with no swipes of its own still names index 0.
+        assert.deepEqual(state.messages[0].swipes.map(swipe => swipe.content), ['hello again']);
         assert.deepEqual(updates, [[1, 'hello again', 0]]);
-        assert.equal(state.currentEdit.element, reply);
+        assert.equal(state.currentEdit.element, replyEl);
     """)

@@ -254,6 +254,21 @@ and a changed chat is answered with a stale context, with nothing on screen to s
 is frozen because its callers share it, and it is dropped when the browser next takes a turn,
 since `{{time}}`, `{{date}}` and `{{random}}` are not inputs.
 
+### Messages and swipes
+
+A message is its swipes, and each fact about them is kept once. On the server,
+`messages.selected_swipe_id` names the swipe on show and `messages.content` is
+a copy of that swipe's text for everything that reads a chat without its
+swipes; only the swipe routes in [cozy/routes/messages.py](cozy/routes/messages.py)
+write it, and a swipe is named to them by its index, never by its text, since
+two swipes can read the same. In the page the entry in `state.messages` is the
+only copy. A bubble carries `data-msg-id` and nothing else about its message:
+`drawnMessages` in [messages.js](static/js/messages.js) links it to the entry
+it was drawn from, and every handler reads and changes that entry. Don't put a
+message's text or swipes on the element, where a redraw from `state.messages`
+and the bubble it replaces can disagree. That is how a new swipe was once lost
+and the next edit landed on a different one.
+
 ### Dialogue quote marks
 
 [rp-dialogue.js](static/js/rp-dialogue.js) owns which quote marks count as speech for the

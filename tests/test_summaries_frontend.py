@@ -1418,7 +1418,7 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
         import assert from 'node:assert/strict';
         import { state, el } from './static/js/state.js';
         import { API } from './static/js/api.js';
-        import { generateSwipe } from './static/js/messages.js';
+        import { generateSwipe, drawnMessages } from './static/js/messages.js';
 
         globalThis.DOMPurify = { sanitize: value => value };
         globalThis.marked = { parse: value => value };
@@ -1516,21 +1516,19 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
         const contentEl = { innerHTML: '' };
         const msgBody = { querySelector() { return null; } };
         const msgEl = {
-            dataset: {
-                msgId: '4',
-                rawText: state.messages[3].text,
-                swipes: JSON.stringify([{ content: state.messages[3].text }]),
-                activeSwipeIndex: '0',
-            },
+            dataset: { msgId: '4' },
             querySelector(selector) {
                 if (selector === '.message-content') return contentEl;
                 if (selector === '.msg-body') return msgBody;
                 return null;
             },
         };
-        const swipes = [{ content: state.messages[3].text }];
+        Object.assign(state.messages[3], {
+            swipes: [{ content: state.messages[3].text }], activeSwipeIndex: 0,
+        });
+        drawnMessages.set(msgEl, state.messages[3]);
 
-        const generating = generateSwipe(msgEl, swipes, 0);
+        const generating = generateSwipe(msgEl);
         await summaryStarted;
         assert.equal(generationCalls, 0);
         // Message 1 is already summarized. Regeneration excludes message 4;
@@ -1538,10 +1536,10 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
         // raw. A normal (non-regen) boundary would also age out message 3.
         assert.equal(summaryTarget, 2);
         releaseSummary();
-        const idx = await generating;
+        assert.equal(await generating, true);
 
         assert.equal(generationCalls, 1);
-        assert.equal(idx, 1);
+        assert.equal(state.messages[3].activeSwipeIndex, 1);
         assert.equal(state.messages[3].text, 'a new swipe');
     """
     run_node_module(code)

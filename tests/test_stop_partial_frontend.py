@@ -128,7 +128,7 @@ SWIPE_SETUP = r"""
     import { state, el, llm } from './static/js/state.js';
     import { API } from './static/js/api.js';
     import { stopGeneration } from './static/js/utils.js';
-    import { generateSwipe } from './static/js/messages.js';
+    import { generateSwipe, drawnMessages } from './static/js/messages.js';
 
     globalThis.DOMPurify = { sanitize: value => value };
     globalThis.marked = { parse: value => value };
@@ -171,8 +171,12 @@ SWIPE_SETUP = r"""
     state.contextMaxTokens = '0';
     state.messages = [
         { id: 1, role: 'user', text: 'hello there' },
-        { id: 2, role: 'character', text: 'the original reply' },
+        {
+            id: 2, role: 'character', text: 'the original reply',
+            swipes: [{ content: 'the original reply' }], activeSwipeIndex: 0,
+        },
     ];
+    const reply = state.messages[1];
     // Summaries off — this exercises the regen abort path, nothing else.
     state.activeChat = { id: 7, summary_enabled: false };
     state.chats = [state.activeChat];
@@ -186,19 +190,15 @@ SWIPE_SETUP = r"""
     const contentEl = { innerHTML: '' };
     const msgBody = { querySelector() { return null; }, insertBefore() {} };
     const msgEl = {
-        dataset: {
-            msgId: '2',
-            rawText: 'the original reply',
-            swipes: JSON.stringify([{ content: 'the original reply' }]),
-            activeSwipeIndex: '0',
-        },
+        dataset: { msgId: '2' },
         querySelector(selector) {
             if (selector === '.message-content') return contentEl;
             if (selector === '.msg-body') return msgBody;
             return null;
         },
     };
-    const swipes = [{ content: 'the original reply' }];
+    // The bubble holds no copy of the message, only this link to it.
+    drawnMessages.set(msgEl, reply);
 
     function abortError() {
         return new DOMException('The operation was aborted.', 'AbortError');
@@ -215,17 +215,15 @@ def test_stopped_regen_commits_its_partial_as_a_new_swipe():
             throw abortError();
         };
 
-        const idx = await generateSwipe(msgEl, swipes, 0);
+        assert.equal(await generateSwipe(msgEl), true);
 
-        assert.equal(idx, 1);
-        assert.equal(swipes.length, 2);
-        assert.equal(swipes[1].content, 'a half-finished repl');
+        assert.deepEqual(reply.swipes, [
+            // The original swipe stays reachable by swiping left.
+            { content: 'the original reply' }, { content: 'a half-finished repl' },
+        ]);
         assert.deepEqual(savedSwipes, [{ msgId: 2, content: 'a half-finished repl' }]);
-        assert.equal(msgEl.dataset.rawText, 'a half-finished repl');
-        assert.equal(msgEl.dataset.activeSwipeIndex, 1);
-        assert.equal(state.messages[1].text, 'a half-finished repl');
-        // The original swipe stays reachable by swiping left.
-        assert.equal(swipes[0].content, 'the original reply');
+        assert.equal(reply.activeSwipeIndex, 1);
+        assert.equal(reply.text, 'a half-finished repl');
         // Stop state must not leak into the next generation.
         assert.equal(llm.stopRequested, false);
         assert.equal(llm.abortController, null);
@@ -234,22 +232,21 @@ def test_stopped_regen_commits_its_partial_as_a_new_swipe():
 
 
 def test_a_new_swipe_joins_the_list_a_redraw_reads():
-    """renderMessages() builds from state.messages, so a swipe held only on the
-    element was gone after any redraw, and its index named another swipe."""
+    """renderMessages() builds from state.messages. A swipe once went only into
+    a copy on the bubble, so any redraw lost it and its index named another."""
     run_node_module(SWIPE_SETUP + r"""
-        state.messages[1].swipes = [{ content: 'the original reply' }];
-        state.messages[1].activeSwipeIndex = 0;
         API.streamChatCompletion = async () => 'a second take';
 
-        const idx = await generateSwipe(msgEl, swipes, 0);
+        assert.equal(await generateSwipe(msgEl), true);
 
-        assert.equal(idx, 1);
         assert.deepEqual(
             state.messages[1].swipes.map(swipe => swipe.content),
             ['the original reply', 'a second take'],
         );
         assert.equal(state.messages[1].activeSwipeIndex, 1);
-        assert.deepEqual(state.messages[1].swipes, JSON.parse(msgEl.dataset.swipes));
+        assert.equal(state.messages[1].text, 'a second take');
+        // Nothing about the message is kept on the bubble to fall out of step.
+        assert.deepEqual(msgEl.dataset, { msgId: '2' });
     """)
 
 
@@ -262,12 +259,11 @@ def test_chat_switch_during_regen_discards_the_partial():
             throw abortError();
         };
 
-        const idx = await generateSwipe(msgEl, swipes, 0);
+        assert.equal(await generateSwipe(msgEl), false);
 
-        assert.equal(idx, null);
-        assert.equal(swipes.length, 1);
+        assert.equal(reply.swipes.length, 1);
         assert.deepEqual(savedSwipes, []);
-        assert.equal(state.messages[1].text, 'the original reply');
+        assert.equal(reply.text, 'the original reply');
         assert.equal(llm.generationActive, false);
     """)
 
@@ -281,10 +277,9 @@ def test_regen_stopped_mid_reasoning_discards_the_partial():
             throw abortError();
         };
 
-        const idx = await generateSwipe(msgEl, swipes, 0);
+        assert.equal(await generateSwipe(msgEl), false);
 
-        assert.equal(idx, null);
-        assert.equal(swipes.length, 1);
+        assert.equal(reply.swipes.length, 1);
         assert.deepEqual(savedSwipes, []);
     """)
 
@@ -294,12 +289,12 @@ def test_regen_error_still_reverts_to_the_previous_swipe():
     run_node_module(SWIPE_SETUP + r"""
         API.streamChatCompletion = async () => { throw new Error('upstream exploded'); };
 
-        const idx = await generateSwipe(msgEl, swipes, 0);
+        assert.equal(await generateSwipe(msgEl), false);
 
-        assert.equal(idx, null);
-        assert.equal(swipes.length, 1);
+        assert.equal(reply.swipes.length, 1);
         assert.deepEqual(savedSwipes, []);
-        assert.equal(msgEl.dataset.rawText, 'the original reply');
+        assert.equal(reply.text, 'the original reply');
+        assert.equal(reply.activeSwipeIndex, 0);
         assert.equal(llm.generationActive, false);
     """)
 
@@ -318,16 +313,17 @@ def test_rapid_second_regen_does_not_start_another_generation():
             return 'the regenerated reply';
         };
 
-        const first = generateSwipe(msgEl, swipes, 0);
+        const first = generateSwipe(msgEl);
         await streamStarted;
-        const second = await generateSwipe(msgEl, swipes, 0);
+        const second = await generateSwipe(msgEl);
 
-        assert.equal(second, null);
+        assert.equal(second, false);
         assert.equal(generationCalls, 1);
         assert.equal(llm.generationActive, true);
 
         releaseStream();
-        assert.equal(await first, 1);
+        assert.equal(await first, true);
+        assert.equal(reply.activeSwipeIndex, 1);
         assert.equal(generationCalls, 1);
         assert.equal(llm.generationActive, false);
     """)
