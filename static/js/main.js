@@ -260,9 +260,13 @@ function closeInnerLayer() {
     return closeOpenSettingsMenu();
 }
 
+// The drawer counts once it is open, which the body's class says; the
+// sidebar's own is already on while a finger is still bringing it in from the
+// edge. A Back entry pushed in the middle of that drag would give iOS
+// something to go back to, and the rest of the swipe to its own Back.
 const panelOpen = () => !el.settingsFlyout.hidden || !el.chatFlyout.hidden
     || el.memoryFlyout?.hidden === false || el.personaDropup.classList.contains('show')
-    || !document.getElementById('char-modal').hidden || el.sidebar.classList.contains('mobile-open');
+    || !document.getElementById('char-modal').hidden || document.body.classList.contains('mobile-drawer-open');
 
 function blurSettingsFlyoutFocus() {
     if (el.settingsFlyout.contains(document.activeElement)) {
@@ -391,7 +395,8 @@ const DRAG_FLICK_PX_PER_MS = 0.5;  // or quick enough to mean it from less
 // How far in from the left edge a drag can start and still open the drawer.
 // In a Safari tab with a page to go back to, Safari keeps the strip nearest the
 // edge for its own Back and cancels ours; starting a little further in still
-// opens the drawer. The installed app has no such gesture.
+// opens the drawer. The installed app does the same once it has an entry to
+// go back to, so Cozy keeps none of its own beneath the chat (syncBackEntry).
 const DRAG_EDGE_PX = 32;
 
 const flicked = (dist, ms) => dist > 20 && dist / ms > DRAG_FLICK_PX_PER_MS;
