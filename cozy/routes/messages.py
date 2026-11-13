@@ -25,9 +25,14 @@ def _swipe_to_dict(row):
     }
 
 
-def _message_to_dict(row, swipes=None):
+def _message_to_dict(row, swipes=()):
     message = dict(row)
-    message['swipes'] = swipes or [{'id': None, 'content': row['content']}]
+    # A message that was never swiped or edited has one swipe, a copy of its
+    # own content. Sent with every message, that doubled the size of a chat,
+    # so `swipes` is only there when it says more than `content` does, and
+    # the page stands the content in for it otherwise.
+    if len(swipes) > 1 or any(s['edited_at'] or s['content'] != row['content'] for s in swipes):
+        message['swipes'] = swipes
     return message
 
 
@@ -141,7 +146,7 @@ def list_messages(chat_id):
                 swipes_by_message.setdefault(swipe['message_id'], []).append(_swipe_to_dict(swipe))
 
         return jsonify([
-            _message_to_dict(row, swipes_by_message.get(row['id']))
+            _message_to_dict(row, swipes_by_message.get(row['id'], ()))
             for row in rows
         ])
 
@@ -182,7 +187,7 @@ def add_message(chat_id):
         row = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
             WHERE m.id=?
         ''', (msg_id,)).fetchone()
-        return jsonify(_message_to_dict(row, [{'id': None, 'content': content}])), 201
+        return jsonify(_message_to_dict(row)), 201
 
 
 # ── Swipe routes ───────────────────────────────────────────────────────────

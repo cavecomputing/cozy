@@ -435,8 +435,39 @@ class TestMessages:
         msg = r.get_json()
         assert msg['role'] == 'user'
         assert msg['content'] == 'Hello!'
-        assert len(msg['swipes']) == 1
-        assert msg['swipes'][0]['content'] == 'Hello!'
+        with shared.get_db() as conn:
+            swipes = conn.execute(
+                'SELECT content FROM message_swipes WHERE message_id=?', (msg['id'],)
+            ).fetchall()
+        assert [s['content'] for s in swipes] == ['Hello!']
+
+    def test_a_lone_copy_of_the_content_is_not_sent_as_swipes(self, client, sample_chat):
+        """Every message has a first swipe holding its own text. Sent along, it
+        doubled the size of a chat, so `swipes` appears only once it says more
+        than `content` does: a second swipe, or an edit."""
+        chat_id = sample_chat['id']
+        plain = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Never touched',
+        }).get_json()
+        swiped = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'First take',
+        }).get_json()
+        edited = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Typo',
+        }).get_json()
+        assert 'swipes' not in plain and 'swipes' not in swiped
+
+        client.post(f'/api/messages/{swiped["id"]}/swipes', json={'content': 'Second take'})
+        client.put(f'/api/messages/{edited["id"]}', json={
+            'content': 'Fixed', 'update_swipe': True, 'swipe_index': 0,
+        })
+
+        listed = {m['id']: m for m in client.get(f'/api/chats/{chat_id}/messages').get_json()}
+        assert 'swipes' not in listed[plain['id']]
+        assert [s['content'] for s in listed[swiped['id']]['swipes']] == ['First take', 'Second take']
+        # One swipe still, but it carries the edit mark the page shows.
+        assert [s['content'] for s in listed[edited['id']]['swipes']] == ['Fixed']
+        assert listed[edited['id']]['swipes'][0]['edited_at'] is not None
 
     def test_user_message_names_its_persona(self, client, sample_chat, sample_persona):
         chat_id = sample_chat['id']
@@ -448,11 +479,10 @@ class TestMessages:
         assert r.status_code == 201
         created = r.get_json()
         assert created['persona_name'] == 'TestUser'
-        assert len(created['swipes']) == 1
 
         listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
         assert listed[0]['persona_name'] == 'TestUser'
-        assert listed[0]['swipes'][0]['content'] == 'Hello!'
+        assert listed[0]['content'] == 'Hello!'
 
     def test_list_messages_ordered(self, client, sample_chat):
         chat_id = sample_chat['id']
@@ -488,7 +518,7 @@ class TestMessages:
         assert len(msgs) == 1200
         assert msgs[0]['content'] == 'Message 0'
         assert msgs[-1]['content'] == 'Message 1199'
-        assert msgs[-1]['swipes'][0]['content'] == 'Message 1199'
+        assert not any('swipes' in m for m in msgs)
 
     def test_add_swipe(self, client, sample_chat):
         chat_id = sample_chat['id']
@@ -601,7 +631,8 @@ class TestMessages:
         })
 
         listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
-        assert next(m for m in listed if m['id'] == msg['id'])['swipes'][0]['edited_at'] is None
+        # Unmarked, the lone swipe is still a plain copy and is not sent at all.
+        assert 'swipes' not in next(m for m in listed if m['id'] == msg['id'])
 
     def test_picking_a_swipe_does_not_mark_it_edited(self, client, sample_chat):
         chat_id = sample_chat['id']
