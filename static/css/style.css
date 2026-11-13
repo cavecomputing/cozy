@@ -219,7 +219,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity var(--motion-slow) ease;
+    transition: opacity var(--motion-fast) ease;
 }
 
 #loading-screen.fade-out {
