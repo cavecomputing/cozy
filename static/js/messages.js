@@ -216,17 +216,19 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
         while (frame && !regenSignal.aborted && !document.hidden) await new Promise(requestAnimationFrame);
         if (!regenSignal.aborted && !document.hidden) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
     } catch (err) {
-        if (err.name !== 'AbortError') {
-            console.error('Regen error:', err);
-            showToast(`${source}: ${err.message}`);
-        }
-        // An explicit Stop keeps its partial as a swipe of its own, so the
-        // previous one stays reachable by swiping left. Anything else — an
-        // error, a chat switch, or reasoning that never reached a response —
-        // falls back to the swipe that was on screen.
-        const kept = err.name === 'AbortError' && llm.stopRequested && hasVisibleResponse(streamed)
+        // A Stop, or an error partway through, keeps its partial as a swipe of
+        // its own, so the previous one stays reachable by swiping left.
+        // Anything else — a chat switch, an error before any text, or
+        // reasoning that never reached a response — falls back to the swipe
+        // that was on screen.
+        const cutOff = err.name !== 'AbortError';
+        const kept = (cutOff || llm.stopRequested) && hasVisibleResponse(streamed)
             ? closeIncompleteThinking(streamed)
             : '';
+        if (cutOff) {
+            console.error('Regen error:', err);
+            showToast(`${kept ? 'Reply cut short. ' : ''}${source}: ${err.message}`);
+        }
         if (!kept) {
             renderSwipeBody(msgBody, contentEl, swipes[idx]?.content || '');
             return null;

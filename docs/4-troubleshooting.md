@@ -78,7 +78,8 @@ If Cozy says it couldn't reach the server, nothing answered at that address.
 Check that the server is running and that the endpoint's host and port are
 right. When a reply fails this way, the error has a **Retry** button that asks
 again for the reply to the message you sent, so you do not need to send it
-twice.
+twice. A reply that fails partway through keeps the part that arrived, and
+**Retry** then asks for another take, which you can swipe to beside it.
 
 If Cozy runs in Docker but the LLM server runs on the host, `localhost` inside
 the container refers to the container itself. Use a host address that Docker can

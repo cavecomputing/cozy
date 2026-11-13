@@ -3,7 +3,9 @@ import {
     autoResize, showToast, showApiNotice, scrollToBottom, maybeScrollToBottom,
     setSendButtonMode, updateComposerState, beginGeneration, endGeneration,
 } from './utils.js';
-import { appendMessage, renderMarkdown, createTextFader, STREAM_FADE_MS, STREAM_DRAW_MS } from './messages.js';
+import {
+    appendMessage, renderMarkdown, createTextFader, regenerateLastAssistantMessage, STREAM_FADE_MS, STREAM_DRAW_MS,
+} from './messages.js';
 import { generateResponse } from './request-builder.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
@@ -154,22 +156,26 @@ async function sendOnce(text) {
         if (!signal.aborted && !document.hidden) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
 
     } catch (err) {
-        if (err.name !== 'AbortError') {
+        // Stopped on purpose, or cut off by an error: keep the text as an
+        // ordinary reply. An implicit abort (chat switch) leaves stopRequested
+        // false and falls through to the discard below. Reasoning with no
+        // response yet is dropped: analyzeContext strips thinking, so it would
+        // persist as a blank bubble that never reaches the model again.
+        const cutOff = err.name !== 'AbortError';
+        if ((cutOff || llm.stopRequested) && hasVisibleResponse(streamed)) {
+            reply = closeIncompleteThinking(streamed);
+        }
+        if (cutOff) {
             failed = true;
             console.error('LLM error:', err);
-            // Retry asks again for the reply this send was waiting on. /retry
-            // is not the same thing: it regenerates the reply before it.
-            showToast(`${source}: ${err.message}`, 'error', 8000, {
+            // Retry asks again for the reply this send was waiting on, or for
+            // another take beside the part that was kept. /retry is not the
+            // same thing: it regenerates the reply before it.
+            const retry = reply ? regenerateLastAssistantMessage : () => handleSend('');
+            showToast(`${reply ? 'Reply cut short. ' : ''}${source}: ${err.message}`, 'error', 8000, {
                 label: 'Retry',
-                onClick: () => { if (state.activeChat?.id === chatId) handleSend(''); },
+                onClick: () => { if (state.activeChat?.id === chatId) retry(); },
             });
-        } else if (llm.stopRequested) {
-            // Stopped on purpose — keep the text as an ordinary reply. An
-            // implicit abort (chat switch) leaves stopRequested false and falls
-            // through to the discard below. Reasoning with no response yet is
-            // dropped: analyzeContext strips thinking, so it would persist as a
-            // blank bubble that never reaches the model again.
-            if (hasVisibleResponse(streamed)) reply = closeIncompleteThinking(streamed);
         }
     } finally {
         // Drop any draw still queued, so it can't repaint the bubble after the
