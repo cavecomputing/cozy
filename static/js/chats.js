@@ -21,9 +21,16 @@ export function renderChats() {
 
     if (!state.activeCharacter || state.chats.length === 0) return;
 
-    state.chats.forEach(chat => {
+    lastUsedFirst().forEach(chat => {
         el.flyoutChatList.appendChild(buildChatItem(chat));
     });
+}
+
+/** The chats as the list shows them, by the time each row carries. state.chats
+ *  keeps the server's oldest-first order, which the branch pills count along. */
+function lastUsedFirst() {
+    return [...state.chats].sort((a, b) =>
+        (b.updated_at || '').localeCompare(a.updated_at || '') || b.id - a.id);
 }
 
 function buildChatItem(chat) {
@@ -412,7 +419,7 @@ export async function deleteChat(chatId) {
             state.messages   = [];
             updateComposerState();
             if (state.chats.length > 0) {
-                await selectChat(state.chats[state.chats.length - 1]);
+                await selectChat(lastUsedFirst()[0]);
             } else {
                 renderMessages();
                 await createNewChat(true, true);

@@ -1072,6 +1072,8 @@ function bindChatHandlers() {
         if (!isOpen) renderChats();
         el.chatFlyout.hidden = isOpen;
         el.chatFlyoutBtn.setAttribute('aria-expanded', String(!isOpen));
+        // The open chat is the one last opened, which needn't be the top row.
+        el.flyoutChatList.querySelector('.chat-item.active')?.scrollIntoView({ block: 'nearest' });
     });
 
     // Close flyout on outside click
