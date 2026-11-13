@@ -2,7 +2,7 @@ import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
     chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs, branchesAt,
-    parseDbStamp, timeAgo, MOBILE_SHELL_QUERY,
+    parseDbStamp, timeAgo, MOBILE_SHELL_QUERY, Flyouts,
 } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills } from './messages.js';
@@ -350,6 +350,13 @@ export async function switchBranch(msgEl) {
 
 export async function createNewChat(autoSelect = true, silent = false) {
     if (!state.activeCharacter) return;
+    // A chat nobody has written in is the new chat being asked for. Making
+    // another stacked up chats that differ only in the minute they were made.
+    if (state.activeChat && state.messages.length <= 1 && state.messages.every(m => m.role === 'character')) {
+        Flyouts.closeAllExcept(null);
+        if (!window.matchMedia('(pointer: coarse)').matches) el.userInput.focus({ preventScroll: true });
+        return state.activeChat;
+    }
     const name = chatStamp();
     try {
         const chat = await API.createChat(state.activeCharacter.id, name);
