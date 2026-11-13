@@ -19,13 +19,11 @@ import { flushLLMSettingsSave } from './llm-settings.js';
 // CHAT — MESSAGES
 // ═══════════════════════════════════════════════════════════════════════════
 
-/**
- * Render sanitised markdown into an element (resolves ST-style variables first).
- */
-export function renderMarkdown(targetEl, rawText) {
+/** Message text with its ST-style variables filled in for this character and persona. */
+function resolveMessageText(rawText) {
     const c = state.activeCharacter || {};
     const p = state.activePersona || {};
-    const resolved = resolveTemplateVariables(rawText, {
+    return resolveTemplateVariables(rawText, {
         user:         p.name || 'User',
         char:         c.name || '',
         personality:  c.personality || '',
@@ -34,7 +32,19 @@ export function renderMarkdown(targetEl, rawText) {
         persona:      p.description || '',
         mesExamples:  c.mes_example || '',
     });
-    targetEl.innerHTML = DOMPurify.sanitize(marked.parse(resolved));
+}
+
+/**
+ * Render sanitised markdown into an element (resolves ST-style variables first).
+ */
+export function renderMarkdown(targetEl, rawText) {
+    targetEl.innerHTML = DOMPurify.sanitize(marked.parse(resolveMessageText(rawText)));
+}
+
+/** A stored message as its bubble words it: variables filled in, reasoning left out. */
+export function shownText(rawText) {
+    const parsed = parseThinkingContent(rawText);
+    return resolveMessageText(parsed.hasThinking ? parsed.response : rawText);
 }
 
 /** How long a stretch of streamed text takes to fade in. */

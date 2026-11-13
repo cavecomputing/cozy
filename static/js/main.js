@@ -11,7 +11,7 @@ import {
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
-import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop } from './messages.js';
+import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop, shownText } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -1319,7 +1319,9 @@ function bindMessageHandlers() {
             }
         } else if (e.target.closest('.copy-msg-btn')) {
             const copyBtn = e.target.closest('.copy-msg-btn');
-            copyText(msgEl.dataset.rawText || '')
+            // What the bubble says, not what is stored: the stored text carries
+            // the model's reasoning and {{char}} as written.
+            copyText(shownText(msgEl.dataset.rawText || ''))
                 .then(ok => ok
                     ? flashCopied(copyBtn)
                     : showToast('Could not copy message'));
