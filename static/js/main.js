@@ -387,17 +387,18 @@ function bindSheetBackdropHandlers() {
 // carries on out or springs back. The drawer goes left, and can be taken
 // anywhere since a vertical touch on it is the list's to scroll (the browser
 // takes that one over and cancels ours); a sheet goes down, from its grabber.
-// The drawer also comes in the same way, dragged from the screen's left edge.
+// The drawer also comes in the same way, dragged from the chat's left side.
 // Touch and pen only: a mouse has the buttons.
 const DRAG_SLOP_PX = 8;            // before it is a drag at all
 const DRAG_CLOSE_PX = 80;          // far enough to mean it
 const DRAG_FLICK_PX_PER_MS = 0.5;  // or quick enough to mean it from less
-// How far in from the left edge a drag can start and still open the drawer.
-// In a Safari tab with a page to go back to, Safari keeps the strip nearest the
-// edge for its own Back and cancels ours; starting a little further in still
-// opens the drawer. The installed app does the same once it has an entry to
-// go back to, so Cozy keeps none of its own beneath the chat (syncBackEntry).
-const DRAG_EDGE_PX = 32;
+// The strip of the chat a drag to the right can start in to open the drawer:
+// under the thumb of the hand holding the phone, and clear of the screen's
+// very edge. iOS keeps that edge for its own Back whenever there is an entry
+// to go back to, in a Safari tab or in the installed app, and a drag begun
+// there showed the drawer for a moment before iOS cancelled it and went back.
+const DRAG_OPEN_FROM_PX = 20;
+const DRAG_OPEN_TO_PX = 72;
 
 const flicked = (dist, ms) => dist > 20 && dist / ms > DRAG_FLICK_PX_PER_MS;
 
@@ -470,7 +471,8 @@ function bindEdgeSwipeToOpen() {
 
     const main = document.getElementById('main-content');
     main.addEventListener('pointerdown', e => {
-        if (e.pointerType === 'mouse' || e.clientX > DRAG_EDGE_PX || !drawerShell.matches || panelOpen()) return;
+        if (e.pointerType === 'mouse' || e.clientX < DRAG_OPEN_FROM_PX || e.clientX > DRAG_OPEN_TO_PX
+            || !drawerShell.matches || panelOpen()) return;
         drag = { id: e.pointerId, x: e.clientX, at: e.timeStamp, dist: 0, live: false };
     });
 
