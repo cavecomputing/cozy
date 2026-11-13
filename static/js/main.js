@@ -398,7 +398,7 @@ const DRAG_FLICK_PX_PER_MS = 0.5;  // or quick enough to mean it from less
 // to go back to, in a Safari tab or in the installed app, and a drag begun
 // there showed the drawer for a moment before iOS cancelled it and went back.
 const DRAG_OPEN_FROM_PX = 20;
-const DRAG_OPEN_TO_PX = 72;
+const DRAG_OPEN_TO_PX = 96;
 
 const flicked = (dist, ms) => dist > 20 && dist / ms > DRAG_FLICK_PX_PER_MS;
 
