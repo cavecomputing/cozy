@@ -34,7 +34,6 @@
    TOKENS
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-    --sidebar-width: 240px;
     /* Width of the chat column, shared by the messages, the composer and the
        token meter so they all line up. Sized for the reading measure: ~78
        characters per line of message prose, near the top of the comfortable
@@ -76,8 +75,10 @@
     --space-4: 0.75rem;    /* 12px — padding inside a card, panel or flyout */
     --space-5: 1rem;       /* 16px — between cards; page gutter on mobile */
     --space-6: 1.5rem;     /* 24px — page gutter on desktop; major group break */
-    /* The main pane's width beside the sidebar: what a settings panel fills. */
-    --shell-pane-width: calc(100vw - var(--sidebar-width));
+    /* Settings covers the sidebar with its menu column, and the page beside
+       that column is what a help panel takes half of. */
+    --settings-nav-width: clamp(180px, 16vw, 230px);
+    --shell-pane-width: calc(100vw - var(--settings-nav-width));
 
     /* One radius, which a theme names --radius-md: Cozy and Cozy Light set
        10px, the other bundled themes take the 8px fallback. */
@@ -4093,13 +4094,15 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 /* ── Shell and navigation ────────────────────────────────────────────────── */
 /* Preview / Help stack above the settings flyout they were opened from — each
-   takes half the flyout's width so the pair reads as one split pane. The
-   z-index is what puts them in *front* of the flyout rather than behind it,
-   and the body rule is what lets them scroll. Desktop-only width: on mobile
-   `.modal-overlay > .modal` takes over and fills the screen. */
+   opens against the Settings menu and takes half the page beside it, so the
+   pair reads as one split pane. The z-index is what puts them in *front* of
+   the flyout rather than behind it, and the body rule is what lets them
+   scroll. Desktop-only place and width: on mobile `.modal-overlay > .modal`
+   takes over and fills the screen. */
 .settings-submodal { z-index: 600; }
 
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
+    .settings-submodal { left: var(--settings-nav-width); }
     .settings-submodal .modal { width: calc(var(--shell-pane-width) / 2); max-width: 90vw; }
 }
 
@@ -4134,7 +4137,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
        layouts inside it still fit — the nav column comes out of that budget
        first. The @container rules further down read this. */
     container-type: inline-size;
-    --settings-nav-width: clamp(180px, 16vw, 230px);
     --settings-gutter: clamp(var(--space-5), 2.5vw, 2.25rem);
 }
 
