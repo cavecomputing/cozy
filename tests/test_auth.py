@@ -238,7 +238,7 @@ def test_a_stranger_cannot_restore_over_the_data(anon):
     assert os.path.exists(marker)
 
 
-def test_a_stranger_cannot_reach_the_model(anon, signed_in, monkeypatch):
+def test_a_stranger_cannot_reach_the_model(anon, signed_in, monkeypatch, sample_chat):
     from cozy.routes import llm
     calls = []
 
@@ -256,7 +256,7 @@ def test_a_stranger_cannot_reach_the_model(anon, signed_in, monkeypatch):
     assert anon.post('/api/llm/test', json={}).status_code == 401
     assert calls == []
     # The same request does go out once signed in, so the stranger was stopped.
-    signed_in.post('/api/llm/chat', json=chat).get_data()
+    signed_in.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json=chat).get_data()
     assert calls == ['http://model.invalid/v1/chat/completions']
 
 

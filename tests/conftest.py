@@ -21,6 +21,7 @@ import app as app_module
 from cozy import card_store
 from cozy import shared
 from cozy import schema
+from cozy.routes import llm
 from cozy.png_utils import make_minimal_png
 
 
@@ -57,6 +58,9 @@ def _test_db(tmp_path, monkeypatch):
     card_store._crc_memo.clear()
     card_store._card_memo.clear()
     card_store._placeholder_memo.clear()
+    # A finished reply stays on record for a few seconds, under a chat id the
+    # next test's fresh database hands out again.
+    llm._replies.clear()
     schema.init_db()
     yield db_path
 

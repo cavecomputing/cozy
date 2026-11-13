@@ -3,14 +3,13 @@ import { API } from './api.js';
 import {
     applyAvatar, AVATAR, resolveTemplateVariables, showToast, showApiNotice,
     scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
-    updateComposerState, setSendButtonMode, beginGeneration, endGeneration,
+    updateComposerState, setSendButtonMode, beginGeneration, endGeneration, whenGenerationEnds,
     branchesAt, displayChatName, parseDbStamp, fullStamp, shortStamp,
 } from './utils.js';
-import {
-    parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
-} from './thinking.js';
+import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
 import { updateContextViews, updateContextBoundary, placeContextBoundary } from './context-meter.js';
 import { noteChatActivity } from './characters.js';
+import { refreshOpenChat } from './chats.js';
 import { generateResponse } from './request-builder.js';
 import { ensureSummaryReadyForSend } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
@@ -202,80 +201,81 @@ export async function generateSwipe(msgEl) {
     if (!beginGeneration()) return false;
 
     try {
-        return await generateSwipeOnce(msgEl);
+        return await receiveSwipe(msgEl);
     } finally {
-        llm.abortController = null;
-        llm.stopRequested = false;
-        setSendButtonMode('send');
         endGeneration();
-        updateComposerState();
     }
 }
 
-async function generateSwipeOnce(msgEl) {
+/**
+ * Draw a new swipe into its bubble as the server writes it, and put it on show
+ * once saved. `followed` reads a swipe already being written, one this page
+ * was sent away from or another device asked for; without it one is asked for.
+ * False when none came of it.
+ */
+export async function receiveSwipe(msgEl, followed = null) {
     const msg = drawnMessages.get(msgEl);
+    const chatId = state.activeChat.id;
     const contentEl = msgEl.querySelector('.message-content');
     const msgBody = msgEl.querySelector('.msg-body');
     const prevThinkBlock = msgBody.querySelector('.thinking-block');
     if (prevThinkBlock) prevThinkBlock.remove();
 
     contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
-    llm.abortController = new AbortController();
-    llm.stopRequested = false;
+    // A swipe being rejoined came with the controller its stream was opened under.
+    llm.abortController ??= new AbortController();
     const regenSignal = llm.abortController.signal;
     setSendButtonMode('stop');
     el.sendBtn.disabled = false;
     updateComposerState();
 
-    let newContent;
+    let saved = null;
     const stream = streamInto(msgBody, contentEl);
+    const read = followed || (onToken => generateResponse(1, onToken, regenSignal, chatId, msg.id));
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
     let source = 'Settings could not be saved';
     try {
-        await flushLLMSettingsSave({ strict: true });
-        source = 'Auto Summaries API';
-        await ensureSummaryReadyForSend(regenSignal, { excludeLastN: 1 });
+        if (!followed) {
+            await flushLLMSettingsSave({ strict: true });
+            source = 'Auto Summaries API';
+            await ensureSummaryReadyForSend(regenSignal, { excludeLastN: 1 });
+        }
         source = 'Chat API';
-        newContent = await generateResponse(1, stream.onToken, regenSignal);
+        saved = await read(stream.onToken);
         await stream.settle(regenSignal);
     } catch (err) {
-        // A Stop, or an error partway through, keeps its partial as a swipe of
-        // its own, so the previous one stays reachable by swiping left.
-        // Anything else — a chat switch, an error before any text, or
-        // reasoning that never reached a response — falls back to the swipe
-        // that was on screen.
-        const cutOff = err.name !== 'AbortError';
-        const kept = (cutOff || llm.stopRequested) && hasVisibleResponse(stream.text)
-            ? closeIncompleteThinking(stream.text)
-            : '';
-        if (cutOff) {
+        // The server keeps what it had of a swipe that an error cut off, as it
+        // does for a Stop: a swipe of its own, so the previous one stays
+        // reachable by swiping left. A lost connection ends neither the swipe
+        // nor this page's interest in it.
+        saved = err.saved;
+        if (err.dropped) {
+            whenGenerationEnds(() => refreshOpenChat(true));
+        } else if (err.name !== 'AbortError') {
             console.error('Regen error:', err);
-            showToast(`${kept ? 'Reply cut short. ' : ''}${source}: ${err.message}`);
+            showToast(`${saved ? 'Reply cut short. ' : ''}${source}: ${err.message}`);
         }
-        if (!kept) {
-            renderSwipeBody(msgBody, contentEl, msg.text);
-            return false;
-        }
-        newContent = kept;
     } finally {
         // The bubble outlives the stream here, and a draw still queued would
         // repaint a partial stream over the saved swipe.
         stream.stop();
     }
 
-    msg.swipes.push({ content: newContent });
+    // Nothing kept: a Stop or an error before any of the response arrived, a
+    // chat switch, or reasoning that never reached a response. Back to the
+    // swipe that was on screen.
+    if (!saved) {
+        renderSwipeBody(msgBody, contentEl, msg.text);
+        return false;
+    }
+    msg.swipes.push(saved);
     setActiveSwipe(msg, msg.swipes.length - 1);
-    const parsed = parseThinkingContent(newContent);
+    const parsed = parseThinkingContent(msg.text);
     renderThinkingBlock(msgBody, parsed);
     renderMarkdown(contentEl, parsed.response);
-
-    if (msg.id) {
-        API.addSwipe(msg.id, newContent).catch(err => {
-            console.error('Swipe save failed:', err);
-            showToast('Swipe failed to save: ' + err.message);
-        });
-    }
+    updateSwipeNav(msgEl, msg);
+    setEditedLabel(msgEl, saved.edited_at);
     updateContextViews();
     return true;
 }
@@ -303,7 +303,8 @@ export async function handleSwipeAction(msgEl, isPrev) {
         // new swipe answers the end of the chat (generateResponse leaves out
         // only its last message), so only the newest reply can have one.
         if (msgEl.dataset.isGreeting === 'true' || msg !== state.messages.at(-1)) return;
-        if (!await generateSwipe(msgEl)) return;
+        await generateSwipe(msgEl);
+        return;
     }
 
     updateSwipeNav(msgEl, msg);
@@ -640,10 +641,11 @@ export function renderMessages() {
 
 /**
  * Draw a new message at the end of the chat and, unless `persist` is false,
- * save it and add it to state.messages. Resolves with its container, or null
+ * save it and add it to state.messages. `saved` is its row when the server
+ * holds it already, as it does a reply. Resolves with its container, or null
  * for a user message that could not be saved.
  */
-export async function appendMessage(role, text, persist = true) {
+export async function appendMessage(role, text, persist = true, saved = null) {
     hideEmptyState();
     const persona = role === 'user' ? state.activePersona : null;
     const msg = {
@@ -660,7 +662,7 @@ export async function appendMessage(role, text, persist = true) {
     if (persist && state.activeChat) {
         const chat = state.activeChat;
         try {
-            const saved = await API.addMessage(chat.id, role, text, persona ? persona.id : null);
+            saved ??= await API.addMessage(chat.id, role, text, persona ? persona.id : null);
             // The server bumped the chat's updated_at too; the chats list reads it.
             chat.updated_at = saved.created_at;
             if (role === 'user') noteChatActivity(chat.character_id, saved.created_at);

@@ -1,5 +1,9 @@
 """LLM proxy routes — forward chat requests to OpenAI-compatible endpoints.
 
+A reply is read from the model by a thread of its own, not by the request
+that asked for it, and that thread saves it to its chat. A page follows the
+reply over SSE and may leave and come back; see the Replies section below.
+
 An endpoint on anthropic.com, or one whose path ends in /messages, speaks
 Claude's Messages API instead. The browser never knows: requests are
 translated on the way out and replies back into the Chat Completions shape
@@ -8,14 +12,18 @@ api.js already reads.
 
 import json
 import logging
+import sqlite3
+import threading
 import time
 from urllib.parse import urlsplit
 
 import requests as http_requests
-from flask import Blueprint, request, jsonify, Response, stream_with_context
+from flask import Blueprint, request, jsonify, Response
 
+from cozy.routes.messages import insert_message, insert_swipe
 from cozy.routes.settings import get_settings
-from cozy.shared import json_body
+from cozy.shared import get_db, json_body, not_found
+from cozy.summarizer import close_incomplete_thinking, strip_thinking_content
 
 log = logging.getLogger('cozy')
 
@@ -308,8 +316,243 @@ def test_llm():
         return jsonify({'ok': False, 'error': error}), 502
 
 
+# ── Replies ─────────────────────────────────────────────────────────────────
+# Kept in memory, as the summary jobs are: Docker runs one gunicorn worker, and
+# a restart loses a reply that was still being written.
+
+# How long a finished reply stays on record. A page that loaded its chat just
+# before the reply was saved asks for it just after, and has to be told to look
+# again rather than that nothing is there.
+REPLY_KEPT_SECONDS = 15
+
+# How long a page following a reply hears nothing before a comment line goes
+# out. Writing is the only way to find out that the page has gone, and a thread
+# waits on each one that hasn't been found out yet.
+FOLLOW_IDLE_SECONDS = 15
+
+
+class Reply:
+    """A reply being written, as the pages following it need it."""
+
+    def __init__(self, chat_id, message_id):
+        self.chat_id = chat_id
+        # The message this is a new swipe of, or None for a new message.
+        self.message_id = message_id
+        # Every SSE payload so far, replayed to a page that joins late.
+        self.events = []
+        self.reasoning = []
+        self.content = []
+        self.done = False
+        self.changed = threading.Condition()
+
+
+# chat id -> its Reply. One at a time per chat.
+_replies = {}
+_replies_lock = threading.Lock()
+
+
+def _relay(reply, payload, reasoning='', content=''):
+    """Pass one of the model's chunks on. False once a Stop has ended the reply."""
+    with reply.changed:
+        if reply.done:
+            return False
+        reply.events.append(payload)
+        reply.reasoning.append(reasoning)
+        reply.content.append(content)
+        reply.changed.notify_all()
+        return True
+
+
+def _save_reply(reply, text):
+    with get_db() as conn:
+        if reply.message_id:
+            return insert_swipe(conn, reply.message_id, text)
+        return insert_message(conn, reply.chat_id, 'character', text)
+
+
+def _finish(reply, whole=False, error=None):
+    """End a reply: save what it came to and tell the pages following it.
+
+    Runs once, for whichever comes first of the stream's own end and a Stop. A
+    reply that ran to its end is saved as it stands. One cut short, by a Stop
+    or an error, is kept only if some of the response itself arrived: reasoning
+    is left out of every later prompt, so on its own it would be a blank
+    message.
+    """
+    with reply.changed:
+        if reply.done:
+            return
+        text = ''.join(reply.content)
+        reasoning = ''.join(reply.reasoning)
+        if reasoning:
+            text = f'<think>{reasoning}</think>{text}'
+        if not whole:
+            text = close_incomplete_thinking(text) if strip_thinking_content(text) else ''
+        try:
+            if text.strip():
+                # Ahead of the error, which is where a page stops reading.
+                reply.events.append(json.dumps({'saved': _save_reply(reply, text.strip())}))
+        except sqlite3.Error as e:
+            # Its chat was deleted meanwhile, or the database would not take it.
+            log.error('Chat reply could not be saved: %s', e)
+            error = f'The reply could not be saved: {e}'
+        if error:
+            reply.events.append(json.dumps({'error': error}))
+        elif not whole:
+            # A Stop is an ending. Without this the page reads it as a dropped connection.
+            reply.events.append('[DONE]')
+        reply.done = True
+        reply.changed.notify_all()
+    forget = threading.Timer(REPLY_KEPT_SECONDS, _forget, (reply,))
+    forget.daemon = True
+    forget.start()
+
+
+def _forget(reply):
+    with _replies_lock:
+        if _replies.get(reply.chat_id) is reply:
+            del _replies[reply.chat_id]
+
+
+def _write_reply(reply, url, headers, body, anthropic, logged_url):
+    """Read a reply from the model to its end, whether or not a page is listening."""
+    token_count = 0
+    # Diagnostics for truncation reports: why did the stream stop?
+    #   finish_reason 'length' -> hit max_tokens (raise it / reasoning ate it)
+    #   finish_reason 'stop'   -> model decided it was done
+    #   saw_done False         -> upstream/proxy severed the stream early
+    finish_reason = None
+    saw_done = False
+    # What went wrong, for the log and for the page.
+    error = None
+    shown_error = None
+    whole = False
+    started = time.monotonic()
+    first_chunk_after = None
+    try:
+        # (connect, read) tuple: bound the connection attempt at 10s, but
+        # never time out waiting for tokens. Slow local backends (llama.cpp
+        # on weak hardware) can take minutes on prompt prefill before the
+        # first token; the user stops a runaway generation with the Stop
+        # button instead. See issue #6.
+        with http_requests.post(url, json=body, headers=headers, timeout=(10, None), stream=True) as r:
+            if not r.ok:
+                # Read the body before raising — the provider's actual
+                # complaint (bad model id, rejected parameter, …) lives
+                # there, and raise_for_status() discards it.
+                r.encoding = 'utf-8'
+                error = (f'{r.status_code} {r.reason} from {logged_url}: '
+                         f'{(r.text or "").strip()[:500]}')
+                shown_error = _status_error(r.status_code, r.reason, url, r.text)
+                return
+            # Split on \n alone. Decoded lines go through str.splitlines(),
+            # which also breaks at U+2028, U+2029 and U+0085 — characters
+            # JSON may carry unescaped — and the halves of that event were
+            # dropped as unparseable.
+            for raw in r.iter_lines(delimiter=b'\n'):
+                line = raw.decode('utf-8', 'replace').rstrip('\r')
+                # SSE allows "data:" with or without the space after it;
+                # the browser reads this proxy's own "data: " form.
+                if not line.startswith('data:'):
+                    continue
+                payload = line[5:].removeprefix(' ')
+                if anthropic:
+                    try:
+                        chunk = from_anthropic_event(json.loads(payload))
+                    except (ValueError, AttributeError):
+                        continue
+                    if chunk is None:
+                        continue
+                    payload = chunk if chunk == '[DONE]' else json.dumps(chunk)
+                if payload.startswith('[DONE]'):
+                    saw_done = True
+                    _relay(reply, '[DONE]')
+                    break
+                if first_chunk_after is None:
+                    first_chunk_after = time.monotonic() - started
+                # The reply is put together here as the page puts it together
+                # from the same chunks, since this is the copy that is saved.
+                reasoning = content = ''
+                try:
+                    chunk = json.loads(payload)
+                    if chunk.get('error'):
+                        # The provider gave up mid-reply. Not passed on as it
+                        # is: what was kept has to reach the page first.
+                        error = shown_error = _provider_message(payload)
+                        return
+                    choice = chunk.get('choices', [{}])[0]
+                    delta = choice.get('delta') or {}
+                    reasoning = delta.get('reasoning_content') or delta.get('reasoning') or ''
+                    content = delta.get('content') or ''
+                    if content:
+                        token_count += 1
+                    if choice.get('finish_reason'):
+                        finish_reason = choice['finish_reason']
+                except (ValueError, IndexError, AttributeError, TypeError):
+                    # A chunk shaped unlike the rest must not end the reply it
+                    # belongs to.
+                    pass
+                if not _relay(reply, payload, str(reasoning), str(content)):
+                    return
+            whole = True
+    except http_requests.RequestException as e:
+        # The raw exception for the log, the readable one for the toast.
+        error = e
+        shown_error = _error_detail(e)
+    finally:
+        stopped = reply.done
+        took = time.monotonic() - started
+        first = '' if first_chunk_after is None else f', first after {first_chunk_after:.1f}s'
+        if error:
+            log.error('Chat request failed after %.1fs: %s', took, error)
+        elif stopped:
+            log.info('Chat reply stopped after %.1fs%s: %d chunks', took, first, token_count)
+        elif not saw_done and finish_reason is None:
+            # No [DONE] and no finish_reason: the upstream connection ended
+            # mid-stream. Usually a reverse proxy / load balancer timeout or
+            # response buffering in front of the endpoint. Surfaces to the
+            # user as a silently truncated reply.
+            log.warning('Chat reply ended without [DONE] or a finish reason after '
+                        '%.1fs%s: %d chunks (a proxy closed or buffered the stream?)',
+                        took, first, token_count)
+        else:
+            # 'length' means max_tokens ran out, often to reasoning output.
+            log.info('Chat reply in %.1fs%s: %d chunks, finish %s',
+                     took, first, token_count, finish_reason or '(none)')
+        if log.isEnabledFor(logging.DEBUG):
+            text = ''.join(reply.content)
+            preview = (text[:200] + '…') if len(text) > 200 else text
+            log.debug('  Text:   %s', preview)
+        _finish(reply, whole, shown_error)
+
+
+def _follow(reply):
+    """The SSE response that plays a reply from its start and keeps up with it."""
+    def events():
+        sent = 0
+        while True:
+            with reply.changed:
+                reply.changed.wait_for(
+                    lambda: reply.done or len(reply.events) > sent, FOLLOW_IDLE_SECONDS)
+                batch, done = reply.events[sent:], reply.done
+            sent += len(batch)
+            yield ''.join(f'data: {event}\n\n' for event in batch) or ': waiting\n\n'
+            if done:
+                return
+
+    headers = {'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    if reply.message_id:
+        headers['X-Swipe-Of'] = str(reply.message_id)
+    return Response(events(), content_type='text/event-stream', headers=headers)
+
+
 @llm_bp.route('/api/llm/chat', methods=['POST'])
 def llm_chat():
+    """Start the reply to a chat and follow it.
+
+    ``chat_id`` names the chat, and ``message_id`` the message to add the
+    reply to as a new swipe, where it is not a new message.
+    """
     endpoint, api_key, _ = _llm_settings()
     if not endpoint:
         return jsonify({'ok': False, 'error': 'No endpoint configured'}), 400
@@ -318,10 +561,30 @@ def llm_chat():
         return jsonify({'ok': False, 'error': 'Invalid or missing JSON body'}), 400
     if not data.get('model'):
         return jsonify({'ok': False, 'error': 'No model specified'}), 400
+    chat_id = request.args.get('chat_id', type=int)
+    message_id = request.args.get('message_id', type=int)
+    if not chat_id:
+        # A page loaded before replies were saved here still sends none.
+        return jsonify({'ok': False, 'error': 'chat_id is required. Reload the page.'}), 400
+    with get_db() as conn:
+        if message_id:
+            found = conn.execute('SELECT 1 FROM messages WHERE id=? AND chat_id=?',
+                                 (message_id, chat_id)).fetchone()
+        else:
+            found = conn.execute('SELECT 1 FROM chats WHERE id=?', (chat_id,)).fetchone()
+    if not found:
+        return not_found('Message' if message_id else 'Chat')
 
     data['stream'] = True
     url, headers = _upstream(endpoint, api_key, 'chat/completions')
     anthropic = is_anthropic(endpoint)
+
+    reply = Reply(chat_id, message_id)
+    with _replies_lock:
+        running = _replies.get(chat_id)
+        if running and not running.done:
+            return jsonify({'ok': False, 'error': 'A reply is already being written in this chat'}), 409
+        _replies[chat_id] = reply
 
     # One line at INFO says what was asked of which server. Chat text is
     # private, so previews and the samplers (Extra request parameters can
@@ -335,119 +598,44 @@ def llm_chat():
         for msg in data.get('messages', []):
             role = msg.get('role', '?')
             content = msg.get('content', '')
-            preview = (content[:120] + '\u2026') if len(content) > 120 else content
+            preview = (content[:120] + '…') if len(content) > 120 else content
             log.debug('  [%s] %s', role, preview)
         samplers = {k: v for k, v in data.items()
                     if k not in ('model', 'messages', 'stream')}
         if samplers:
             log.debug('  Samplers: %s', json.dumps(samplers))
 
-    def generate():
-        token_count = 0
-        debug_enabled = log.isEnabledFor(logging.DEBUG)
-        full_response = [] if debug_enabled else None
-        # Diagnostics for truncation reports: why did the stream stop?
-        #   finish_reason 'length' -> hit max_tokens (raise it / reasoning ate it)
-        #   finish_reason 'stop'   -> model decided it was done
-        #   saw_done False         -> upstream/proxy severed the stream early
-        finish_reason = None
-        saw_done = False
-        error = None
-        stopped = False
-        started = time.monotonic()
-        first_chunk_after = None
-        try:
-            # (connect, read) tuple: bound the connection attempt at 10s, but
-            # never time out waiting for tokens. Slow local backends (llama.cpp
-            # on weak hardware) can take minutes on prompt prefill before the
-            # first token; the user stops a runaway generation with the Stop
-            # button instead. See issue #6.
-            body = to_anthropic(data) if anthropic else data
-            with http_requests.post(url, json=body, headers=headers, timeout=(10, None), stream=True) as r:
-                if not r.ok:
-                    # Read the body before raising — the provider's actual
-                    # complaint (bad model id, rejected parameter, …) lives
-                    # there, and raise_for_status() discards it.
-                    r.encoding = 'utf-8'
-                    error = (f'{r.status_code} {r.reason} from {logged_url}: '
-                             f'{(r.text or "").strip()[:500]}')
-                    msg = _status_error(r.status_code, r.reason, url, r.text)
-                    yield f'data: {json.dumps({"error": msg})}\n\n'
-                    return
-                # Split on \n alone. Decoded lines go through str.splitlines(),
-                # which also breaks at U+2028, U+2029 and U+0085 — characters
-                # JSON may carry unescaped — and the halves of that event were
-                # dropped as unparseable.
-                for raw in r.iter_lines(delimiter=b'\n'):
-                    line = raw.decode('utf-8', 'replace').rstrip('\r')
-                    # SSE allows "data:" with or without the space after it;
-                    # the browser reads this proxy's own "data: " form.
-                    if not line.startswith('data:'):
-                        continue
-                    payload = line[5:].removeprefix(' ')
-                    if anthropic:
-                        try:
-                            chunk = from_anthropic_event(json.loads(payload))
-                        except (ValueError, AttributeError):
-                            continue
-                        if chunk is None:
-                            continue
-                        payload = chunk if chunk == '[DONE]' else json.dumps(chunk)
-                    if payload.startswith('[DONE]'):
-                        saw_done = True
-                        yield 'data: [DONE]\n\n'
-                        break
-                    if first_chunk_after is None:
-                        first_chunk_after = time.monotonic() - started
-                    yield f'data: {payload}\n\n'
-                    # Collect tokens + finish_reason for response log
-                    try:
-                        choice = json.loads(payload).get('choices', [{}])[0]
-                        tok = (choice.get('delta') or {}).get('content', '')
-                        if tok:
-                            if full_response is not None:
-                                full_response.append(tok)
-                            token_count += 1
-                        if choice.get('finish_reason'):
-                            finish_reason = choice['finish_reason']
-                    except (ValueError, IndexError, AttributeError, TypeError):
-                        # Logging only: a chunk shaped unlike the rest must not
-                        # end the reply it belongs to.
-                        pass
-        except http_requests.RequestException as e:
-            # The raw exception for the log, the readable one for the toast.
-            error = e
-            yield f'data: {json.dumps({"error": _error_detail(e)})}\n\n'
-        except GeneratorExit:
-            # The browser went away: the Stop button, or a closed tab.
-            stopped = True
-            raise
-        finally:
-            took = time.monotonic() - started
-            first = '' if first_chunk_after is None else f', first after {first_chunk_after:.1f}s'
-            if error:
-                log.error('Chat request failed after %.1fs: %s', took, error)
-            elif stopped:
-                log.info('Chat reply stopped after %.1fs%s: %d chunks', took, first, token_count)
-            elif not saw_done and finish_reason is None:
-                # No [DONE] and no finish_reason: the upstream connection ended
-                # mid-stream. Usually a reverse proxy / load balancer timeout or
-                # response buffering in front of the endpoint. Surfaces to the
-                # user as a silently truncated reply.
-                log.warning('Chat reply ended without [DONE] or a finish reason after '
-                            '%.1fs%s: %d chunks (a proxy closed or buffered the stream?)',
-                            took, first, token_count)
-            else:
-                # 'length' means max_tokens ran out, often to reasoning output.
-                log.info('Chat reply in %.1fs%s: %d chunks, finish %s',
-                         took, first, token_count, finish_reason or '(none)')
-            if full_response is not None:
-                text = ''.join(full_response)
-                preview = (text[:200] + '\u2026') if len(text) > 200 else text
-                log.debug('  Text:   %s', preview)
+    threading.Thread(
+        target=_write_reply,
+        args=(reply, url, headers, to_anthropic(data) if anthropic else data, anthropic, logged_url),
+        daemon=True,
+    ).start()
+    return _follow(reply)
 
-    return Response(
-        stream_with_context(generate()),
-        content_type='text/event-stream',
-        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
-    )
+
+@llm_bp.route('/api/llm/chat', methods=['GET'])
+def follow_chat():
+    """Rejoin the reply being written for a chat, from its first word.
+
+    204 when there is none. 205 when one ended moments ago: the chat this page
+    holds may be from before it was saved, so the page should load it again.
+    """
+    reply = _replies.get(request.args.get('chat_id', type=int))
+    if not reply:
+        return '', 204
+    if reply.done:
+        return '', 205
+    return _follow(reply)
+
+
+@llm_bp.route('/api/llm/chat', methods=['DELETE'])
+def stop_chat():
+    """Stop the reply being written for a chat, keeping what has arrived of it.
+
+    The pages following it hear the ending on their streams. The request to
+    the model is closed when its next chunk arrives and finds nobody waiting.
+    """
+    reply = _replies.get(request.args.get('chat_id', type=int))
+    if reply:
+        _finish(reply)
+    return jsonify({'ok': True})

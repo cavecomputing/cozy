@@ -40,11 +40,15 @@ export const state = {
 };
 
 // Active LLM request controller — mutable ref shared across modules.
-// `stopRequested` separates an explicit Stop (keep whatever streamed) from an
-// implicit cancel like switching chats (throw the partial away).
+// Aborting it only stops this page listening: a reply the server has been
+// asked for is written and saved there regardless, and `stopRequested` marks
+// the explicit Stop that ends it.
 export const llm = {
     abortController: null,
     stopRequested: false,
+    // The chat whose reply the server is writing for this page to follow, from
+    // the moment it is asked for.
+    replyChatId: null,
     // Claimed synchronously before any send/regen preflight can yield. The
     // controller alone cannot guard that earlier window because it does not
     // exist yet for an ordinary send.

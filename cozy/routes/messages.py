@@ -169,6 +169,47 @@ def list_messages(chat_id):
         ])
 
 
+def insert_message(conn, chat_id, role, content, persona_id=None):
+    """Add a message to a chat, with the first swipe every message has."""
+    cur = conn.execute(
+        'INSERT INTO messages (chat_id, role, content, persona_id) VALUES (?,?,?,?)',
+        (chat_id, role, content, persona_id)
+    )
+    msg_id = cur.lastrowid
+    # Seed first swipe with the original content
+    conn.execute(
+        'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
+    )
+    # Bump the chat's updated_at so most-recent ordering works. A user message
+    # also records its persona on the chat, so reopening it on another machine
+    # restores the persona the conversation was using rather than whatever that
+    # browser last selected.
+    if role == 'user' and persona_id is not None:
+        conn.execute(
+            'UPDATE chats SET updated_at=CURRENT_TIMESTAMP, persona_id=? WHERE id=?',
+            (persona_id, chat_id),
+        )
+    else:
+        conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
+    row = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
+        WHERE m.id=?
+    ''', (msg_id,)).fetchone()
+    return _message_to_dict(row)
+
+
+def insert_swipe(conn, msg_id, content):
+    """Add a swipe to a message and put it on show."""
+    cur = conn.execute(
+        'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
+    )
+    conn.execute(
+        'UPDATE messages SET content=?, selected_swipe_id=? WHERE id=?',
+        (content, cur.lastrowid, msg_id),
+    )
+    row = conn.execute('SELECT * FROM message_swipes WHERE id=?', (cur.lastrowid,)).fetchone()
+    return dict(row)
+
+
 @messages_bp.route('/api/chats/<int:chat_id>/messages', methods=['POST'])
 def add_message(chat_id):
     with get_db() as conn:
@@ -177,35 +218,11 @@ def add_message(chat_id):
         data       = json_body()
         role       = data.get('role', '')
         content    = text_field(data, 'content')
-        persona_id = data.get('persona_id')
         if role not in ('user', 'character'):
             return jsonify({'error': 'role must be "user" or "character"'}), 400
         if not content:
             return jsonify({'error': 'content is required'}), 400
-        cur = conn.execute(
-            'INSERT INTO messages (chat_id, role, content, persona_id) VALUES (?,?,?,?)',
-            (chat_id, role, content, persona_id)
-        )
-        msg_id = cur.lastrowid
-        # Seed first swipe with the original content
-        conn.execute(
-            'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
-        )
-        # Bump the chat's updated_at so most-recent ordering works. A user message
-        # also records its persona on the chat, so reopening it on another machine
-        # restores the persona the conversation was using rather than whatever that
-        # browser last selected.
-        if role == 'user' and persona_id is not None:
-            conn.execute(
-                'UPDATE chats SET updated_at=CURRENT_TIMESTAMP, persona_id=? WHERE id=?',
-                (persona_id, chat_id),
-            )
-        else:
-            conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
-        row = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
-            WHERE m.id=?
-        ''', (msg_id,)).fetchone()
-        return jsonify(_message_to_dict(row)), 201
+        return jsonify(insert_message(conn, chat_id, role, content, data.get('persona_id'))), 201
 
 
 # ── Swipe routes ───────────────────────────────────────────────────────────
@@ -219,16 +236,7 @@ def add_swipe(msg_id):
         content = text_field(json_body(), 'content')
         if not content:
             return jsonify({'error': 'content is required'}), 400
-        cur = conn.execute(
-            'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
-        )
-        # A new swipe is the one on show.
-        conn.execute(
-            'UPDATE messages SET content=?, selected_swipe_id=? WHERE id=?',
-            (content, cur.lastrowid, msg_id),
-        )
-        row = conn.execute('SELECT * FROM message_swipes WHERE id=?', (cur.lastrowid,)).fetchone()
-        return jsonify(dict(row)), 201
+        return jsonify(insert_swipe(conn, msg_id, content)), 201
 
 
 # ── Message update / delete ────────────────────────────────────────────────

@@ -115,7 +115,9 @@ On an iPhone, **Add to Home Screen** in Safari's Share menu puts Cozy on the Hom
 with its own icon, and it opens full screen like an app. Chrome and Edge offer **Install**
 only over HTTPS or on the computer running Cozy (`localhost`); over plain HTTP on the LAN
 they can only add a shortcut to the page. Over HTTPS, Cozy also keeps the phone's screen
-from locking while a reply is being written.
+from locking while a reply is being written. A reply does not need the screen, though: once
+a message is sent, Cozy finishes its reply and saves it whether or not the page stays open,
+so you can lock the phone or close the page and find the reply in the chat when you come back.
 
 Without a password, anything that can reach Cozy can read your chats and use
 your API key. Set `COZY_PASSWORD` and every device has to sign in first; see

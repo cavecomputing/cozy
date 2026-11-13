@@ -1,12 +1,14 @@
-"""Stopping an in-flight stream keeps the text that already arrived."""
+"""How the page reads a reply the server is writing, and how it ends one.
+
+The server keeps what arrived of a reply that a Stop or an error cut short
+(tests/test_replies.py); the page's part is to ask for the stop, to land what
+the stream says was saved, and to let go quietly when it only stops listening.
+"""
 
 from helpers import run_node_module
 
 
 # ── api.js transport contract ──────────────────────────────────────────────
-# streamChatCompletion is deliberately untouched by the stop-partial feature:
-# it still rejects on abort, and the partial survives only because the caller
-# keeps the value handed to onToken. These pin that contract.
 
 STREAM_SETUP = r"""
     import assert from 'node:assert/strict';
@@ -14,30 +16,42 @@ STREAM_SETUP = r"""
 
     const encoder = new TextEncoder();
 
-    /** Fake an SSE response that aborts as soon as the signal says so. */
-    function stubStream(chunks) {
+    const requests = [];
+
+    /**
+     * Fake an SSE response that aborts as soon as the signal says so, and
+     * fails with `dropAfter` once its chunks run out, if that is given.
+     */
+    function stubStream(chunks, dropAfter = null, { status = 200, swipeOf = null } = {}) {
         let next = 0;
-        globalThis.fetch = async (url, options) => ({
-            ok: true,
-            body: {
-                getReader() {
-                    return {
-                        async read() {
-                            if (options.signal?.aborted) {
-                                throw new DOMException('The operation was aborted.', 'AbortError');
-                            }
-                            if (next >= chunks.length) return { done: true };
-                            return { done: false, value: encoder.encode(chunks[next++]) };
-                        },
-                    };
+        globalThis.fetch = async (url, options = {}) => {
+            requests.push({ url, method: options.method });
+            return {
+                ok: true,
+                status,
+                headers: { get: name => (name === 'X-Swipe-Of' ? swipeOf : null) },
+                body: {
+                    getReader() {
+                        return {
+                            async read() {
+                                if (options.signal?.aborted) {
+                                    throw new DOMException('The operation was aborted.', 'AbortError');
+                                }
+                                if (next < chunks.length) return { done: false, value: encoder.encode(chunks[next++]) };
+                                if (dropAfter) throw dropAfter;
+                                return { done: true };
+                            },
+                        };
+                    },
                 },
-            },
-        });
+            };
+        };
     }
 """
 
 
-def test_stream_rejects_on_abort_but_partial_reached_the_caller():
+def test_stream_rejects_on_abort_having_shown_what_arrived():
+    """An abort only stops this page listening, so it has nothing to resolve with."""
     run_node_module(STREAM_SETUP + r"""
         stubStream([
             'data: {"choices":[{"delta":{"content":"Hello "}}]}\n',
@@ -50,41 +64,36 @@ def test_stream_rejects_on_abort_but_partial_reached_the_caller():
             API.streamChatCompletion(
                 { model: 'm' },
                 text => { seen.push(text); controller.abort(); },
-                controller.signal,
+                controller.signal, 7,
             ),
-            err => err.name === 'AbortError',
+            err => err.name === 'AbortError' && !err.dropped,
         );
-
-        // The rejection discards the return value, so onToken is the only
-        // place the partial survives — this is what send.js/messages.js keep.
         assert.deepEqual(seen, ['Hello ']);
     """)
 
 
-def test_stream_leaves_thinking_tag_open_when_cut_mid_reasoning():
-    """Why closeIncompleteThinking exists: onToken's text can be unterminated."""
+def test_stream_resolves_with_what_the_server_saved():
     run_node_module(STREAM_SETUP + r"""
-        import { closeIncompleteThinking, parseThinkingContent } from './static/js/thinking.js';
-
         stubStream([
             'data: {"choices":[{"delta":{"reasoning_content":"weighing options"}}]}\n',
-            'data: {"choices":[{"delta":{"content":"never arrives"}}]}\n',
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}\n',
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n',
+            'data: [DONE]\n',
+            'data: {"saved":{"id":9,"content":"<think>weighing options</think>Hello"}}\n',
         ]);
+        const seen = [];
+        const saved = await API.streamChatCompletion({ model: 'm' }, text => seen.push(text), null, 7);
 
-        const controller = new AbortController();
-        let last = '';
-        await assert.rejects(
-            API.streamChatCompletion(
-                { model: 'm' },
-                text => { last = text; controller.abort(); },
-                controller.signal,
-            ),
-            err => err.name === 'AbortError',
-        );
+        assert.deepEqual(saved, { id: 9, content: '<think>weighing options</think>Hello' });
+        // Reasoning shows as an open block until the response starts.
+        assert.deepEqual(seen, ['<think>weighing options', '<think>weighing options</think>Hello']);
+        assert.equal(requests[0].url, '/api/llm/chat?chat_id=7');
+        assert.equal(requests[0].method, 'POST');
 
-        assert.equal(last, '<think>weighing options');
-        assert.equal(parseThinkingContent(last).incomplete, true);
-        assert.equal(closeIncompleteThinking(last), '<think>weighing options</think>');
+        // A new swipe names the message it belongs to.
+        stubStream(['data: [DONE]\n']);
+        assert.equal(await API.streamChatCompletion({ model: 'm' }, () => {}, null, 7, 12), null);
+        assert.equal(requests[1].url, '/api/llm/chat?chat_id=7&message_id=12');
     """)
 
 
@@ -103,7 +112,7 @@ def test_stream_says_why_a_reply_that_ended_early_stopped():
             'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n',
             'data: [DONE]\n',
         ]);
-        assert.equal(await API.streamChatCompletion({ model: 'm' }, () => {}), 'Hello');
+        await API.streamChatCompletion({ model: 'm' }, () => {}, null, 7);
         assert.deepEqual(toasts, []);
 
         stubStream([
@@ -111,16 +120,71 @@ def test_stream_says_why_a_reply_that_ended_early_stopped():
             'data: {"choices":[{"delta":{},"finish_reason":"length"}]}\n',
             'data: [DONE]\n',
         ]);
-        await API.streamChatCompletion({ model: 'm' }, () => {});
+        await API.streamChatCompletion({ model: 'm' }, () => {}, null, 7);
         assert.match(toasts.pop(), /Max response tokens/);
 
         stubStream(['data: {"choices":[{"delta":{"content":"Hel"}}]}\n']);
-        assert.equal(await API.streamChatCompletion({ model: 'm' }, () => {}), 'Hel');
+        await API.streamChatCompletion({ model: 'm' }, () => {}, null, 7);
         assert.match(toasts.pop(), /connection closed/);
     """)
 
 
-# ── generateSwipe: stop mid-regen ──────────────────────────────────────────
+def test_stream_error_carries_what_was_saved_before_it():
+    run_node_module(STREAM_SETUP + r"""
+        stubStream([
+            'data: {"choices":[{"delta":{"content":"Hel"}}]}\n',
+            'data: {"saved":{"id":9,"content":"Hel"}}\n',
+            'data: {"error":"Provider returned error"}\n',
+        ]);
+        await assert.rejects(
+            API.streamChatCompletion({ model: 'm' }, () => {}, null, 7),
+            err => err.message === 'Provider returned error' && err.saved.id === 9,
+        );
+
+        stubStream(['data: {"error":"429 Too Many Requests."}\n']);
+        await assert.rejects(
+            API.streamChatCompletion({ model: 'm' }, () => {}, null, 7),
+            err => err.message === '429 Too Many Requests.' && !err.saved && !err.dropped,
+        );
+    """)
+
+
+def test_a_dropped_connection_is_told_apart_from_an_error():
+    """The reply goes on being written, so the page goes back for it."""
+    run_node_module(STREAM_SETUP + r"""
+        stubStream(['data: {"choices":[{"delta":{"content":"Hel"}}]}\n'], new TypeError('Load failed'));
+        await assert.rejects(
+            API.streamChatCompletion({ model: 'm' }, () => {}, null, 7),
+            err => err.dropped === true,
+        );
+    """)
+
+
+def test_follow_reply_reads_the_three_answers():
+    run_node_module(STREAM_SETUP + r"""
+        stubStream([], null, { status: 204 });
+        assert.equal(await API.followReply(7), null);
+        assert.equal(requests[0].url, '/api/llm/chat?chat_id=7');
+        assert.equal(requests[0].method, undefined);
+
+        // One that ended moments ago: nothing to read, but worth another look.
+        stubStream([], null, { status: 205 });
+        assert.deepEqual(await API.followReply(7), { swipeOf: null, read: null });
+
+        stubStream([
+            'data: {"choices":[{"delta":{"content":"a second take"}}]}\n',
+            'data: [DONE]\n',
+            'data: {"saved":{"id":31,"content":"a second take"}}\n',
+        ], null, { status: 200, swipeOf: '12' });
+        const reply = await API.followReply(7);
+        assert.equal(reply.swipeOf, 12);
+        let text = '';
+        assert.deepEqual(await reply.read(t => { text = t; }), { id: 31, content: 'a second take' });
+        assert.equal(text, 'a second take');
+    """)
+
+
+# ── generateSwipe: a new swipe and the ways it ends ────────────────────────
 # Harness mirrors test_summaries_frontend.py's generateSwipe test.
 
 SWIPE_SETUP = r"""
@@ -146,7 +210,10 @@ SWIPE_SETUP = r"""
     globalThis.document = {
         createElement: stubEl,
         getElementById: stubEl,
+        // The fade-in walks the text a draw put in the bubble.
+        createTreeWalker: () => ({ nextNode: () => null }),
     };
+    globalThis.NodeFilter = { SHOW_TEXT: 4 };
     // messages.js coalesces its stream redraws onto an animation frame. A timer
     // stands in for one: node has no rAF, and the draws still have to run so
     // this exercises the render path the way a browser would.
@@ -181,11 +248,8 @@ SWIPE_SETUP = r"""
     state.activeChat = { id: 7, summary_enabled: false };
     state.chats = [state.activeChat];
 
-    const savedSwipes = [];
-    API.addSwipe = async (msgId, content) => {
-        savedSwipes.push({ msgId, content });
-        return {};
-    };
+    const stops = [];
+    API.stopReply = async chatId => { stops.push(chatId); return {}; };
 
     const contentEl = { innerHTML: '' };
     const msgBody = { querySelector() { return null; }, insertBefore() {} };
@@ -194,6 +258,7 @@ SWIPE_SETUP = r"""
         querySelector(selector) {
             if (selector === '.message-content') return contentEl;
             if (selector === '.msg-body') return msgBody;
+            if (selector === '.msg-edited') return stubEl();
             return null;
         },
     };
@@ -206,28 +271,56 @@ SWIPE_SETUP = r"""
 """
 
 
-def test_stopped_regen_commits_its_partial_as_a_new_swipe():
+def test_stop_asks_the_server_and_lands_the_swipe_it_kept():
     run_node_module(SWIPE_SETUP + r"""
-        API.streamChatCompletion = async (payload, onToken) => {
+        let aborted;
+        API.streamChatCompletion = async (payload, onToken, signal, chatId, swipeOf) => {
+            assert.deepEqual([chatId, swipeOf], [7, 2]);
             onToken('a half-finished ');
             onToken('a half-finished repl');
             stopGeneration();          // the real Stop path
-            throw abortError();
+            aborted = signal.aborted;
+            // The server ends the stream with what it kept.
+            return { id: 31, content: 'a half-finished repl' };
         };
 
         assert.equal(await generateSwipe(msgEl), true);
 
+        // Stop went to the server. This page kept listening for the ending.
+        assert.deepEqual(stops, [7]);
+        assert.equal(aborted, false);
         assert.deepEqual(reply.swipes, [
             // The original swipe stays reachable by swiping left.
-            { content: 'the original reply' }, { content: 'a half-finished repl' },
+            { content: 'the original reply' }, { id: 31, content: 'a half-finished repl' },
         ]);
-        assert.deepEqual(savedSwipes, [{ msgId: 2, content: 'a half-finished repl' }]);
         assert.equal(reply.activeSwipeIndex, 1);
         assert.equal(reply.text, 'a half-finished repl');
         // Stop state must not leak into the next generation.
         assert.equal(llm.stopRequested, false);
         assert.equal(llm.abortController, null);
+        assert.equal(llm.replyChatId, null);
         assert.equal(llm.generationActive, false);
+    """)
+
+
+def test_stop_before_the_reply_is_asked_for_only_stops_this_page():
+    """Nothing is running on the server yet, so there is nothing to tell it."""
+    run_node_module(SWIPE_SETUP + r"""
+        import { queueLLMSettingsSave } from './static/js/llm-settings.js';
+
+        let generationCalls = 0;
+        API.streamChatCompletion = async () => { generationCalls += 1; return { content: 'unwanted' }; };
+        API.saveSettings = async () => {
+            stopGeneration();
+            throw abortError();
+        };
+        queueLLMSettingsSave({ temperature: '0.7' });
+
+        assert.equal(await generateSwipe(msgEl), false);
+
+        assert.deepEqual(stops, []);
+        assert.equal(generationCalls, 0);
+        assert.equal(reply.swipes.length, 1);
     """)
 
 
@@ -235,7 +328,7 @@ def test_a_new_swipe_joins_the_list_a_redraw_reads():
     """renderMessages() builds from state.messages. A swipe once went only into
     a copy on the bubble, so any redraw lost it and its index named another."""
     run_node_module(SWIPE_SETUP + r"""
-        API.streamChatCompletion = async () => 'a second take';
+        API.streamChatCompletion = async () => ({ id: 31, content: 'a second take' });
 
         assert.equal(await generateSwipe(msgEl), true);
 
@@ -250,8 +343,29 @@ def test_a_new_swipe_joins_the_list_a_redraw_reads():
     """)
 
 
-def test_chat_switch_during_regen_discards_the_partial():
-    """selectChat aborts without stopGeneration, so the partial is dropped."""
+def test_a_swipe_being_written_elsewhere_is_read_not_asked_for():
+    """Rejoined after the page was away, or asked for by another device."""
+    run_node_module(SWIPE_SETUP + r"""
+        import { receiveSwipe } from './static/js/messages.js';
+
+        let generationCalls = 0;
+        API.streamChatCompletion = async () => { generationCalls += 1; };
+        llm.abortController = new AbortController();
+
+        const made = await receiveSwipe(msgEl, async onToken => {
+            onToken('a second take');
+            return { id: 31, content: 'a second take' };
+        });
+
+        assert.equal(made, true);
+        assert.equal(generationCalls, 0);
+        assert.equal(reply.text, 'a second take');
+        assert.equal(reply.activeSwipeIndex, 1);
+    """)
+
+
+def test_chat_switch_during_regen_leaves_the_bubble_as_it_was():
+    """selectChat aborts without stopGeneration: this page only stops listening."""
     run_node_module(SWIPE_SETUP + r"""
         API.streamChatCompletion = async (payload, onToken) => {
             onToken('a half-finished repl');
@@ -261,40 +375,72 @@ def test_chat_switch_during_regen_discards_the_partial():
 
         assert.equal(await generateSwipe(msgEl), false);
 
+        assert.deepEqual(stops, []);
         assert.equal(reply.swipes.length, 1);
-        assert.deepEqual(savedSwipes, []);
         assert.equal(reply.text, 'the original reply');
         assert.equal(llm.generationActive, false);
     """)
 
 
-def test_regen_stopped_mid_reasoning_discards_the_partial():
-    """Thinking-only text is stripped from every later prompt, so it is dropped."""
+def test_a_stop_that_kept_nothing_goes_back_to_the_previous_swipe():
+    """Stopped mid-reasoning, the server has nothing worth a swipe."""
     run_node_module(SWIPE_SETUP + r"""
         API.streamChatCompletion = async (payload, onToken) => {
             onToken('<think>still weighing it up');
             stopGeneration();
-            throw abortError();
+            return null;
         };
 
         assert.equal(await generateSwipe(msgEl), false);
 
+        assert.deepEqual(stops, [7]);
         assert.equal(reply.swipes.length, 1);
-        assert.deepEqual(savedSwipes, []);
+        assert.equal(reply.text, 'the original reply');
     """)
 
 
-def test_regen_error_still_reverts_to_the_previous_swipe():
-    """A real failure is not a stop — nothing is committed."""
+def test_regen_error_reverts_to_the_previous_swipe_unless_some_was_kept():
     run_node_module(SWIPE_SETUP + r"""
         API.streamChatCompletion = async () => { throw new Error('upstream exploded'); };
 
         assert.equal(await generateSwipe(msgEl), false);
 
         assert.equal(reply.swipes.length, 1);
-        assert.deepEqual(savedSwipes, []);
         assert.equal(reply.text, 'the original reply');
         assert.equal(reply.activeSwipeIndex, 0);
+        assert.equal(llm.generationActive, false);
+
+        // Cut off partway, the server kept the part that arrived.
+        API.streamChatCompletion = async () => {
+            throw Object.assign(new Error('upstream exploded'), { saved: { id: 31, content: 'half a rep' } });
+        };
+
+        assert.equal(await generateSwipe(msgEl), true);
+
+        assert.equal(reply.text, 'half a rep');
+        assert.equal(reply.activeSwipeIndex, 1);
+    """)
+
+
+def test_a_dropped_connection_sends_the_page_back_for_the_swipe():
+    run_node_module(SWIPE_SETUP + r"""
+        const asked = [];
+        API.getMessages = async chatId => {
+            asked.push(['messages', chatId]);
+            return [{ id: 1, content: 'hello there' }, { id: 2, content: 'the original reply' }];
+        };
+        API.followReply = async chatId => { asked.push(['reply', chatId]); return null; };
+        API.streamChatCompletion = async (payload, onToken) => {
+            onToken('a half-finished repl');
+            throw Object.assign(new TypeError('Load failed'), { dropped: true });
+        };
+
+        assert.equal(await generateSwipe(msgEl), false);
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // No toast and no swipe: it looked the chat up again, then for the reply.
+        assert.deepEqual(asked, [['messages', 7], ['reply', 7]]);
+        assert.equal(reply.swipes.length, 1);
         assert.equal(llm.generationActive, false);
     """)
 
@@ -310,7 +456,7 @@ def test_rapid_second_regen_does_not_start_another_generation():
             generationCalls += 1;
             markStreamStarted();
             await streamBlocked;
-            return 'the regenerated reply';
+            return { content: 'the regenerated reply' };
         };
 
         const first = generateSwipe(msgEl);
@@ -326,24 +472,4 @@ def test_rapid_second_regen_does_not_start_another_generation():
         assert.equal(reply.activeSwipeIndex, 1);
         assert.equal(generationCalls, 1);
         assert.equal(llm.generationActive, false);
-    """)
-
-
-def test_stream_reads_a_provider_error_object_as_its_message():
-    """OpenRouter and others relay {"error": {"message": …}} mid-stream."""
-    run_node_module(STREAM_SETUP + r"""
-        stubStream([
-            'data: {"choices":[{"delta":{"content":"Hel"}}]}\n',
-            'data: {"error":{"message":"Provider returned error","code":502}}\n',
-        ]);
-        await assert.rejects(
-            API.streamChatCompletion({ model: 'm' }, () => {}),
-            err => err.message === 'Provider returned error',
-        );
-
-        stubStream(['data: {"error":"429 Too Many Requests."}\n']);
-        await assert.rejects(
-            API.streamChatCompletion({ model: 'm' }, () => {}),
-            err => err.message === '429 Too Many Requests.',
-        );
     """)

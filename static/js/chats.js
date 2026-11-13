@@ -2,10 +2,11 @@ import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
     chatStamp, displayChatName, DEFAULT_CHAT_NAME_RE, showToast, updateComposerState, savePrefs, branchesAt,
-    parseDbStamp, timeAgo, MOBILE_SHELL_QUERY, Flyouts,
+    parseDbStamp, timeAgo, MOBILE_SHELL_QUERY, Flyouts, setSendButtonMode, beginGeneration, endGeneration,
 } from './utils.js';
 import { confirmDialog } from './confirm.js';
-import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills } from './messages.js';
+import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills, receiveSwipe } from './messages.js';
+import { receiveReply } from './send.js';
 import { renderLorebookFlyout, loadAuthorNote, flushAuthorNote } from './lorebooks.js';
 import { clearDraft, restoreDraft, saveDraft } from './drafts.js';
 import { renderPersonaList, updateUserProfile } from './personas.js';
@@ -233,9 +234,9 @@ export async function selectChat(chat) {
     saveDraft();
     flushEdit();
     flushAuthorNote();
-    // A bare abort, not stopGeneration(): leaving a chat discards the partial
-    // reply. It belongs to the chat we're leaving, but persistence targets the
-    // chat we're entering, so there is nowhere safe to put it.
+    // A bare abort, not stopGeneration(): leaving a chat only stops this page
+    // listening to its reply. The server goes on writing it and saves it to
+    // the chat, where coming back finds it.
     if (llm.abortController) llm.abortController.abort();
 
     state.activeChat = chat;
@@ -320,6 +321,7 @@ export async function selectChat(chat) {
     updateContextViews();
     onChatSelected();
     savePrefs();
+    followReply().catch(err => console.error('Could not rejoin the reply:', err));
     // Land in the composer, ready to type, as chat apps do on a switch and at
     // startup. Not on touch shells, where focusing throws up the keyboard over
     // the conversation before the user has asked for it.
@@ -344,27 +346,80 @@ function messagesFromRows(rows) {
 }
 
 /**
- * Catch the open chat up with what another device or window did to it while
- * this page sat in the background, where nothing told it. A page that kept its
- * old copy would also send it as the history of the next message. Left alone
- * while a reply is running, an edit is open, or a message that never got saved
- * is on screen, since the redraw would take those away.
+ * Load the open chat again and redraw it if it has changed. Left alone while a
+ * reply is running, an edit is open, or a message that never got saved is on
+ * screen, since the redraw would take those away.
  */
-export async function refreshOpenChat() {
+async function reloadOpenChat() {
     const chatId = state.activeChat?.id;
     const busy = () => state.activeChat?.id !== chatId || llm.generationActive
         || state.currentEdit || state.messages.some(m => !m.id);
     if (!chatId || busy()) return;
+    const rows = await API.getMessages(chatId);
+    const current = rows.length === state.messages.length
+        && rows.every((r, i) => r.id === state.messages[i].id && r.content === state.messages[i].text);
+    if (current || busy()) return;
+    state.messages = messagesFromRows(rows);
+    renderMessages();
+    updateContextViews();
+}
+
+/**
+ * Catch the open chat up with what happened to it while this page was in the
+ * background or out of touch, where nothing told it: what another device or
+ * window did, and the reply the server finished or is still writing. A page
+ * that kept its old copy would also send it as the history of the next message.
+ * `lostReply` is for a page that was showing a reply when the connection went:
+ * that one has to hear it if the reply can't be found again.
+ */
+export async function refreshOpenChat(lostReply = false) {
     try {
-        const rows = await API.getMessages(chatId);
-        const current = rows.length === state.messages.length
-            && rows.every((r, i) => r.id === state.messages[i].id && r.content === state.messages[i].text);
-        if (current || busy()) return;
-        state.messages = messagesFromRows(rows);
-        renderMessages();
-        updateContextViews();
+        await reloadOpenChat();
+        await followReply();
     } catch (err) {
         console.error('Could not refresh the open chat:', err);
+        if (lostReply) {
+            showToast('Lost the connection mid-reply: ' + err.message, 'error', 8000, {
+                label: 'Retry',
+                onClick: () => refreshOpenChat(true),
+            });
+        }
+    }
+}
+
+/**
+ * Show the reply the server is writing for the open chat, if there is one
+ * this page isn't already showing: one it was sent away from, or one another
+ * device asked for. Asked after the chat's messages were loaded, so that
+ * whatever the reply comes to is not among them yet.
+ */
+async function followReply() {
+    const chatId = state.activeChat?.id;
+    if (!chatId || llm.generationActive) return;
+    const controller = new AbortController();
+    const reply = await API.followReply(chatId, controller.signal);
+    if (!reply) return;
+    if (!reply.read) {
+        await reloadOpenChat();
+        return;
+    }
+    // A new swipe streams into the bubble of the message it belongs to.
+    const msgEl = reply.swipeOf
+        && el.chatHistory.querySelector(`.message.character[data-msg-id="${reply.swipeOf}"]`);
+    // Another chat was opened, or a send was started, while that was on its way.
+    if (state.activeChat?.id !== chatId || (reply.swipeOf && !msgEl) || !beginGeneration()) {
+        controller.abort();
+        return;
+    }
+    llm.abortController = controller;
+    llm.replyChatId = chatId;
+    setSendButtonMode('stop');
+    updateComposerState();
+    try {
+        if (msgEl) await receiveSwipe(msgEl, reply.read);
+        else await receiveReply(chatId, reply.read);
+    } finally {
+        endGeneration();
     }
 }
 

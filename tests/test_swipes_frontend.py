@@ -68,8 +68,7 @@ SETUP = r"""
     const selections = [];
     API.selectSwipe = async (...args) => { selections.push(args); return {}; };
     let generations = 0;
-    API.streamChatCompletion = async () => { generations += 1; return 'a new take'; };
-    API.addSwipe = async () => ({});
+    API.streamChatCompletion = async () => { generations += 1; return { content: 'a new take' }; };
 
     /** A bubble as buildMessageEl() leaves it, as far as these paths read it. */
     function bubble(msg) {

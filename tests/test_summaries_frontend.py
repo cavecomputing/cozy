@@ -1509,9 +1509,8 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
             assert.doesNotMatch(serialized, /message-1-abcdefghijklmno/);
             assert.match(serialized, /message-2-abcdefghijklmno/);
             assert.doesNotMatch(serialized, /message-3-abcdefghijklmno/);
-            return 'a new swipe';
+            return { content: 'a new swipe' };
         };
-        API.addSwipe = async () => ({});
 
         const contentEl = { innerHTML: '' };
         const msgBody = { querySelector() { return null; } };
@@ -1520,6 +1519,7 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
             querySelector(selector) {
                 if (selector === '.message-content') return contentEl;
                 if (selector === '.msg-body') return msgBody;
+                if (selector === '.msg-edited') return {};
                 return null;
             },
         };

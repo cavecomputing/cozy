@@ -1,4 +1,4 @@
-import { state, el } from './state.js';
+import { state, el, llm } from './state.js';
 import { API } from './api.js';
 import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, FIELD_TO_GROUP, INT_PARAMS, API_PARAM_ALIASES } from './sampler.js';
 import { activeSummaryText } from './summaries.js';
@@ -65,14 +65,17 @@ export function previewRenderedTemplates() {
 }
 
 /**
- * Generate a character response via the LLM.
+ * Ask the LLM for a character response to chat `chatId`, which the server
+ * saves: as a new message, or as a new swipe of message `swipeOf`. Resolves
+ * with what it saved.
  * @param {number} [excludeLastN=0] — drop last N messages for regen
  * @param {(text: string) => void} onToken — receives the accumulated streamed text
  */
-export async function generateResponse(excludeLastN = 0, onToken, signal = null) {
+export async function generateResponse(excludeLastN = 0, onToken, signal, chatId, swipeOf = null) {
     const payload = buildChatPayload(excludeLastN);
     if (!payload.model) throw new Error('No model configured \u2014 check Settings');
     if (payload.messages.length === 0) throw new Error('No messages to send');
     if (typeof onToken !== 'function') throw new TypeError('Streaming token callback is required');
-    return API.streamChatCompletion(payload, onToken, signal);
+    llm.replyChatId = chatId;
+    return API.streamChatCompletion(payload, onToken, signal, chatId, swipeOf);
 }

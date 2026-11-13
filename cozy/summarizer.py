@@ -224,6 +224,22 @@ def strip_thinking_content(text):
     return remaining.strip()
 
 
+def close_incomplete_thinking(text):
+    """Close a reasoning block that a reply cut short left open.
+
+    The block moves to the front, closed, which is how the page puts an edited
+    message back together. Left open, an edit's text would read back as reasoning.
+    """
+    found = [(text.find(opening), opening, closing)
+             for opening, closing in THINKING_TAG_PAIRS if opening in text]
+    if not found:
+        return text
+    index, opening, closing = min(found)
+    if text.find(closing, index + len(opening)) >= 0:
+        return text
+    return text[index:] + closing + text[:index]
+
+
 def parse_summary(text):
     """Parse the model's ``STORY SO FAR`` / ``BONDS`` output into a summary object.
 

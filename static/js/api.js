@@ -48,6 +48,77 @@ async function jsonRequest(url, { method = 'GET', body, fallback = 'Request fail
     return r.json();
 }
 
+/**
+ * Read a reply stream to its end, handing `onToken` the text so far as it
+ * grows. Resolves with what the server saved of it, the message or the swipe,
+ * or null when it kept nothing. A stream cut off by an error rejects with
+ * `saved` on the error, and one the connection dropped with `dropped`: the
+ * server is still writing that reply, or has it saved.
+ */
+async function readReply(res, onToken) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let reasoning = '';
+    let content = '';
+    let buffer = '';
+    let finishReason = null;
+    let sawDone = false;
+    let saved = null;
+
+    const processLine = (line) => {
+        if (line === 'data: [DONE]') { sawDone = true; return; }
+        if (!line.startsWith('data: ')) return;
+        let json;
+        // Ignore unparseable fragments (e.g. a line truncated mid-stream)
+        try { json = JSON.parse(line.slice(6)); } catch { return; }
+        if (json?.saved) { saved = json.saved; return; }
+        if (json?.error) throw Object.assign(new Error(json.error), { saved });
+        finishReason = json.choices?.[0]?.finish_reason || finishReason;
+        const delta = json.choices?.[0]?.delta || {};
+        const reasonTok = delta.reasoning_content || delta.reasoning || '';
+        const contentTok = delta.content || '';
+        if (reasonTok) reasoning += reasonTok;
+        if (contentTok) content += contentTok;
+        if (reasonTok || contentTok) {
+            // Build combined text: wrap reasoning in thinking tags
+            let fullText = '';
+            if (reasoning) {
+                fullText += '<think>' + reasoning + (content ? '</think>' : '');
+            }
+            fullText += content;
+            onToken(fullText);
+        }
+    };
+
+    while (true) {
+        const { done, value } = await reader.read().catch(err => {
+            if (err.name !== 'AbortError') err.dropped = true;
+            throw err;
+        });
+        if (done) {
+            // Flush any trailing data left in the buffer. A stream that ends
+            // without a final newline (e.g. a cut-off llama.cpp response)
+            // strands its last `data:` event here; without this the tail of
+            // the message is silently dropped. See issue #7.
+            buffer += decoder.decode();
+            if (buffer) processLine(buffer);
+            break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) processLine(line);
+    }
+    // Either way the reply stops mid-sentence and looks finished, so say
+    // why. The same two cases routes/llm.py logs.
+    if (finishReason === 'length') {
+        showToast('The reply was cut off at Max response tokens (Settings \u2192 API).', 'error', 8000);
+    } else if (!sawDone && !finishReason) {
+        showToast('The connection closed before the reply finished.', 'error', 8000);
+    }
+    return saved;
+}
+
 async function formRequest(url, fields, fallback) {
     const fd = new FormData();
     for (const [key, value] of Object.entries(fields)) {
@@ -211,76 +282,38 @@ export const API = {
     async deletePersona(id) {
         return jsonRequest(`/api/personas/${id}`, { method: 'DELETE', fallback: 'Delete failed' });
     },
-    async streamChatCompletion(payload, onToken, signal) {
-        const res = await fetch('/api/llm/chat', {
+    /**
+     * Ask for the reply to a chat and read it as it is written. The server
+     * saves it: as a new message, or as a new swipe of message `swipeOf`.
+     */
+    async streamChatCompletion(payload, onToken, signal, chatId, swipeOf = null) {
+        const target = swipeOf ? `&message_id=${swipeOf}` : '';
+        const res = await fetch(`/api/llm/chat?chat_id=${chatId}${target}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
             signal,
         });
         if (!res.ok) throw new Error(await apiError(res, 'LLM request failed'));
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let reasoning = '';
-        let content = '';
-        let buffer = '';
-        let finishReason = null;
-        let sawDone = false;
-
-        const processLine = (line) => {
-            if (line === 'data: [DONE]') { sawDone = true; return; }
-            if (!line.startsWith('data: ')) return;
-            let json;
-            // Ignore unparseable fragments (e.g. a line truncated mid-stream)
-            try { json = JSON.parse(line.slice(6)); } catch { return; }
-            // The proxy's own errors are strings; one relayed from the
-            // provider mid-stream is OpenAI's {message} object.
-            if (json?.error) throw new Error(json.error.message || json.error);
-            finishReason = json.choices?.[0]?.finish_reason || finishReason;
-            const delta = json.choices?.[0]?.delta || {};
-            const reasonTok = delta.reasoning_content || delta.reasoning || '';
-            const contentTok = delta.content || '';
-            if (reasonTok) reasoning += reasonTok;
-            if (contentTok) content += contentTok;
-            if (reasonTok || contentTok) {
-                // Build combined text: wrap reasoning in thinking tags
-                let fullText = '';
-                if (reasoning) {
-                    fullText += '<think>' + reasoning + (content ? '</think>' : '');
-                }
-                fullText += content;
-                onToken(fullText);
-            }
+        return readReply(res, onToken);
+    },
+    /**
+     * The reply the server is writing for a chat, to read from its first word:
+     * `swipeOf` is the message it is a new swipe of, if it is one. Null when
+     * there is none. With no `read`, one ended moments ago, so the chat this
+     * page holds may be from before it was saved.
+     */
+    async followReply(chatId, signal) {
+        const res = await fetch(`/api/llm/chat?chat_id=${chatId}`, { signal });
+        if (!res.ok) throw new Error(await apiError(res, 'Could not rejoin the reply'));
+        if (res.status === 204) return null;
+        return {
+            swipeOf: Number(res.headers.get('X-Swipe-Of')) || null,
+            read: res.status === 200 ? onToken => readReply(res, onToken) : null,
         };
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                // Flush any trailing data left in the buffer. A stream that ends
-                // without a final newline (e.g. a cut-off llama.cpp response)
-                // strands its last `data:` event here; without this the tail of
-                // the message is silently dropped. See issue #7.
-                buffer += decoder.decode();
-                if (buffer) processLine(buffer);
-                break;
-            }
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-            for (const line of lines) processLine(line);
-        }
-        // Either way the reply stops mid-sentence and looks finished, so say
-        // why. The same two cases routes/llm.py logs.
-        if (finishReason === 'length') {
-            showToast('The reply was cut off at Max response tokens (Settings \u2192 API).', 'error', 8000);
-        } else if (!sawDone && !finishReason) {
-            showToast('The connection closed before the reply finished.', 'error', 8000);
-        }
-        // Build final combined text
-        let fullText = '';
-        if (reasoning) fullText += '<think>' + reasoning + '</think>';
-        fullText += content;
-        return fullText;
+    },
+    async stopReply(chatId) {
+        return jsonRequest(`/api/llm/chat?chat_id=${chatId}`, { method: 'DELETE', fallback: 'Stop failed' });
     },
     // A swipe is named by its place among the message's swipes. Two can hold
     // identical text, so the text cannot name one.

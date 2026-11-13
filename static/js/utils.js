@@ -1,4 +1,5 @@
 import { state, el, llm, SEND_SVG, STOP_SVG } from './state.js';
+import { API } from './api.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // UTILITY
@@ -328,14 +329,19 @@ export function maybeScrollToBottom() {
 }
 
 /**
- * Cancel the in-flight generation at the user's request. Unlike a bare
- * `abort()` (see selectChat), this keeps whatever has streamed so far — the
- * generation's catch block reads `stopRequested` to decide.
+ * End the generation in flight at the user's request. A reply the server has
+ * been asked for is the server's to stop: it keeps what has arrived, and the
+ * stream this page is reading ends with that. Before then only this page is
+ * waiting, on a memory update or a save, and it stops waiting.
  */
 export function stopGeneration() {
     if (!llm.abortController) return;
     llm.stopRequested = true;
-    llm.abortController.abort();
+    if (llm.replyChatId) {
+        API.stopReply(llm.replyChatId).catch(err => showToast('Could not stop the reply: ' + err.message));
+    } else {
+        llm.abortController.abort();
+    }
 }
 
 // The screen wake lock held while a reply generates, as its pending request.
@@ -351,11 +357,27 @@ export function beginGeneration() {
     return true;
 }
 
+// What a generation left to do once the slot is free again.
+let afterGeneration = null;
+
+/** Run `fn` when the generation holding the slot lets go of it. */
+export function whenGenerationEnds(fn) {
+    afterGeneration = fn;
+}
+
 /** Release the generation slot on every success, failure and abort path. */
 export function endGeneration() {
+    llm.abortController = null;
+    llm.stopRequested = false;
+    llm.replyChatId = null;
     llm.generationActive = false;
+    setSendButtonMode('send');
+    updateComposerState();
     screenLock?.then(lock => lock?.release());
     screenLock = null;
+    const after = afterGeneration;
+    afterGeneration = null;
+    after?.();
 }
 
 export function setSendButtonMode(mode) {

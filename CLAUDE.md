@@ -241,6 +241,19 @@ and nothing changes.
 always streams SSE — so **never introduce middleware that buffers responses**. That is also why
 `app.py` uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE.
 
+**The server owns a reply, not the page.** `POST /api/llm/chat?chat_id=…` starts a thread
+(`_write_reply()`) that reads the model's stream to its end and saves the reply itself, as a new
+message or as a new swipe of `message_id`, so a locked phone or a closed tab loses nothing. The
+response to that POST only *follows* the reply, and so does a `GET` of the same URL from a page that
+comes back or from another device; each is played the reply from its first event. A closed
+connection therefore means nothing. Only `DELETE` ends a reply, which is what the Stop button sends,
+and `_finish()` holds the one rule for what a reply cut short keeps: the part that arrived, unless
+that was reasoning alone. The stream ends by saying what was saved (`{"saved": row}`), and that row
+is what the page shows; **the page never posts a reply**. In the page, aborting
+`llm.abortController` only stops listening, as leaving a chat does, and `stopGeneration()` is what
+asks the server to stop. Replies live in memory (`_replies`, one per chat), as the summary jobs do,
+so both need the **single gunicorn worker** Docker runs, and a restart loses a reply in flight.
+
 ### Context analysis
 
 `analyzeContext()` in [context-analysis.js](static/js/context-analysis.js) decides what the model
@@ -259,9 +272,10 @@ since `{{time}}`, `{{date}}` and `{{random}}` are not inputs.
 A message is its swipes, and each fact about them is kept once. On the server,
 `messages.selected_swipe_id` names the swipe on show and `messages.content` is
 a copy of that swipe's text for everything that reads a chat without its
-swipes; only the swipe routes in [cozy/routes/messages.py](cozy/routes/messages.py)
-write it, and a swipe is named to them by its index, never by its text, since
-two swipes can read the same. In the page the entry in `state.messages` is the
+swipes; only `insert_swipe()` and the message update route in
+[cozy/routes/messages.py](cozy/routes/messages.py) write it, and a swipe is
+named to the routes by its index, never by its text, since two swipes can read
+the same. In the page the entry in `state.messages` is the
 only copy. A bubble carries `data-msg-id` and nothing else about its message:
 `drawnMessages` in [messages.js](static/js/messages.js) links it to the entry
 it was drawn from, and every handler reads and changes that entry. Don't put a

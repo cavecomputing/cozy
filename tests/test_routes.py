@@ -875,19 +875,19 @@ class TestLLMProxy:
         assert r.status_code == 400
         assert 'model' in r.get_json()['error'].lower()
 
-    def test_chat_streams_sse_content_type(self, client):
+    def test_chat_streams_sse_content_type(self, client, sample_chat):
         """When endpoint+model are set, response should be SSE (even if upstream fails)."""
         client.put('/api/settings', json={
             'api_endpoint': 'http://127.0.0.1:1/v1',
             'api_model': 'test-model',
         })
-        r = client.post('/api/llm/chat', json={
+        r = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
             'model': 'test-model',
             'messages': [{'role': 'user', 'content': 'hi'}],
         })
         assert r.content_type.startswith('text/event-stream')
 
-    def test_chat_forwards_system_prompt_unchanged(self, client, monkeypatch):
+    def test_chat_forwards_system_prompt_unchanged(self, client, monkeypatch, sample_chat):
         """The proxy should not replace the frontend-built system message."""
         captured = {}
 
@@ -924,7 +924,7 @@ class TestLLMProxy:
         })
         custom_system = 'CUSTOM SYSTEM PROMPT: stay in character.'
 
-        r = client.post('/api/llm/chat', json={
+        r = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
             'model': 'test-model',
             'messages': [
                 {'role': 'system', 'content': custom_system},
@@ -943,7 +943,7 @@ class TestLLMProxy:
             'content': custom_system,
         }
 
-    def test_chat_log_leaves_out_credentials_and_chat_text(self, client, monkeypatch, caplog):
+    def test_chat_log_leaves_out_credentials_and_chat_text(self, client, monkeypatch, caplog, sample_chat):
         """A request and its reply are a line each at INFO, and neither carries
         the key, a password typed into the endpoint, or what was said."""
         def fake_post(*args, **kwargs):
@@ -962,7 +962,7 @@ class TestLLMProxy:
             'api_key': 'sk-secret',
         })
         with caplog.at_level('INFO', logger='cozy'):
-            client.post('/api/llm/chat', json={
+            client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
                 'model': 'test-model', 'temperature': 0.7,
                 'messages': [{'role': 'user', 'content': 'a private line'}],
             }).get_data()
@@ -976,7 +976,7 @@ class TestLLMProxy:
         for secret in ('hunter2', 'sk-secret', 'a private', 'temperature'):
             assert secret not in '\n'.join(lines)
 
-    def test_chat_relays_every_well_formed_event(self, client, monkeypatch):
+    def test_chat_relays_every_well_formed_event(self, client, monkeypatch, sample_chat):
         """SSE shapes real servers send, through requests' own line reader.
 
         "data:" without its space is valid SSE. U+2028, U+2029 and U+0085 may sit
@@ -1002,21 +1002,23 @@ class TestLLMProxy:
 
         monkeypatch.setattr(llm_module.http_requests, 'post', fake_post)
         client.put('/api/settings', json={'api_endpoint': 'http://upstream.test/v1'})
-        r = client.post('/api/llm/chat', json={
+        r = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
             'model': 'test-model', 'messages': [{'role': 'user', 'content': 'hi'}],
         })
 
         lines = [line for line in r.get_data(as_text=True).split('\n') if line]
-        assert lines[-1] == 'data: [DONE]'
+        assert lines[-2] == 'data: [DONE]'
         text = ''
-        for line in lines[:-1]:
+        for line in lines[:-2]:
             assert line.startswith('data: ')
             chunk = json.loads(line[6:])
             if isinstance(chunk, dict):
                 text += (chunk['choices'][0]['delta'] or {}).get('content', '')
         assert text == 'no space a\u2028b\u2029c\u0085d crlf'
+        # The reply saved is the one the page was shown.
+        assert json.loads(lines[-1][6:])['saved']['content'] == text
 
-    def test_chat_upstream_error_body_reaches_client(self, client, monkeypatch):
+    def test_chat_upstream_error_body_reaches_client(self, client, monkeypatch, sample_chat):
         """A 4xx from the provider must surface its response body, not just the status."""
         class ErrorResponse:
             encoding = 'utf-8'
@@ -1037,7 +1039,7 @@ class TestLLMProxy:
             'api_endpoint': 'http://upstream.test/v1',
             'api_model': 'test-model',
         })
-        r = client.post('/api/llm/chat', json={
+        r = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
             'model': 'test-model',
             'messages': [{'role': 'user', 'content': 'hi'}],
         })
@@ -1045,7 +1047,7 @@ class TestLLMProxy:
         assert '400' in body
         assert 'model not found: aion-2.0' in body
 
-    def test_wrong_key_reads_as_a_sentence(self, client, monkeypatch):
+    def test_wrong_key_reads_as_a_sentence(self, client, monkeypatch, sample_chat):
         """A 401 names the likely fix and the provider's reason, not raw JSON."""
         class Unauthorized:
             encoding = 'utf-8'
@@ -1066,7 +1068,7 @@ class TestLLMProxy:
             'api_endpoint': 'http://upstream.test/v1',
             'api_model': 'test-model',
         })
-        r = client.post('/api/llm/chat', json={
+        r = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
             'model': 'test-model',
             'messages': [{'role': 'user', 'content': 'hi'}],
         })
@@ -1086,14 +1088,14 @@ class TestLLMProxy:
         assert llm_module._status_error(500, 'Server Error', url, 'out of memory') \
             == '500 Server Error. It said: out of memory'
 
-    def test_unreachable_server_is_named_rather_than_dumped(self, client):
+    def test_unreachable_server_is_named_rather_than_dumped(self, client, sample_chat):
         """A refused connection reads as a sentence, not urllib3's retry chain."""
         client.put('/api/settings', json={
             'api_endpoint': 'http://127.0.0.1:1/v1',
             'api_model': 'test-model',
         })
         sentence = "Couldn't reach 127.0.0.1:1. Is the model server running?"
-        r = client.post('/api/llm/chat', json={
+        r = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
             'model': 'test-model',
             'messages': [{'role': 'user', 'content': 'hi'}],
         })
@@ -1341,7 +1343,7 @@ class TestClaudeEndpoint:
         assert body['max_tokens'] > 0
         assert 'system' not in body
 
-    def test_chat_stream_reads_like_chat_completions(self, client, monkeypatch):
+    def test_chat_stream_reads_like_chat_completions(self, client, monkeypatch, sample_chat):
         captured = {}
         events = [
             {'type': 'message_start', 'message': {'id': 'msg_1'}},
@@ -1380,7 +1382,7 @@ class TestClaudeEndpoint:
             'api_endpoint': 'https://api.anthropic.com/v1',
             'api_key': 'sk-ant-test',
         })
-        r = client.post('/api/llm/chat', json={
+        r = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json={
             'model': 'claude-opus-5-5', 'max_tokens': 512, 'temperature': 1.0,
             'messages': [{'role': 'system', 'content': 'S'}, {'role': 'user', 'content': 'hi'}],
         })
@@ -1391,13 +1393,14 @@ class TestClaudeEndpoint:
         assert captured['json']['stream'] is True
         assert 'temperature' not in captured['json']
         assert captured['json']['system'][0]['text'] == 'S'
-        assert [json.loads(c) for c in chunks[:-1]] == [
+        assert [json.loads(c) for c in chunks[:-2]] == [
             {'choices': [{'delta': {'reasoning_content': 'Hmm.'}}]},
             {'choices': [{'delta': {'content': 'Hel'}}]},
             {'choices': [{'delta': {'content': 'lo'}}]},
             {'choices': [{'delta': {}, 'finish_reason': 'length'}]},
         ]
-        assert chunks[-1] == '[DONE]'
+        assert chunks[-2] == '[DONE]'
+        assert json.loads(chunks[-1])['saved']['content'] == '<think>Hmm.</think>Hello'
 
     @pytest.mark.parametrize('event, shown', [
         ({'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}},
