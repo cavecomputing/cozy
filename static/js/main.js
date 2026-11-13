@@ -558,21 +558,28 @@ function bindSidebarHandlers() {
 // Settings page goes back a level at a time. The entry is dropped again when
 // the last panel closes some other way, so the history stays as it was.
 // Elsewhere there is no entry: the browser's Back leaves, as it always has.
+//
+// Whether Cozy is on such an entry is read from the entry itself, because the
+// history outlives the page: a reload with a panel up, or iOS starting the
+// installed app's page again, comes back on the panel's entry with no panel.
+// Counted in a variable, that entry was forgotten and stayed beneath the chat,
+// one more each time, and iOS spent a swipe from the left edge going Back
+// through them (the same chat sliding in over itself) before a swipe could
+// reach the drawer. So an entry with no panel to stand for is left at once,
+// at startup and wherever Back or Forward lands on one.
 const coarsePointer = window.matchMedia('(pointer: coarse)');
-let backEntry = false;        // the current history entry is Cozy's own
-let ownBacksPending = 0;      // history.back() calls of Cozy's own yet to land
+const onBackEntry = () => !!history.state?.cozyPanel;
+let leavingBackEntry = false;   // a history.back() of Cozy's own has yet to land
 
 const confirmOpen = () => !!document.querySelector('.confirm-overlay:not([hidden])');
 
 function syncBackEntry() {
-    if (!coarsePointer.matches) return;
+    if (!coarsePointer.matches || leavingBackEntry) return;
     const open = panelOpen() || confirmOpen();
-    if (open && !backEntry) {
+    if (open && !onBackEntry()) {
         history.pushState({ cozyPanel: true }, '');
-        backEntry = true;
-    } else if (!open && backEntry) {
-        backEntry = false;
-        ownBacksPending += 1;
+    } else if (!open && onBackEntry()) {
+        leavingBackEntry = true;
         history.back();
     }
 }
@@ -592,17 +599,19 @@ function goBack() {
 
 function bindBackButton() {
     window.addEventListener('popstate', () => {
-        if (ownBacksPending) {
-            ownBacksPending -= 1;
-        } else if (backEntry) {
-            backEntry = false;
+        if (leavingBackEntry) {
+            leavingBackEntry = false;
+        } else if (coarsePointer.matches && (panelOpen() || confirmOpen())) {
             goBack();
-            syncBackEntry();   // whatever is still open gets a fresh entry
         }
+        // Whatever is still open gets a fresh entry, and a leftover one
+        // landed on is left in turn.
+        syncBackEntry();
     });
     new MutationObserver(syncBackEntry).observe(document.body, {
         subtree: true, attributes: true, attributeFilter: ['hidden', 'class'],
     });
+    syncBackEntry();
 }
 
 // The meter and the boundary separator share one full context analysis —
