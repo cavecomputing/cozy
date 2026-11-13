@@ -276,6 +276,49 @@ class TestSchemaMigrationLedger:
                 "SELECT 1 FROM settings WHERE key IN ('active_regex_preset', 'default_regex_seeded')"
             ).fetchone() is None
 
+    def test_the_swipe_on_show_is_recorded_for_messages_already_stored(self, client, sample_chat):
+        """Before the column, the swipe on show was whichever held the
+        message's text. The migration writes that down, and gives a message
+        whose text no swipe holds a swipe of its own first."""
+        with shared.get_db() as conn:
+            conn.execute("DELETE FROM schema_migrations WHERE name='record_selected_swipes'")
+            conn.executemany(
+                'INSERT INTO messages (id, chat_id, role, content) VALUES (?, ?, ?, ?)',
+                [(1, sample_chat['id'], 'user', 'never had a swipe'),
+                 (2, sample_chat['id'], 'character', 'second take'),
+                 (3, sample_chat['id'], 'character', 'edited before edits reached the swipe'),
+                 (4, sample_chat['id'], 'character', 'twice')],
+            )
+            conn.executemany(
+                'INSERT INTO message_swipes (id, message_id, content) VALUES (?, ?, ?)',
+                [(10, 2, 'first take'), (11, 2, 'second take'),
+                 (12, 3, 'as generated'),
+                 (13, 4, 'twice'), (14, 4, 'twice')],
+            )
+        schema.init_db()
+
+        with shared.get_db() as conn:
+            shown = {
+                row['id']: (row['content'], row['on_show'], row['swipes'])
+                for row in conn.execute('''
+                    SELECT m.id, m.content, s.content AS on_show,
+                           (SELECT COUNT(*) FROM message_swipes WHERE message_id = m.id) AS swipes
+                    FROM messages m JOIN message_swipes s ON s.id = m.selected_swipe_id
+                ''').fetchall()
+            }
+            first_of_two = conn.execute('SELECT selected_swipe_id FROM messages WHERE id=4').fetchone()[0]
+        assert shown == {
+            1: ('never had a swipe', 'never had a swipe', 1),
+            2: ('second take', 'second take', 2),
+            # Kept beside the swipe it never reached, not written over it.
+            3: ('edited before edits reached the swipe', 'edited before edits reached the swipe', 2),
+            4: ('twice', 'twice', 2),
+        }
+        # Which of two that read the same was never recorded: the first, as before.
+        assert first_of_two == 13
+        listed = client.get(f'/api/chats/{sample_chat["id"]}/messages').get_json()
+        assert [m.get('swipe_index') for m in listed] == [None, 1, 1, 0]
+
     def test_mirostat_and_typical_p_in_use_move_into_extra_params(self, client):
         """A retired sampler that was on keeps being sent; one left off is dropped."""
         live = {
@@ -613,6 +656,7 @@ class TestSchemaMigrationLedger:
             assert {'parent_chat_id', 'parent_msg_id', 'fork_msg_id'} <= set(columns('chats'))
             assert 'opened_at' in columns('chats')
             assert 'persona_name' in columns('messages')
+            assert 'selected_swipe_id' in columns('messages')
             assert 'edited_at' in columns('message_swipes')
             assert 'settings_json' in columns('api_presets')
             assert 'post_history_content' in columns('system_prompts')

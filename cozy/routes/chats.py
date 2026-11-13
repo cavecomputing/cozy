@@ -98,7 +98,7 @@ def _chat_jsonl(conn, chat_id):
     }]
 
     rows = conn.execute('''
-        SELECT m.id, m.role, m.content, m.created_at,
+        SELECT m.id, m.role, m.content, m.created_at, m.selected_swipe_id,
                COALESCE(p.name, m.persona_name) AS persona_name
         FROM messages m
         LEFT JOIN personas p ON m.persona_id = p.id
@@ -109,7 +109,7 @@ def _chat_jsonl(conn, chat_id):
     if rows:
         swipes = conn.execute(
             '''
-            SELECT s.message_id, s.content
+            SELECT s.id, s.message_id, s.content
             FROM message_swipes s
             JOIN messages m ON m.id = s.message_id
             WHERE m.chat_id=?
@@ -118,15 +118,15 @@ def _chat_jsonl(conn, chat_id):
             (chat_id,),
         ).fetchall()
         for swipe in swipes:
-            swipes_by_message.setdefault(swipe['message_id'], []).append(swipe['content'])
+            swipes_by_message.setdefault(swipe['message_id'], []).append(swipe)
 
     for row in rows:
         is_user = row['role'] == 'user'
-        swipe_texts = swipes_by_message.get(row['id']) or [row['content']]
-        try:
-            swipe_id = swipe_texts.index(row['content'])
-        except ValueError:
-            swipe_id = 0
+        swipes = swipes_by_message.get(row['id'], ())
+        swipe_texts = [swipe['content'] for swipe in swipes] or [row['content']]
+        swipe_id = next(
+            (index for index, swipe in enumerate(swipes) if swipe['id'] == row['selected_swipe_id']), 0
+        )
 
         item = {
             'name': (row['persona_name'] if is_user else char_name) or user_name,
@@ -292,12 +292,17 @@ def import_chat():
                 (chat_id, role, selected)
             )
             msg_id = cur.lastrowid
-            for swipe in swipes:
+            for index, swipe in enumerate(swipes):
                 if swipe.strip():
-                    conn.execute(
+                    cur = conn.execute(
                         'INSERT INTO message_swipes (message_id, content) VALUES (?, ?)',
                         (msg_id, swipe)
                     )
+                    if index == swipe_id:
+                        conn.execute(
+                            'UPDATE messages SET selected_swipe_id=? WHERE id=?',
+                            (cur.lastrowid, msg_id),
+                        )
 
         conn.execute('UPDATE chats SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (chat_id,))
         log.info('Imported a chat of %d lines for character %d, with %d warnings',

@@ -13,7 +13,7 @@ messages_bp = Blueprint('messages', __name__)
 # delete_persona() left on the message.
 MESSAGE_WITH_PERSONA_SQL = '''
     SELECT m.id, m.chat_id, m.role, m.content, m.persona_id, m.created_at,
-           COALESCE(p.name, m.persona_name) AS persona_name
+           m.selected_swipe_id, COALESCE(p.name, m.persona_name) AS persona_name
     FROM messages m
     LEFT JOIN personas p ON m.persona_id = p.id
 '''
@@ -30,12 +30,17 @@ def _swipe_to_dict(row):
 
 def _message_to_dict(row, swipes=()):
     message = dict(row)
+    selected = message.pop('selected_swipe_id')
     # A message that was never swiped or edited has one swipe, a copy of its
     # own content. Sent with every message, that doubled the size of a chat,
     # so `swipes` is only there when it says more than `content` does, and
     # the page stands the content in for it otherwise.
     if len(swipes) > 1 or any(s['edited_at'] or s['content'] != row['content'] for s in swipes):
         message['swipes'] = swipes
+        # Which of them is on show. None recorded means the first.
+        message['swipe_index'] = next(
+            (index for index, swipe in enumerate(swipes) if swipe['id'] == selected), 0
+        )
     return message
 
 
@@ -88,6 +93,7 @@ def fork_chat(chat_id):
         ).fetchall()
 
         old_to_new = {}
+        selected_swipes = {}
         for m in messages_to_copy:
             cur = conn.execute(
                 'INSERT INTO messages (chat_id, role, content, persona_id, persona_name, created_at) '
@@ -96,6 +102,7 @@ def fork_chat(chat_id):
                  m['created_at'])
             )
             old_to_new[m['id']] = cur.lastrowid
+            selected_swipes[m['selected_swipe_id']] = cur.lastrowid
 
         if old_to_new:
             placeholders = ','.join('?' for _ in old_to_new)
@@ -104,10 +111,16 @@ def fork_chat(chat_id):
                 list(old_to_new.keys())
             ).fetchall()
             for s in swipes:
-                conn.execute(
+                cur = conn.execute(
                     'INSERT INTO message_swipes (message_id, content, created_at, edited_at) VALUES (?,?,?,?)',
                     (old_to_new[s['message_id']], s['content'], s['created_at'], s['edited_at'])
                 )
+                # The copy shows the swipe its original was showing.
+                if s['id'] in selected_swipes:
+                    conn.execute(
+                        'UPDATE messages SET selected_swipe_id=? WHERE id=?',
+                        (cur.lastrowid, selected_swipes[s['id']]),
+                    )
 
         # The fork's own copy of the message it was cut at, where its branch
         # pill goes; the parent's is parent_msg_id.
@@ -206,20 +219,14 @@ def add_swipe(msg_id):
         content = text_field(json_body(), 'content')
         if not content:
             return jsonify({'error': 'content is required'}), 400
-        # Seed original content as first swipe if none exist yet
-        existing = conn.execute(
-            'SELECT COUNT(*) FROM message_swipes WHERE message_id=?', (msg_id,)
-        ).fetchone()[0]
-        if existing == 0:
-            conn.execute(
-                'INSERT INTO message_swipes (message_id, content) VALUES (?,?)',
-                (msg_id, msg['content'])
-            )
         cur = conn.execute(
             'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
         )
-        # Update the message's main content to the new swipe
-        conn.execute('UPDATE messages SET content=? WHERE id=?', (content, msg_id))
+        # A new swipe is the one on show.
+        conn.execute(
+            'UPDATE messages SET content=?, selected_swipe_id=? WHERE id=?',
+            (content, cur.lastrowid, msg_id),
+        )
         row = conn.execute('SELECT * FROM message_swipes WHERE id=?', (cur.lastrowid,)).fetchone()
         return jsonify(dict(row)), 201
 
@@ -228,52 +235,45 @@ def add_swipe(msg_id):
 
 @messages_bp.route('/api/messages/<int:msg_id>', methods=['PUT'])
 def update_message(msg_id):
+    """Show one of a message's swipes, or rewrite it when `content` comes too.
+
+    `swipe_index` names the swipe, counting from 0 in the order they were made.
+    It is required either way. Text cannot name a swipe, since a regenerate that
+    repeats itself leaves two holding the same text, and "the one on show" may
+    not be the one the page had up: a page loaded before this route took an
+    index pages through swipes by sending their text alone, which must not be
+    read as an edit of whichever swipe is on show.
+    """
     data = json_body()
+    index = data.get('swipe_index')
+    if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+        return jsonify({'error': 'swipe_index is required'}), 400
     content = text_field(data, 'content')
-    if not content:
+    if 'content' in data and not content:
         return jsonify({'error': 'content required'}), 400
     with get_db() as conn:
-        row = conn.execute('SELECT id, content FROM messages WHERE id=?', (msg_id,)).fetchone()
-        if not row:
+        if not conn.execute('SELECT id FROM messages WHERE id=?', (msg_id,)).fetchone():
             return not_found('Message')
-
-        # Update the message's primary content
-        conn.execute('UPDATE messages SET content=? WHERE id=?', (content, msg_id))
-        # On edit (update_swipe), rewrite the matching swipe too so swiping
-        # away and back doesn't resurrect the pre-edit text. Swipe *selection*
-        # omits the flag — there the content must keep pointing at an existing
-        # swipe row, not overwrite it.
-        #
-        # `swipe_index` names the swipe the user was actually looking at. Content
-        # alone cannot: a regenerate that returns a reply identical to one already
-        # stored leaves two swipes holding the same text, and rewriting on a content
-        # match then overwrote both, losing the original from either slot. The match
-        # stays as the fallback for a caller that sends no index, and is capped at one
-        # row for the same reason.
-        if data.get('update_swipe'):
-            index = data.get('swipe_index')
-            target = None
-            if isinstance(index, int) and not isinstance(index, bool) and index >= 0:
-                target = conn.execute(
-                    'SELECT id FROM message_swipes WHERE message_id=? '
-                    'ORDER BY id ASC LIMIT 1 OFFSET ?',
-                    (msg_id, index),
-                ).fetchone()
-            if target is None:
-                target = conn.execute(
-                    'SELECT id FROM message_swipes WHERE message_id=? AND content=? '
-                    'ORDER BY id ASC LIMIT 1',
-                    (msg_id, row['content']),
-                ).fetchone()
-            # Saved unchanged, an edit is not an edit: the swipe is only marked
-            # when its text actually differs from what it held.
-            if target:
-                conn.execute(
-                    'UPDATE message_swipes SET content=?, '
-                    'edited_at=CASE WHEN content=? THEN edited_at ELSE CURRENT_TIMESTAMP END '
-                    'WHERE id=?',
-                    (content, content, target['id']),
-                )
+        swipe = conn.execute(
+            'SELECT id, content FROM message_swipes WHERE message_id=? '
+            'ORDER BY id ASC LIMIT 1 OFFSET ?',
+            (msg_id, index),
+        ).fetchone()
+        if not swipe:
+            return not_found('Swipe')
+        # Saved unchanged, an edit is not an edit: the swipe is only marked
+        # when its text actually differs from what it held.
+        if content and content != swipe['content']:
+            conn.execute(
+                'UPDATE message_swipes SET content=?, edited_at=CURRENT_TIMESTAMP WHERE id=?',
+                (content, swipe['id']),
+            )
+        # The message carries a copy of the text on show, for everything that
+        # reads a chat without its swipes. These two routes are what write it.
+        conn.execute(
+            'UPDATE messages SET content=?, selected_swipe_id=? WHERE id=?',
+            (content or swipe['content'], swipe['id'], msg_id),
+        )
         return jsonify({'success': True})
 
 

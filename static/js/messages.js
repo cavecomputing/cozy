@@ -278,7 +278,7 @@ function showSwipe(msgEl, swipes, idx) {
         stateMsg.text = newText;
         stateMsg.activeSwipeIndex = idx;
         if (stateMsg.id) {
-            API.updateMessage(stateMsg.id, newText).catch(err => {
+            API.selectSwipe(stateMsg.id, idx).catch(err => {
                 console.error('Failed to persist swipe selection:', err);
                 showToast('Swipe selection failed to save: ' + err.message);
             });
@@ -798,7 +798,7 @@ export function finishEditing(save) {
                 stateMsg.swipes[editIdx] = rewritten(stateMsg.swipes[editIdx]);
             }
             if (stateMsg.id) {
-                API.updateMessage(stateMsg.id, rawText, true, editIdx).catch(err => {
+                API.updateMessage(stateMsg.id, rawText, editIdx).catch(err => {
                     console.error('Edit save failed:', err);
                     showToast('Edit failed to save: ' + err.message);
                 });

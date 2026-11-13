@@ -282,19 +282,21 @@ export const API = {
         fullText += content;
         return fullText;
     },
-    // `updateSwipe` rewrites the matching swipe row too (message edits);
-    // swipe *selection* leaves it false so existing swipes aren't overwritten.
-    async updateMessage(msgId, content, updateSwipe = false, swipeIndex = null) {
-        const body = { content };
-        if (updateSwipe) {
-            body.update_swipe = true;
-            // Names which swipe was edited. Two swipes can hold identical text,
-            // and the server cannot tell them apart from the content alone.
-            if (Number.isInteger(swipeIndex) && swipeIndex >= 0) body.swipe_index = swipeIndex;
-        }
+    // A swipe is named by its place among the message's swipes. Two can hold
+    // identical text, so the text cannot name one.
+    /** Rewrite one swipe of a message, which also puts it on show. */
+    async updateMessage(msgId, content, swipeIndex) {
         return jsonRequest(`/api/messages/${msgId}`, {
             method: 'PUT',
-            body,
+            body: { content, swipe_index: swipeIndex },
+            fallback: 'Update failed',
+        });
+    },
+    /** Put one swipe of a message on show. */
+    async selectSwipe(msgId, swipeIndex) {
+        return jsonRequest(`/api/messages/${msgId}`, {
+            method: 'PUT',
+            body: { swipe_index: swipeIndex },
             fallback: 'Update failed',
         });
     },

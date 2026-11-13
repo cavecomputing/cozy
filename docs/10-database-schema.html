@@ -337,7 +337,7 @@
       <div class="facts">
         <span><b>10</b> tables</span>
         <span><b>3</b> indexes</span>
-        <span><b>19</b> migrations applied</span>
+        <span><b>20</b> migrations applied</span>
         <span><b>WAL</b> journal mode</span>
         <span><b>synchronous</b> = NORMAL</span>
         <span><b>foreign_keys</b> = ON per connection</span>
@@ -497,9 +497,10 @@
           <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
           <tr><td class="c-name ref">chat_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>chats.id</code>, ON DELETE CASCADE.</td></tr>
           <tr><td class="c-name">role</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note"><code>CHECK(role IN ('user','character'))</code>.</td></tr>
-          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Stored text.</td></tr>
+          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">The text on show: a copy of the selected swipe's, kept in step by the message and swipe routes, so anything reading a chat need not look at swipes.</td></tr>
           <tr><td class="c-name">persona_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Persona this line was spoken by. No declared FK.</td></tr>
           <tr><td class="c-name">persona_name</td><td class="c-type">TEXT</td><td class="c-def">NULL</td><td class="c-note">That persona's name, filled in when the persona is deleted. NULL while it exists, and its current name is shown.</td></tr>
+          <tr><td class="c-name">selected_swipe_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">The <code>message_swipes.id</code> on show. NULL means the first, which is where a new message starts. No declared FK. Recorded because text cannot say which: two swipes can read the same.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
         </tbody>
       </table></div>
@@ -510,6 +511,7 @@
     content    TEXT    NOT NULL,
     persona_id INTEGER DEFAULT NULL,
     persona_name TEXT DEFAULT NULL,
+    selected_swipe_id INTEGER DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
 )</pre></details>
@@ -517,7 +519,8 @@
 
     <section id="message_swipes">
       <div class="table-head"><h2>message_swipes</h2><span class="chip chip-fk">message_id → messages.id</span></div>
-      <p class="purpose">Alternate takes on one message. Deleting the message takes its swipes with it.</p>
+      <p class="purpose">Alternate takes on one message. Every message has at least one, and
+        <code>messages.selected_swipe_id</code> says which is on show. Deleting the message takes its swipes with it.</p>
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
@@ -697,7 +700,7 @@
     </section>
 
     <section id="ledger">
-      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–19</span></div>
+      <div class="table-head"><h2>Migration ledger</h2><span class="chip chip-pk">versions 1–20</span></div>
       <p class="purpose">Ordered, and the order is the point: each runs once, in a serialized transaction, and a
         shipped entry is never renumbered, renamed or reordered.</p>
       <ol class="ledger">
@@ -720,6 +723,7 @@
         <li><span class="v">17</span><span class="n">delete_lorebook_global_overrides</span><span class="d">Drop the retired install-wide lorebook Scan depth override and Always inject all entries settings.</span></li>
         <li><span class="v">18</span><span class="n">retire_mirostat_and_typical_p</span><span class="d">Retire the Mirostat and Typical-P samplers, in the settings and every API preset; one that was on moves into <code>extra_request_params</code>.</span></li>
         <li><span class="v">19</span><span class="n">remove_regex_filters</span><span class="d">Drop the retired regex output filters: the <code>regex_presets</code> table and the <code>active_regex_preset</code> and <code>default_regex_seeded</code> settings. Replies a filter already rewrote keep that text.</span></li>
+        <li><span class="v">20</span><span class="n">record_selected_swipes</span><span class="d">Fill <code>messages.selected_swipe_id</code> with the swipe holding the message's text, which is how the swipe on show used to be found. A message whose text none of its swipes holds gets it as a swipe first.</span></li>
       </ol>
       <p class="note">Migrations 3–7 are the last to rewrite a prompt's text. The house prompt now ships as a
         file and a revision arrives as a <b>version bump</b> inside it; 14 only renames the rows left from when
@@ -747,7 +751,7 @@
     </section>
 
     <section id="version">
-      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 19</span></div>
+      <div class="table-head"><h2>The database version</h2><span class="chip chip-pk">currently 20</span></div>
       <div class="prose">
         <p>There is no separate version number. The highest entry in the migration registry <strong>is</strong> the
           schema this build understands, and the highest row in a database's ledger is the schema that database is
@@ -764,7 +768,7 @@
         <code>thumbs/</code> cache is keyed by image content and rebuilt on demand, so it is left out.</p>
     </section>
 
-    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 19</footer>
+    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 20</footer>
   </main>
 </div>
 

@@ -296,9 +296,9 @@ export async function selectChat(chat) {
                 for (const ag of altGreetings) {
                     await API.addSwipe(saved.id, ag).catch(err => console.error('Could not seed alt greeting:', err));
                 }
-                // Restore message content to original greeting (addSwipe updates it to the last swipe)
+                // Back to the greeting itself: each addSwipe put its own swipe on show.
                 if (altGreetings.length > 0) {
-                    await API.updateMessage(saved.id, greeting).catch(() => {});
+                    await API.selectSwipe(saved.id, 0).catch(() => {});
                 }
                 if (state.activeChat?.id !== chat.id) return;
                 const swipes = [{ content: greeting }, ...altGreetings.map(ag => ({ content: ag }))];
@@ -331,15 +331,13 @@ export async function selectChat(chat) {
 /** The server's message rows in the shape state.messages and appendMessage use. */
 function messagesFromRows(rows) {
     return rows.map(r => {
+        // A message nobody has swiped or edited comes without its one swipe.
         const swipes = r.swipes || [{ content: r.content }];
-        // Find the swipe matching the message's saved content; fall back to first
-        let idx = swipes.findIndex(s => s.content === r.content);
-        if (idx === -1) idx = 0;
         // Build persona snapshot from DB join data
         const persona = r.persona_id ? { name: r.persona_name || 'You' } : null;
         return {
             role: r.role, text: r.content, id: r.id,
-            created_at: r.created_at, swipes, activeSwipeIndex: idx,
+            created_at: r.created_at, swipes, activeSwipeIndex: r.swipe_index || 0,
             persona,
         };
     });

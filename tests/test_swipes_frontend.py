@@ -65,6 +65,8 @@ SETUP = r"""
 
     const updates = [];
     API.updateMessage = async (...args) => { updates.push(args); return {}; };
+    const selections = [];
+    API.selectSwipe = async (...args) => { selections.push(args); return {}; };
     let generations = 0;
     API.streamChatCompletion = async () => { generations += 1; return 'a new take'; };
     API.addSwipe = async () => ({});
@@ -109,8 +111,8 @@ def test_paging_back_and_forward_shows_and_saves_the_neighbouring_swipe():
         assert.equal(reply.dataset.activeSwipeIndex, 0);
         assert.equal(state.messages[1].text, 'first take');
         assert.equal(state.messages[1].activeSwipeIndex, 0);
-        // The server is told which swipe is selected by its text alone.
-        assert.deepEqual(updates, [[2, 'first take']]);
+        // The server is told which swipe is on show by its place, not its text.
+        assert.deepEqual(selections, [[2, 0]]);
 
         // Already at the first: stays there.
         await handleSwipeAction(reply, true);
@@ -122,7 +124,8 @@ def test_paging_back_and_forward_shows_and_saves_the_neighbouring_swipe():
         assert.equal(reply.dataset.activeSwipeIndex, 2);
         assert.equal(state.messages[1].text, 'third take');
         assert.equal(state.messages[1].activeSwipeIndex, 2);
-        assert.deepEqual(updates.at(-1), [2, 'third take']);
+        assert.deepEqual(selections.at(-1), [2, 2]);
+        assert.deepEqual(updates, []);
 
         // Paging never changes the list or asks the model for anything.
         assert.deepEqual(shown(), ['first take', 'second take', 'third take']);
@@ -157,7 +160,7 @@ def test_next_on_the_last_swipe_of_an_older_reply_does_nothing():
 
         assert.equal(generations, 0);
         assert.equal(reply.dataset.activeSwipeIndex, '2');
-        assert.deepEqual(updates, []);
+        assert.deepEqual(selections, []);
     """)
 
 
@@ -171,7 +174,7 @@ def test_next_on_the_last_greeting_does_nothing():
 
         assert.equal(generations, 0);
         assert.equal(reply.dataset.activeSwipeIndex, '2');
-        assert.deepEqual(updates, []);
+        assert.deepEqual(selections, []);
     """)
 
 
@@ -194,7 +197,7 @@ def test_an_edit_rewrites_the_swipe_on_screen_and_names_it_to_the_server():
         assert.deepEqual(edited, [false, true, false]);
         assert.deepEqual(state.messages[1].swipes.map(swipe => Boolean(swipe.edited_at)), edited);
         // The index goes along, because two swipes can hold the same text.
-        assert.deepEqual(updates, [[2, 'second take, reworded', true, 1]]);
+        assert.deepEqual(updates, [[2, 'second take, reworded', 1]]);
         assert.equal(state.currentEdit, null);
         assert.equal(reply.classList.contains('editing'), false);
     """)
@@ -215,7 +218,7 @@ def test_an_edit_keeps_the_reasoning_that_came_before_the_reply():
         finishEditing(true);
 
         assert.equal(reply.dataset.rawText, '<think>weighing it up</think>\n\na different answer');
-        assert.deepEqual(updates, [[2, '<think>weighing it up</think>\n\na different answer', true, 1]]);
+        assert.deepEqual(updates, [[2, '<think>weighing it up</think>\n\na different answer', 1]]);
     """)
 
 
@@ -226,7 +229,7 @@ def test_saving_an_edit_unchanged_does_not_mark_the_swipe_edited():
 
         assert.deepEqual(JSON.parse(reply.dataset.swipes), takes());
         assert.deepEqual(state.messages[1].swipes, takes());
-        assert.deepEqual(updates, [[2, 'second take', true, 1]]);
+        assert.deepEqual(updates, [[2, 'second take', 1]]);
     """)
 
 
@@ -274,6 +277,6 @@ def test_opening_a_second_edit_saves_the_first():
         assert.equal(question.classList.contains('editing'), false);
         assert.equal(state.messages[0].text, 'hello again');
         // A message with no swipes of its own still names index 0.
-        assert.deepEqual(updates, [[1, 'hello again', true, 0]]);
+        assert.deepEqual(updates, [[1, 'hello again', 0]]);
         assert.equal(state.currentEdit.element, reply);
     """)

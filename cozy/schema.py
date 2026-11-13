@@ -385,6 +385,30 @@ def _remove_regex_filters(conn):
     )
 
 
+def _record_selected_swipes(conn):
+    """Note on each message which of its swipes is on show.
+
+    Nothing recorded that before: the swipe on show was whichever held the same
+    text as `messages.content`, which cannot tell two swipes with the same text
+    apart. A message whose text no swipe of its own holds (one from before
+    swipes, or edited before edits reached the swipe) gets it as a swipe first,
+    so every message ends up with a swipe that is the one on show.
+    """
+    conn.execute('''
+        INSERT INTO message_swipes (message_id, content, created_at)
+        SELECT m.id, m.content, m.created_at FROM messages m
+        WHERE NOT EXISTS (
+            SELECT 1 FROM message_swipes s WHERE s.message_id = m.id AND s.content = m.content
+        )
+    ''')
+    conn.execute('''
+        UPDATE messages SET selected_swipe_id = (
+            SELECT MIN(s.id) FROM message_swipes s
+            WHERE s.message_id = messages.id AND s.content = messages.content
+        )
+    ''')
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -405,6 +429,7 @@ MIGRATIONS = (
     (17, 'delete_lorebook_global_overrides', _delete_lorebook_global_overrides),
     (18, 'retire_mirostat_and_typical_p', _retire_mirostat_and_typical_p),
     (19, 'remove_regex_filters', _remove_regex_filters),
+    (20, 'record_selected_swipes', _record_selected_swipes),
 )
 
 
@@ -493,6 +518,7 @@ def init_db():
                 content    TEXT    NOT NULL,
                 persona_id INTEGER DEFAULT NULL,
                 persona_name TEXT DEFAULT NULL,
+                selected_swipe_id INTEGER DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
             );
@@ -606,6 +632,8 @@ def init_db():
         message_cols = [c[1] for c in conn.execute('PRAGMA table_info(messages)').fetchall()]
         if message_cols and 'persona_name' not in message_cols:
             conn.execute('ALTER TABLE messages ADD COLUMN persona_name TEXT DEFAULT NULL')
+        if message_cols and 'selected_swipe_id' not in message_cols:
+            conn.execute('ALTER TABLE messages ADD COLUMN selected_swipe_id INTEGER DEFAULT NULL')
 
         swipe_cols = [c[1] for c in conn.execute('PRAGMA table_info(message_swipes)').fetchall()]
         if swipe_cols and 'edited_at' not in swipe_cols:

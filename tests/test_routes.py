@@ -459,7 +459,7 @@ class TestMessages:
 
         client.post(f'/api/messages/{swiped["id"]}/swipes', json={'content': 'Second take'})
         client.put(f'/api/messages/{edited["id"]}', json={
-            'content': 'Fixed', 'update_swipe': True, 'swipe_index': 0,
+            'content': 'Fixed', 'swipe_index': 0,
         })
 
         listed = {m['id']: m for m in client.get(f'/api/chats/{chat_id}/messages').get_json()}
@@ -538,21 +538,22 @@ class TestMessages:
             'role': 'user', 'content': 'Original text',
         }).get_json()
         r = client.put(f'/api/messages/{msg["id"]}', json={
-            'content': 'Edited text',
+            'content': 'Edited text', 'swipe_index': 0,
         })
         assert r.status_code == 200
         assert r.get_json()['success'] is True
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        assert listed[0]['content'] == 'Edited text'
 
-    def test_edit_with_update_swipe_rewrites_matching_swipe(self, client, sample_chat):
+    def test_an_edit_rewrites_the_swipe_it_names(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'character', 'content': 'First take',
         }).get_json()
-        # addSwipe seeds 'First take' as swipe 1 and makes 'Second take' the content
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
 
         r = client.put(f'/api/messages/{msg["id"]}', json={
-            'content': 'Second take (edited)', 'update_swipe': True,
+            'content': 'Second take (edited)', 'swipe_index': 1,
         })
         assert r.status_code == 200
 
@@ -577,7 +578,7 @@ class TestMessages:
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Same take'})
 
         r = client.put(f'/api/messages/{msg["id"]}', json={
-            'content': 'Edited', 'update_swipe': True, 'swipe_index': 2,
+            'content': 'Edited', 'swipe_index': 2,
         })
         assert r.status_code == 200
 
@@ -587,22 +588,30 @@ class TestMessages:
             'Same take', 'Other take', 'Edited',
         ]
 
-    def test_edit_falls_back_to_content_match_without_an_index(self, client, sample_chat):
-        """An out-of-range or absent index must still land the edit on a swipe."""
+    def test_an_edit_that_names_no_swipe_is_refused(self, client, sample_chat):
+        """With no index it could only land on the swipe on show, which is not
+        always the one the page had up. A page loaded before selection went by
+        index pages through swipes by sending their text alone, and reading
+        that as an edit would overwrite one swipe with another's text."""
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'character', 'content': 'First take',
         }).get_json()
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
 
-        r = client.put(f'/api/messages/{msg["id"]}', json={
-            'content': 'Edited', 'update_swipe': True, 'swipe_index': 99,
+        absent = client.put(f'/api/messages/{msg["id"]}', json={'content': 'First take'})
+        assert absent.status_code == 400
+        assert 'swipe_index' in absent.get_json()['error']
+        beyond = client.put(f'/api/messages/{msg["id"]}', json={
+            'content': 'Edited', 'swipe_index': 99,
         })
-        assert r.status_code == 200
+        assert beyond.status_code == 404
 
         listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
-        edited = next(m for m in listed if m['id'] == msg['id'])
-        assert [s['content'] for s in edited['swipes']] == ['First take', 'Edited']
+        untouched = next(m for m in listed if m['id'] == msg['id'])
+        assert untouched['content'] == 'Second take'
+        assert [s['content'] for s in untouched['swipes']] == ['First take', 'Second take']
+        assert untouched['swipe_index'] == 1
 
     def test_edit_marks_only_the_swipe_whose_text_changed(self, client, sample_chat):
         chat_id = sample_chat['id']
@@ -612,7 +621,7 @@ class TestMessages:
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
 
         client.put(f'/api/messages/{msg["id"]}', json={
-            'content': 'Second take, reworded', 'update_swipe': True, 'swipe_index': 1,
+            'content': 'Second take, reworded', 'swipe_index': 1,
         })
 
         listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
@@ -627,7 +636,7 @@ class TestMessages:
         }).get_json()
 
         client.put(f'/api/messages/{msg["id"]}', json={
-            'content': 'Same text', 'update_swipe': True, 'swipe_index': 0,
+            'content': 'Same text', 'swipe_index': 0,
         })
 
         listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
@@ -641,28 +650,53 @@ class TestMessages:
         }).get_json()
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
 
-        client.put(f'/api/messages/{msg["id"]}', json={'content': 'First take'})
+        assert client.put(f'/api/messages/{msg["id"]}', json={'swipe_index': 0}).status_code == 200
 
         listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
         swipes = next(m for m in listed if m['id'] == msg['id'])['swipes']
         assert [s['edited_at'] for s in swipes] == [None, None]
 
-    def test_swipe_selection_without_flag_leaves_swipes_alone(self, client, sample_chat):
+    def test_picking_a_swipe_shows_it_and_leaves_the_others_alone(self, client, sample_chat):
         chat_id = sample_chat['id']
         msg = client.post(f'/api/chats/{chat_id}/messages', json={
             'role': 'character', 'content': 'First take',
         }).get_json()
         client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Second take'})
 
-        # Swiping back to the first swipe persists content only — both swipes survive
-        r = client.put(f'/api/messages/{msg["id"]}', json={'content': 'First take'})
+        def shown():
+            listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+            return next(m for m in listed if m['id'] == msg['id'])
+
+        # A new swipe is the one on show.
+        assert (shown()['content'], shown()['swipe_index']) == ('Second take', 1)
+
+        r = client.put(f'/api/messages/{msg["id"]}', json={'swipe_index': 0})
         assert r.status_code == 200
+        assert (shown()['content'], shown()['swipe_index']) == ('First take', 0)
+        assert [s['content'] for s in shown()['swipes']] == ['First take', 'Second take']
+
+        assert client.put(f'/api/messages/{msg["id"]}', json={'swipe_index': 2}).status_code == 404
+        assert (shown()['content'], shown()['swipe_index']) == ('First take', 0)
+
+    def test_the_swipe_on_show_is_recorded_not_found_by_its_text(self, client, sample_chat):
+        """A regenerate that repeats itself leaves two swipes with the same
+        text. Matching on text put the first of them on show after a reload,
+        whichever the reader had picked."""
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'Same take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Other take'})
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Same take'})
 
         listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
-        selected = next(m for m in listed if m['id'] == msg['id'])
-        assert selected['content'] == 'First take'
-        swipe_texts = [s['content'] for s in selected['swipes']]
-        assert swipe_texts == ['First take', 'Second take']
+        assert next(m for m in listed if m['id'] == msg['id'])['swipe_index'] == 2
+
+        # An edit also puts the swipe it rewrote on show.
+        client.put(f'/api/messages/{msg["id"]}', json={'content': 'Other take!', 'swipe_index': 1})
+        listed = client.get(f'/api/chats/{chat_id}/messages').get_json()
+        edited = next(m for m in listed if m['id'] == msg['id'])
+        assert (edited['content'], edited['swipe_index']) == ('Other take!', 1)
 
 
 class TestChatJsonlImportExport:
@@ -729,6 +763,34 @@ class TestChatJsonlImportExport:
         assert messages[0]['content'] == 'Hi'
         assert messages[1]['content'] == 'Alt B'
         assert [s['content'] for s in messages[1]['swipes']] == ['Alt A', 'Alt B']
+        assert messages[1]['swipe_index'] == 1
+
+    def test_the_swipe_on_show_survives_export_and_import_among_identical_ones(
+            self, client, sample_chat):
+        """`swipe_id` used to be found by matching text, so the second of two
+        swipes that read the same went out, and came back, as the first."""
+        chat_id = sample_chat['id']
+        msg = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'character', 'content': 'Same take',
+        }).get_json()
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Other take'})
+        client.post(f'/api/messages/{msg["id"]}/swipes', json={'content': 'Same take'})
+
+        exported = client.get(f'/api/chats/{chat_id}/export').data
+        line = json.loads(exported.decode('utf-8').splitlines()[1])
+        assert (line['swipes'], line['swipe_id']) == (['Same take', 'Other take', 'Same take'], 2)
+
+        imported = client.post(
+            f'/api/chats/import?character_id={sample_chat["character_id"]}',
+            data={'file': (BytesIO(exported), 'round-trip.jsonl')},
+            content_type='multipart/form-data',
+        ).get_json()
+        again = client.get(f'/api/chats/{imported["id"]}/messages').get_json()[0]
+        assert (again['content'], again['swipe_index']) == ('Same take', 2)
+
+        forked = client.post(f'/api/chats/{chat_id}/fork?message_id={msg["id"]}').get_json()
+        copied = client.get(f'/api/chats/{forked["id"]}/messages').get_json()[0]
+        assert (copied['content'], copied['swipe_index']) == ('Same take', 2)
 
     def test_import_keeps_the_first_message_of_a_file_with_no_header(self, client, sample_character):
         """The first line was always taken for SillyTavern's header, so a file
@@ -1436,14 +1498,14 @@ class TestMessageDelete:
         assert r.status_code == 404
 
     def test_update_message_404(self, client):
-        r = client.put('/api/messages/99999', json={'content': 'x'})
+        r = client.put('/api/messages/99999', json={'content': 'x', 'swipe_index': 0})
         assert r.status_code == 404
 
     def test_update_message_requires_content(self, client, sample_chat):
         msg = client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
             'role': 'user', 'content': 'orig',
         }).get_json()
-        r = client.put(f'/api/messages/{msg["id"]}', json={'content': '   '})
+        r = client.put(f'/api/messages/{msg["id"]}', json={'content': '   ', 'swipe_index': 0})
         assert r.status_code == 400
 
     def test_add_message_validates_role(self, client, sample_chat):
@@ -1491,6 +1553,7 @@ class TestFork:
         assert msgs[0]['content'] == 'Hello'
         assert msgs[1]['content'] == 'Hey!'
         assert len(msgs[1]['swipes']) == 2
+        assert msgs[1]['swipe_index'] == 1
 
     def test_fork_keeps_the_edited_mark(self, client, sample_chat):
         chat_id = sample_chat['id']
@@ -1498,7 +1561,7 @@ class TestFork:
             'role': 'character', 'content': 'As generated',
         }).get_json()
         client.put(f'/api/messages/{msg["id"]}', json={
-            'content': 'As rewritten', 'update_swipe': True, 'swipe_index': 0,
+            'content': 'As rewritten', 'swipe_index': 0,
         })
 
         forked = client.post(f'/api/chats/{chat_id}/fork?message_id={msg["id"]}').get_json()
