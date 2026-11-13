@@ -695,6 +695,17 @@ class TestChatJsonlImportExport:
         assert lines[2]['swipes'] == ['Original', 'Alternative']
         assert lines[2]['swipe_id'] == 1
 
+    def test_export_is_named_for_the_character_then_the_chat(self, client, sample_character):
+        char_id = sample_character['id']
+        stamped = client.post(f'/api/characters/{char_id}/chats', json={'name': '2026-03-22:20-06-42'}).get_json()
+        r = client.get(f'/api/chats/{stamped["id"]}/export')
+        assert 'filename="TestChar - 2026-03-22 20-06-42.jsonl"' in r.headers['Content-Disposition']
+
+        # A name with nothing a header can carry leaves no dangling separator.
+        unsafe = client.post(f'/api/characters/{char_id}/chats', json={'name': '夏の夜'}).get_json()
+        r = client.get(f'/api/chats/{unsafe["id"]}/export')
+        assert 'filename="TestChar.jsonl"' in r.headers['Content-Disposition']
+
     def test_import_sillytavern_jsonl_with_swipes(self, client, sample_character):
         payload = '\n'.join(json.dumps(line) for line in [
             {'user_name': 'Alice', 'character_name': 'TestChar', 'create_date': '2026-05-07T12:00:00Z', 'chat_metadata': {}},

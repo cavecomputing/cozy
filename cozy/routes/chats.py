@@ -219,7 +219,13 @@ def export_chat(chat_id):
         chat, body = _chat_jsonl(conn, chat_id)
         if chat is None:
             return not_found('Chat')
-        filename = f"{safe_download_name(chat['name'], 'chat')}.jsonl"
+        # The character first: an unrenamed chat is named for a moment, which
+        # says nothing among other characters' exports. That name's colon
+        # becomes a space, since a safe name has none and would run the date
+        # into the time.
+        parts = (_read_character_name(conn, chat['character_id']), chat['name'].replace(':', ' '))
+        stem = ' - '.join(filter(None, (safe_download_name(part, '') for part in parts)))
+        filename = f"{stem or 'chat'}.jsonl"
         return Response(
             body,
             mimetype='application/jsonl; charset=utf-8',
