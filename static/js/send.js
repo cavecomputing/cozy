@@ -8,7 +8,7 @@ import { generateResponse } from './request-builder.js';
 import {
     parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
 } from './thinking.js';
-import { clearDraft } from './drafts.js';
+import { clearDraft, saveDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
 import { ensureSummaryReadyForSend, maybeTriggerSummary } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
@@ -79,7 +79,16 @@ async function sendOnce(text) {
     updateComposerState();
 
     if (text) {
-        await appendMessage('user', text, true);
+        if (!await appendMessage('user', text, true)) {
+            // Not saved, and the toast said so. Back into the composer, ahead
+            // of anything typed meanwhile, unless another chat owns it by now.
+            if (state.activeChat?.id === chatId) {
+                el.userInput.value = [text, el.userInput.value].filter(Boolean).join('\n');
+                autoResize(el.userInput);
+                saveDraft();
+            }
+            return;
+        }
         clearDraft();
     }
 

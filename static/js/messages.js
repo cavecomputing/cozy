@@ -669,6 +669,12 @@ export async function appendMessage(role, text, persist = true, isGreeting = fal
         } catch (err) {
             console.error('Could not save message:', err);
             showToast('Message failed to save: ' + err.message);
+            // An unsaved bubble reads as sent and is gone on the next load, so
+            // the sender gets the text back. A reply has nowhere to go back to.
+            if (role === 'user') {
+                container.remove();
+                return null;
+            }
             state.messages.push({ role, text, swipes: [{ content: text }], activeSwipeIndex: 0,
                 persona: p ? { name: p.name } : null });
         }
