@@ -238,6 +238,19 @@ and nothing changes.
 always streams SSE — so **never introduce middleware that buffers responses**. That is also why
 `app.py` uses Flask's dev server directly instead of `livereload.Server`, which buffered SSE.
 
+### Context analysis
+
+`analyzeContext()` in [context-analysis.js](static/js/context-analysis.js) decides what the model
+sees, and the meter, the context separator, the summary check and the request all call it. It hands
+back the analysis it already has when a call's inputs equal the last call's, so those four share
+one. That is only safe because `contextInputs()` in
+[context-budget.js](static/js/context-budget.js) is the **single place the analysis reads the app
+from**: context-analysis.js does not import `state.js`, and a test fails if it starts to. Anything
+new the analysis needs goes into `contextInputs()`, where the comparison sees it — read around it
+and a changed chat is answered with a stale context, with nothing on screen to show it. The result
+is frozen because its callers share it, and it is dropped when the browser next takes a turn,
+since `{{time}}`, `{{date}}` and `{{random}}` are not inputs.
+
 ### Dialogue quote marks
 
 [rp-dialogue.js](static/js/rp-dialogue.js) owns which quote marks count as speech for the
