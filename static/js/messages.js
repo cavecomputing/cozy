@@ -48,7 +48,7 @@ export function shownText(rawText) {
 }
 
 /** How long a stretch of streamed text takes to fade in. */
-export const STREAM_FADE_MS = 400;
+const STREAM_FADE_MS = 400;
 
 /**
  * How often a streaming reply is redrawn. Each draw re-parses the whole reply
@@ -56,7 +56,7 @@ export const STREAM_FADE_MS = 400;
  * drawing every frame kept the main thread half busy; the fade carries the eye
  * between draws.
  */
-export const STREAM_DRAW_MS = 45;
+const STREAM_DRAW_MS = 45;
 
 /**
  * Fade in the text each streaming draw adds. A draw rebuilds the whole bubble,
@@ -65,7 +65,7 @@ export const STREAM_DRAW_MS = 45;
  * on every draw, each with its animation started that long ago so it carries on
  * from where the last draw left it.
  */
-export function createTextFader() {
+function createTextFader() {
     const reveals = [{ end: 0, at: 0 }];
     return contentEl => {
         const now = performance.now();
@@ -96,6 +96,60 @@ export function createTextFader() {
                 span.append(stretch);
             }
         }
+    };
+}
+
+/**
+ * Draw a reply into its bubble as it streams, for a send and a new swipe alike.
+ *
+ * `onToken` is generateResponse's callback. `text` is everything that has
+ * arrived, drawn or not: a Stop salvages that, not whatever is on screen.
+ */
+export function streamInto(msgBody, contentEl) {
+    let text = '';
+    // Draw at most once every STREAM_DRAW_MS, on a frame. A fast endpoint
+    // delivers several tokens per frame, and every draw re-parses the whole
+    // reply and then reads scrollHeight to scroll — a forced layout — so
+    // drawing per token costs time quadratic in the reply length.
+    let frame = 0;
+    let drawnAt = -Infinity;
+    // Reveal the reply toward what has arrived rather than all of it at once:
+    // each draw shows a third of the backlog, so the pace follows the stream,
+    // steady while tokens trickle and quicker when they burst.
+    let shown = 0;
+    const fadeIn = createTextFader();
+    const draw = () => {
+        if (performance.now() - drawnAt < STREAM_DRAW_MS) {
+            frame = requestAnimationFrame(draw);
+            return;
+        }
+        drawnAt = performance.now();
+        frame = 0;
+        shown += Math.max(1, Math.ceil((text.length - shown) / 3));
+        const parsed = parseThinkingContent(text.slice(0, shown));
+        renderThinkingBlock(msgBody, parsed);
+        renderMarkdown(contentEl, parsed.response);
+        fadeIn(contentEl);
+        maybeScrollToBottom();
+        if (shown < text.length) frame = requestAnimationFrame(draw);
+    };
+    return {
+        onToken(accumulated) {
+            text = accumulated;
+            if (!frame) frame = requestAnimationFrame(draw);
+        },
+        get text() { return text; },
+        /**
+         * Wait for the reveal to catch up and the last words to finish fading
+         * in, so the finished reply doesn't pop into place. Not in a hidden
+         * tab, where frames stall and the save would wait on them.
+         */
+        async settle(signal) {
+            while (frame && !signal.aborted && !document.hidden) await new Promise(requestAnimationFrame);
+            if (!signal.aborted && !document.hidden) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
+        },
+        /** Drop any draw still queued, so it can't repaint the bubble after the stream has ended. */
+        stop() { cancelAnimationFrame(frame); },
     };
 }
 
@@ -174,32 +228,7 @@ async function generateSwipeOnce(msgEl) {
     updateComposerState();
 
     let newContent;
-    // Kept in step with the stream so a Stop can still salvage it.
-    let streamed = '';
-    // Draw at most once every STREAM_DRAW_MS — see the same guard in send.js.
-    // Here the bubble survives the stream, so a queued draw must also be
-    // cancelled: it would otherwise repaint a partial stream over the saved
-    // swipe.
-    let frame = 0;
-    let drawnAt = -Infinity;
-    // Revealed toward what has arrived, at the pace send.js sets.
-    let shown = 0;
-    const fadeIn = createTextFader();
-    const drawStreamed = () => {
-        if (performance.now() - drawnAt < STREAM_DRAW_MS) {
-            frame = requestAnimationFrame(drawStreamed);
-            return;
-        }
-        drawnAt = performance.now();
-        frame = 0;
-        shown += Math.max(1, Math.ceil((streamed.length - shown) / 3));
-        const parsed = parseThinkingContent(streamed.slice(0, shown));
-        renderThinkingBlock(msgBody, parsed);
-        renderMarkdown(contentEl, parsed.response);
-        fadeIn(contentEl);
-        maybeScrollToBottom();
-        if (shown < streamed.length) frame = requestAnimationFrame(drawStreamed);
-    };
+    const stream = streamInto(msgBody, contentEl);
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
     let source = 'Settings could not be saved';
@@ -208,14 +237,8 @@ async function generateSwipeOnce(msgEl) {
         source = 'Auto Summaries API';
         await ensureSummaryReadyForSend(regenSignal, { excludeLastN: 1 });
         source = 'Chat API';
-        newContent = await generateResponse(1, (accumulated) => {
-            streamed = accumulated;
-            if (!frame) frame = requestAnimationFrame(drawStreamed);
-        }, regenSignal);
-        // Let the reveal catch up and the last words finish fading before the
-        // swipe is drawn plain, as send.js does.
-        while (frame && !regenSignal.aborted && !document.hidden) await new Promise(requestAnimationFrame);
-        if (!regenSignal.aborted && !document.hidden) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
+        newContent = await generateResponse(1, stream.onToken, regenSignal);
+        await stream.settle(regenSignal);
     } catch (err) {
         // A Stop, or an error partway through, keeps its partial as a swipe of
         // its own, so the previous one stays reachable by swiping left.
@@ -223,8 +246,8 @@ async function generateSwipeOnce(msgEl) {
         // reasoning that never reached a response — falls back to the swipe
         // that was on screen.
         const cutOff = err.name !== 'AbortError';
-        const kept = (cutOff || llm.stopRequested) && hasVisibleResponse(streamed)
-            ? closeIncompleteThinking(streamed)
+        const kept = (cutOff || llm.stopRequested) && hasVisibleResponse(stream.text)
+            ? closeIncompleteThinking(stream.text)
             : '';
         if (cutOff) {
             console.error('Regen error:', err);
@@ -236,7 +259,9 @@ async function generateSwipeOnce(msgEl) {
         }
         newContent = kept;
     } finally {
-        cancelAnimationFrame(frame);
+        // The bubble outlives the stream here, and a draw still queued would
+        // repaint a partial stream over the saved swipe.
+        stream.stop();
     }
 
     msg.swipes.push({ content: newContent });

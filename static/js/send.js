@@ -3,13 +3,9 @@ import {
     autoResize, showToast, showApiNotice, scrollToBottom, maybeScrollToBottom,
     setSendButtonMode, updateComposerState, beginGeneration, endGeneration,
 } from './utils.js';
-import {
-    appendMessage, renderMarkdown, createTextFader, regenerateLastAssistantMessage, STREAM_FADE_MS, STREAM_DRAW_MS,
-} from './messages.js';
+import { appendMessage, streamInto, regenerateLastAssistantMessage } from './messages.js';
 import { generateResponse } from './request-builder.js';
-import {
-    parseThinkingContent, renderThinkingBlock, hasVisibleResponse, closeIncompleteThinking,
-} from './thinking.js';
+import { hasVisibleResponse, closeIncompleteThinking } from './thinking.js';
 import { clearDraft, saveDraft } from './drafts.js';
 import { executeSlashCommand } from './slash-commands.js';
 import { ensureSummaryReadyForSend, maybeTriggerSummary } from './summaries.js';
@@ -102,38 +98,9 @@ async function sendOnce(text) {
     const msgBody = loadingMsg.querySelector('.msg-body');
     contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
 
-    // Kept in step with the stream so a Stop can still salvage it.
-    let streamed = '';
+    const stream = streamInto(msgBody, contentEl);
     let reply = null;
     let failed = false;
-    // Draw at most once every STREAM_DRAW_MS, on a frame. A fast endpoint
-    // delivers several tokens per frame, and every draw re-parses the whole
-    // reply and then reads scrollHeight to scroll — a forced layout — so
-    // drawing per token costs time quadratic in the reply length. `streamed`
-    // is still assigned on every token: a Stop salvages that, not whatever
-    // happens to be on screen.
-    let frame = 0;
-    let drawnAt = -Infinity;
-    // Reveal the reply toward what has arrived rather than all of it at once:
-    // each draw shows a third of the backlog, so the pace follows the stream,
-    // steady while tokens trickle and quicker when they burst.
-    let shown = 0;
-    const fadeIn = createTextFader();
-    const drawStreamed = () => {
-        if (performance.now() - drawnAt < STREAM_DRAW_MS) {
-            frame = requestAnimationFrame(drawStreamed);
-            return;
-        }
-        drawnAt = performance.now();
-        frame = 0;
-        shown += Math.max(1, Math.ceil((streamed.length - shown) / 3));
-        const parsed = parseThinkingContent(streamed.slice(0, shown));
-        renderThinkingBlock(msgBody, parsed);
-        renderMarkdown(contentEl, parsed.response);
-        fadeIn(contentEl);
-        maybeScrollToBottom();
-        if (shown < streamed.length) frame = requestAnimationFrame(drawStreamed);
-    };
     // The memory update and the reply can be pointed at different endpoints, so
     // an upstream error is only actionable if the toast says which one failed.
     let source = 'Auto Summaries API';
@@ -145,16 +112,8 @@ async function sendOnce(text) {
         await ensureSummaryReadyForSend(signal);
 
         source = 'Chat API';
-        reply = await generateResponse(0, (accumulated) => {
-            streamed = accumulated;
-            if (!frame) frame = requestAnimationFrame(drawStreamed);
-        }, signal);
-        // Let the reveal catch up before the finished reply takes its place, but
-        // not in a hidden tab, where frames stall and the save would wait on them.
-        while (frame && !signal.aborted && !document.hidden) await new Promise(requestAnimationFrame);
-        // And for the last words to finish fading in, so they don't pop.
-        if (!signal.aborted && !document.hidden) await new Promise(r => setTimeout(r, STREAM_FADE_MS));
-
+        reply = await generateResponse(0, stream.onToken, signal);
+        await stream.settle(signal);
     } catch (err) {
         // Stopped on purpose, or cut off by an error: keep the text as an
         // ordinary reply. An implicit abort (chat switch) leaves stopRequested
@@ -162,8 +121,8 @@ async function sendOnce(text) {
         // response yet is dropped: analyzeContext strips thinking, so it would
         // persist as a blank bubble that never reaches the model again.
         const cutOff = err.name !== 'AbortError';
-        if ((cutOff || llm.stopRequested) && hasVisibleResponse(streamed)) {
-            reply = closeIncompleteThinking(streamed);
+        if ((cutOff || llm.stopRequested) && hasVisibleResponse(stream.text)) {
+            reply = closeIncompleteThinking(stream.text);
         }
         if (cutOff) {
             failed = true;
@@ -178,9 +137,7 @@ async function sendOnce(text) {
             });
         }
     } finally {
-        // Drop any draw still queued, so it can't repaint the bubble after the
-        // finished reply has taken its place.
-        cancelAnimationFrame(frame);
+        stream.stop();
     }
 
     // appendMessage persists against whatever chat is active now, so a reply
