@@ -473,14 +473,15 @@ function bindEdgeSwipeToOpen() {
     main.addEventListener('pointerdown', e => {
         if (e.pointerType === 'mouse' || e.clientX < DRAG_OPEN_FROM_PX || e.clientX > DRAG_OPEN_TO_PX
             || !drawerShell.matches || panelOpen()) return;
-        drag = { id: e.pointerId, x: e.clientX, at: e.timeStamp, dist: 0, live: false };
+        drag = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp, dist: 0, live: false };
     });
 
     main.addEventListener('pointermove', e => {
         if (e.pointerId !== drag?.id) return;
         const dist = e.clientX - drag.x;
         if (!drag.live) {
-            if (dist < DRAG_SLOP_PX) return;
+            // More sideways than up or down, or it is the start of a scroll.
+            if (dist < DRAG_SLOP_PX || dist < Math.abs(e.clientY - drag.y)) return;
             drag.live = true;
             panel.style.transition = backdrop.style.transition = 'none';
             panel.classList.add('mobile-open');
@@ -491,12 +492,24 @@ function bindEdgeSwipeToOpen() {
         backdrop.style.opacity = drag.dist / panel.offsetWidth;
     });
 
+    // Once the drawer is following the finger the touch stays Cozy's. Left to
+    // itself iOS starts scrolling the chat as soon as the touch has strayed
+    // 10px up or down from where it began, however far sideways it has gone,
+    // and a thumb swings in an arc: the drag was cancelled part-way and the
+    // drawer sprang back shut. touch-action can't say this, since it is read
+    // when the touch starts, so it takes the one touchmove listener in Cozy
+    // that isn't passive.
+    main.addEventListener('touchmove', e => {
+        if (drag?.live && e.cancelable) e.preventDefault();
+    }, { passive: false });
+
     const release = e => {
         if (e.pointerId !== drag?.id) return;
         const { live, dist, at } = drag;
         drag = null;
         if (!live) return;
-        const open = e.type === 'pointerup' && (dist > DRAG_CLOSE_PX || flicked(dist, e.timeStamp - at));
+        // Far enough counts even when the browser took the touch away.
+        const open = dist > DRAG_CLOSE_PX || (e.type === 'pointerup' && flicked(dist, e.timeStamp - at));
         settleDrag(panel, backdrop, open ? 'translateX(0)' : offset(0), open ? 1 : 0,
             () => open ? openMobileSidebar() : closeMobileSidebar({ restoreFocus: false }));
     };
