@@ -300,6 +300,6 @@ That fixture patches attributes **on the `cozy.shared` module object**, which is
 
 When creating a character in tests, use `make_minimal_png()` from [cozy/png_utils.py](cozy/png_utils.py) — anything smaller is rejected by Pillow.
 
-Seventeen test files exercise frontend modules by shelling out to `node`: `test_request_builder.py`, `test_rp_dialogue.py`, and the fifteen `test_*_frontend.py` files. Every one of them **skips** (not fails) when `node` isn't on PATH, so a green run on a machine without Node is covering none of that JS — check for skips before trusting a pass.
+Eighteen test files exercise frontend modules by shelling out to `node`: `test_request_builder.py`, `test_rp_dialogue.py`, and the sixteen `test_*_frontend.py` files. Every one of them **skips** (not fails) when `node` isn't on PATH, so a green run on a machine without Node is covering none of that JS — check for skips before trusting a pass.
 
 That testability is why [rp-dialogue.js](static/js/rp-dialogue.js) exists as a separate module at all. Frontend logic that needs coverage has to be importable under bare `node`: no `./state.js`, no DOM, and no page globals such as `marked` (a classic script from [static/vendor/](static/vendor/), not a module). Put new pure logic in its own module and keep the DOM wiring in the caller.
