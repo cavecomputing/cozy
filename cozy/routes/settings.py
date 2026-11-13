@@ -575,9 +575,9 @@ BACKUP_MANIFEST = 'cozy-backup.json'
 # rather than "no limit": large enough that no real library meets it.
 RESTORE_MAX_BYTES = 64 * 1024 ** 3
 
-# One restore at a time. Two of them interleaved have one emptying the data
-# directory while the other is moving files into it, which fails halfway
-# through and leaves neither backup installed.
+# One restore at a time. Two of them interleaved have one setting the data
+# directory's contents aside while the other is moving files into it, so each
+# takes away part of what the other restored.
 _RESTORE_LOCK = threading.Lock()
 
 
@@ -722,33 +722,44 @@ def _stage_backup(archive, staged):
 def _room_to_restore(archive, workspace):
     """Whether *archive* fits unpacked, both where it is staged and where it lands.
 
-    Staging in *workspace* running out of room only fails the restore, but the
-    data directory is emptied before the staged copy moves in, so a backup too
-    large for that disk would be found out after the old data was gone. The
-    sizes come from the archive's own index, and zipfile never writes more for
-    a member than its index says.
+    The old data stays until the backup is in place (_replace_data_dir()), so
+    the room it takes up does not count. The sizes come from the archive's own
+    index, and zipfile never writes more for a member than its index says.
     """
     unpacked = sum(member.file_size for member in archive.infolist())
-    emptied = shutil.disk_usage(shared.DATA_DIR).free + _directory_stats(shared.DATA_DIR)['bytes']
-    return unpacked <= min(shutil.disk_usage(workspace).free, emptied)
+    return unpacked <= min(shutil.disk_usage(workspace).free,
+                           shutil.disk_usage(shared.DATA_DIR).free)
 
 
 def _replace_data_dir(staged):
-    """Empty the data directory and move the staged backup into its place."""
-    for entry in os.scandir(shared.DATA_DIR):
-        if entry.is_dir(follow_symlinks=False):
-            shutil.rmtree(entry.path, ignore_errors=True)
-        else:
-            _quiet_remove(entry.path)
-    # File by file rather than directory by directory: a directory the wipe
-    # could not remove (a file still open elsewhere) would otherwise collide
-    # with the one being moved in, and take the restore down with it.
-    for directory, _dirnames, filenames in os.walk(staged):
-        for filename in filenames:
-            source = os.path.join(directory, filename)
-            target = os.path.join(shared.DATA_DIR, os.path.relpath(source, staged))
-            os.makedirs(os.path.dirname(target), exist_ok=True)
-            shutil.move(source, target)
+    """Put the staged backup where the data directory's contents were.
+
+    The old contents are only set aside, in a folder inside the data directory
+    so that each is one rename away, and deleted once the whole backup has
+    landed. A move that fails partway used to leave whatever had landed and
+    nothing of the old data. Now what landed is removed, the old contents are
+    renamed back, and the error is returned for the route to report.
+    """
+    aside = tempfile.mkdtemp(prefix='.restore-', dir=shared.DATA_DIR)
+    landed = []
+    try:
+        for name in os.listdir(shared.DATA_DIR):
+            if name != os.path.basename(aside):
+                os.rename(os.path.join(shared.DATA_DIR, name), os.path.join(aside, name))
+        for name in os.listdir(staged):
+            landed.append(os.path.join(shared.DATA_DIR, name))
+            shutil.move(os.path.join(staged, name), landed[-1])
+    except OSError as error:
+        for path in landed:
+            if os.path.isdir(path):
+                shutil.rmtree(path, ignore_errors=True)
+            else:
+                _quiet_remove(path)
+        for name in os.listdir(aside):
+            os.rename(os.path.join(aside, name), os.path.join(shared.DATA_DIR, name))
+        os.rmdir(aside)
+        return error
+    shutil.rmtree(aside, ignore_errors=True)
     for directory in (shared.CHARACTERS_DIR, shared.PERSONAS_DIR,
                       shared.THEMES_DIR, shared.THUMBS_DIR):
         os.makedirs(directory, exist_ok=True)
@@ -796,7 +807,12 @@ def restore_backup():
         # every device out (cozy/auth.py).
         with get_db() as conn:
             secret = conn.execute("SELECT value FROM settings WHERE key='secret_key'").fetchone()
-        _replace_data_dir(staged)
+        failure = _replace_data_dir(staged)
+        if failure:
+            log.error('Restore failed and was undone: %s', failure)
+            return jsonify({'error':
+                f'The restore failed partway ({failure}). Your data was put '
+                'back as it was.'}), 500
     # An older backup arrives at whatever schema it was taken at, so upgrade it
     # and restore any bundled prompt it predates, the way a start would.
     init_db()

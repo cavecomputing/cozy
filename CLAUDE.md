@@ -193,13 +193,16 @@ fails its own CRCs. That is also why it streams from a temp copy the response
 owns and deletes: `send_file` plus a delete-on-close left a full copy of the
 data directory in the system temp directory after every backup.
 
-Restore is destructive: it empties `$DATA_DIR` and unpacks the archive in its
-place. Three rules keep that from being a data-loss bug, and each has a test:
-the archive's database is opened and read **while still staged**, so a broken
-backup is refused before anything is deleted; an archive that would not fit
-unpacked is refused before it is staged (`_room_to_restore()`), because the
-wipe comes before the move; and the route holds `_RESTORE_LOCK` so two
-restores can't interleave a wipe with a move. The
+Restore is destructive: it replaces everything in `$DATA_DIR` with the
+archive's contents. Four rules keep that from being a data-loss bug, and each
+has a test: the archive's database is opened and read **while still staged**,
+so a broken backup is refused before anything is touched; an archive that would
+not fit unpacked in the free space is refused before it is staged
+(`_room_to_restore()`); the old contents are only renamed into a `.restore-*`
+folder inside the data directory and deleted **after** the whole backup has
+landed, so a move that fails partway is undone and the route says the data was
+put back (`_replace_data_dir()`); and the route holds `_RESTORE_LOCK` so two
+restores can't interleave. The
 per-request `max_content_length` has to be a **number** — Flask falls back to
 the app-wide 20 MB cap when it is `None`, which would 413 any real backup.
 

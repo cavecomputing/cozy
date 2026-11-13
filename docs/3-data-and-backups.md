@@ -49,6 +49,11 @@ Cozy:
   characters, personas, themes, settings and API keys all become the ones in
   the backup. The page reloads when it finishes. With a
   [password](7-security.md#require-a-password) set, devices stay signed in.
+  The old data is only deleted once the backup is fully in place, so the disk
+  needs room for the backup unpacked beside what is already there, and a
+  restore that fails partway puts the old data back and says so. If Cozy is
+  stopped in the middle of one, the old data is in a `.restore-…` folder
+  inside the data directory.
 
 A backup made by a newer version of Cozy is refused, since this build cannot
 know what changed in the database since. An older one restores fine: Cozy

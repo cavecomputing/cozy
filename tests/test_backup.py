@@ -165,37 +165,84 @@ class TestBackupRestore:
         names = [c['name'] for c in client.get('/api/characters').get_json()]
         assert names == ['Still Here']
 
-    def test_a_backup_too_big_for_the_disk_is_refused_before_anything_is_deleted(
+    def test_a_backup_too_big_for_the_disk_is_refused_before_anything_is_moved(
             self, client, monkeypatch):
-        """The data directory is emptied before the backup moves in, so one
-        that will not fit has to be turned away while the old data is there."""
+        """The old data stays until the backup is in place, so the backup has
+        to fit in the free space alone."""
         create_character(client, 'Still Here')
         backup = client.get('/api/backup').data
         with zipfile.ZipFile(io.BytesIO(backup)) as archive:
             unpacked = sum(member.file_size for member in archive.infolist())
-        on_disk = sum(os.path.getsize(os.path.join(directory, name))
-                      for directory, _, names in os.walk(shared.DATA_DIR) for name in names)
         real_usage = shutil.disk_usage
 
-        def data_disk_nearly_full(path):
-            usage = real_usage(path)
-            if os.path.abspath(path) != os.path.abspath(shared.DATA_DIR):
-                return usage
-            return usage._replace(free=unpacked - on_disk - 1)
+        def data_disk_free(free):
+            return lambda path: real_usage(path)._replace(
+                free=free if os.path.abspath(path) == os.path.abspath(shared.DATA_DIR)
+                else real_usage(path).free)
 
-        monkeypatch.setattr(shutil, 'disk_usage', data_disk_nearly_full)
+        monkeypatch.setattr(shutil, 'disk_usage', data_disk_free(unpacked - 1))
         r = restore(client, backup)
         assert r.status_code == 507
         assert 'disk space' in r.get_json()['error']
         names = [c['name'] for c in client.get('/api/characters').get_json()]
         assert names == ['Still Here']
 
-        # Free space alone is still a byte short here. It fits because the
-        # room the old data gives up counts.
-        monkeypatch.setattr(shutil, 'disk_usage', lambda path: real_usage(path)._replace(
-            free=unpacked - 1 if os.path.abspath(path) == os.path.abspath(shared.DATA_DIR)
-            else real_usage(path).free))
+        monkeypatch.setattr(shutil, 'disk_usage', data_disk_free(unpacked))
         assert restore(client, backup).status_code == 200
+
+    def test_a_restore_that_fails_partway_puts_the_old_data_back(self, client, monkeypatch):
+        """The move into the data directory can fail after the checks pass (the
+        disk fills, a file is held open). That used to leave whatever had
+        landed and none of the old data."""
+        create_character(client, 'In The Backup')
+        backup = client.get('/api/backup').data
+        create_character(client, 'Added Later')
+        before = sorted(os.listdir(shared.DATA_DIR))
+        real_move = shutil.move
+        moved = []
+
+        def fail_on_the_second_move(source, target):
+            moved.append(target)
+            if len(moved) == 2:
+                raise OSError(28, 'No space left on device')
+            return real_move(source, target)
+
+        monkeypatch.setattr(shutil, 'move', fail_on_the_second_move)
+        r = restore(client, backup)
+        assert r.status_code == 500
+        assert 'put back' in r.get_json()['error']
+        assert len(moved) == 2
+        assert sorted(os.listdir(shared.DATA_DIR)) == before
+        names = sorted(c['name'] for c in client.get('/api/characters').get_json())
+        assert names == ['Added Later', 'In The Backup']
+
+        # Nothing of the failed attempt is in the way of the next one.
+        monkeypatch.setattr(shutil, 'move', real_move)
+        assert restore(client, backup).status_code == 200
+        names = [c['name'] for c in client.get('/api/characters').get_json()]
+        assert names == ['In The Backup']
+        assert not [name for name in os.listdir(shared.DATA_DIR) if name.startswith('.restore-')]
+
+    def test_old_data_that_cannot_be_set_aside_is_put_back(self, client, monkeypatch):
+        create_character(client, 'Still Here')
+        backup = client.get('/api/backup').data
+        before = sorted(os.listdir(shared.DATA_DIR))
+        real_rename = os.rename
+        renamed = []
+
+        def fail_on_the_second_rename(source, target):
+            renamed.append(source)
+            if len(renamed) == 2:
+                raise PermissionError(13, 'Permission denied')
+            return real_rename(source, target)
+
+        monkeypatch.setattr(os, 'rename', fail_on_the_second_rename)
+        r = restore(client, backup)
+        assert r.status_code == 500
+        assert 'put back' in r.get_json()['error']
+        assert sorted(os.listdir(shared.DATA_DIR)) == before
+        names = [c['name'] for c in client.get('/api/characters').get_json()]
+        assert names == ['Still Here']
 
     def test_a_backup_larger_than_the_upload_cap_is_accepted(self, client):
         """A backup is the whole library, so the app-wide upload cap — sized
