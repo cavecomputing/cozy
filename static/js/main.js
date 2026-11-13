@@ -1294,8 +1294,9 @@ function bindMessageHandlers() {
             if (!isEditing) {
                 const swipes = msgEl.dataset.swipes ? JSON.parse(msgEl.dataset.swipes) : [];
                 // The trash icon sits in the hover bar next to swipe/edit, so a
-                // stray tap used to nuke a message outright — always confirm.
-                const ok = await confirmDialog({
+                // stray tap used to nuke a message outright. It asks first,
+                // unless Shift is held: Discord's way to clear several in a row.
+                const ok = e.shiftKey || await confirmDialog({
                     title: 'Delete this message?',
                     message: swipes.length > 1
                         ? `All ${swipes.length} swipes of it will be deleted. This cannot be undone.`

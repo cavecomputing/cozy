@@ -390,7 +390,7 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
     if (role === 'character') {
         bar.append(iconButton('msg-action-btn fork-msg-btn', 'Fork', 'Fork chat from here', icons.FORK));
     }
-    bar.append(iconButton('msg-action-btn delete-msg-btn', 'Delete', 'Delete message', icons.TRASH));
+    bar.append(iconButton('msg-action-btn delete-msg-btn', 'Delete (Shift+click skips the confirm)', 'Delete message', icons.TRASH));
     return bar;
 }
 
