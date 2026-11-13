@@ -9,8 +9,11 @@ from cozy.summarizer import fork_summary
 messages_bp = Blueprint('messages', __name__)
 
 
+# The name is the persona's while it exists, and after that the copy
+# delete_persona() left on the message.
 MESSAGE_WITH_PERSONA_SQL = '''
-    SELECT m.*, p.name AS persona_name
+    SELECT m.id, m.chat_id, m.role, m.content, m.persona_id, m.created_at,
+           COALESCE(p.name, m.persona_name) AS persona_name
     FROM messages m
     LEFT JOIN personas p ON m.persona_id = p.id
 '''
@@ -87,8 +90,10 @@ def fork_chat(chat_id):
         old_to_new = {}
         for m in messages_to_copy:
             cur = conn.execute(
-                'INSERT INTO messages (chat_id, role, content, persona_id, created_at) VALUES (?,?,?,?,?)',
-                (new_chat_id, m['role'], m['content'], m['persona_id'], m['created_at'])
+                'INSERT INTO messages (chat_id, role, content, persona_id, persona_name, created_at) '
+                'VALUES (?,?,?,?,?,?)',
+                (new_chat_id, m['role'], m['content'], m['persona_id'], m['persona_name'],
+                 m['created_at'])
             )
             old_to_new[m['id']] = cur.lastrowid
 

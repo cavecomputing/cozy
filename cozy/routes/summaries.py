@@ -459,7 +459,8 @@ def _run_summary_job(chat_id, up_to_msg_id, require_running=False, job_token=Non
 
         with get_db() as conn:
             msgs = conn.execute(
-                'SELECT m.id, m.role, m.content, p.name AS persona_name FROM messages m '
+                'SELECT m.id, m.role, m.content, '
+                'COALESCE(p.name, m.persona_name) AS persona_name FROM messages m '
                 'LEFT JOIN personas p ON p.id = m.persona_id '
                 'WHERE m.chat_id=? AND m.id>? AND m.id<=? ORDER BY m.id ASC',
                 (chat_id, watermark, up_to_msg_id)

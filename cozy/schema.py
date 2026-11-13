@@ -492,6 +492,7 @@ def init_db():
                 role       TEXT    NOT NULL CHECK(role IN ('user','character')),
                 content    TEXT    NOT NULL,
                 persona_id INTEGER DEFAULT NULL,
+                persona_name TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
             );
@@ -601,6 +602,10 @@ def init_db():
                 conn.execute(f'ALTER TABLE chats ADD COLUMN {fork_col} INTEGER DEFAULT NULL')
         if chat_cols and 'opened_at' not in chat_cols:
             conn.execute('ALTER TABLE chats ADD COLUMN opened_at DATETIME DEFAULT NULL')
+
+        message_cols = [c[1] for c in conn.execute('PRAGMA table_info(messages)').fetchall()]
+        if message_cols and 'persona_name' not in message_cols:
+            conn.execute('ALTER TABLE messages ADD COLUMN persona_name TEXT DEFAULT NULL')
 
         swipe_cols = [c[1] for c in conn.execute('PRAGMA table_info(message_swipes)').fetchall()]
         if swipe_cols and 'edited_at' not in swipe_cols:

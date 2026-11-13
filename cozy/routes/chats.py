@@ -68,10 +68,10 @@ def _read_character_name(conn, char_id):
 
 def _default_user_name(conn, chat_id):
     row = conn.execute('''
-        SELECT p.name
+        SELECT COALESCE(p.name, m.persona_name) AS name
         FROM messages m
-        JOIN personas p ON m.persona_id = p.id
-        WHERE m.chat_id=? AND m.role='user' AND p.name IS NOT NULL
+        LEFT JOIN personas p ON m.persona_id = p.id
+        WHERE m.chat_id=? AND m.role='user' AND COALESCE(p.name, m.persona_name) IS NOT NULL
         ORDER BY m.id ASC
         LIMIT 1
     ''', (chat_id,)).fetchone()
@@ -98,7 +98,8 @@ def _chat_jsonl(conn, chat_id):
     }]
 
     rows = conn.execute('''
-        SELECT m.*, p.name AS persona_name
+        SELECT m.id, m.role, m.content, m.created_at,
+               COALESCE(p.name, m.persona_name) AS persona_name
         FROM messages m
         LEFT JOIN personas p ON m.persona_id = p.id
         WHERE m.chat_id=?

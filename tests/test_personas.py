@@ -1,5 +1,6 @@
 """Tests for persona CRUD + avatar upload."""
 
+import json
 import os
 from io import BytesIO
 
@@ -264,3 +265,52 @@ class TestChatPersona:
         assert r.status_code == 201
         forked = self._chat(client, sample_character['id'], r.get_json()['id'])
         assert forked['persona_id'] == sample_persona['id']
+
+
+class TestDeletedPersonaName:
+    """A message holds its persona's id, so the name has to outlive the row."""
+
+    def _send(self, client, chat_id, persona_id):
+        r = client.post(f'/api/chats/{chat_id}/messages', json={
+            'role': 'user', 'content': 'Hello', 'persona_id': persona_id,
+        })
+        assert r.status_code == 201
+        return r.get_json()
+
+    def test_messages_keep_the_name_of_a_deleted_persona(
+        self, client, sample_chat, sample_persona
+    ):
+        self._send(client, sample_chat['id'], sample_persona['id'])
+        assert client.delete(f'/api/personas/{sample_persona["id"]}').status_code == 200
+
+        listed = client.get(f'/api/chats/{sample_chat["id"]}/messages').get_json()
+        assert listed[0]['persona_name'] == 'TestUser'
+        assert listed[0]['persona_id'] == sample_persona['id']
+
+    def test_a_live_persona_still_shows_its_current_name(
+        self, client, sample_chat, sample_persona
+    ):
+        self._send(client, sample_chat['id'], sample_persona['id'])
+        client.put(f'/api/personas/{sample_persona["id"]}', json={'name': 'Renamed'})
+
+        listed = client.get(f'/api/chats/{sample_chat["id"]}/messages').get_json()
+        assert listed[0]['persona_name'] == 'Renamed'
+
+    def test_an_export_names_the_deleted_persona(self, client, sample_chat, sample_persona):
+        self._send(client, sample_chat['id'], sample_persona['id'])
+        client.delete(f'/api/personas/{sample_persona["id"]}')
+
+        lines = [
+            json.loads(line) for line in
+            client.get(f'/api/chats/{sample_chat["id"]}/export').get_data(as_text=True).splitlines()
+        ]
+        assert lines[0]['user_name'] == 'TestUser'
+        assert lines[1]['name'] == 'TestUser'
+
+    def test_a_fork_made_afterwards_keeps_the_name(self, client, sample_chat, sample_persona):
+        msg = self._send(client, sample_chat['id'], sample_persona['id'])
+        client.delete(f'/api/personas/{sample_persona["id"]}')
+
+        fork = client.post(f'/api/chats/{sample_chat["id"]}/fork?message_id={msg["id"]}').get_json()
+        listed = client.get(f'/api/chats/{fork["id"]}/messages').get_json()
+        assert listed[0]['persona_name'] == 'TestUser'

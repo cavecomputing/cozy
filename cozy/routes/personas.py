@@ -72,6 +72,11 @@ def delete_persona(persona_id):
                 os.remove(avatar_file)
             except FileNotFoundError:
                 pass
+        # Its messages keep the name they were sent under. They only hold the
+        # persona's id, which names nobody once the row is gone.
+        conn.execute(
+            'UPDATE messages SET persona_name=? WHERE persona_id=?', (row['name'], persona_id)
+        )
         conn.execute('DELETE FROM personas WHERE id=?', (persona_id,))
         return jsonify({'success': True})
 

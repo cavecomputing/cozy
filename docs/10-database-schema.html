@@ -400,7 +400,8 @@
       </div>
       <p class="note"><b>Deleting a lorebook</b> clears matching <code>chats.active_lorebook_id</code> in application
         code, because nothing in the schema will. A deleted persona leaves <code>persona_id</code> pointing nowhere
-        by design — old messages keep the name they were written under. Likewise a fork's
+        by design. Its name is copied to <code>messages.persona_name</code> as it goes, so old messages keep
+        the name they were written under. Likewise a fork's
         <code>parent_chat_id</code> and the message ids beside it are never cleared. Once the parent chat is
         gone the fork is an ordinary chat with no branch pill; a message that is gone only costs the pill its
         landing place, so switching opens that chat at its newest message. Ids are never reused, so a stale
@@ -498,6 +499,7 @@
           <tr><td class="c-name">role</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note"><code>CHECK(role IN ('user','character'))</code>.</td></tr>
           <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Stored text.</td></tr>
           <tr><td class="c-name">persona_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Persona this line was spoken by. No declared FK.</td></tr>
+          <tr><td class="c-name">persona_name</td><td class="c-type">TEXT</td><td class="c-def">NULL</td><td class="c-note">That persona's name, filled in when the persona is deleted. NULL while it exists, and its current name is shown.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
         </tbody>
       </table></div>
@@ -507,6 +509,7 @@
     role       TEXT    NOT NULL CHECK(role IN ('user','character')),
     content    TEXT    NOT NULL,
     persona_id INTEGER DEFAULT NULL,
+    persona_name TEXT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
 )</pre></details>
