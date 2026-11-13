@@ -256,6 +256,10 @@ async function generateSwipeOnce(msgEl, swipes, idx) {
     }
     if (stateMsg) {
         stateMsg.text = newContent;
+        // The list too, not only the element's copy: a redraw builds the
+        // message from state.messages, and one a swipe short hid the swipes
+        // before this one and sent the next edit to the wrong one.
+        stateMsg.swipes = swipes;
         stateMsg.activeSwipeIndex = idx;
     }
     updateContextViews();

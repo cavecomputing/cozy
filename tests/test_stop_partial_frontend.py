@@ -233,6 +233,26 @@ def test_stopped_regen_commits_its_partial_as_a_new_swipe():
     """)
 
 
+def test_a_new_swipe_joins_the_list_a_redraw_reads():
+    """renderMessages() builds from state.messages, so a swipe held only on the
+    element was gone after any redraw, and its index named another swipe."""
+    run_node_module(SWIPE_SETUP + r"""
+        state.messages[1].swipes = [{ content: 'the original reply' }];
+        state.messages[1].activeSwipeIndex = 0;
+        API.streamChatCompletion = async () => 'a second take';
+
+        const idx = await generateSwipe(msgEl, swipes, 0);
+
+        assert.equal(idx, 1);
+        assert.deepEqual(
+            state.messages[1].swipes.map(swipe => swipe.content),
+            ['the original reply', 'a second take'],
+        );
+        assert.equal(state.messages[1].activeSwipeIndex, 1);
+        assert.deepEqual(state.messages[1].swipes, JSON.parse(msgEl.dataset.swipes));
+    """)
+
+
 def test_chat_switch_during_regen_discards_the_partial():
     """selectChat aborts without stopGeneration, so the partial is dropped."""
     run_node_module(SWIPE_SETUP + r"""
