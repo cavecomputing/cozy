@@ -1005,3 +1005,132 @@ def test_dollar_signs_in_values_reach_the_prompt_as_written():
         assert.equal(user.content, '<turn>Give me $$$ and $& now</turn>');
     """
     run_node_module(code)
+
+
+# A chat that exercises every input the analysis is built from.
+REUSE_SETUP = BASE_NODE_SETUP + r"""
+    el.settingsContextTokens = { value: '4000' };
+    el.samplerMaxTokens = { value: '200' };
+    state.activeCharacter = {
+        name: 'Mira',
+        description: 'A careful tester.',
+        character_book: { entries: [{ keys: ['dragon'], content: 'Dragons are extinct.' }] },
+    };
+    state.activeChat = { id: 1, author_note: 'Keep it short.', active_lorebook_embedded: true };
+    state.activeSystemPromptId = 1;
+    state.systemPrompts = [
+        {
+            id: 1,
+            content: 'RULES\n{{description}}\n{{persona}}\n{{lorebook}}\n{{author_note}}\n{{summary}}',
+            post_history_content: 'REMINDER',
+        },
+        { id: 2, content: 'OTHER RULES', post_history_content: '' },
+    ];
+    state.messages = [
+        { id: 1, role: 'character', text: 'Hello there.', swipes: [{ content: 'Hello there.' }] },
+        { id: 2, role: 'user', text: 'Tell me about the dragon.' },
+        { id: 3, role: 'character', text: 'It sleeps under the hill.' },
+    ];
+    const sent = analysis => JSON.stringify(analysis.messages);
+"""
+
+
+def test_an_unchanged_chat_is_analysed_once():
+    """The meter, the separator and the request ask one after another about the
+    same chat. They get one analysis between them, not one each."""
+    run_node_module(REUSE_SETUP + r"""
+        const first = analyzeContext();
+        assert.equal(analyzeContext(), first);
+        // What the meter measured is what the request sends.
+        assert.equal(buildChatPayload().messages, first.messages);
+        // A draft of nothing but spaces is no draft.
+        assert.equal(analyzeContext({ draftText: '   ' }), first);
+    """)
+
+
+def test_any_changed_input_gets_a_fresh_analysis():
+    """Reuse must never hand back an analysis of a chat that has since changed,
+    including when the change was made in place to an object it already saw."""
+    run_node_module(REUSE_SETUP + r"""
+        const changes = [
+            ['a new message', () => state.messages.push({ id: 4, role: 'user', text: 'NEWEST' }), /NEWEST/],
+            ['a message edited in place', () => { state.messages[0].text = 'EDITED'; }, /EDITED/],
+            ['the card', () => { state.activeCharacter.description = 'CARD2'; }, /CARD2/],
+            ['the persona', () => { state.activePersona.description = 'PERSONA2'; }, /PERSONA2/],
+            ['the system template', () => { state.systemPrompts[0].content += '\nSYSTEM2'; }, /SYSTEM2/],
+            ['the user template', () => { state.systemPrompts[0].post_history_content = 'USER2'; }, /USER2/],
+            ["the author's note", () => { state.activeChat.author_note = 'NOTE2'; }, /NOTE2/],
+            ['a lorebook entry edited in place',
+                () => { state.activeCharacter.character_book.entries[0].content = 'LORE2'; }, /LORE2/],
+            ['a lorebook key edited in place',
+                () => { state.activeCharacter.character_book.entries[0].keys[0] = 'hill'; }, /LORE2/],
+            ['the lorebook switched off',
+                () => { state.activeChat.active_lorebook_embedded = false; }, /^(?!.*LORE2)/],
+            ['another prompt picked', () => { state.activeSystemPromptId = 2; }, /OTHER RULES/],
+        ];
+        for (const [name, change, expected] of changes) {
+            const before = analyzeContext({ summaryText: 'MEMORY' });
+            change();
+            const after = analyzeContext({ summaryText: 'MEMORY' });
+            assert.notEqual(after, before, name);
+            assert.match(sent(after), expected, name);
+            assert.equal(analyzeContext({ summaryText: 'MEMORY' }), after, name);
+        }
+
+        // Arguments and budgets are inputs too.
+        state.activeSystemPromptId = 1;
+        const base = analyzeContext();
+        assert.match(sent(analyzeContext({ summaryText: 'MEMORY2' })), /MEMORY2/);
+        assert.match(sent(analyzeContext({ draftText: 'DRAFT' })), /DRAFT/);
+        assert.doesNotMatch(sent(analyzeContext({ excludeLastN: 1 })), /NEWEST/);
+        el.settingsContextTokens.value = '5000';
+        assert.equal(analyzeContext().maxTokens, 5000);
+        el.samplerMaxTokens.value = '300';
+        assert.equal(analyzeContext().responseTokens, 300);
+        state.extraRequestParams = '{"max_tokens": 400}';
+        assert.equal(analyzeContext().responseTokens, 400);
+        // A summary watermark takes the messages it covers out of raw history.
+        state.activeChat.summary_enabled = 1;
+        state.activeChat.summary_up_to_msg_id = 1;
+        assert.doesNotMatch(sent(analyzeContext()), /EDITED/);
+        assert.notEqual(analyzeContext(), base);
+    """)
+
+
+def test_a_kept_analysis_does_not_outlive_the_moment():
+    """{{time}} and {{random}} are not inputs, so an analysis is only reused
+    within the turn that made it. A retry minutes later is worked out again."""
+    run_node_module(REUSE_SETUP + r"""
+        const first = analyzeContext();
+        await new Promise(resolve => setTimeout(resolve, 5));
+        const later = analyzeContext();
+        assert.notEqual(later, first);
+        assert.deepEqual(later, first);
+    """)
+
+
+def test_a_shared_analysis_cannot_be_altered():
+    """One caller changing the analysis would change what the next one sends,
+    so it is frozen. The chat it was made from is not."""
+    run_node_module(REUSE_SETUP + r"""
+        const analysis = analyzeContext();
+        assert.throws(() => analysis.messages.push({ role: 'user', content: 'x' }), TypeError);
+        assert.throws(() => { analysis.messages[0].content = 'x'; }, TypeError);
+        assert.throws(() => { analysis.selectedMessages[0].text = 'x'; }, TypeError);
+        assert.ok(!Object.isFrozen(state.messages[0]));
+        assert.ok(!Object.isFrozen(state.messages[0].swipes));
+        assert.ok(!Object.isFrozen(state.activeCharacter.character_book.entries[0]));
+        // The payload around it is the request's own, and extras still apply.
+        state.extraRequestParams = '{"messages_note": "x"}';
+        assert.equal(buildChatPayload().messages_note, 'x');
+    """)
+
+
+def test_the_analysis_cannot_read_app_state_behind_its_inputs():
+    """Reuse is only safe while contextInputs() is the single place the analysis
+    reads the app from. Importing state.js here would let a read slip past the
+    comparison and send a stale context without any sign."""
+    with open('static/js/context-analysis.js', encoding='utf-8') as handle:
+        imports = [line for line in handle if line.startswith(('import', '} from'))]
+    assert imports
+    assert not any('state.js' in line for line in imports)

@@ -60,3 +60,68 @@ export function getRawHistoryMessages(messages = state.messages, {
         return !(Number.isFinite(id) && id > 0 && id <= watermark);
     });
 }
+
+function resolveActiveLorebook(chat, character, lorebooks) {
+    if (!chat) return character?.character_book || character?.data?.character_book || null;
+    if (chat.active_lorebook_embedded) {
+        return character?.character_book || character?.data?.character_book || null;
+    }
+    if (chat.active_lorebook_id != null) {
+        const entry = lorebooks?.find(book => book.id === chat.active_lorebook_id);
+        return entry?.book || null;
+    }
+    return null;
+}
+
+/**
+ * Everything a context analysis is built from, gathered in one place.
+ * context-analysis.js works from this alone and cannot see `state`, which is
+ * what lets it hand back the analysis it already has when nothing here has
+ * changed. Anything new the analysis needs from the app has to be added here.
+ *
+ * `candidates` are copies holding only what assembly reads: the raw-history
+ * messages, then the draft if there is one.
+ */
+export function contextInputs({
+    excludeLastN = 0,
+    draftText = '',
+    summaryText = '',
+    includeSummarized = false,
+    messages = state.messages,
+} = {}) {
+    const candidates = getRawHistoryMessages(messages, { excludeLastN, includeSummarized })
+        .map(message => ({
+            role: message.role,
+            text: message.text,
+            id: message.id,
+            _contextSource: message._contextSource || 'message_history',
+        }));
+    const draft = String(draftText || '').trim();
+    if (draft) {
+        candidates.push({ role: 'user', text: draft, _contextSource: 'current_draft', _isDraft: true });
+    }
+
+    const character = state.activeCharacter || {};
+    const persona = state.activePersona || {};
+    const prompt = state.systemPrompts.find(item => item.id === state.activeSystemPromptId);
+    return {
+        candidates,
+        maxTokens: getContextTokenBudget(),
+        responseTokens: getResponseTokenReserve(),
+        summaryText,
+        authorNote: state.activeChat?.author_note || '',
+        character: {
+            name: character.name,
+            personality: character.personality,
+            scenario: character.scenario,
+            description: character.description,
+            mes_example: character.mes_example,
+            system_prompt: character.system_prompt,
+            post_history_instructions: character.post_history_instructions,
+        },
+        persona: { name: persona.name, description: persona.description },
+        systemTemplate: prompt?.content || '',
+        userTemplate: prompt?.post_history_content || '',
+        lorebook: resolveActiveLorebook(state.activeChat, character, state.lorebooks),
+    };
+}

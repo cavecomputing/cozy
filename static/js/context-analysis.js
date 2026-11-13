@@ -1,4 +1,3 @@
-import { state } from './state.js';
 import { tidyTagBlocks, resolveTemplateVariables } from './utils.js';
 import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
@@ -8,11 +7,7 @@ import {
     estimateTextTokens,
     selectContextMessages,
 } from './tokenizer.js';
-import {
-    getContextTokenBudget,
-    getRawHistoryMessages,
-    getResponseTokenReserve,
-} from './context-budget.js';
+import { contextInputs } from './context-budget.js';
 
 // Semantic sources are deliberately stable: CSS, tooltips, and tests all key
 // off these ids while the active theme supplies their actual colors.
@@ -131,18 +126,6 @@ function resolveTrackedTemplate(template, context, {
         content,
         fragments: fragments.filter(fragment => fragment.text),
     };
-}
-
-function resolveActiveLorebook(chat, character, lorebooks) {
-    if (!chat) return character?.character_book || character?.data?.character_book || null;
-    if (chat.active_lorebook_embedded) {
-        return character?.character_book || character?.data?.character_book || null;
-    }
-    if (chat.active_lorebook_id != null) {
-        const entry = lorebooks?.find(book => book.id === chat.active_lorebook_id);
-        return entry?.book || null;
-    }
-    return null;
 }
 
 function trackedMessage(
@@ -297,7 +280,7 @@ function countTrackedTokens(messages) {
     };
 }
 
-function makeTemplateContext(character, persona, lorebookText, summaryText) {
+function makeTemplateContext({ character, persona, authorNote, summaryText }, lorebookText) {
     const context = {
         user: persona.name || 'User',
         char: character.name || '',
@@ -307,7 +290,7 @@ function makeTemplateContext(character, persona, lorebookText, summaryText) {
         persona: persona.description || '',
         mesExamples: character.mes_example || '',
         lorebook: lorebookText,
-        author_note: state.activeChat?.author_note || '',
+        author_note: authorNote,
         summary: summaryText,
         system_prompt: character.system_prompt || '',
         post_history_instructions: character.post_history_instructions || '',
@@ -336,19 +319,13 @@ function resolveNames(text, context) {
         .replace(/\{\{user\}\}/gi, () => context.user);
 }
 
-function assembleMessages(selectedMessages, { summaryText = '', resolvedLore = null } = {}) {
-    const character = state.activeCharacter || {};
-    const persona = state.activePersona || {};
-    const prompt = state.systemPrompts.find(item => item.id === state.activeSystemPromptId);
-
-    const activeBook = resolveActiveLorebook(state.activeChat, character, state.lorebooks);
-    const lorebookContents = resolveLorebookEntries(activeBook, selectedMessages, resolvedLore);
+function assembleMessages(selectedMessages, inputs, resolvedLore) {
+    const lorebookContents = resolveLorebookEntries(inputs.lorebook, selectedMessages, resolvedLore);
     const lorebookText = lorebookContents.join('\n---\n');
 
-    const context = makeTemplateContext(character, persona, lorebookText, summaryText);
+    const context = makeTemplateContext(inputs, lorebookText);
 
-    const systemTemplate = prompt?.content || '';
-    const userTemplate = prompt?.post_history_content || '';
+    const { systemTemplate, userTemplate } = inputs;
     const system = resolveTrackedTemplate(systemTemplate, context, { zone: 'system' });
     const messages = [];
     // Held for the editor's preview: what the two templates alone produced,
@@ -443,26 +420,65 @@ function sameSelection(left, right) {
     return left.every((message, index) => message === right[index]);
 }
 
+function deepFreeze(value) {
+    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+        Object.freeze(value);
+        Object.values(value).forEach(deepFreeze);
+    }
+    return value;
+}
+
+function sameCandidates(left, right) {
+    if (left.length !== right.length) return false;
+    return left.every((message, index) => {
+        const other = right[index];
+        return message.text === other.text && message.role === other.role
+            && message.id === other.id && message._contextSource === other._contextSource;
+    });
+}
+
+// The analysis made last, and what it was made from.
+let latest = null;
+let latestExpiry = 0;
+
 /**
  * Build the exact context messages plus the source-aware accounting used by
  * the meter, transcript boundary, summary aging, and outgoing request.
+ *
+ * Those four ask one after another about the same chat: a send used to run
+ * this three times before the request left, and each run grows with the chat
+ * and the context window. So a call whose inputs equal the last call's gets
+ * the last analysis back.
+ *
+ * That is safe because of how the work is split. contextInputs() is the only
+ * place anything is read from the app, and analyze() sees nothing else, so
+ * equal inputs cannot give a different answer. The messages are compared
+ * field by field against private copies and the rest as JSON, so an edit made
+ * in place to a card, a lorebook entry or a message counts as a change. Read
+ * something new from `state` in this file and that guarantee is gone: add it
+ * to contextInputs() instead.
+ *
+ * The analysis is shared between its callers, so it is frozen. And it is only
+ * kept until the browser next takes a turn: {{time}}, {{date}} and {{random}}
+ * are not inputs, and an analysis a moment old is still this same send.
  */
-export function analyzeContext({
-    excludeLastN = 0,
-    draftText = '',
-    summaryText = '',
-    includeSummarized = false,
-    messages = state.messages,
-} = {}) {
-    let candidates = getRawHistoryMessages(messages, { excludeLastN, includeSummarized })
-        .map(message => ({ ...message, _contextSource: message._contextSource || 'message_history' }));
-    const draft = String(draftText || '').trim();
-    if (draft) {
-        candidates.push({ role: 'user', text: draft, _contextSource: 'current_draft', _isDraft: true });
+export function analyzeContext(options) {
+    const inputs = contextInputs(options);
+    const { candidates, ...rest } = inputs;
+    const fixed = JSON.stringify(rest);
+    if (latest?.fixed === fixed && sameCandidates(latest.candidates, candidates)) {
+        return latest.analysis;
     }
+    latest = { fixed, candidates, analysis: deepFreeze(analyze(inputs)) };
+    latestExpiry ||= setTimeout(() => {
+        latest = null;
+        latestExpiry = 0;
+    });
+    return latest.analysis;
+}
 
-    const maxTokens = getContextTokenBudget();
-    const responseTokens = getResponseTokenReserve();
+function analyze(inputs) {
+    const { candidates, maxTokens, responseTokens } = inputs;
     // Only a tail that fits the whole window can survive the trimming below,
     // so the first, rough assembly needn't walk the rest of a long chat.
     let selected = maxTokens > 0
@@ -472,7 +488,7 @@ export function analyzeContext({
     // messages, which the trials all share, so one match serves them all. The
     // map lives for this one call, during which the book cannot change.
     const resolvedLore = new Map();
-    const assemble = selection => assembleMessages(selection, { summaryText, resolvedLore });
+    const assemble = selection => assembleMessages(selection, inputs, resolvedLore);
     let assembled = assemble(selected);
 
     if (maxTokens > 0 && candidates.length > 0) {
