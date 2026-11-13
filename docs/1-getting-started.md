@@ -257,8 +257,10 @@ you want.
   it came from. A fork made before this existed, or one whose original chat
   is deleted, simply has no pill.
 
-On a phone, Settings opens as a list. Tap a section to open its page, and
-tap the back arrow to return to the list. In the Prompt editor,
+**Back to chat**, at the foot of the Settings menu where the Settings button
+was, closes Settings. On a phone, Settings opens as a list with that button
+at the bottom. Tap a section to open its page, and tap the back arrow to
+return to the list. In the Prompt editor,
 **Variables** opens a list of everything the template can use.
 
 On a phone or tablet, the system's Back (the swipe in from the screen edge on

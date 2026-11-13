@@ -1570,16 +1570,21 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── User profile ────────────────────────────────────────────────────────── */
-/* User Profile Section — a raised card at the foot of the rail */
-#user-profile-container {
-    position: relative;
+/* User Profile Section — a raised card at the foot of the rail. Settings'
+   menu ends in the same card, holding the way back where Settings stood. */
+#user-profile-container,
+.settings-nav-foot {
     background-color: var(--surface-raised);
-    margin: calc(-1 * var(--card-overlap)) 0.5rem 0.625rem;   /* sides match .sidebar-scrollable's padding */
     padding: var(--space-2);
     border-radius: var(--radius);
     border: 1px solid var(--line);
     box-shadow: var(--shadow-card);
     flex-shrink: 0;
+}
+
+#user-profile-container {
+    position: relative;
+    margin: calc(-1 * var(--card-overlap)) 0.5rem 0.625rem;   /* sides match .sidebar-scrollable's padding */
 }
 
 #user-profile {
@@ -4144,14 +4149,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .settings-shell {
     display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
 }
 
 .settings-nav {
-    width: var(--settings-nav-width);
-    flex-shrink: 0;
-    border-right: 1px solid var(--line);
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: var(--space-2) 0.875rem 1.25rem;
     display: flex;
@@ -4218,15 +4223,16 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin: 0;
 }
 
-/* On a desktop the nav is one full-height column, headed by the way back to
-   the chat and the Settings eyebrow, with the page scrolling beside it. The
-   header sits above the nav in the markup because the phone stacks them, so
-   here the body and shell step aside and the modal places all three. */
+/* On a desktop the nav is one full-height column, headed by the Settings
+   eyebrow and footed by the way back to the chat, with the page scrolling
+   beside it. The header sits above the nav in the markup because the phone
+   stacks them, so here the body and shell step aside and the modal places
+   all four. */
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     .settings-modal {
         display: grid;
         grid-template-columns: var(--settings-nav-width) minmax(0, 1fr);
-        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
     }
     .settings-modal > .panel-divider { display: none; }
     :is(.settings-body, .settings-shell) { display: contents; }
@@ -4238,28 +4244,25 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         height: auto;
         min-height: 0;
         padding: 1.25rem 0.875rem var(--space-2);
-        border-right: 1px solid var(--line);
     }
     .settings-nav { grid-area: 2 / 1; }
-    .settings-pane { grid-area: 1 / 2 / 3; }
-    /* The eyebrow starts on the nav icons' edge, and Back's chevron, which
-       sits 5px into its box, on it too. */
+    /* The menu's card sits where the sidebar's does, so the way back is
+       under the pointer that opened Settings. */
+    .settings-nav-foot {
+        grid-area: 3 / 1;
+        margin: 0 0.5rem 0.625rem;
+    }
+    /* The page draws the column's edge, the full height beside header, menu
+       and card. */
+    .settings-pane {
+        grid-area: 1 / 2 / 4;
+        border-left: 1px solid var(--line);
+    }
+    /* The eyebrow starts on the nav icons' edge. */
     #settings-title {
         padding: 0 var(--space-4) var(--space-2);
         border-bottom: 1px solid var(--line);
     }
-    #settings-close-btn {
-        order: -1;
-        align-self: flex-start;
-        gap: var(--space-2);
-        min-height: 0;
-        padding: 0 var(--space-2);
-        font-family: var(--font-mono);
-        font-size: var(--text-sm);
-        color: var(--fg-quiet);
-    }
-    #settings-close-btn:hover { background: none; color: var(--fg); }
-    .settings-close-x { display: none; }
 }
 
 .settings-page-header {
@@ -7016,19 +7019,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 
     /* ── Settings: a drill-down list ─────────────────────────────────────── */
-    .settings-close-back { display: none; }
-
     .settings-shell { position: relative; overflow: hidden; }
 
-    .settings-nav,
-    .settings-pane {
-        width: 100%;
-        flex-shrink: 0;
+    .settings-nav {
+        padding: var(--space-4) var(--space-5);
     }
 
-    .settings-nav {
-        border-right: 0;
-        padding: var(--space-4) var(--space-5);
+    .settings-nav-foot {
+        margin: 0 0.6rem 0.6rem;   /* as #user-profile-container's on the phone */
     }
 
     .settings-nav-item {
@@ -7080,8 +7078,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     /* List view (default on mobile open) — hide pane */
     .settings-shell:not(.in-detail) .settings-pane { display: none; }
 
-    /* Detail view — hide nav, show pane */
-    .settings-shell.in-detail .settings-nav { display: none; }
+    /* Detail view — hide nav and the way back, show pane */
+    .settings-shell.in-detail :is(.settings-nav, .settings-nav-foot) { display: none; }
 
     /* A page pushes in from the right; Back brings the list in from the left. */
     .settings-shell.in-detail .settings-pane { animation: pushIn 0.2s ease-out; }
@@ -7122,8 +7120,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         max-width: 100%;
         height: var(--settings-viewport-height, 100dvh);
     }
-
-    #settings-flyout:has(.in-detail) #settings-close-btn { display: none; }
 
     /* In a page the title names it, as the desktop page header does; the list
        keeps the plain eyebrow. */

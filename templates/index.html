@@ -177,11 +177,6 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                     </button>
                     <h2 id="settings-title" class="section-label panel-title panel-title--left" tabindex="-1">Settings</h2>
-                    <button id="settings-close-btn" class="icon-btn" aria-label="Back to chat">
-                        <svg class="settings-close-x" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        <svg class="settings-close-back" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        <span class="settings-close-back">Back to chat</span>
-                    </button>
                 </div>
                 <div class="panel-divider"></div>
                 <div class="modal-body settings-body">
@@ -212,6 +207,13 @@
                                 <span>About</span>
                             </button>
                         </nav>
+                        <!-- The way back stands where the sidebar's Settings button does -->
+                        <div class="settings-nav-foot">
+                            <button id="settings-close-btn" class="profile-settings-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                <span class="section-label">Back to chat</span>
+                            </button>
+                        </div>
                         <div class="settings-pane" id="settings-pane">
                     <div class="settings-section" data-section="general">
                         <header class="settings-page-header">
