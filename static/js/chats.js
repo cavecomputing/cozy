@@ -275,20 +275,7 @@ export async function selectChat(chat) {
         // A chat picked while these were on their way owns the screen now.
         // Drawn under it, they would also be sent as its history.
         if (state.activeChat?.id !== chat.id) return;
-        // Normalise DB rows to the shape appendMessage expects
-        state.messages = rows.map(r => {
-            const swipes = r.swipes || [{ content: r.content }];
-            // Find the swipe matching the message's saved content; fall back to first
-            let idx = swipes.findIndex(s => s.content === r.content);
-            if (idx === -1) idx = 0;
-            // Build persona snapshot from DB join data
-            const persona = r.persona_id ? { name: r.persona_name || 'You' } : null;
-            return {
-                role: r.role, text: r.content, id: r.id,
-                created_at: r.created_at, swipes, activeSwipeIndex: idx,
-                persona,
-            };
-        });
+        state.messages = messagesFromRows(rows);
         messagesLoaded = true;
     } catch (err) {
         if (state.activeChat?.id !== chat.id) return;
@@ -338,6 +325,48 @@ export async function selectChat(chat) {
     // the conversation before the user has asked for it.
     if (!el.userInput.disabled && !window.matchMedia('(pointer: coarse)').matches) {
         el.userInput.focus({ preventScroll: true });
+    }
+}
+
+/** The server's message rows in the shape state.messages and appendMessage use. */
+function messagesFromRows(rows) {
+    return rows.map(r => {
+        const swipes = r.swipes || [{ content: r.content }];
+        // Find the swipe matching the message's saved content; fall back to first
+        let idx = swipes.findIndex(s => s.content === r.content);
+        if (idx === -1) idx = 0;
+        // Build persona snapshot from DB join data
+        const persona = r.persona_id ? { name: r.persona_name || 'You' } : null;
+        return {
+            role: r.role, text: r.content, id: r.id,
+            created_at: r.created_at, swipes, activeSwipeIndex: idx,
+            persona,
+        };
+    });
+}
+
+/**
+ * Catch the open chat up with what another device or window did to it while
+ * this page sat in the background, where nothing told it. A page that kept its
+ * old copy would also send it as the history of the next message. Left alone
+ * while a reply is running, an edit is open, or a message that never got saved
+ * is on screen, since the redraw would take those away.
+ */
+export async function refreshOpenChat() {
+    const chatId = state.activeChat?.id;
+    const busy = () => state.activeChat?.id !== chatId || llm.generationActive
+        || state.currentEdit || state.messages.some(m => !m.id);
+    if (!chatId || busy()) return;
+    try {
+        const rows = await API.getMessages(chatId);
+        const current = rows.length === state.messages.length
+            && rows.every((r, i) => r.id === state.messages[i].id && r.content === state.messages[i].text);
+        if (current || busy()) return;
+        state.messages = messagesFromRows(rows);
+        renderMessages();
+        updateContextViews();
+    } catch (err) {
+        console.error('Could not refresh the open chat:', err);
     }
 }
 

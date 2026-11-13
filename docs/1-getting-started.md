@@ -180,7 +180,9 @@ or opening another panel.
 
 Click the character in the sidebar to start chatting with them.
 Cozy remembers the chat you were last in, so going back to a character, or
-opening Cozy on another device, picks up where you left off.
+opening Cozy on another device, picks up where you left off. A chat left
+open on one device catches up with what you wrote on another when you come
+back to it.
 
 ## 4. Set up your persona
 

@@ -10,7 +10,7 @@ import {
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
-import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
+import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, findStateMsg, drawOlderNearTop, shownText } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
@@ -1062,6 +1062,9 @@ function bindRowMenuKeys(container, menu, triggerSelector, closeMenu) {
 }
 
 function bindChatHandlers() {
+    // Back in front: another device or window may have used this chat since.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshOpenChat(); });
+
     // Chat flyout — toggle open/close
     el.chatFlyoutBtn.addEventListener('click', e => {
         e.stopPropagation();
