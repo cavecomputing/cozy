@@ -7,7 +7,8 @@ export function applyTheme(name) {
     const link = document.getElementById('theme-stylesheet');
     if (link) {
         link.addEventListener('load', syncThemeColor, { once: true });
-        link.href = `/themes/${name}.css`;
+        // themeHref() is the page's own, from the head of index.html.
+        link.href = themeHref(name);
     }
     syncThemeColor();
     state.theme = name;

@@ -1862,6 +1862,64 @@ class TestThemePrecedence:
         assert r.status_code == 200
 
 
+class TestThemeCaching:
+    """The theme sheet blocks the first paint, so the page names it by a
+    version the browser may keep for good — without ever showing an edited
+    theme as it used to be."""
+
+    @staticmethod
+    def page_versions(client):
+        page = client.get('/').get_data(as_text=True)
+        return json.loads(re.search(r'var version = (\{.*?\})\[name\]', page).group(1))
+
+    @staticmethod
+    def kept(response):
+        return 'immutable' in response.headers.get('Cache-Control', '')
+
+    def test_the_page_names_every_theme_by_a_version_that_can_be_kept(self, client):
+        versions = self.page_versions(client)
+        assert sorted(versions) == client.get('/api/themes').get_json()
+        for name, version in versions.items():
+            r = client.get(f'/themes/{name}.css?v={version}')
+            assert r.status_code == 200 and self.kept(r), name
+        # The default sheet in the page's own markup carries its version too.
+        page = client.get('/').get_data(as_text=True)
+        assert f'href="/themes/cozy.css?v={versions["cozy"]}"' in page
+
+    def test_only_the_current_version_is_kept(self, client):
+        assert not self.kept(client.get('/themes/cozy.css'))
+        assert not self.kept(client.get('/themes/cozy.css?v='))
+        stale = client.get('/themes/cozy.css?v=000000000000')
+        assert stale.status_code == 200 and not self.kept(stale)
+
+    def test_an_edited_theme_gets_a_new_address(self, client):
+        path = os.path.join(shared.THEMES_DIR, 'mine.css')
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(':root { --probe: 1; }')
+        before = self.page_versions(client)['mine']
+        assert self.kept(client.get(f'/themes/mine.css?v={before}'))
+
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(':root { --probe: 2; }')
+        after = self.page_versions(client)['mine']
+        assert after != before
+        assert self.kept(client.get(f'/themes/mine.css?v={after}'))
+        # A page still open from before the edit asks by the old version: it
+        # gets the file as it is now, and nothing that pins it.
+        old = client.get(f'/themes/mine.css?v={before}')
+        assert b'--probe: 2' in old.data and not self.kept(old)
+
+    def test_a_user_theme_shadowing_a_builtin_is_versioned_as_the_user_file(self, client):
+        builtin = self.page_versions(client)['cozy']
+        with open(os.path.join(shared.THEMES_DIR, 'cozy.css'), 'w', encoding='utf-8') as f:
+            f.write('/* mine */')
+        shadowed = self.page_versions(client)['cozy']
+        assert shadowed != builtin
+        r = client.get(f'/themes/cozy.css?v={shadowed}')
+        assert r.data == b'/* mine */' and self.kept(r)
+        assert not self.kept(client.get(f'/themes/cozy.css?v={builtin}'))
+
+
 class TestChatAuthorNote:
     def test_new_chat_has_empty_author_note(self, client, sample_chat):
         assert sample_chat['author_note'] == ''

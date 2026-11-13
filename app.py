@@ -1,6 +1,7 @@
 import os
 import glob
 import socket
+import hashlib
 import logging
 import argparse
 from urllib.parse import urlsplit
@@ -102,6 +103,7 @@ def index():
     return render_template(
         'index.html', build_info=shared.BUILD_INFO, js_modules=js_modules,
         has_password=bool(auth.PASSWORD),
+        theme_versions={name: _file_version(path) for name, path in _theme_files().items()},
     ), {'Cache-Control': 'no-cache'}
 
 
@@ -122,25 +124,45 @@ def build_asset(build, filename):
     return resp
 
 
-@app.route('/api/themes', methods=['GET'])
-def list_themes():
-    names = set()
+def _theme_files():
+    """Each theme's name and the file that serves it — a user theme in DATA_DIR
+    takes precedence over a built-in of the same name."""
+    files = {}
     for d in (shared.BUILTIN_THEMES_DIR, shared.THEMES_DIR):
         if os.path.isdir(d):
-            names.update(
-                f[:-4] for f in os.listdir(d)
+            files.update(
+                (f[:-4], os.path.join(d, f)) for f in os.listdir(d)
                 if f.endswith('.css') and not f.startswith('.')
             )
-    return jsonify(sorted(names))
+    return files
+
+
+def _file_version(path):
+    """A short name for a file's contents, which changes when they do."""
+    with open(path, 'rb') as f:
+        return hashlib.blake2b(f.read(), digest_size=6).hexdigest()
+
+
+@app.route('/api/themes', methods=['GET'])
+def list_themes():
+    return jsonify(sorted(_theme_files()))
 
 
 @app.route('/themes/<path:filename>')
 def serve_theme(filename):
     """Serve theme CSS — user themes in DATA_DIR take precedence over built-in."""
     user_path = os.path.join(shared.THEMES_DIR, filename)
-    if os.path.isfile(user_path):
-        return send_from_directory(shared.THEMES_DIR, filename)
-    return send_from_directory(shared.BUILTIN_THEMES_DIR, filename)
+    directory = shared.THEMES_DIR if os.path.isfile(user_path) else shared.BUILTIN_THEMES_DIR
+    resp = send_from_directory(directory, filename)
+    # The page asks for a theme under the version of the file it was rendered
+    # with. The sheet blocks the first paint, and asking after it on every
+    # launch cost a round trip before anything was drawn, so a request naming
+    # the file as it is now may be kept for good. An edited theme has a new
+    # version, which the next page load names. Any other request, a stale
+    # version included, gets the current file and revalidates as before.
+    if request.args.get('v') == _file_version(os.path.join(directory, filename)):
+        resp.headers['Cache-Control'] = 'private, max-age=31536000, immutable'
+    return resp
 
 
 # ── Register blueprints ────────────────────────────────────────────────────

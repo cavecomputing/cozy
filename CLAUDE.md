@@ -251,6 +251,13 @@ User themes in `$DATA_DIR/themes/` **take precedence** over the built-ins in
 [static/themes/](static/themes/) with the same filename — see `serve_theme()` in [app.py](app.py).
 `/api/themes` returns the merged set.
 
+The theme sheet blocks the first paint, so the page asks for it as `/themes/<name>.css?v=<version>`,
+the version being a hash of the file when the page was rendered, and only a request naming the
+current version is served as immutable. That is what lets an edited user theme show on the next
+reload: its version, and so its address, has changed. `themeHref()` in the head of
+[templates/index.html](templates/index.html) is the one place that address is built — the inline
+script and `applyTheme()` both use it, because two spellings of it would fetch the sheet twice.
+
 ### Things that must change together
 
 - **Acknowledgements** appear in the `## Acknowledgements`
