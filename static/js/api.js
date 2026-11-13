@@ -15,12 +15,13 @@ const prefetched = new Map();
 
 /**
  * Start the reads that restoring the last character and chat will make, so
- * boot spends one round trip on them instead of three in a row. Whatever the
- * restore doesn't take is dropped by dropPrefetched() rather than served stale
- * to a later request.
+ * boot spends one round trip on them instead of three in a row. The prompts
+ * and presets go out with them: each is only asked for once the settings have
+ * come back, which is a second round trip in a row. Whatever boot doesn't take
+ * is dropped by dropPrefetched() rather than served stale to a later request.
  */
 export function prefetchSelection(charId, chatId) {
-    const urls = ['/api/characters'];
+    const urls = ['/api/characters', '/api/system-prompts', '/api/presets'];
     if (charId) urls.push(`/api/characters/${charId}/chats`);
     if (chatId) urls.push(`/api/chats/${chatId}/messages`);
     for (const url of urls) {

@@ -1578,7 +1578,8 @@ async function init() {
     initPromptVarsPanel();
     loadPrefs();
     // Only the responses come early: loadCharacters() still waits for the
-    // group below, as the comment there requires. The ids are what this browser
+    // group below, as the comment there requires, and the prompts and presets
+    // are still applied after the settings. The ids are what this browser
     // last had open; the server decides what to resume, and when another device
     // has moved on since, the early chats and messages simply go unused.
     prefetchSelection(state._savedActiveId, state._savedChatId);
@@ -1588,8 +1589,9 @@ async function init() {
     // The loading screen stays up until all of this settles, so every serial
     // await here is a full round trip added to perceived boot time — cheap on
     // localhost, not cheap behind a remote server. These four are independent,
-    // so they go out together; system prompts still follow settings so they
-    // can reuse that response instead of refetching it.
+    // so they go out together. System prompts still follow settings so they
+    // can reuse that response, but their own list was asked for above and is
+    // usually back by then.
     await Promise.all([
         loadThemeList(),
         loadPersonas(),
