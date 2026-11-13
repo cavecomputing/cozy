@@ -336,13 +336,13 @@ function resolveNames(text, context) {
         .replace(/\{\{user\}\}/gi, () => context.user);
 }
 
-function assembleMessages(selectedMessages, { summaryText = '' } = {}) {
+function assembleMessages(selectedMessages, { summaryText = '', resolvedLore = null } = {}) {
     const character = state.activeCharacter || {};
     const persona = state.activePersona || {};
     const prompt = state.systemPrompts.find(item => item.id === state.activeSystemPromptId);
 
     const activeBook = resolveActiveLorebook(state.activeChat, character, state.lorebooks);
-    const lorebookContents = resolveLorebookEntries(activeBook, selectedMessages);
+    const lorebookContents = resolveLorebookEntries(activeBook, selectedMessages, resolvedLore);
     const lorebookText = lorebookContents.join('\n---\n');
 
     const context = makeTemplateContext(character, persona, lorebookText, summaryText);
@@ -468,7 +468,12 @@ export function analyzeContext({
     let selected = maxTokens > 0
         ? selectContextMessages(candidates, { maxTokens, stripThinking: true })
         : candidates;
-    let assembled = assembleMessages(selected, { summaryText });
+    // Every trial below matches the lorebook's keys against the newest
+    // messages, which the trials all share, so one match serves them all. The
+    // map lives for this one call, during which the book cannot change.
+    const resolvedLore = new Map();
+    const assemble = selection => assembleMessages(selection, { summaryText, resolvedLore });
+    let assembled = assemble(selected);
 
     if (maxTokens > 0 && candidates.length > 0) {
         const selectableTokens = (assembled.tokenCounts.get('message_history') || 0)
@@ -481,7 +486,7 @@ export function analyzeContext({
         });
         if (!sameSelection(selected, approximate)) {
             selected = approximate;
-            assembled = assembleMessages(selected, { summaryText });
+            assembled = assemble(selected);
         }
 
         // Exact correction: prompt templates and role alternation can add or
@@ -489,7 +494,7 @@ export function analyzeContext({
         while (selected.length > 1
             && estimateMessagesTokens(assembled.messages) + responseTokens > maxTokens) {
             selected = selected.slice(1);
-            assembled = assembleMessages(selected, { summaryText });
+            assembled = assemble(selected);
         }
 
         // If the rough first pass was conservative, grow back one oldest turn
@@ -497,7 +502,7 @@ export function analyzeContext({
         let selectedStart = candidates.length - selected.length;
         while (selectedStart > 0) {
             const trialSelection = candidates.slice(selectedStart - 1);
-            const trial = assembleMessages(trialSelection, { summaryText });
+            const trial = assemble(trialSelection);
             if (estimateMessagesTokens(trial.messages) + responseTokens > maxTokens) break;
             selectedStart -= 1;
             selected = trialSelection;
