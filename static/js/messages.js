@@ -222,6 +222,7 @@ export async function receiveSwipe(msgEl, followed = null) {
     if (prevThinkBlock) prevThinkBlock.remove();
 
     contentEl.innerHTML = '<div class="message-loading"><span></span><span></span><span></span></div>';
+    msgEl.classList.add('streaming');
     // A swipe being rejoined came with the controller its stream was opened under.
     llm.abortController ??= new AbortController();
     const regenSignal = llm.abortController.signal;
@@ -261,6 +262,7 @@ export async function receiveSwipe(msgEl, followed = null) {
         // The bubble outlives the stream here, and a draw still queued would
         // repaint a partial stream over the saved swipe.
         stream.stop();
+        msgEl.classList.remove('streaming');
     }
 
     // Nothing kept: a Stop or an error before any of the response arrived, a

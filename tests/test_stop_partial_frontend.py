@@ -264,6 +264,7 @@ SWIPE_SETUP = r"""
     const msgBody = { querySelector() { return null; }, insertBefore() {} };
     const msgEl = {
         dataset: { msgId: '2' },
+        classList: { add() {}, remove() {} },
         querySelector(selector) {
             if (selector === '.message-content') return contentEl;
             if (selector === '.msg-body') return msgBody;

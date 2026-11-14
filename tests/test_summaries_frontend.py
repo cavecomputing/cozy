@@ -1516,6 +1516,7 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
         const msgBody = { querySelector() { return null; } };
         const msgEl = {
             dataset: { msgId: '4' },
+            classList: { add() {}, remove() {} },
             querySelector(selector) {
                 if (selector === '.message-content') return contentEl;
                 if (selector === '.msg-body') return msgBody;
