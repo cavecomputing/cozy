@@ -5,7 +5,7 @@ import {
     parseDbStamp, timeAgo, MOBILE_SHELL_QUERY, Flyouts, setSendButtonMode, beginGeneration, endGeneration,
 } from './utils.js';
 import { confirmDialog } from './confirm.js';
-import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills, receiveSwipe } from './messages.js';
+import { renderMessages, flushEdit, revealMessage, refreshBranchPills, receiveSwipe } from './messages.js';
 import { receiveReply, showReplyFailure } from './send.js';
 import { renderLorebookFlyout, loadAuthorNote, flushAuthorNote } from './lorebooks.js';
 import { clearDraft, restoreDraft, saveDraft } from './drafts.js';

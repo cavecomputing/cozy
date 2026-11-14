@@ -214,7 +214,6 @@ async function loadModels(profile) {
     picker.details = body.model_details || {};
     picker.loaded = true;
     if (profile === 'main') {
-        state.modelList = picker.models;
         state.modelDetails = picker.details;
         state.modelContextLength = picker.details[input?.value || ''] ?? null;
         updateContextSizeWarning();
@@ -290,7 +289,6 @@ function clearPickerCache(profile) {
     picker.details = {};
     closePicker(profile);
     if (profile === 'main') {
-        state.modelList = [];
         state.modelDetails = {};
         state.modelContextLength = null;
     }

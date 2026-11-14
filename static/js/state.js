@@ -24,7 +24,6 @@ export const state = {
     showContextTokenMeter: false,
     showAdvancedConfiguration: false,
     useCharacterPrompts: false,
-    modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
     apiPresets:          [],
