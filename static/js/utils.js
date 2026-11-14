@@ -236,7 +236,11 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
         toast.remove();
     };
     container.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, duration);
+    // Its time is time on screen. Counted from now, a failure raised while the
+    // tab was hidden was gone before anyone came back to read it.
+    const expire = () => setTimeout(() => { toast.remove(); }, duration);
+    if (document.hidden) document.addEventListener('visibilitychange', expire, { once: true });
+    else expire();
     return toast;
 }
 
