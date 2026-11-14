@@ -30,6 +30,31 @@ switches to Claude's own format by itself.
 > but the code still changes: fixes, polish, and tweaks to how things work. Back
 > up your data before updating. Downgrading to an older version is not supported.
 
+## What Cozy does
+
+- **Character cards.** Cozy reads and writes V2 cards, the `.png` and `.json`
+  format SillyTavern uses. Drop a card onto the window to import it.
+- **Swipes, edits and branches.** Ask for another version of a reply, change
+  any message, or [branch a chat](docs/2-using-cozy.md#branch-a-chat) to try a
+  different direction.
+- **Replies that finish without you.** Once a message is sent, the reply is
+  written and saved even if you lock your phone or close the page.
+- **Memory for long chats.** An [Author's Note](docs/4-prompts-and-memory.md#authors-note),
+  [lorebooks](docs/4-prompts-and-memory.md#lorebooks), and
+  [Auto Summaries](docs/4-prompts-and-memory.md#auto-summaries) of the messages
+  that no longer fit.
+- **A context meter.** A bar above the chat box shows what fills the model's
+  context: prompt, character, lorebook, summary and messages.
+- **Personas and prompt presets.** Keep several of each, and switch between
+  them with a [slash command](docs/2-using-cozy.md#slash-commands).
+- **Themes.** Six are built in, and [one CSS file](docs/3-user-themes.md) adds
+  your own.
+- **Phone friendly.** The same app works on a phone and can be added to the
+  Home Screen.
+- **Your data stays with you.** Everything is in one folder, with
+  [backup and restore](docs/6-running-cozy.md#back-up-and-restore) built in
+  and an optional [password](docs/6-running-cozy.md#require-a-password).
+
 ## Quick start
 
 To use Cozy on your own computer, all you need is Git and
