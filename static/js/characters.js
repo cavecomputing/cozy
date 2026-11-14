@@ -1,7 +1,7 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
-import { applyAvatar, AVATAR, compareCharacters, recentCharacters, parseDbStamp, timeAgo, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY } from './utils.js';
+import { applyAvatar, AVATAR, compareCharacters, recentCharacters, parseDbStamp, timeAgo, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY, updateTabTitle } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages, flushEdit } from './messages.js';
 import { forgetCharacterLorebook } from './lorebooks.js';
@@ -217,6 +217,7 @@ function clearActiveCharacterState() {
     state.activeChat = null;
     state.messages = [];
     el.currentCharName.textContent = 'Cozy';
+    updateTabTitle();
     updateComposerState();
     renderChats();
     renderMessages();
@@ -265,6 +266,7 @@ export async function selectCharacter(charId) {
     state.activeCharacter = char;
     state.activeChat = null;
     el.currentCharName.textContent = char.name;
+    updateTabTitle();
     // A restored or fallback pick can be archived while its section is folded.
     if (char.archived) archivedOpen = true;
     updateComposerState();

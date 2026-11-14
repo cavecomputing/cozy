@@ -250,7 +250,9 @@ you want.
 - **Replies finish without you** — once a message is sent, Cozy itself
   writes the reply and saves it to the chat. Lock the phone, switch to
   another chat or close the page, and the reply is there when you come back;
-  if it is still being written, you pick it up where it has got to. A second
+  if it is still being written, you pick it up where it has got to. In a
+  browser, the tab is named after the open character, and a dot in front of
+  the name says a reply finished while you were on another tab. A second
   device that opens the chat sees the same reply arriving. Only **Stop** ends
   a reply early, and it keeps the part that had arrived. If the reply failed
   while you were away, the chat says why when you come back, with a

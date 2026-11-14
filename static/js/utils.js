@@ -371,7 +371,17 @@ export function whenGenerationEnds(fn) {
 }
 
 /** Release the generation slot on every success, failure and abort path. */
+/**
+ * Name the open character on the tab, so that two Cozy tabs can be told
+ * apart, behind a dot while a reply that ended with the tab hidden is `unseen`.
+ */
+export function updateTabTitle(unseen = false) {
+    const name = state.activeCharacter?.name;
+    document.title = `${unseen ? '● ' : ''}${name ? `${name} · ` : ''}Cozy`;
+}
+
 export function endGeneration() {
+    if (document.hidden) updateTabTitle(true);
     llm.abortController = null;
     llm.stopRequested = false;
     llm.replyChatId = null;

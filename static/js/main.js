@@ -6,7 +6,7 @@ import { API, prefetchSelection, dropPrefetched, serverBuild } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
-    withBusy, flashSettingsSavedTick, dismissApiNotice,
+    withBusy, flashSettingsSavedTick, dismissApiNotice, updateTabTitle,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
@@ -1130,6 +1130,7 @@ function bindChatHandlers() {
     // or changed what it is sent with.
     document.addEventListener('visibilitychange', async () => {
         if (document.hidden) return;
+        updateTabTitle();
         refreshOpenChat();
         await refreshSettings();
         reloadAfterUpdate();

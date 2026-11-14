@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, templateHasVar, withBusy } from './utils.js';
+import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, templateHasVar, withBusy, updateTabTitle } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList } from './lorebooks.js';
 import { renderMessages } from './messages.js';
@@ -277,6 +277,7 @@ async function applyCharUpdate(char, isNew) {
     if (state.activeCharacter?.id === char.id) {
         state.activeCharacter = char;
         el.currentCharName.textContent = char.name;
+        updateTabTitle();
         renderMessages();
         renderLorebookFlyout();
         updateComposerState();

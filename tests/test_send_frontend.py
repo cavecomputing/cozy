@@ -100,11 +100,12 @@ def test_active_generation_guard_does_not_replace_the_controller():
 def test_generation_holds_the_screen_awake_until_it_ends():
     run_node_module(r"""
         import assert from 'node:assert/strict';
-        import { el } from './static/js/state.js';
-        import { beginGeneration, endGeneration } from './static/js/utils.js';
+        import { state, el } from './static/js/state.js';
+        import { beginGeneration, endGeneration, updateTabTitle } from './static/js/utils.js';
 
         // Letting go of the slot puts the Send button back.
         el.sendBtn = { setAttribute() {}, classList: { toggle() {} } };
+        globalThis.document = { hidden: false, title: 'Cozy' };
         const events = [];
         Object.defineProperty(globalThis.navigator, 'wakeLock', {
             value: { request: async type => { events.push(type); return { release: async () => events.push('released') }; } },
@@ -115,4 +116,15 @@ def test_generation_holds_the_screen_awake_until_it_ends():
         endGeneration();
         await new Promise(resolve => setTimeout(resolve, 0));
         assert.deepEqual(events, ['screen', 'released']);
+        assert.equal(document.title, 'Cozy');
+
+        // One that ends in a tab nobody is looking at marks the tab, until
+        // the page is back in front and names its character again.
+        state.activeCharacter = { name: 'Mira' };
+        document.hidden = true;
+        beginGeneration();
+        endGeneration();
+        assert.equal(document.title, '● Mira · Cozy');
+        updateTabTitle();
+        assert.equal(document.title, 'Mira · Cozy');
     """)
