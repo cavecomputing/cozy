@@ -1357,6 +1357,9 @@ function bindMessageHandlers() {
                     });
                 }
                 msgEl.closest('.message-container').remove();
+                // The message has left the context too, which the meter and
+                // the separator otherwise show only at the next keystroke.
+                updateContextViews();
             }
         } else if (e.target.closest('.copy-msg-btn')) {
             const copyBtn = e.target.closest('.copy-msg-btn');
