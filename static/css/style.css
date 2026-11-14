@@ -5453,10 +5453,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     width: 72px;
     height: 72px;
     flex-shrink: 0;
-    border-radius: var(--radius);
-    /* The mark is a dark rounded square, so it disappears into dark themes
-       without an edge of its own. */
-    border: 1px solid var(--line);
 }
 
 .about-identity-text {
