@@ -7,6 +7,7 @@ Cozy stores local data in `data/` by default:
 ```text
 data/
   cozy_chat.db
+  cozy_chat.before-update.db
   characters/
   personas/
   themes/
@@ -16,6 +17,10 @@ data/
 The SQLite database contains chats, settings, API keys, presets, personas,
 lorebooks, and character organization. Character card content is stored inside
 the PNG files in `characters/`.
+
+`cozy_chat.before-update.db` appears the first time an update changes the
+database: it is a copy of the database as it was just before, made by Cozy
+itself when it starts. See [Go back after an update](#go-back-after-an-update).
 
 `thumbs/` is a cache of downscaled avatar images that Cozy generates from the
 files in `characters/` and `personas/` as they are requested. It holds nothing
@@ -93,6 +98,27 @@ Copy the entire `data/` directory to a safe location. Do not copy only
 4. Start Cozy.
 
 Keep the old directory until the restored copy has opened correctly.
+
+## Go back after an update
+
+An update can change the database, and an older version of Cozy cannot read
+the changed one. So when Cozy starts after an update that changes it, it first
+copies the database to `cozy_chat.before-update.db`, next to `cozy_chat.db`.
+Only one copy is kept: the next update that changes the database replaces it.
+The copy is not part of **Download backup** and does not count toward
+**Your data**.
+
+To go back to the version you ran before the update:
+
+1. Stop Cozy.
+2. Move `cozy_chat.db` out of the way, along with `cozy_chat.db-wal` and
+   `cozy_chat.db-shm` if they exist.
+3. Rename `cozy_chat.before-update.db` to `cozy_chat.db`.
+4. Check out the older version of Cozy and start it.
+
+Chats and settings from after the update stay behind in the file you moved
+away. Character cards are separate files and are not rolled back. This is a
+safety net, not a substitute for a backup: it only reaches back one update.
 
 ## Custom data directory
 

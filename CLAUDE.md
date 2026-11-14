@@ -185,6 +185,13 @@ build's registry and migrates a lower one up by running `init_db()` after the
 swap. So appending a migration is also what makes older backups restorable —
 nothing else needs bumping, and nothing may renumber what shipped.
 
+A start that finds an existing database behind the registry copies it first to
+`cozy_chat.before-update.db` beside it (`_copy_before_migrating()` in
+[cozy/schema.py](cozy/schema.py)), since nothing migrates back down. One copy, replaced by the
+next migrating start. It still holds the sign-in secret, so `/api/backup` leaves it out, as the
+storage total does; anything new that walks the data directory has to skip
+`before_update_path()` too.
+
 `/api/backup` builds a **different archive on every request**, so its response
 must never look resumable — it streams with `Accept-Ranges: none` and no ETag.
 Chrome splits a download of more than a couple of megabytes across parallel

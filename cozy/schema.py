@@ -10,6 +10,7 @@ import json
 import logging
 import math
 import os
+import sqlite3
 
 from cozy import shared
 from cozy.defaults import (
@@ -464,11 +465,42 @@ def _run_migrations(conn):
     return applied
 
 
+def before_update_path():
+    """Where the copy of the database from before its last migration is kept."""
+    return f'{os.path.splitext(shared.DATABASE)[0]}.before-update.db'
+
+
+def _copy_before_migrating():
+    """Copy the database beside itself when this start is about to migrate it.
+
+    A migration rewrites rows where they are and nothing migrates back down, so
+    an update that goes wrong, or one the user wants to undo, had no way back
+    unless they had made a backup first. One copy is kept, as the database was
+    when the build before this one last ran, and the next migrating start
+    replaces it.
+    """
+    with get_db() as conn:
+        try:
+            version = conn.execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0] or 0
+        except sqlite3.OperationalError:
+            version = 0  # From before the ledger.
+        if version >= MIGRATIONS[-1][0]:
+            return
+        copy = sqlite3.connect(before_update_path())
+        try:
+            conn.backup(copy)
+        finally:
+            copy.close()
+    log.info('Kept the database as it was at version %d: %s', version, before_update_path())
+
+
 def init_db():
     # Whether this call is creating the database for the first time. Only a
     # brand-new install gets the bundled character cards; upgrading an existing
     # install must not drop a character into a library the user already curates.
     fresh_install = not os.path.exists(shared.DATABASE)
+    if not fresh_install:
+        _copy_before_migrating()
 
     with get_db() as conn:
         # journal_mode lives in the database header, so setting it once here

@@ -17,7 +17,7 @@ from cozy import shared
 from cozy.defaults import (
     DEFAULT_POST_HISTORY_TEMPLATE, VERSION_RE, seed_default_prompts, version_key,
 )
-from cozy.schema import MIGRATIONS, init_db
+from cozy.schema import MIGRATIONS, before_update_path, init_db
 from cozy.shared import get_db, json_body, json_download, not_found, safe_download_name, text_field
 
 log = logging.getLogger('cozy')
@@ -87,7 +87,8 @@ def collect_storage_stats():
         shared.THEMES_DIR,
         shared.THUMBS_DIR,
     )
-    excluded = (*known_directories, *database_paths)
+    # The copy from before the last migration is not the user's data twice over.
+    excluded = (*known_directories, *database_paths, before_update_path())
     categories = {
         'database': database,
         'characters': _directory_stats(shared.CHARACTERS_DIR),
@@ -611,13 +612,14 @@ def _backup_payload_files():
     """Yield (path, archive name) for every data file that travels.
 
     The database and its sidecars are covered by the snapshot and the thumbnail
-    cache is rebuildable, so both are skipped here.
+    cache is rebuildable, so both are skipped here. So is the copy from before
+    the last migration: it is an older database, with the sign-in secret in it.
     """
     skipped = {
         os.path.normcase(os.path.abspath(p))
         for p in (shared.THUMBS_DIR, shared.DATABASE,
                   f'{shared.DATABASE}-wal', f'{shared.DATABASE}-shm',
-                  f'{shared.DATABASE}-journal')
+                  f'{shared.DATABASE}-journal', before_update_path())
     }
     for directory, dirnames, filenames in os.walk(shared.DATA_DIR):
         dirnames[:] = [

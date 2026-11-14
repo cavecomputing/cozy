@@ -9,7 +9,7 @@ import app as app_module
 from cozy import shared
 from cozy.png_utils import make_minimal_png
 from cozy.routes.settings import BACKUP_MANIFEST
-from cozy.schema import MIGRATIONS
+from cozy.schema import MIGRATIONS, before_update_path
 
 
 def create_character(client, name):
@@ -96,6 +96,18 @@ class TestBackupDownload:
             handle.write(b'not really a thumbnail')
         with download_backup(client) as archive:
             assert not [n for n in archive.namelist() if n.startswith('thumbs/')]
+
+
+    def test_the_copy_from_before_the_last_migration_is_left_out(self, client):
+        # An older database, and one that still holds the sign-in secret.
+        copy_path = before_update_path()
+        assert os.path.dirname(copy_path) == shared.DATA_DIR
+        with open(copy_path, 'wb') as handle:
+            handle.write(b'an older database')
+        with download_backup(client) as archive:
+            assert os.path.basename(copy_path) not in archive.namelist()
+        storage = client.get('/api/storage-stats').get_json()
+        assert storage['categories']['other']['files'] == 0
 
 
 class TestBackupRestore:

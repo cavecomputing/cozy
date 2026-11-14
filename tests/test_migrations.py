@@ -2,6 +2,7 @@
 
 import json
 import os
+import sqlite3
 
 import pytest
 
@@ -122,6 +123,40 @@ class TestSchemaMigrationLedger:
         assert _migration_rows() == before
         assert before[-1]['version'] == probe_version
         assert before[-1]['name'] == 'add_migration_probe'
+
+    def test_a_database_is_copied_as_it_was_before_a_start_migrates_it(self, monkeypatch):
+        copy_path = schema.before_update_path()
+
+        def versions(path):
+            conn = sqlite3.connect(path)
+            try:
+                return [row[0] for row in conn.execute('SELECT version FROM schema_migrations ORDER BY version')]
+            finally:
+                conn.close()
+
+        # Nothing pending, nothing copied.
+        schema.init_db()
+        assert not os.path.exists(copy_path)
+
+        def add_probe(conn):
+            conn.execute("INSERT INTO settings (key, value) VALUES ('migration_probe', 'ran')")
+
+        last = schema.MIGRATIONS[-1][0]
+        monkeypatch.setattr(schema, 'MIGRATIONS', (*schema.MIGRATIONS, (last + 1, 'add_probe', add_probe)))
+        schema.init_db()
+
+        assert versions(copy_path)[-1] == last
+        assert versions(shared.DATABASE)[-1] == last + 1
+        # A whole database of its own, with no sidecars left beside it.
+        assert not [name for name in os.listdir(os.path.dirname(copy_path))
+                    if name.startswith(os.path.basename(copy_path) + '-')]
+
+        # One copy: the next migrating start replaces it, and no other start touches it.
+        schema.init_db()
+        assert versions(copy_path)[-1] == last
+        monkeypatch.setattr(schema, 'MIGRATIONS', (*schema.MIGRATIONS, (last + 2, 'add_another', lambda conn: None)))
+        schema.init_db()
+        assert versions(copy_path)[-1] == last + 1
 
     def test_failed_migration_rolls_back_work_and_ledger(self, monkeypatch):
         def fail_after_write(conn):

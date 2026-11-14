@@ -762,6 +762,10 @@
           registry: <strong>lower</strong> restores and is migrated up by <code>init_db()</code>,
           <strong>equal</strong> restores as-is, <strong>higher</strong> is refused with 409 — that archive knows
           migrations this build does not.</p>
+        <p>A start that finds an existing database behind the registry copies it first, through SQLite's backup
+          API, to <code>cozy_chat.before-update.db</code> beside it. Migrations only go up, so that copy is the
+          database as the previous build left it. One is kept: the next migrating start replaces it. It is left out
+          of backups and of the About page's storage total.</p>
       </div>
       <p class="note">Data lives in two places, so a backup has to cover both: this database, and the
         <b>PNG files</b> in <code>data/characters/</code> that carry the actual card data. The
