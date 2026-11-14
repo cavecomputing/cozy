@@ -387,18 +387,20 @@ function bindSheetBackdropHandlers() {
 // carries on out or springs back. The drawer goes left, and can be taken
 // anywhere since a vertical touch on it is the list's to scroll (the browser
 // takes that one over and cancels ours); a sheet goes down, from its grabber.
-// The drawer also comes in the same way, dragged from the chat's left side.
+// The drawer also comes in the same way, dragged to the right across the chat.
 // Touch and pen only: a mouse has the buttons.
 const DRAG_SLOP_PX = 8;            // before it is a drag at all
 const DRAG_CLOSE_PX = 80;          // far enough to mean it
 const DRAG_FLICK_PX_PER_MS = 0.5;  // or quick enough to mean it from less
-// The strip of the chat a drag to the right can start in to open the drawer:
-// under the thumb of the hand holding the phone, and clear of the screen's
-// very edge. iOS keeps that edge for its own Back whenever there is an entry
-// to go back to, in a Safari tab or in the installed app, and a drag begun
-// there showed the drawer for a moment before iOS cancelled it and went back.
+// A drag to the right opens the drawer from anywhere on the chat but the
+// screen's very edge. iOS keeps that edge for its own Back whenever there is
+// an entry to go back to, in a Safari tab or in the installed app, and a drag
+// begun there showed the drawer for a moment before iOS cancelled it and went
+// back.
 const DRAG_OPEN_FROM_PX = 20;
-const DRAG_OPEN_TO_PX = 96;
+// It takes less to bring the drawer in than to put it away: a drag begun
+// under a right thumb runs out of screen before it has gone far.
+const DRAG_OPEN_PX = 40;
 
 const flicked = (dist, ms) => dist > 20 && dist / ms > DRAG_FLICK_PX_PER_MS;
 
@@ -471,8 +473,15 @@ function bindEdgeSwipeToOpen() {
 
     const main = document.getElementById('main-content');
     main.addEventListener('pointerdown', e => {
-        if (e.pointerType === 'mouse' || e.clientX < DRAG_OPEN_FROM_PX || e.clientX > DRAG_OPEN_TO_PX
-            || !drawerShell.matches || panelOpen()) return;
+        // A second finger makes it a pinch.
+        if (!e.isPrimary) {
+            if (!drag?.live) drag = null;
+            return;
+        }
+        // Sideways belongs to a code block, which scrolls that way, and to
+        // text being typed or edited, where it moves the caret.
+        if (e.pointerType === 'mouse' || e.clientX < DRAG_OPEN_FROM_PX || !drawerShell.matches || panelOpen()
+            || e.target.isContentEditable || e.target.closest('pre, textarea, input')) return;
         drag = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp, dist: 0, live: false };
     });
 
@@ -509,7 +518,7 @@ function bindEdgeSwipeToOpen() {
         drag = null;
         if (!live) return;
         // Far enough counts even when the browser took the touch away.
-        const open = dist > DRAG_CLOSE_PX || (e.type === 'pointerup' && flicked(dist, e.timeStamp - at));
+        const open = dist > DRAG_OPEN_PX || (e.type === 'pointerup' && flicked(dist, e.timeStamp - at));
         settleDrag(panel, backdrop, open ? 'translateX(0)' : offset(0), open ? 1 : 0,
             () => open ? openMobileSidebar() : closeMobileSidebar({ restoreFocus: false }));
     };

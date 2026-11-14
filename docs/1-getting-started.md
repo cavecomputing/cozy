@@ -279,7 +279,8 @@ the chat — the character list, Settings, the chat or memory sheet, a question
 Cozy is asking — instead of leaving Cozy. Inside Settings it goes back one
 step at a time, from a page to the list and then out. You can also swipe the
 character list to the left, or pull the chat or memory sheet down by the handle
-at its top, to close it.
+at its top, to close it. Swiping to the right anywhere on the chat brings the
+character list in.
 
 Cozy saves most changes immediately. If a page has a **Save** button,
 click it, or your change is lost.
