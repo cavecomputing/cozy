@@ -1993,7 +1993,13 @@ input[type="checkbox"]:checked::after {
     display: none;
     justify-content: space-between;
     align-items: center;
-    position: relative;
+    /* Sticky for iOS's sake, not for scrolling: the page never scrolls, so
+       this sits where a relative header would. An installed app on iOS 26 and
+       later gets a system blur over its top edge unless the box found there
+       is fixed or sticky, full width and one plain colour, which WebKit then
+       carries up into the status bar instead (fixedContainerEdges). */
+    position: sticky;
+    top: 0;
 }
 
 #current-char-name {
