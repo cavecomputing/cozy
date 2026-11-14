@@ -1598,7 +1598,13 @@ function bindScrollHandlers() {
     // ever fires, which reads as the scroll being stuck (same race noted on
     // jumpToContextBoundary's autoScroll reset). Reading the gesture directly
     // lets an upward scroll win synchronously, before the next token can.
-    const breakAutoScroll = () => { state.autoScroll = false; };
+    // Whether the view has been seen away from the bottom since the reader
+    // ended the follow. Until then a scroll event at the bottom is not theirs.
+    let leftBottom = true;
+    const breakAutoScroll = () => {
+        if (state.autoScroll) leftBottom = false;
+        state.autoScroll = false;
+    };
     el.chatHistory.addEventListener('wheel', e => {
         if (e.deltaY < 0 && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
     }, { passive: true });
@@ -1638,13 +1644,21 @@ function bindScrollHandlers() {
     // The bottom here means flush with it, not the button's 60px: a trackpad
     // or finger scrolls up a few pixels per event, and restarting the follow
     // anywhere near the bottom snapped each of those back on the next draw.
+    // And it means coming back to the bottom. On an iPhone the scrolling is
+    // done by the app around the page, and each scrollTop the follow writes
+    // is sent there and answered: until the answer comes the page is told
+    // nothing of where the finger has taken the view, and the answer is a
+    // scroll event at the bottom (WebKit's RemoteScrollingCoordinator). That
+    // event restarted a follow the finger had just ended, the next draw wrote
+    // again, and the reader could not scroll out of a reply.
     let lastScrollTop = el.chatHistory.scrollTop;
     el.chatHistory.addEventListener('scroll', () => {
         const { scrollTop, scrollHeight, clientHeight } = el.chatHistory;
         const fromBottom = scrollHeight - scrollTop - clientHeight;
         const atBottom = fromBottom < 60;
         if (mouseHeld && scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
-        else if (fromBottom < 1) state.autoScroll = true;
+        else if (fromBottom < 1 && leftBottom) state.autoScroll = true;
+        if (fromBottom >= 1) leftBottom = true;
         lastScrollTop = scrollTop;
         el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
         drawOlderSoon();
