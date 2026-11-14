@@ -11,7 +11,7 @@ import {
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, refreshChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
-import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderNearTop, shownText } from './messages.js';
+import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderMessages, drawOlderNearTop, shownText } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -1618,6 +1618,12 @@ function bindScrollHandlers() {
         if (['PageUp', 'ArrowUp', 'Home'].includes(e.key)
             && !e.target.closest('input, textarea, select, [contenteditable]')
             && el.chatHistory.scrollHeight > el.chatHistory.clientHeight) breakAutoScroll();
+        // The browser's Find only searches what is drawn, and a long chat
+        // opens with its last page. Draw the rest as Find opens, so that it
+        // reaches the whole chat.
+        if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+            while (drawOlderMessages()) { /* next page */ }
+        }
     });
     let mouseHeld = false;
     el.chatHistory.addEventListener('pointerdown', e => { mouseHeld = e.pointerType === 'mouse'; });

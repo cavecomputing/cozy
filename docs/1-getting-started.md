@@ -247,6 +247,8 @@ you want.
   and **←** and **→** step through the latest reply's swipes. **→** on its
   last swipe asks for a new one, as the button does, and with your own
   message last it asks for a reply, as **Send** does with nothing typed.
+- **Search a chat** — the browser's own Find (**⌘F**, or **Ctrl+F**) reaches
+  the whole chat, not only the part on screen.
 - **Replies finish without you** — once a message is sent, Cozy itself
   writes the reply and saves it to the chat. Lock the phone, switch to
   another chat or close the page, and the reply is there when you come back;
