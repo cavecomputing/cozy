@@ -6,6 +6,12 @@ predictable, varied, or resistant to repetition.
 Cozy sends enabled sampler values to the configured LLM server. The server
 decides how to apply them. Unsupported settings may be ignored or rejected.
 
+Anthropic's Claude API is the exception: Cozy sends it no sampler values at
+all, because current Claude models set their own sampling. While a Claude
+address is set, the **Samplers** card is faded and says so. **Max response
+tokens** is still sent. See step 4 of
+[Connect an AI server](1-getting-started.md#1-connect-an-ai-server).
+
 Start with the defaults. Change one setting at a time. Where to find these
 settings in the app is in
 [Check the samplers](1-getting-started.md#2-check-the-samplers).
