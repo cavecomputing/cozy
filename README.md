@@ -17,7 +17,7 @@ download one, or do any of the thinking itself. You point it at an AI service
 you already have: a paid one online (OpenRouter and similar), or one running on
 your own computer (llama.cpp, Ollama, KoboldCpp, LM Studio). Almost all of them
 work, because almost all of them speak the same "OpenAI-style" language Cozy
-expects. Anthropic's Claude API works too: Cozy recognises its address and
+expects. Anthropic's Claude API works too: Cozy recognizes its address and
 switches to Claude's own format by itself.
 
 <p align="center">
@@ -45,7 +45,7 @@ uv run app.py
 Then open <http://localhost:5000> in your browser.
 
 To run Cozy on a server or with Docker instead, see
-[Advanced setup](docs/2-advanced-setup.md).
+[Running Cozy](docs/6-running-cozy.md).
 
 Hooray! You are up and running! :D
 But don't forget to do the first-start configuration below.
@@ -97,7 +97,7 @@ uv run app.py
 ```
 
 To update a Docker or server installation instead, see
-[Advanced setup](docs/2-advanced-setup.md).
+[Update Cozy](docs/6-running-cozy.md#update-cozy).
 
 ## Mobile use
 
@@ -121,21 +121,34 @@ so you can lock the phone or close the page and find the reply in the chat when 
 
 Without a password, anything that can reach Cozy can read your chats and use
 your API key. Set `COZY_PASSWORD` and every device has to sign in first; see
-[Require a password](docs/7-security.md#require-a-password). Even then, only do
+[Require a password](docs/6-running-cozy.md#require-a-password). Even then, only do
 this on a network you trust, or reach Cozy through a VPN. See
-[Security](docs/7-security.md) and [Advanced setup](docs/2-advanced-setup.md).
+[Let other devices connect](docs/6-running-cozy.md#let-other-devices-connect).
 
 ## Documentation
 
-- [Getting started](docs/1-getting-started.md): connect an AI server, add a character, set up your persona, and learn the shortcuts in a chat.
-- [Advanced setup](docs/2-advanced-setup.md): Docker, a different port or address, a different data folder, updating, and running the tests.
-- [Data and backups](docs/3-data-and-backups.md): where your data is, how to back it up and restore it, and how to go back after an update.
-- [Troubleshooting](docs/4-troubleshooting.md): what to check when Cozy does not open, the connection test fails, or a reply stops early.
-- [Auto Summaries](docs/5-auto-summaries.md): how Cozy remembers messages that no longer fit in the model's context.
-- [Sampler settings](docs/6-sampler-settings.md): what each sampler does, and which servers accept it.
-- [Security](docs/7-security.md): who can reach Cozy, how to require a password, and what is stored as plain text.
-- [User themes](docs/9-user-themes.md): make your own color theme, with every variable a theme can set.
-- [Database schema](https://cavecomputing.github.io/cozy/10-database-schema.html): the browsable reference for developers, with [notes on seeding and data](docs/10-database-schema.md).
+There are seven guides. They are in the order you are likely to need them,
+and each one ends with a link to the next.
+
+1. [Getting started](docs/1-getting-started.md): connect an AI server, add a
+   character, and set up your persona.
+2. [Using Cozy](docs/2-using-cozy.md): what you can do in a chat. Swipes,
+   editing, branches, slash commands and keyboard shortcuts.
+3. [Themes](docs/3-user-themes.md): change the colors, or make a theme of your
+   own.
+4. [Prompts and memory](docs/4-prompts-and-memory.md): what the AI is told
+   with each message. The prompt, lorebooks, the Author's Note, the context
+   meter and Auto Summaries.
+5. [Sampler settings](docs/5-sampler-settings.md): what each sampler does, and
+   which servers accept it.
+6. [Running Cozy](docs/6-running-cozy.md): Docker, other devices, a password,
+   where your data is, backups and updating.
+7. [Troubleshooting](docs/7-troubleshooting.md): common problems and how to
+   fix each one.
+
+For developers: the
+[database schema](https://cavecomputing.github.io/cozy/database-schema.html),
+and [notes on seeding and backups](docs/database-schema.md).
 
 ## License
 

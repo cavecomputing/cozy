@@ -126,7 +126,7 @@ base64 V2 JSON — the format SillyTavern reads. The SQLite `characters` table i
 card data is read back out of the PNG through [cozy/card_store.py](cozy/card_store.py) at request
 time.
 
-Everything else is in `data/cozy_chat.db`; [docs/10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html) is the schema reference.
+Everything else is in `data/cozy_chat.db`; [docs/database-schema.html](https://cavecomputing.github.io/cozy/database-schema.html) is the schema reference.
 
 ### Bundled content, and who owns it afterwards
 
@@ -154,7 +154,7 @@ prompts are not.
   `version_key()` so `2.10` outranks `2.2`. An `Author` variant never wins, and with no standard
   title the default falls back to the last preset seeded. A version is a number with at most one
   decimal part and never carries the `v`; the picker's badge adds that. See the prompt section of
-  [docs/10-database-schema.md](docs/10-database-schema.md).
+  [docs/database-schema.md](docs/database-schema.md).
 
 A seeded character is ordinary user data afterwards — deleting it keeps it deleted.
 A seeded prompt is a copy of a file that outranks it.
@@ -338,11 +338,13 @@ script and `applyTheme()` both use it, because two spellings of it would fetch t
   section of [README.md](README.md) *and* on the About page (`data-section="about"` in
   [templates/index.html](templates/index.html)); the wording is meant to match, so changing an
   attribution means changing both. The requirement itself lives in [NOTICE](NOTICE).
-- **[docs/](docs/)** is a hand-maintained user manual, so it goes stale silently.
-  [docs/10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html) is the schema reference (tables with their real `CREATE TABLE`,
+- **[docs/](docs/)** is a hand-maintained user manual, so it goes stale silently. Its seven
+  guides are numbered in the order a user needs them and each ends by linking the next, so a new
+  subject goes into the guide it belongs to rather than onto a page of its own.
+  [docs/database-schema.html](https://cavecomputing.github.io/cozy/database-schema.html) is the schema reference (tables with their real `CREATE TABLE`,
   the foreign-key map, the migration ledger, the seeded settings) — a schema change, a new
   migration or a new default setting is not finished until it is reflected there.
-  [docs/10-database-schema.md](docs/10-database-schema.md) only points at it for the schema and covers seeder behaviour around
+  [docs/database-schema.md](docs/database-schema.md) only points at it for the schema and covers seeder behaviour around
   it, so a change in what gets seeded or restored means checking that page too. A user-visible
   feature also means checking the README feature list and the matching `docs/` page.
 

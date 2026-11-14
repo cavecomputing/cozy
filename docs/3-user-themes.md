@@ -1,6 +1,17 @@
-# User themes
+# Themes
 
-A user theme is one CSS file that changes Cozy's colors. To add one:
+A theme sets Cozy's colors. To change the theme:
+
+1. Open **Settings → General**.
+2. Pick one under **Theme**.
+
+Cozy comes with six themes: **Cozy** (the default), **Cozy Light**,
+**Everforest Dark**, **Everforest Light**, **Solarized Dark** and **Solarized
+Light**. The choice is saved in the browser you made it in, so your phone and
+your computer can use different themes.
+
+You can also add a theme of your own. A theme you add is called a user theme.
+It is one CSS file. To add one:
 
 1. Put a `.css` file in the `data/themes/` folder.
 2. Reload the Cozy page in your browser.
@@ -10,7 +21,7 @@ A theme can change colors, shadows and how round the corners are. It cannot
 change fonts, text size or layout. See
 [What a theme cannot change](#what-a-theme-cannot-change).
 
-The rest of this page gives the details:
+The rest of this guide is about user themes:
 
 - [Make your first theme](#make-your-first-theme)
 - [File name rules](#file-name-rules)
@@ -33,7 +44,7 @@ creates it the first time it starts.
 
 - If you set `COZY_DATA_DIR`, the folder is `themes/` inside that directory
   instead. See
-  [Use a different data directory](2-advanced-setup.md#use-a-different-data-directory).
+  [Store the data somewhere else](6-running-cozy.md#store-the-data-somewhere-else).
 - Under Docker it is the same `data/themes/` folder on your computer. You do not
   need to copy anything into the container.
 
@@ -132,7 +143,7 @@ The theme you pick is saved in the browser, not on the server. So:
   shows **Cozy Light** instead if the old file name ended in `-light`.
 
 Themes are part of your data. **Download backup** includes them. See
-[Data and backups](3-data-and-backups.md).
+[Back up and restore](6-running-cozy.md#back-up-and-restore).
 
 ## Start from a different built-in theme
 
@@ -357,7 +368,7 @@ which tells those servers when you open Cozy. It can also hide or cover parts
 of the page. Lines that contain `url(` with an address starting `http` are the
 ones to look at.
 
-If you use a [password](7-security.md#require-a-password): theme files are sent
+If you use a [password](6-running-cozy.md#require-a-password): theme files are sent
 to a browser before it signs in, so that the sign-in page can use your theme.
 Do not write anything private in a theme file.
 
@@ -377,7 +388,7 @@ Check each of these, in order:
 3. You reloaded the page after you created the file.
 4. Under Docker on Linux, you were able to save the file. Cozy's container
    owns `data/`, so your own account may not be allowed to write there. See
-   [File permissions on Linux](2-advanced-setup.md#file-permissions-on-linux).
+   [File permissions on Linux](6-running-cozy.md#file-permissions-on-linux).
 
 ### The theme is in the list, but the page looks wrong
 
@@ -400,8 +411,11 @@ Check each of these, in order:
 3. Check under **Settings → General → Theme** that this browser is using the
    theme you edited.
 
-For anything else, see [Troubleshooting](4-troubleshooting.md).
+For anything else, see [Troubleshooting](7-troubleshooting.md).
 
 ---
+
+**Next:** [Prompts and memory](4-prompts-and-memory.md) explains what the AI
+is told with each message, and how you change it.
 
 Back to the [list of all guides](../README.md#documentation).

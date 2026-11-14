@@ -1,19 +1,23 @@
-# Database Structure
+# Database notes
 
-Cozy uses SQLite (`data/cozy_chat.db`) for chat history, user personas, settings, and a lightweight character index. Character card data itself is stored in PNG files on disk — see [Data and Backups](3-data-and-backups.md).
+This page is for developers who work on Cozy's code. You do not need it to
+use Cozy. For where your data is and how to back it up, see
+[Running Cozy](6-running-cozy.md#where-your-data-is).
+
+Cozy uses SQLite (`data/cozy_chat.db`) for chat history, user personas, settings, and a lightweight character index. Character card data itself is stored in PNG files on disk — see [Where your data is](6-running-cozy.md#where-your-data-is).
 
 ## Schema reference
 
-The [schema reference](https://cavecomputing.github.io/cozy/10-database-schema.html) is the only copy of it: every
+The [schema reference](https://cavecomputing.github.io/cozy/database-schema.html) is the only copy of it: every
 table with its real `CREATE TABLE`, a map of the three cascading foreign keys,
 the indexes, the migration ledger, and the seeded settings. Open it in a
-browser. A schema change belongs in `10-database-schema.html`, not here.
+browser. A schema change belongs in `database-schema.html`, not here.
 
 ## Seeded data
 
 On first run, the database is seeded with a default persona ("User",
 tagline: "Change me!", `is_default = 1`) and the default settings
-listed under "Seeded settings" in [10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html#seeded).
+listed under "Seeded settings" in [database-schema.html](https://cavecomputing.github.io/cozy/database-schema.html#seeded).
 
 Auto Summaries are disabled on new chats until the user enables them for that
 chat.
@@ -77,8 +81,7 @@ whatever version it carries. With no standard title in the bundle at all the
 pick falls back to the last preset seeded. An install that already has prompts
 keeps its own selection, so this only ever applies once.
 
-Versions compare as numbers, not text, so `2.10` ranks above `2.2` — the old
-greatest-title rule sorted `v10.0` below `v2.1`, and that caveat is gone.
+Versions compare as numbers, not text, so `2.10` ranks above `2.2`.
 
 Seeded characters become ordinary cards on disk — the `characters` index picks
 them up on the next listing request, and deleting one deletes it for good.
@@ -86,9 +89,9 @@ them up on the next listing request, and deleting one deletes it for good.
 ## Database version and backups
 
 The highest version in the migration registry is what "the database version"
-means for Cozy — see "The database version" in [10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html#version).
+means for Cozy — see "The database version" in [database-schema.html](https://cavecomputing.github.io/cozy/database-schema.html#version).
 That number is what a backup carries; how backup and restore treat it is
-covered in [Data and Backups](3-data-and-backups.md).
+covered in [Back up and restore](6-running-cozy.md#back-up-and-restore).
 
 ---
 

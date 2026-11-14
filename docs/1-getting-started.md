@@ -1,29 +1,36 @@
-# Getting Started
+# Getting started
 
-This page assumes Cozy is already installed and open in your browser. If it
-is not installed yet, follow **Quick start** in the
-[README](../README.md) first.
+This guide takes you from a fresh install to your first chat. There are four
+steps:
 
-Work through the sections in order. Each section says when you are done
-with it.
+1. [Connect an AI server](#1-connect-an-ai-server). Cozy cannot reply without
+   one.
+2. [Check the samplers](#2-check-the-samplers). Usually there is nothing to
+   change.
+3. [Add a character](#3-add-a-character). One is already included.
+4. [Set up your persona](#4-set-up-your-persona). This is who you are in the
+   story.
+
+The guide assumes Cozy is installed and open in your browser. If it is not,
+follow **Quick start** in the [README](../README.md#quick-start) first.
+
+Do the steps in order. Each one says when you are done with it.
 
 ## 1. Connect an AI server
 
-Cozy is only the chat app. It does not include an AI, and it cannot think
-on its own. You must connect it to a separate AI server. That can be a paid
-service on the internet (for example OpenRouter) or a program running on
-your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
+Cozy is only the chat app. It does not include an AI, so you must connect it
+to a separate AI server. That can be:
 
-1. Click **Settings** at the bottom left of the screen. A settings panel
-   opens.
-2. Click **API** in the list of sections on the left.
-3. Optionally, click **Save as preset** and type a name to keep the
-   connection settings described below under that name. Once you have a
-   preset, a picker appears beside the button, so you can keep one preset
-   per server and switch between them. A new preset is a copy of whatever
-   is currently on the page. **Rename** renames the selected preset.
-4. Under **Connection**, type your server's base **Endpoint** URL into the
-   **Endpoint** field. It normally ends in `/v1`. Some common ones:
+- a paid service on the internet, such as OpenRouter or Anthropic, or
+- a program on your own computer, such as Ollama, LM Studio, llama.cpp or
+  KoboldCpp.
+
+Do this:
+
+1. Click **Settings** at the bottom left of the screen.
+2. Click **API** in the list on the left.
+3. Under **Connection**, type your server's address into the **Endpoint**
+   field. It normally ends in `/v1`. Common ones:
 
    | Service | Endpoint |
    |---|---|
@@ -34,286 +41,208 @@ your own computer (for example Ollama, LM Studio, llama.cpp, or KoboldCpp).
    | llama.cpp | `http://localhost:8080/v1` |
    | KoboldCpp | `http://localhost:5001/v1` |
 
-   These are the defaults. If you changed a port or address when setting
-   up the server, change the URL to match. If you do not know the endpoint
-   for your service, look in that service's documentation for its
-   OpenAI-compatible base URL. Cozy adds `/models` and `/chat/completions`
-   to this URL itself, so do not type those parts.
+   These are the defaults. If you changed a port or address when you set up
+   the server, change the address to match. If your service is not in the
+   table, look in its documentation for its "OpenAI-compatible base URL".
 
-   Anthropic's Claude API needs no setting of its own. An address on
-   `anthropic.com`, or any address ending in `/messages`, is spoken to in
-   Claude's format, with the key sent the way Claude expects. Two things
-   differ there: the sampler settings are not sent, because current Claude
-   models only sample one way (the API page says so and fades the Samplers
-   card while a Claude address is set), and prompt caching is switched on, so the
-   system prompt and chat history that each reply repeats cost less after
-   the first turn. Max response tokens still applies, and current Claude
-   models think before they answer, which spends from it.
-5. If your server requires an **API key**, paste it into the **API key**
-   field. Servers on your own computer usually need no key. Keys are stored
-   in your data directory and hidden in API responses.
-6. Set the **Model**. Type the model name, or click **Browse** to
-   list what the server reports and pick one from the list. If the list
-   comes up empty, type the name by hand. Some servers do not provide a
-   list, and that is normal.
-7. Click **Test connection** at the top of the page. If the test succeeds, you are done
-   with this section. If it fails, see [Troubleshooting](4-troubleshooting.md).
-8. Under **Context & generation**, set **Max context tokens** to the
-   context size your server supports, and **Max response tokens** to the
-   longest single reply you want to receive. If the server reports the
-   model's context size and the field is set too close to it, a warning
-   under the field offers a value that fits. Click it to use that value.
+   Type only the base address. Cozy adds `/models` and `/chat/completions` to
+   it by itself.
+4. If your server requires an API key, paste it into the **API key** field.
+   Servers on your own computer usually need no key.
+5. Set the **Model**. Click **Browse** to list the models the server reports,
+   and click one. If the list is empty, type the model's name by hand. Some
+   servers do not provide a list, and that is normal.
+6. Click **Test connection** at the top right of the page.
+   - If the test succeeds, go on to step 7.
+   - If it fails, see
+     [Connection test fails](7-troubleshooting.md#connection-test-fails).
+7. Under **Context & generation**, set two numbers:
+   - **Max context tokens**: how much text your model can read at once. Your
+     server's or model's documentation gives this number.
+   - **Max response tokens**: the longest single reply you want.
+
+   If the server reports the model's size and your number is too close to it,
+   a warning under the field offers a number that fits. Click the warning to
+   use that number.
+
+There is no Save button on this page. Each change is saved as you make it.
+
+You are done with this step when **Test connection** succeeds.
+
+### Keep more than one connection (optional)
+
+A preset is a saved copy of everything on the API page. Use presets if you
+switch between servers.
+
+- **Save as preset** saves what is on the page now under a name you type.
+- Once you have a preset, a picker appears next to that button. Pick a preset
+  to switch to it.
+- **Rename** and **Delete** act on the selected preset.
+
+### If you use Anthropic's Claude API
+
+There is no setting to switch on. Cozy recognizes an address on
+`anthropic.com`, and any address that ends in `/messages`, and talks to it in
+Claude's own format. Three things are different there:
+
+- **Samplers are not sent.** Current Claude models choose their own sampling.
+  The **Samplers** card is faded while a Claude address is set, and says so.
+- **Prompt caching is on.** The system prompt and chat history that every
+  reply repeats cost less after the first message.
+- **Max response tokens still applies.** Current Claude models think before
+  they answer, and that thinking uses part of this number.
+
+### Where your API key is kept
+
+The key is stored in Cozy's database in your data folder, as plain text. Cozy
+never shows the full key again after you type it. See
+[What is stored as plain text](6-running-cozy.md#what-is-stored-as-plain-text).
 
 ## 2. Check the samplers
 
-Samplers are number settings that control how the model chooses its words.
-Cozy starts with **Temperature 1.0** and **Min-P 0.05** and everything else
-off, which suits most models. If you have not been told otherwise, you are
-done with this section without changing anything.
+Samplers are number settings that control how the AI chooses its words.
 
-Only the samplers you turn on are sent to the server. The rest are
-ignored. If your model's documentation recommends specific values:
+Cozy starts with **Temperature 1.0** and **Min-P 0.05**, and every other
+sampler off. This suits most models. If nobody has told you to use other
+values, you are done with this step. Change nothing.
 
-1. Go to **Settings → API → Samplers**.
-2. Click the gear icon in the **Samplers** header. A list called
-   **Active samplers** opens.
-3. Turn on each sampler your model or server documentation names.
+If your model's documentation recommends specific values:
+
+1. Go to **Settings → API**, to the **Samplers** card.
+2. Click the gear icon at the top right of that card. A list called **Active
+   samplers** opens.
+3. Turn on each sampler that the documentation names.
 4. Type in the recommended values.
 
-What every setting means, and which servers support it:
-[Sampler settings](6-sampler-settings.md).
+Only the samplers you turned on are sent to the server.
+
+[Sampler settings](5-sampler-settings.md) explains what each one does and
+which servers accept it.
 
 ## 3. Add a character
 
-A character is who you talk to. A new install includes one character, so
-you can start right away. You can keep her, change her, or delete her:
-**Edit** and **Delete** are in the **⋯** menu beside her name in the
-sidebar. A deleted character does not come back.
+A character is who you talk to. A new install includes one character, Sasha,
+so you can start right away. Click her name in the sidebar to open a chat.
 
-To keep a character at the top of the list, choose **Pin** from the **⋯**
-menu; a star after the name marks them. To tidy the sidebar without
-deleting anyone, choose **Archive** from the same menu. The character
-moves into the folded **Archived** section at the bottom of the list,
-chats and all; click **Archived** to unfold it, and choose **Unarchive**
-to bring a character back.
+You are done with this step when the sidebar has a character you want to talk
+to. The rest of this step is for adding more.
 
-Once your library is longer than twelve characters, a clock button
-appears beside **New character**. It lists the five you last wrote to,
-newest first, each with how long ago that was; click one to open it. They
-stay in the list below as well.
+### Import a card from another site
 
-### Bring in a card from another site
+Cozy reads V2 character cards, the format SillyTavern uses. A card is either a
+`.png` image with the character's data stored inside it, or a `.json` text
+file. Sites such as chub.ai give you files in this format.
 
-Cozy reads V2 character cards, the same format SillyTavern uses. A card is
-either a `.png` image with the character data stored inside it, or a plain
-`.json` text file. Sites such as chub.ai hand out exactly this format.
+The quick way, on a computer: drag the card file onto the Cozy window and drop
+it anywhere. You can drop several cards at once. Each one is added as a new
+character.
 
-1. Click **New character** in the character sidebar (the left column).
-   The character editor opens.
-2. Click **Import/Export** in the editor header.
-3. Under **Import**, choose **From file (.json / .png)** and select the
-   card file.
-4. Look over the fields, then save.
+The menu way, which also works on a phone:
 
-On a computer you can skip the menu: drag the card file onto the Cozy window
-and drop it anywhere. Drop several cards at once and each one is added as a
-new character.
+1. Click **New character** at the top of the sidebar. The character editor
+   opens.
+2. Click **Import/Export** at the top of the editor.
+3. Choose **From file (.json / .png)** and select the card file.
+4. Look over the fields, then click **Save**.
 
-Imported cards are stored as PNG files in `data/characters/`, so other
-apps can still read them. The same **Import/Export** menu saves the
-character you are editing back out as `.json` or `.png`.
+Imported cards are stored as PNG files in `data/characters/`, so other apps
+can still read them. The same **Import/Export** menu saves the character you
+are editing to a `.json` or `.png` file.
 
 ### Replace a card with a newer version
 
-When a character you already have gets an update, place the new card on
-top of the existing character instead of adding a second copy:
+When the author of a character you already have publishes an update, put the
+new card on top of the old one. This keeps your chats.
 
-1. Open the character for editing.
-2. Use the same **Import** menu item and select the new file, or drop the
-   file onto the window while the editor is open.
-3. Cozy asks you to confirm. Confirm, and the new card replaces the old
-   one in place.
+1. Point at the character in the sidebar, click **⋯**, then **Edit**.
+2. Click **Import/Export**, choose **From file (.json / .png)**, and select
+   the new file. Or drop the file onto the window while the editor is open.
+3. Cozy asks you to confirm. Confirm.
 
-Your chats with that character, and their place in the sidebar, do not
-change. Two warnings. First, the replacement replaces every field. Your
-own edits to the old card are lost, and there is no undo. Second, a
-`.json` card contains no picture, so importing one keeps the current
-picture and changes only the text. Import a `.png` file to change the
-picture too.
+Your chats with that character, and its place in the sidebar, do not change.
+
+Two warnings:
+
+- **Every field is replaced.** Any edits you made to the old card are lost,
+  and there is no undo.
+- **A `.json` card has no picture.** Importing one changes only the text and
+  keeps the current picture. Import a `.png` file to change the picture too.
 
 ### Make a character yourself
 
-1. Click **New character** in the character sidebar. The character
-   editor opens.
-2. Fill in the fields. Only a name is required; everything else is
-   optional. Without a picture the character shows its initials, and you can
-   add one later by clicking the image in the editor.
+1. Click **New character** at the top of the sidebar. The character editor
+   opens.
+2. Type a **Name**. This is the only required field.
+3. Fill in any other fields you want. They are on four tabs:
 
-What the fields mean:
+   | Tab | Field | What it is |
+   |---|---|---|
+   | **Basic** | **Description** | What the character looks like, their background, who they are. This field matters the most. |
+   | | **Personality** | A short list of traits. |
+   | | **Scenario** | The situation the story starts in. |
+   | **Messages** | **First message (greeting)** | What the character says when a new chat starts. |
+   | | **Alternate greetings** | Other opening messages. You can switch between them in a chat. |
+   | | **Example messages** | Sample exchanges that show how the character talks. |
+   | **Advanced** | **System prompt**, **Post history instructions** | The card author's own instructions. Both are marked **⊘** because Cozy does not send them unless you turn that on. See [Use character prompts](4-prompts-and-memory.md#use-character-prompts). |
+   | | **Creator notes** | Notes from the card's author. |
+   | **Metadata** | **Tags**, **Creator**, **Version** | Saved with the card when you export it. |
 
-- **Description** — what the character looks like, their background, who
-  they are. This field matters the most.
-- **Personality** — a short list of traits.
-- **Scenario** — the situation the story starts in.
-- **First message (greeting)** — the line the character says when a new
-  chat starts.
-- **Alternate greetings** — extra opening lines you can switch between.
-- **Example messages** — sample exchanges that show how the character
-  talks and formats replies.
-- **System prompt** and **Post history instructions** — the card author's own
-  instructions. Cozy keeps them with the card but sends your prompt from
-  **Settings → Prompt** instead, so both are marked with ⊘. **Use character
-  prompts** on that page sends the card's in place of yours.
-- **Creator notes**, **Tags**, **Creator**, **Version** — saved with the
-  card when you export it.
+4. To add a picture, click the image at the top left of the editor. Without a
+   picture, the character shows its initials.
+5. Click **Save**.
 
-In any of these fields, `{{char}}` becomes the character's name and
-`{{user}}` becomes your persona's name (see section 4 below).
+In any field, `{{char}}` is replaced by the character's name and `{{user}}`
+by your persona's name. See
+[Placeholders](4-prompts-and-memory.md#placeholders).
 
-If you close the editor with unsaved changes, Cozy asks whether to discard
-them before it closes. This happens no matter how you close it: the
-**Cancel** button, the **✕**, the Escape key, a click outside the editor,
-or opening another panel.
+If you close the editor with unsaved changes, Cozy asks before it discards
+them.
 
-Click the character in the sidebar to start chatting with them.
-Cozy remembers the chat you were last in, so going back to a character, or
-opening Cozy on another device, picks up where you left off. A chat left
-open on one device catches up with what you wrote on another when you come
-back to it.
+### Edit, delete, pin or archive a character
+
+Point at a character in the sidebar and click **⋯** next to its name.
+
+| Choice | What it does |
+|---|---|
+| **Pin** | Keeps the character at the top of the list. A star marks it. |
+| **Edit** | Opens the character editor. |
+| **Archive** | Moves the character, with its chats, into the folded **Archived** section at the bottom of the list. Click **Archived** to unfold it. **Unarchive** in the same menu brings the character back. |
+| **Delete** | Deletes the character and its chats. This cannot be undone. A deleted character does not come back, including the one that came with Cozy. |
+
+When you have more than twelve characters, a clock button appears next to
+**New character**. It lists the five characters you wrote to most recently.
 
 ## 4. Set up your persona
 
-A persona is who *you* are in the story. Its name is used wherever
-`{{user}}` appears, and its description is sent to the AI with every
-message you send.
+A persona is who you are in the story. Its name replaces `{{user}}`, and its
+description is sent to the AI with every message.
 
-A fresh install starts with one persona called **User**.
+A fresh install has one persona, named **User**. If you leave it, the AI
+thinks your name is "User".
 
-1. Click **User** at the bottom of the sidebar. Your personas open.
-2. Click the pencil beside it, then give it your name and a short
-   description of yourself, or of the character you play. To keep more
-   than one, use **New Persona** instead.
-3. Save. To switch to a different persona later, click your name again
-   and pick another one.
+1. Click **User** at the bottom of the sidebar. A list of your personas opens.
+2. Point at **User** in the list and click the pencil next to it.
+3. Type your name in **Name**.
+4. In **Description**, describe yourself, or the character you play. This is
+   the part the AI reads.
+5. Click **Save**.
 
-Your own messages carry no picture, only the name of the persona that
-sent them.
+You are done with this step when the bottom of the sidebar shows your name
+instead of **User**.
 
-You are done with this section when your persona has your name instead of
-**User**.
+To keep more than one persona, click **New Persona** in the same list. To
+switch, click your name at the bottom of the sidebar and pick another one.
 
-## 5. Change the look and behavior (optional)
+## Start chatting
 
-Nothing in this section is needed to chat. Skip it and come back later if
-you want.
+1. Click a character in the sidebar.
+2. Type a message in the box at the bottom.
+3. Press **Enter**. On a phone, tap the **Send** button.
 
-- **Prompt** — **Settings → Prompt** holds two boxes of plain text. **System**
-  tells the AI how to tell the story and is sent first. **Post-History** is a
-  last word sent after the chat, just before each reply. Cozy puts the
-  character, your persona, lorebook entries, your Author's Note and the
-  summary between them, each in a labelled tag, and leaves out whatever is
-  empty. `{{char}}` and `{{user}}` become the two names in either box.
-  **Use character prompts**, under the boxes, is off to begin with. Turned on,
-  a card that brings its own system prompt or post-history instructions
-  replaces the matching box while you chat with that character, and the page
-  shows the card's text in that tab so you can see what is being sent. Cozy
-  includes two ready-made presets, NanoBear and NanoBear Author. The **?**
-  button on that page shows the whole layout, and the eye icon on
-  **Settings → API** shows exactly what will be sent. The
-  pill beside a preset's name is its version, and two versions of the same
-  preset can sit side by side once an update ships.
-  **Import/export** loads a preset someone shares with you. **New** copies
-  the selected preset so you can edit the copy, and **Rename** and **Delete**
-  act on the selected one. Do not rename a bundled preset: Cozy restores the
-  original under its old name on the next start, because the files in
-  `default_prompts/` are the source of truth for those.
-- **Theme** — **Settings → General** changes the colors. This
-  choice is stored in the browser, so each browser can have its own theme.
-  You can also add your own theme file to `data/themes/`; see
-  [User themes](9-user-themes.md).
-- **Slash commands** — typing `/` in the chat box lists the available
-  commands. `/prompt <name>` and `/api <name>` switch prompt and API
-  presets without opening Settings, `/persona <name>` switches who you
-  speak as, `/char <name>` opens a character's most recent chat,
-  `/context <tokens>` sets **Max context tokens** (`/context 16k` means
-  16384) on the active API preset, `/auto-summary on` or `off` turns
-  [Auto Summaries](5-auto-summaries.md) on or off for the open chat, and
-  `/settings` opens Settings, straight on a page with `/settings api`. Keep
-  typing after the space and matching names are offered; the start of a
-  name is enough when only one fits. **Tab** fills in the highlighted
-  command or name without running it (the arrow keys move the highlight),
-  so `/pe` Tab `al` Tab leaves `/persona Alice` ready for Enter. Typed
-  with no name, they show what is active and what is available. Where two
-  versions of the same prompt are installed, `/prompt <name>` picks the
-  newer one and `/prompt <name> <version>` — `/prompt NanoBear 2.1` —
-  picks the exact one.
-- **Arrow keys** — with the chat box empty, **↑** edits your last message,
-  and **←** and **→** step through the latest reply's swipes. **→** on its
-  last swipe asks for a new one, as the button does, and with your own
-  message last it asks for a reply, as **Send** does with nothing typed.
-- **Search a chat** — the browser's own Find (**⌘F**, or **Ctrl+F**) reaches
-  the whole chat, not only the part on screen.
-- **Replies finish without you** — once a message is sent, Cozy itself
-  writes the reply and saves it to the chat. Lock the phone, switch to
-  another chat or close the page, and the reply is there when you come back;
-  if it is still being written, you pick it up where it has got to. In a
-  browser, the tab is named after the open character, and a dot in front of
-  the name says a reply finished while you were on another tab. A second
-  device that opens the chat sees the same reply arriving. Only **Stop** ends
-  a reply early, and it keeps the part that had arrived. If the reply failed
-  while you were away, the chat says why when you come back, with a
-  **Retry**. A reply being written at the moment Cozy itself is restarted is
-  lost.
-- **`/` to type** — pressed anywhere outside a text box, **/** jumps to the
-  chat box, ready to type. The slash itself isn't typed.
-- **Branches** — the branching-arrows button on a reply forks the chat there:
-  everything up to that reply is copied into a new chat, which opens. Both
-  chats then carry a small pill under that reply, such as **2/2**. Click it to
-  flip to the next chat that branches at that reply; the reply stays where it
-  is on screen, so you can see how each branch went on. Forking again at the
-  same reply adds another branch to the pill. Branches are ordinary chats in
-  the chat list, so rename and delete them as usual. Under each chat's name
-  the list says how long ago it was last used and, for a branch, which chat
-  it came from. A fork made before this existed, or one whose original chat
-  is deleted, simply has no pill.
-
-**Back to chat**, at the foot of the Settings menu where the Settings button
-was, closes Settings. On a phone, Settings opens as a list with that button
-at the bottom. Tap a section to open its page, and tap the back arrow to
-return to the list.
-
-On a phone or tablet, the system's Back (the swipe in from the screen edge on
-an iPhone, the back gesture or button on Android) closes whatever is open over
-the chat — the character list, Settings, the chat or memory sheet, a question
-Cozy is asking — instead of leaving Cozy. Inside Settings it goes back one
-step at a time, from a page to the list and then out. You can also swipe the
-character list to the left, or pull the chat or memory sheet down by the handle
-at its top, to close it. Swiping to the right anywhere on the chat brings the
-character list in.
-
-Cozy saves most changes immediately. If a page has a **Save** button,
-click it, or your change is lost.
-
-## 6. If something goes wrong
-
-- The connection test fails, or replies never arrive →
-  [Troubleshooting](4-troubleshooting.md).
-- Old messages fall out of long chats and the character forgets them →
-  [Auto Summaries](5-auto-summaries.md). Turn it on for one chat at a time
-  from the memory button next to the chat input.
-- You want background facts the AI uses only when relevant, such as
-  places, history, or side characters → manage them under
-  **Settings → Lorebooks**, and attach them from the memory button next
-  to the chat input.
-- You want to use Cozy from a phone or another computer →
-  [Mobile use](../README.md#mobile-use) in the README. Read
-  [Security](7-security.md) before you let other devices reach Cozy.
-- You want Cozy to keep running in the background, or on a server →
-  [Advanced setup](2-advanced-setup.md).
-- Before updating Cozy, copy the `data/` directory somewhere safe.
-  Everything you made lives there, and going back to an older version is
-  not supported. → [Data and backups](3-data-and-backups.md).
+The reply appears a few words at a time.
 
 ---
+
+**Next:** [Using Cozy](2-using-cozy.md) explains what you can do in a chat.
 
 Back to the [list of all guides](../README.md#documentation).
