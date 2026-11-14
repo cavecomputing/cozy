@@ -28,7 +28,6 @@ function show(trigger) {
     p.style.visibility = 'hidden';
     p.style.left = '0px';
     p.style.top = '0px';
-    p.classList.remove('help-tip-portal--right', 'help-tip-portal--left');
 
     const r = trigger.getBoundingClientRect();
     const b = p.getBoundingClientRect();
@@ -65,7 +64,6 @@ function show(trigger) {
     p.style.top = `${top}px`;
     p.style.visibility = 'visible';
     p.classList.add('help-tip-portal--visible');
-    if (placement !== 'above') p.classList.add(`help-tip-portal--${placement}`);
 }
 
 function hide() {

@@ -736,7 +736,6 @@ function renderStatus() {
 
     const status = chat.summary_status || 'idle';
     if (status === 'running') {
-        box.className = 'summary-status is-running';
         const spin = document.createElement('span');
         spin.className = 'summary-spinner';
         box.appendChild(spin);

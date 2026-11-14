@@ -108,7 +108,6 @@ export function renderSamplerPopover() {
     if (!pop) return;
     pop.innerHTML = '';
     const rows = document.createElement('div');
-    rows.className = 'sampler-popover-rows';
     for (const [group, info] of Object.entries(SAMPLER_GROUPS)) {
         const row = document.createElement('label');
         row.className = 'sampler-popover-row';

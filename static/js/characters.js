@@ -43,7 +43,6 @@ export function renderCharList() {
     listed.forEach(char => {
         if (char === firstArchived) {
             const toggle = document.createElement('li');
-            toggle.className = 'char-archived-toggle';
             toggle.innerHTML = `
                 <button type="button" class="char-archived-btn section-label" aria-expanded="${archivedOpen}">
                     ${icons.CHEVRIGHT}<span>Archived (${listed.filter(c => c.archived).length})</span>
