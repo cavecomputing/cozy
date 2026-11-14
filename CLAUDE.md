@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Git workflow
 
-The repository is **public and has users**, and `main` is what they run, so `main` moves only at a
-release. All work happens on `dev`. The user reviews changes on `dev` after they land rather than
-before, so the verification below is what keeps `dev` ready to release.
+The repository is **public and has users**, and `main` is what they run, so **`main` always
+matches the most recent release**. All work happens on `dev`. The user reviews changes on `dev`
+after they land rather than before, so the verification below is what keeps `dev` ready to release.
 
 **Work on `dev`.** A fresh checkout starts on `main`, so begin with
 `git fetch origin dev && git checkout -B dev origin/dev`. `dev` is the one working branch: no
@@ -18,16 +18,29 @@ was verified, and the commit hashes, so the user can review or revert it. Only i
 belonging to the task — leave unrelated pre-existing changes and stray untracked files alone. Don't
 commit work that is half done or has failing tests.
 
-**Never commit or push to `main` as part of a task.** A release is the user's call, and only then
-does `main` move. The release number is `version` in [pyproject.toml](pyproject.toml), and the user
-picks it. A release is one commit on `dev` that sets it (run `uv lock` so `uv.lock` carries the same
-number), then `main` is fast-forwarded to `dev` (`git push origin dev:main`, which Git refuses if
-`main` holds a commit `dev` lacks), so the two share one history. A push that changes the version
-on `main` makes [release.yml](.github/workflows/release.yml) tag that commit `v<version>` and
-publish its GitHub release, so never tag or release by hand. Versions follow Semantic Versioning
-(`MAJOR.MINOR.PATCH`, the first release being `1.0.0`), and the workflow fails on a version that
-isn't one or was released already. Nothing else bumps the version. A fix that can't wait for a
-release still lands on `dev` first; ask the user before it reaches `main`.
+**Nothing that changes code reaches `main` except a release, and a release is the user's call.**
+The release number is `version` in [pyproject.toml](pyproject.toml), and the user picks it.
+Versions follow Semantic Versioning (`MAJOR.MINOR.PATCH`), starting at `1.0.0`. A release is:
+
+1. One commit on `dev` that sets the new `version`, with `uv lock` run so `uv.lock` carries the
+   same number. Push `dev`.
+2. A merge commit that brings `dev` into `main`:
+   `git fetch origin && git checkout -B main origin/main && git merge --no-ff origin/dev -m "Release v<version>" && git push origin main`.
+   A merge rather than a fast-forward, because `main` can hold docs commits that `dev` lacks under
+   their own hashes (below), and Git refuses to fast-forward over those.
+3. Nothing by hand after that. The push changes the version on `main`, which makes
+   [release.yml](.github/workflows/release.yml) tag the merge commit `v<version>` and publish its
+   GitHub release. The workflow fails on a version that isn't Semantic Versioning or was released
+   already. Nothing else bumps the version.
+
+**Docs are the one exception.** A commit that changes only text for readers, such as
+[README.md](README.md), [docs/](docs/) or this file, may also go to `main` between releases, as long
+as it is true of the release `main` holds: documentation of something only `dev` has waits for the
+release. Commit it on `dev` first as usual, then copy it onto `main` with
+`git checkout -B main origin/main && git cherry-pick <hash> && git push origin main`, and report both
+hashes. Such a commit has to touch nothing but those files, so split a change that also touches code.
+A code fix that can't wait for a release still lands on `dev` first; ask the user before it reaches
+`main`, because it means a release.
 
 **One commit, one concern.** A commit has to be reviewable on its own and safe to revert on its own,
 so split unrelated work rather than bundling it: a bug fix and a docs correction that happened to

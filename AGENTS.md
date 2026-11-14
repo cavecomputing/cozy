@@ -13,7 +13,8 @@ something a stranger may run:
 - **All work goes on the `dev` branch.** Commit and push finished work to `dev` without waiting to
   be asked, once its tests pass, and only the files belonging to the task. Then report what changed,
   how it was verified, and the commit hashes. The user reviews after it lands. Never commit or push
-  to `main`: it moves only at a release, when the user says so.
+  to `main` except for a release the user calls, or a docs-only commit that is true of the current
+  release. CLAUDE.md has the exact steps for both.
 
 Everything else — how to run the app and its tests, the architecture, the two upgrade mechanisms,
 the naming and commit conventions, and the testing gotchas that will otherwise cost you a wrong
