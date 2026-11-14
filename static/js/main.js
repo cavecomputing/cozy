@@ -30,7 +30,7 @@ import {
     deleteSystemPrompt,
     updateSystemPromptContent, syncActivePromptFromEditors, normalizeVersionEditor,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
-    exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, initPromptVarsPanel,
+    exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode,
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, canLeaveLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
@@ -716,11 +716,6 @@ function bindSettingsHandlers() {
 
     window.matchMedia(MOBILE_SHELL_QUERY).addEventListener('change', () => {
         exitSettingsDetail();
-    });
-
-    document.getElementById('prompt-vars-toggle').addEventListener('click', e => {
-        const button = e.currentTarget;
-        button.setAttribute('aria-expanded', String(button.getAttribute('aria-expanded') !== 'true'));
     });
 
     // Close settings on outside click (matches chat / lorebook flyout behavior).
@@ -1692,7 +1687,6 @@ async function init() {
     el.settingsPane?.addEventListener('scroll', () => {
         el.settingsPane.classList.toggle('has-scrolled', el.settingsPane.scrollTop > 0);
     }, { passive: true });
-    initPromptVarsPanel();
     loadPrefs();
     // Only the responses come early: loadCharacters() still waits for the
     // group below, as the comment there requires, and the prompts and presets

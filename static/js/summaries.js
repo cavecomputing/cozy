@@ -15,7 +15,7 @@ import { parseThinkingContent } from './thinking.js';
 import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
-import { showToast, markUnusedVar } from './utils.js';
+import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
 
 const STORY_HEADING = 'STORY SO FAR';
@@ -857,7 +857,6 @@ export function renderMemorySummaryCard() {
     if (el.summaryConfigHint) {
         el.summaryConfigHint.hidden = !(enabled && !summarizerConfigured());
     }
-    markUnusedVar(el.summaryMarker, 'summary');
     const busy = chat?.summary_status === 'running';
     // With Auto Summary off the card is just its header and switch. Stop shows
     // only while a run is in flight; Reset shows while summaries are on and

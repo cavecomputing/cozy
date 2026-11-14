@@ -56,12 +56,12 @@ export function previewChatPayload() {
 }
 
 /**
- * Preview helper — the System and User templates as this same analysis pass
- * rendered them, before the alternation shims. Those belong to the
- * whole-request preview.
+ * Preview helper — the System and Post-History boxes in the layout Cozy sends
+ * them in, as this same analysis pass rendered them, before the alternation
+ * shims. Those belong to the whole-request preview.
  */
-export function previewRenderedTemplates() {
-    return analyzeContext({ summaryText: activeSummaryText() }).renderedTemplates;
+export function previewRenderedPrompts() {
+    return analyzeContext({ summaryText: activeSummaryText() }).renderedPrompts;
 }
 
 /**

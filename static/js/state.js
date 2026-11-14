@@ -190,8 +190,6 @@ export function initElements() {
         memoryFlyoutBtn:     document.getElementById('memory-flyout-btn'),
         authorNoteInput:     document.getElementById('author-note-input'),
         authorNoteCounter:   document.getElementById('author-note-counter'),
-        authorNoteMarker:    document.getElementById('author-note-marker'),
-        lorebookMarker:      document.getElementById('lorebook-marker'),
         lorebookFlyoutSelect: document.getElementById('lorebook-flyout-select'),
         lorebookManageBtn:   document.getElementById('lorebook-flyout-manage'),
         lorebookList:        document.getElementById('settings-lorebook-list'),
@@ -220,7 +218,6 @@ export function initElements() {
         summaryResetBtn:     document.getElementById('summary-reset-btn'),
         summaryBody:         document.getElementById('summary-body'),
         summaryConfigHint:   document.getElementById('summary-config-hint'),
-        summaryMarker:       document.getElementById('summary-marker'),
         // Auto Summaries — summarizer settings tab
         summaryEndpoint:     document.getElementById('settings-summary-endpoint'),
         summaryKey:          document.getElementById('settings-summary-key'),

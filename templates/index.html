@@ -237,7 +237,7 @@
                                     <label class="settings-row-label" for="settings-show-advanced-toggle">Show advanced configuration</label>
                                     <input type="checkbox" id="settings-show-advanced-toggle" aria-describedby="show-advanced-hint">
                                 </div>
-                                <p id="show-advanced-hint" class="settings-hint">Reveals the prompt template editor, summary behavior settings, and extra request parameters.</p>
+                                <p id="show-advanced-hint" class="settings-hint">Reveals the prompt editor, summary behavior settings, and extra request parameters.</p>
                             </section>
                         </div>
                     </div>
@@ -467,7 +467,7 @@
                                 <h3>Prompt</h3>
                             </div>
                             <div class="prompt-header-actions">
-                                <button id="settings-sysprompt-help" class="icon-btn" data-help="prompt-help-modal" title="Template syntax help" aria-label="Template syntax help">
+                                <button id="settings-sysprompt-help" class="icon-btn" data-help="prompt-help-modal" title="How the prompt is built" aria-label="How the prompt is built">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -479,7 +479,7 @@
                                         <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"></path></svg>
                                         <h4>Preset</h4>
                                         <div class="prompt-select-row preset-select-row prompt-picker">
-                                            <select id="settings-sysprompt-select" class="form-input settings-select" aria-label="Prompt template"></select>
+                                            <select id="settings-sysprompt-select" class="form-input settings-select" aria-label="Prompt preset"></select>
                                             <button id="settings-sysprompt-new" class="icon-btn" title="New prompt" aria-label="New prompt">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                                 <span class="settings-action-label">New</span>
@@ -506,7 +506,7 @@
                                         </div>
                                     </header>
                                     <p id="settings-sysprompt-description-text" class="prompt-description-text"></p>
-                                    <p id="settings-prompt-basic-hint" class="prompt-basic-hint" hidden>To edit the template, turn on <button id="settings-prompt-enable-advanced" class="prompt-basic-hint-link">advanced configuration</button>.</p>
+                                    <p id="settings-prompt-basic-hint" class="prompt-basic-hint" hidden>To edit the prompt, turn on <button id="settings-prompt-enable-advanced" class="prompt-basic-hint-link">advanced configuration</button>.</p>
                                     <div id="settings-prompt-meta-row" class="prompt-meta-row" hidden>
                                         <div class="settings-row settings-row--field">
                                             <label class="settings-row-label" for="settings-sysprompt-description">Description</label>
@@ -527,20 +527,22 @@
                                     <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                     <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
                                         <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system"><span>System</span></button>
-                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history"><span>User</span></button>
+                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history"><span>Post-History</span></button>
                                     </div>
-                                    <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both templates filled in" aria-label="Preview both templates filled in" aria-expanded="false" aria-controls="prompt-rendered-flyout">
+                                    <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both as they are sent" aria-label="Preview both as they are sent" aria-expanded="false" aria-controls="prompt-rendered-flyout">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                                         <span class="settings-action-label">Preview</span>
                                     </button>
                                     <span class="advanced-badge" data-tip="Advanced configuration">ADV</span>
                                 </div>
-                                <textarea id="settings-sysprompt-content" class="form-textarea" placeholder="Enter prompt template…"></textarea>
-                                <textarea id="settings-posthistory-content" class="form-textarea" placeholder="Enter user message template…" hidden></textarea>
+                                <p class="settings-hint" data-prompt-box="system">Sent first. Cozy wraps it in &lt;system_instructions&gt; and adds the character, your persona, world info and memory after it. &#123;&#123;char&#125;&#125; and &#123;&#123;user&#125;&#125; become their names.</p>
+                                <textarea id="settings-sysprompt-content" class="form-textarea" data-prompt-box="system" placeholder="How the model should tell the story…"></textarea>
+                                <p class="settings-hint" data-prompt-box="post-history" hidden>Sent after the chat, right before the reply, wrapped in &lt;post_history_instructions&gt;. &#123;&#123;char&#125;&#125; and &#123;&#123;user&#125;&#125; become their names.</p>
+                                <textarea id="settings-posthistory-content" class="form-textarea" data-prompt-box="post-history" placeholder="A last word before each reply…" hidden></textarea>
                                 <div id="prompt-rendered-flyout" class="prompt-rendered-flyout" role="dialog" aria-labelledby="prompt-rendered-title" hidden>
                                     <header class="prompt-rendered-header">
                                         <h4 id="prompt-rendered-title">Filled in</h4>
-                                        <p class="prompt-rendered-sub">Both templates with this chat's data. The <strong>eye</strong> icon has the whole request.</p>
+                                        <p class="prompt-rendered-sub">What this chat sends before and after its messages. The <strong>eye</strong> icon has the whole request.</p>
                                         <button id="prompt-rendered-close" class="icon-btn" type="button" aria-label="Close preview">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                         </button>
@@ -548,40 +550,6 @@
                                     <div id="prompt-rendered-body" class="prompt-rendered-body"></div>
                                 </div>
                             </div>
-                                <div class="prompt-vars-panel settings-card">
-                                    <button id="prompt-vars-toggle" class="prompt-vars-toggle" type="button" aria-expanded="false" aria-controls="prompt-vars-content"><svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg><span>Variables</span> <span aria-hidden="true">⌄</span></button>
-                                    <div id="prompt-vars-content">
-                                        <header class="settings-card-header">
-                                            <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg>
-                                            <h4>Variables</h4>
-                                            <span class="advanced-badge" data-tip="Advanced configuration">ADV</span>
-                                        </header>
-                                        <p class="prompt-vars-lead">Each tag below is swapped for its value when a message is sent. Click a tag to copy it.</p>
-                                        <dl class="settings-help-vars">
-                                            <dt><code>&#123;&#123;char&#125;&#125;</code> / <code>&#123;&#123;user&#125;&#125;</code></dt><dd>Character name / active persona name.</dd>
-                                            <dt><code>&#123;&#123;description&#125;&#125;</code></dt><dd>Character description.</dd>
-                                            <dt><code>&#123;&#123;personality&#125;&#125;</code></dt><dd>Character personality.</dd>
-                                            <dt><code>&#123;&#123;scenario&#125;&#125;</code></dt><dd>Scenario from the card.</dd>
-                                            <dt><code>&#123;&#123;mesExamples&#125;&#125;</code></dt><dd>Example dialogue from the card.</dd>
-                                            <dt><code>&#123;&#123;persona&#125;&#125;</code></dt><dd>Active persona's description.</dd>
-                                            <dt><code>&#123;&#123;system_prompt&#125;&#125;</code></dt><dd>Per-character instructions (the card's system_prompt field).</dd>
-                                            <dt><code>&#123;&#123;post_history_instructions&#125;&#125;</code></dt><dd>Per-character post-history instructions from the card.</dd>
-                                            <dt><code>&#123;&#123;lorebook&#125;&#125;</code></dt><dd>Matched world-info entries (joined with separators).</dd>
-                                            <dt><code>&#123;&#123;author_note&#125;&#125;</code></dt><dd>Per-chat Author's Note (from the Memory flyout).</dd>
-                                            <dt><code>&#123;&#123;summary&#125;&#125;</code></dt><dd>Per-chat Auto Summary of aged-out history (from the Memory flyout).</dd>
-                                            <dt><code>&#123;&#123;user_message&#125;&#125;</code></dt><dd><strong>User tab only.</strong> Your latest message. Add it to the User template to wrap your message — position <code>&#123;&#123;lorebook&#125;&#125;</code>, <code>&#123;&#123;author_note&#125;&#125;</code>, etc. before or after it. Leave it out and the template is appended after your message instead. Those blocks sit in the System tab by default; move them here rather than copying, or they'll appear twice.</dd>
-                                            <dt><code>&#123;&#123;time&#125;&#125;</code> / <code>&#123;&#123;date&#125;&#125;</code></dt><dd>Current local time / date.</dd>
-                                        </dl>
-                                        <div class="prompt-vars-title prompt-vars-title--sub">Template syntax</div>
-                                        <p class="prompt-vars-lead">Building blocks that do more than a straight swap.</p>
-                                        <dl class="settings-help-vars">
-                                            <dt><code>&#123;&#123;#var&#125;&#125;…&#123;&#123;/var&#125;&#125;</code></dt><dd>Conditional block. Kept only when <code>var</code> has content; when it's empty the whole block — labels and all — is removed. The name must match on both ends.</dd>
-                                            <dt><code>&#123;&#123;random:a,b,c&#125;&#125;</code></dt><dd>Picks one of the comma-separated options at random each time the prompt is built.</dd>
-                                            <dt><code>&lt;tag&gt;…&lt;/tag&gt;</code></dt><dd>Tags of your own, for marking a part of the prompt off for the model. If everything inside a pair resolves to nothing, the tags are dropped with it — no empty <code>&lt;memory&gt;&lt;/memory&gt;</code> is sent. If only some of it resolves away, the tag closes up the blank lines left behind and sits on the content that remains. Nested tags clear from the inside out, and any tag still holding text stays. Nothing to switch on.</dd>
-                                        </dl>
-                                        <p class="prompt-vars-note">Empty or unknown variables resolve to nothing. Tap the <strong>document</strong> icon on the editor to see these two templates filled in, the <strong>eye</strong> icon on the API page for the whole assembled request, and the <strong>?</strong> icon for worked examples.</p>
-                                    </div>
-                                </div>
                         </div>
                     </div>
                     <div class="settings-section" data-section="lorebooks" hidden>
@@ -904,15 +872,15 @@
                 <div class="modal-body">
                     <div class="tab-panel active" id="tab-basic" role="tabpanel">
                         <div class="form-group">
-                            <label class="form-label" for="cf-description">Description<span id="cf-description-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{description}}{% endraw %}, so this field isn't sent. (This may be intentional.)">⊘</span></label>
+                            <label class="form-label" for="cf-description">Description</label>
                             <textarea id="cf-description" class="form-textarea" rows="5" placeholder="Describe the character — appearance, background, personality traits…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-personality">Personality<span id="cf-personality-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{personality}}{% endraw %}, so this field isn't sent. (This may be intentional.)">⊘</span></label>
+                            <label class="form-label" for="cf-personality">Personality</label>
                             <textarea id="cf-personality" class="form-textarea" rows="3" placeholder="A short summary of personality (e.g. curious, sarcastic, warm)…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-scenario">Scenario<span id="cf-scenario-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{scenario}}{% endraw %}, so this field isn't sent. (This may be intentional.)">⊘</span></label>
+                            <label class="form-label" for="cf-scenario">Scenario</label>
                             <textarea id="cf-scenario" class="form-textarea" rows="3" placeholder="The current situation or setting where the story takes place…"></textarea>
                         </div>
                     </div>
@@ -930,18 +898,18 @@
                             </button>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-mes-example">Example messages<span id="cf-mes-example-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{mesExamples}}{% endraw %}, so this field isn't sent. (This may be intentional.)">⊘</span></label>
+                            <label class="form-label" for="cf-mes-example">Example messages</label>
                             <textarea id="cf-mes-example" class="form-textarea" rows="6" placeholder="{% raw %}&lt;START&gt;&#10;{{user}}: &quot;Tell me about yourself.&quot;&#10;{{char}}: *smiles warmly* &quot;Not much to tell, really.&quot;&#10;&lt;START&gt;&#10;{{user}}: &quot;What do you like to do?&quot;&#10;{{char}}: &quot;Reading, mostly. The quiet kind of evening you can lose yourself in.&quot;{% endraw %}"></textarea>
                         </div>
                     </div>
                     <div class="tab-panel" id="tab-advanced" role="tabpanel" hidden>
                         <div class="form-group">
-                            <label class="form-label" for="cf-system-prompt">System prompt<span id="cf-system-prompt-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{system_prompt}}{% endraw %}, so this field isn't sent. (This may be intentional.)">⊘</span></label>
-                            <textarea id="cf-system-prompt" class="form-textarea" rows="4" placeholder="Extra instructions for this character…"></textarea>
+                            <label class="form-label" for="cf-system-prompt">System prompt<span class="help-tip field-unused-marker" tabindex="0" aria-label="Not sent" data-tip="Kept with the card, but not sent: your own System prompt is.">⊘</span></label>
+                            <textarea id="cf-system-prompt" class="form-textarea" rows="4" placeholder="Kept with the card, not sent."></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-post-history">Post history instructions<span id="cf-post-history-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Field not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{post_history_instructions}}{% endraw %}, so this field isn't sent. (This may be intentional.)">⊘</span></label>
-                            <textarea id="cf-post-history" class="form-textarea" rows="3" placeholder="Instructions injected after the chat history…"></textarea>
+                            <label class="form-label" for="cf-post-history">Post history instructions<span class="help-tip field-unused-marker" tabindex="0" aria-label="Not sent" data-tip="Kept with the card, but not sent: your own Post-History prompt is.">⊘</span></label>
+                            <textarea id="cf-post-history" class="form-textarea" rows="3" placeholder="Kept with the card, not sent."></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="cf-creator-notes">Creator notes</label>
@@ -1065,7 +1033,6 @@
                         <header class="memory-card-header">
                             <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v10"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10.4 12.6a2 2 0 0 1 3 3L8 21l-4 1 1-4Z"></path></svg></span>
                             <span class="section-label">Author's Note</span>
-                            <span id="author-note-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Author's Note not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{author_note}}{% endraw %}, so nothing written here will be sent. (This may be intentional.)">⊘</span>
                         </header>
                         <div class="memory-card-body memory-authornote">
                             <textarea id="author-note-input" class="form-textarea" rows="3" placeholder="Things to remember for this chat…" disabled></textarea>
@@ -1076,7 +1043,6 @@
                         <header class="memory-card-header">
                             <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
                             <span class="section-label">Active Lorebook</span>
-                            <span id="lorebook-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Lorebook not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{lorebook}}{% endraw %}, so no lorebook entries will be sent. (This may be intentional.)">⊘</span>
                         </header>
                         <div class="memory-card-body">
                             <select id="lorebook-flyout-select" class="settings-select lorebook-flyout-select" aria-label="Active lorebook"></select>
@@ -1090,7 +1056,6 @@
                         <header class="memory-card-header">
                             <span class="memory-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path></svg></span>
                             <span class="section-label">Auto Summary</span>
-                            <span id="summary-marker" class="help-tip field-unused-marker" tabindex="0" hidden aria-label="Auto Summary not used by active prompt" data-tip="Your active prompt template doesn't include {% raw %}{{summary}}{% endraw %}, so the summary will not be sent even with Auto Summary on. (This may be intentional.)">⊘</span>
                             <div class="summary-header-actions">
                                 <button id="summary-cancel-btn" class="icon-btn summary-cancel-btn" type="button" hidden title="Stop summarizing" aria-label="Stop the summary run, keeping entries already written">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
@@ -1148,7 +1113,7 @@
     <div id="prompt-help-modal" class="modal-overlay settings-submodal" role="dialog" aria-modal="true" aria-labelledby="prompt-help-title" hidden>
         <div class="modal">
             <div class="modal-header panel-header">
-                <h2 id="prompt-help-title" class="section-label panel-title panel-title--left">Prompt syntax</h2>
+                <h2 id="prompt-help-title" class="section-label panel-title panel-title--left">How the prompt is built</h2>
                 <div class="modal-header-actions">
                     <button id="prompt-help-close" class="icon-btn" data-submodal-close aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1157,65 +1122,41 @@
             </div>
             <div class="panel-divider"></div>
             <div class="modal-body settings-help-body">
-                <p class="prompt-help-callout"><strong>You usually don't need to touch this.</strong> The default template already builds a solid prompt for every character. Edit it only if you want to change <em>how</em> the prompt is put together — reorder sections, rename labels, drop one, or add your own instructions.</p>
+                <p class="prompt-help-callout"><strong>You write two things and Cozy places the rest.</strong> The System box says how the model should tell the story, and the Post-History box is a last word before each reply. The character, your persona, the lorebook and the chat's memory go around them in one fixed layout.</p>
 
-                <h3>The big picture</h3>
-                <p>This box holds a <strong>template</strong>: a draft with blanks in it. Each time you send a message, Cozy fills the blanks with the current character and persona, then sends the finished text to the model.</p>
-                <p>It has two tabs, and each is its own template:</p>
+                <h3>What is sent, in order</h3>
+                <ol class="prompt-help-tips">
+                    <li><code>&lt;system_instructions&gt;</code> holds your System box.</li>
+                    <li><code>&lt;character&gt;</code> holds the card's description and personality, then its example messages in <code>&lt;example_dialogue&gt;</code>.</li>
+                    <li><code>&lt;user&gt;</code> holds your persona's description.</li>
+                    <li><code>&lt;world_info&gt;</code> holds the lorebook entries the chat brought up, then the card's scenario.</li>
+                    <li><code>&lt;memory&gt;</code> holds the chat's Author's Note in <code>&lt;author_note&gt;</code> and its Auto Summary in <code>&lt;story_so_far&gt;</code>.</li>
+                    <li>The chat itself, oldest message first.</li>
+                    <li><code>&lt;post_history_instructions&gt;</code> holds your Post-History box.</li>
+                </ol>
                 <ul class="prompt-help-tips">
-                    <li><strong>System</strong> goes in first, before the chat — it sets the scene and the rules.</li>
-                    <li><strong>User</strong> shapes the final user turn. Add <code>&#123;&#123;user_message&#125;&#125;</code> and the template wraps your latest message, so you can place lore, the author's note, or a reminder before or after it. Leave <code>&#123;&#123;user_message&#125;&#125;</code> out and it's simply appended after your message — a last note to the model right before it replies.</li>
-                </ul>
-                <p>Three kinds of things can go in a template: variables, optional sections, and a random pick.</p>
-
-                <h3>1. Variables — <code>&#123;&#123;name&#125;&#125;</code></h3>
-                <p>A variable is a blank. Write <code>&#123;&#123;char&#125;&#125;</code> and it becomes the character's name; <code>&#123;&#123;description&#125;&#125;</code> becomes their description, and so on.</p>
-                <pre class="prompt-help-example">You are &#123;&#123;char&#125;&#125;, talking with &#123;&#123;user&#125;&#125;.
-&#123;&#123;description&#125;&#125;</pre>
-                <p class="prompt-help-note">A blank with nothing to fill it just disappears. The full list is in the <em>Variables</em> panel beside the editor.</p>
-
-                <h3>2. Optional sections — <code>&#123;&#123;#name&#125;&#125;…&#123;&#123;/name&#125;&#125;</code></h3>
-                <p>Say you want a <code>[Scenario]</code> heading, but only when the character actually has a scenario. Wrap that part in a matching pair — <code>&#123;&#123;#name&#125;&#125;</code> to open, <code>&#123;&#123;/name&#125;&#125;</code> to close — and it becomes optional.</p>
-                <p><strong>The rule:</strong> if <code>name</code> is empty, everything between the tags is removed — heading, punctuation, all of it. If <code>name</code> has content, the tags disappear and what's inside stays.</p>
-                <pre class="prompt-help-example">&#123;&#123;#scenario&#125;&#125;[Scenario]
-&#123;&#123;scenario&#125;&#125;&#123;&#123;/scenario&#125;&#125;</pre>
-                <p>With a scenario set, you get the heading and the text. With no scenario, the whole block vanishes — no empty <code>[Scenario]</code> heading left sitting there.</p>
-                <ul class="prompt-help-tips">
-                    <li>The name must match on both ends. <code>&#123;&#123;#scenario&#125;&#125;…&#123;&#123;/scenario&#125;&#125;</code> works; a typo like <code>&#123;&#123;/scneario&#125;&#125;</code> doesn't, and the raw tag shows up in the output.</li>
-                    <li>"Empty" means blank, missing, or only spaces.</li>
+                    <li>Each tag carries a short note telling the model what it holds.</li>
+                    <li>A part with nothing in it is left out, tag and all. No persona description means no <code>&lt;user&gt;</code>, and an empty System box means no <code>&lt;system_instructions&gt;</code>.</li>
+                    <li>The Post-History box rides on the end of your latest message, so it is the last thing the model reads.</li>
                 </ul>
 
-                <h3>3. Random pick — <code>&#123;&#123;random:a,b,c&#125;&#125;</code></h3>
-                <p>Picks one of the comma-separated options each time the prompt is built.</p>
-                <pre class="prompt-help-example">The weather is &#123;&#123;random:sunny,rainy,foggy,stormy&#125;&#125;.</pre>
-
-                <h3>Tags you wrap around sections</h3>
-                <p>Some templates mark parts off for the model with tags of your own, like <code>&lt;memory&gt;…&lt;/memory&gt;</code>. If everything inside a pair resolves to nothing, the tags go too — the model never sees an empty <code>&lt;memory&gt;&lt;/memory&gt;</code> sitting there asking to be filled.</p>
-                <pre class="prompt-help-example">&lt;memory&gt;
-&#123;&#123;#author_note&#125;&#125;[Author's Note]
-&#123;&#123;author_note&#125;&#125;&#123;&#123;/author_note&#125;&#125;
-&lt;/memory&gt;</pre>
-                <p>When only <em>some</em> of what's inside resolves away, the tag closes up after it. Put an Author's Note and a summary inside one <code>&lt;memory&gt;</code>, write the blank line you want between them, and on a turn with no note the summary still starts on the line under the opening tag — no gap where the note would have been.</p>
+                <h3>In the two boxes</h3>
+                <p>Write plain text. Cozy adds the tags, and fills in a few variables:</p>
                 <ul class="prompt-help-tips">
-                    <li>Nothing to switch on — it happens whenever a wrapper comes out empty or half-empty.</li>
-                    <li>Blank lines between two sections that <em>both</em> survived are spacing you asked for, and they stay. So does the spacing between one wrapper and the next.</li>
-                    <li>Nested tags clear from the inside out, so a wrapper that loses its last filled section goes as well.</li>
-                    <li>A tag holding any text at all stays, even a stray label you left outside a section.</li>
+                    <li><code>&#123;&#123;char&#125;&#125;</code> and <code>&#123;&#123;user&#125;&#125;</code> become the character's name and your persona's name.</li>
+                    <li><code>&#123;&#123;time&#125;&#125;</code> and <code>&#123;&#123;date&#125;&#125;</code> become the current local time and date.</li>
+                    <li><code>&#123;&#123;random:a,b,c&#125;&#125;</code> becomes one of the comma-separated options, picked each time the prompt is built.</li>
                 </ul>
-
-                <h3>Blanks that come from the card</h3>
-                <p>Two variables are filled by the character card itself: <code>&#123;&#123;system_prompt&#125;&#125;</code> and <code>&#123;&#123;post_history_instructions&#125;&#125;</code>. Whatever the card puts there lands wherever you place the blank. Take the blank out and the card's text is ignored.</p>
+                <p class="prompt-help-note">Any other <code>&#123;&#123;variable&#125;&#125;</code> in a box is removed. The same few work in cards, personas and lorebook entries.</p>
 
                 <h3>The one thing Cozy adds</h3>
-                <p>Everything in the request comes from these two templates and your chat, with a single exception. A request can't open on the character's turn — strict endpoints reject it — so when the oldest message still in context is one of theirs, Cozy puts a one-line user turn reading <code>[Start]</code> in front of it. Chats whose oldest message is yours never see it.</p>
-                <p class="prompt-help-note">That's the whole list. Nothing else is appended, and nothing is ever added to your system prompt: if your template has no <code>&#123;&#123;summary&#125;&#125;</code>, no summary is sent, and the same goes for every other blank.</p>
+                <p>Everything in the request comes from that layout and your chat, with a single exception. A request can't open on the character's turn — strict endpoints reject it — so when the oldest message still in context is one of theirs, Cozy puts a one-line user turn reading <code>[Start]</code> in front of it. Chats whose oldest message is yours never see it.</p>
 
                 <h3>Check your work</h3>
                 <ul class="prompt-help-tips">
-                    <li>Tap the <strong>document</strong> icon on the editor to slide out both templates filled in — System on top, User below. It shows the templates only; the <code>[Start]</code> turn is in the eye preview.</li>
-                    <li>Tap the <strong>eye</strong> icon to preview exactly what will be sent for the current character and persona.</li>
-                    <li>Made a typo in a tag? The preview is where you'll catch a leftover <code>&#123;&#123;…&#125;&#125;</code> that never got filled in.</li>
-                    <li>You can save several templates and switch between them with the dropdown.</li>
+                    <li>Tap the <strong>document</strong> icon on the editor to see both boxes in their tags with this chat's data — System on top, Post-History below. The <code>[Start]</code> turn is in the eye preview.</li>
+                    <li>Tap the <strong>eye</strong> icon on the API page to preview exactly what will be sent for the current character and persona.</li>
+                    <li>You can save several presets and switch between them with the dropdown.</li>
                 </ul>
 
             </div>
@@ -1389,7 +1330,7 @@
 
                 <div class="sampler-help-section">
                     <h3>Where the text goes</h3>
-                    <p>The used entries are joined with <code>---</code> lines and placed where <code>&#123;&#123;lorebook&#125;&#125;</code> sits in the prompt template. If the template does not contain it, nothing is sent, and the memory flyout shows a &#8856; marker next to Active Lorebook.</p>
+                    <p>The used entries are joined with <code>---</code> lines and sent in the system prompt, at the top of <code>&lt;world_info&gt;</code>, ahead of the card's scenario.</p>
                 </div>
 
                 <div class="sampler-help-section">
@@ -1429,7 +1370,7 @@
                         <div class="sampler-help-row"><dt>Nothing at first</dt><dd>While the whole chat still fits in the context window, nothing is summarized. Work starts the moment the oldest message falls outside it.</dd></div>
                         <div class="sampler-help-row"><dt>Batches in, entries out</dt><dd>Cozy folds about 3,200 tokens of chat at a time into exactly one compact entry — less on a small context, never more than an eighth of Max context tokens. It counts text, not messages, so long replies make a batch of fewer messages and short ones a batch of more. Catching up several batches runs as one numbered run, such as batch 1/12.</dd></div>
                         <div class="sampler-help-row"><dt>Rolling window</dt><dd>New entries are appended on the end. When the summary reaches its size cap, the oldest entries roll off to make room. The summary remembers the recent past, not the whole chat.</dd></div>
-                        <div class="sampler-help-row"><dt>Where it is sent</dt><dd>The summary reaches the model only through <code>&#123;&#123;summary&#125;&#125;</code> in the prompt template. Without it, nothing is sent, and the memory flyout shows a &#8856; marker next to Auto Summary.</dd></div>
+                        <div class="sampler-help-row"><dt>Where it is sent</dt><dd>The summary is sent in the system prompt, as <code>&lt;story_so_far&gt;</code> inside <code>&lt;memory&gt;</code>, after the Author's Note.</dd></div>
                     </dl>
                     <ul class="prompt-help-tips">
                         <li>Summaries are off for new chats. Open the memory flyout (the button beside the chat input) and turn on <strong>Auto Summary</strong> for each chat that should have one.</li>

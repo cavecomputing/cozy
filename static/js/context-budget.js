@@ -116,12 +116,10 @@ export function contextInputs({
             scenario: character.scenario,
             description: character.description,
             mes_example: character.mes_example,
-            system_prompt: character.system_prompt,
-            post_history_instructions: character.post_history_instructions,
         },
         persona: { name: persona.name, description: persona.description },
-        systemTemplate: prompt?.content || '',
-        userTemplate: prompt?.post_history_content || '',
+        systemText: prompt?.content || '',
+        postHistoryText: prompt?.post_history_content || '',
         lorebook: resolveActiveLorebook(state.activeChat, character, state.lorebooks),
     };
 }

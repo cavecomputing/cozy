@@ -160,18 +160,14 @@ What the fields mean:
 - **Alternate greetings** — extra opening lines you can switch between.
 - **Example messages** — sample exchanges that show how the character
   talks and formats replies.
-- **System prompt** and **Post history instructions** — extra instructions
-  that apply to this character only.
+- **System prompt** and **Post history instructions** — the card author's own
+  instructions. Cozy keeps them with the card but sends your prompt from
+  **Settings → Prompt** instead, so both are marked with ⊘.
 - **Creator notes**, **Tags**, **Creator**, **Version** — saved with the
   card when you export it.
 
 In any of these fields, `{{char}}` becomes the character's name and
 `{{user}}` becomes your persona's name (see section 4 below).
-
-A field marked with ⊘ is skipped because your prompt template does not
-include it. Hover the marker to see which part is missing. The same marker
-appears next to Author's Note, Active Lorebook, or Auto Summary in the
-memory button's panel when the template leaves that part out.
 
 If you close the editor with unsaved changes, Cozy asks whether to discard
 them before it closes. This happens no matter how you close it: the
@@ -210,10 +206,15 @@ You are done with this section when your persona has your name instead of
 Nothing in this section is needed to chat. Skip it and come back later if
 you want.
 
-- **Prompt template** — **Settings → Prompt** holds the template that
-  combines the character, your persona, lorebook entries, and chat history
-  into the text the AI receives. Cozy includes two ready-made presets, NanoBear and NanoBear Author.
-  The eye icon on **Settings → API** shows exactly what will be sent. The
+- **Prompt** — **Settings → Prompt** holds two boxes of plain text. **System**
+  tells the AI how to tell the story and is sent first. **Post-History** is a
+  last word sent after the chat, just before each reply. Cozy puts the
+  character, your persona, lorebook entries, your Author's Note and the
+  summary between them, each in a labelled tag, and leaves out whatever is
+  empty. `{{char}}` and `{{user}}` become the two names in either box. Cozy
+  includes two ready-made presets, NanoBear and NanoBear Author. The **?**
+  button on that page shows the whole layout, and the eye icon on
+  **Settings → API** shows exactly what will be sent. The
   pill beside a preset's name is its version, and two versions of the same
   preset can sit side by side once an update ships.
   **Import/export** is always available, so a preset someone shares with you
@@ -276,8 +277,7 @@ you want.
 **Back to chat**, at the foot of the Settings menu where the Settings button
 was, closes Settings. On a phone, Settings opens as a list with that button
 at the bottom. Tap a section to open its page, and tap the back arrow to
-return to the list. In the Prompt editor,
-**Variables** opens a list of everything the template can use.
+return to the list.
 
 On a phone or tablet, the system's Back (the swipe in from the screen edge on
 an iPhone, the back gesture or button on Android) closes whatever is open over

@@ -10,6 +10,7 @@ from cozy import shared
 from cozy import defaults
 from cozy import schema
 from cozy.png_utils import make_minimal_png
+from helpers import bundled_prompt_titles, read_bundled_prompt
 
 
 def _migration_rows():
@@ -42,7 +43,8 @@ def stock_prompt():
         conn.execute(
             'INSERT INTO system_prompts (name, content, post_history_content) '
             'VALUES (?, ?, ?)',
-            ('NanoBear', defaults.DEFAULT_PROMPT_TEMPLATE, defaults.DEFAULT_POST_HISTORY_TEMPLATE),
+            ('NanoBear', defaults._DEFAULT_PROMPT_TEMPLATE_V4,
+             defaults._DEFAULT_POST_HISTORY_TEMPLATE_V2),
         )
 
 
@@ -401,9 +403,11 @@ class TestSchemaMigrationLedger:
         saved = next(p for p in client.get('/api/presets').get_json() if p['name'] == 'Local')
         assert saved['settings'] == {'active_samplers': 'min_p', 'extra_request_params': ''}
 
-    def test_unversioned_upgrade_adds_summary_to_legacy_default_prompt(self, stock_prompt):
+    def test_summary_prompt_migration_adds_summary_to_legacy_default_prompt(self, stock_prompt):
         with shared.get_db() as conn:
-            conn.execute('DROP TABLE schema_migrations')
+            conn.execute(
+                "DELETE FROM schema_migrations WHERE name='add_summary_to_legacy_default_prompt'"
+            )
             conn.execute(
                 'UPDATE system_prompts SET content=? WHERE name=?',
                 (defaults._DEFAULT_PROMPT_TEMPLATE_V1, 'NanoBear'),
@@ -418,7 +422,7 @@ class TestSchemaMigrationLedger:
                 'SELECT content FROM system_prompts WHERE name=?',
                 ('NanoBear',),
             ).fetchone()
-        assert prompt['content'] == defaults.DEFAULT_PROMPT_TEMPLATE
+        assert prompt['content'] == defaults._DEFAULT_PROMPT_TEMPLATE_V2
         assert '{{#summary}}' in prompt['content']
         assert _migration_rows() == after_upgrade
 
@@ -525,7 +529,6 @@ class TestSchemaMigrationLedger:
                 ('NanoBear',),
             ).fetchone()
         assert prompt['content'] == defaults._DEFAULT_PROMPT_TEMPLATE_V4
-        assert prompt['content'] == defaults.DEFAULT_PROMPT_TEMPLATE
 
     def test_v4_prompt_migration_preserves_customized_prompt(self, stock_prompt):
         custom_prompt = defaults._DEFAULT_PROMPT_TEMPLATE_V3 + '\n\nCustom instructions.'
@@ -574,7 +577,7 @@ class TestSchemaMigrationLedger:
                 'SELECT post_history_content FROM system_prompts WHERE name=?',
                 ('NanoBear',),
             ).fetchone()
-        assert prompt['post_history_content'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
+        assert prompt['post_history_content'] == defaults._DEFAULT_POST_HISTORY_TEMPLATE_V2
         assert '{{post_history_instructions}}' not in prompt['post_history_content']
 
     def test_post_history_migration_preserves_customized(self, stock_prompt):
@@ -816,36 +819,38 @@ class TestSchemaMigrationLedger:
             active = conn.execute(
                 "SELECT value FROM settings WHERE key='active_system_prompt'"
             ).fetchone()['value']
-        # Renamed in place, edits and all, so the seeder finds both pairs
-        # present and adds no second copy of either.
-        assert rows == {
-            1: ('NanoBear', '2.1', 'my edits'),
-            2: ('NanoBear Author', '2.1', 'x'),
-            3: ('Custom', '', 'x'),
+        # Renamed in place, edits and all, so the seeder finds no 2.1 missing
+        # and adds only the edition this build ships.
+        bundled = {
+            (title, read_bundled_prompt(f'{title}.json')['version'])
+            for title in bundled_prompt_titles()
         }
+        assert {rows.pop(1), rows.pop(2), rows.pop(3)} == {
+            ('NanoBear', '2.1', 'my edits'),
+            ('NanoBear Author', '2.1', 'x'),
+            ('Custom', '', 'x'),
+        }
+        assert {(name, version) for name, version, _content in rows.values()} == bundled
         assert active == '1'
 
-    def _duplicate_of_seeded(self, name, old_name, content=None):
-        """Put back the pre-migration duplicate an upgraded install gained."""
+    def _duplicate_of_seeded(self, name, old_name, content='stock'):
+        """Put back the pair an upgraded install held: the 2.1 the seeder had
+        added, and the row from before the version column that it duplicated."""
         with shared.get_db() as conn:
-            seeded = conn.execute(
-                "SELECT * FROM system_prompts WHERE name=? AND version='2.1'", (name,)
-            ).fetchone()
-            cur = conn.execute(
+            insert = (
                 'INSERT INTO system_prompts (name, version, content, post_history_content) '
-                "VALUES (?, '2.1', ?, ?)",
-                (old_name, seeded['content'] if content is None else content,
-                 seeded['post_history_content']),
+                "VALUES (?, '2.1', ?, 'stock')"
             )
-            return seeded['id'], cur.lastrowid
+            seeded = conn.execute(insert, (name, 'stock')).lastrowid
+            return seeded, conn.execute(insert, (old_name, content)).lastrowid
 
     def test_untouched_duplicates_of_seeded_prompts_are_dropped(self):
-        defaults.seed_default_prompts()
         kept, stale = self._duplicate_of_seeded('NanoBear', 'NanoBear v2.1')
         self._duplicate_of_seeded('NanoBear Author', 'NanoBear Author v2.1')
         with shared.get_db() as conn:
             conn.execute(
-                "UPDATE settings SET value=? WHERE key='active_system_prompt'", (str(stale),)
+                "INSERT INTO settings (key, value) VALUES ('active_system_prompt', ?)",
+                (str(stale),),
             )
             conn.execute('DELETE FROM schema_migrations WHERE version=14')
 
@@ -861,7 +866,6 @@ class TestSchemaMigrationLedger:
         assert active == str(kept)
 
     def test_edited_duplicate_of_a_seeded_prompt_is_kept(self):
-        defaults.seed_default_prompts()
         self._duplicate_of_seeded('NanoBear', 'NanoBear v2.1', content='my edits')
         with shared.get_db() as conn:
             conn.execute('DELETE FROM schema_migrations WHERE version=14')
@@ -872,6 +876,108 @@ class TestSchemaMigrationLedger:
             names = {r['name'] for r in conn.execute('SELECT name FROM system_prompts')}
         assert 'NanoBear v2.1' in names
         assert 'NanoBear' in names
+
+    def _convert_prompts(self, *prompts):
+        """Store ``(name, version, content, post_history_content)`` rows as an
+        install from before migration 21 held them, then run it."""
+        with shared.get_db() as conn:
+            conn.executemany(
+                'INSERT INTO system_prompts (name, version, content, post_history_content) '
+                'VALUES (?, ?, ?, ?)', prompts,
+            )
+            conn.execute("DELETE FROM schema_migrations WHERE name='convert_prompts_to_plain_text'")
+        schema.init_db()
+        with shared.get_db() as conn:
+            return [dict(row) for row in conn.execute('SELECT * FROM system_prompts ORDER BY id')]
+
+    def _kept_templates(self):
+        try:
+            with open(schema.old_prompt_templates_path(), encoding='utf-8') as handle:
+                return json.load(handle)
+        except FileNotFoundError:
+            return None
+
+    @pytest.mark.parametrize('title', ['NanoBear', 'NanoBear Author'])
+    def test_an_untouched_bundled_prompt_becomes_3_0(self, title):
+        """What 2.1 shipped is the 3.0 text inside the layout Cozy now owns, so
+        the row moves up rather than the seeder adding a twin beside it."""
+        fixture = os.path.join(os.path.dirname(__file__), 'fixtures', f'{title} 2.1.json')
+        with open(fixture, encoding='utf-8') as handle:
+            stock = json.load(handle)
+        (prompt,) = self._convert_prompts(
+            (title, '2.1', stock['content'], stock['post_history_content']))
+        defaults.seed_default_prompts()
+
+        assert prompt['version'] == '3.0'
+        assert prompt['content'].startswith('You are the ')
+        assert '<' not in prompt['content'] + prompt['post_history_content']
+        assert '{{description}}' not in prompt['content']
+        with shared.get_db() as conn:
+            editions = conn.execute(
+                "SELECT COUNT(*) FROM system_prompts WHERE name=? AND version='3.0'", (title,)
+            ).fetchone()[0]
+        assert editions == 1
+        assert self._kept_templates() is None
+
+    # The 2.1 layout after the system wrapper, as prompts edited from the
+    # bundled ones carried it.
+    STOCK_LAYOUT = (
+        '\n\n<character>\n{{description}}\n\n'
+        '{{#personality}}[Character Personality]\n{{personality}}{{/personality}}\n  \n'
+        '{{#mesExamples}}[Example Dialogue]\n{{mesExamples}}{{/mesExamples}}\n</character>\n\n'
+        "<character>\n{{#persona}}[{{user}}'s Persona]\n{{persona}}{{/persona}}\n</character>\n\n"
+        '<world_info>\n{{#lorebook}}[Lorebook]\n{{lorebook}}{{/lorebook}}\n\n'
+        '{{#scenario}}[Scenario]\n{{scenario}}{{/scenario}}\n</world_info>\n\n'
+        "<memory>\n{{#author_note}}[Author's Note]\n{{author_note}}{{/author_note}}\n\n"
+        '{{#summary}}[Memory — Story So Far]\n{{summary}}{{/summary}}\n</memory>'
+    )
+
+    def test_a_prompt_shaped_like_the_stock_one_keeps_every_word(self):
+        """Edited instructions inside the two wrapper tags are the whole prompt:
+        the tags around the card and the memory were only ever layout."""
+        (prompt,) = self._convert_prompts((
+            'Mine', '2.1',
+            '<system_instructions status="enabled">\nYou are the author.\n\nSecond rule for {{char}}.\n'
+            '</system_instructions>' + self.STOCK_LAYOUT,
+            '<post_history_instructions status="enabled">\nWrite like a novel, {{user}}.\n'
+            '</post_history_instructions>',
+        ))
+
+        assert prompt['version'] == '2.1'
+        assert prompt['content'] == 'You are the author.\n\nSecond rule for {{char}}.'
+        assert prompt['post_history_content'] == 'Write like a novel, {{user}}.'
+        assert self._kept_templates() is None
+
+    def test_a_prompt_with_its_own_layout_keeps_its_words_and_its_original(self):
+        content = (
+            'You are {{char}}.\n\n{{#description}}[About]\n{{description}}{{/description}}\n\n'
+            '{{#system_prompt}}Card rules: {{system_prompt}}{{/system_prompt}}\n\n'
+            '<lore>\n{{lorebook}}\n</lore>\n\nStay in character.'
+        )
+        post_history = '{{user_message}}\n\n[Reminder]\nKeep it short.'
+        (prompt,) = self._convert_prompts(('Own', '1.2', content, post_history))
+
+        assert prompt['content'] == 'You are {{char}}.\n\nCard rules: \n\nStay in character.'
+        assert prompt['post_history_content'] == '[Reminder]\nKeep it short.'
+        assert self._kept_templates() == [{
+            'name': 'Own', 'version': '1.2', 'description': '',
+            'content': content, 'post_history_content': post_history,
+        }]
+
+    def test_plain_text_prompts_are_left_alone(self):
+        (prompt,) = self._convert_prompts(('Plain', '', 'Play {{char}}.\n\n[Rules]\nBe kind.', ''))
+
+        assert prompt['content'] == 'Play {{char}}.\n\n[Rules]\nBe kind.'
+        assert self._kept_templates() is None
+
+    def test_templates_kept_earlier_are_added_to(self):
+        """A backup from before the migration, restored over an install that
+        already kept some, must not lose those."""
+        with open(schema.old_prompt_templates_path(), 'w', encoding='utf-8') as handle:
+            json.dump([{'name': 'Earlier'}], handle)
+        self._convert_prompts(('Own', '', '{{description}} then words', ''))
+
+        assert [kept['name'] for kept in self._kept_templates()] == ['Earlier', 'Own']
 
     def test_chat_persona_backfills_from_last_user_message(self, tmp_path, monkeypatch):
         legacy_db = tmp_path / 'persona.db'

@@ -14,9 +14,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, Response
 
 from cozy import shared
-from cozy.defaults import (
-    DEFAULT_POST_HISTORY_TEMPLATE, VERSION_RE, seed_default_prompts, version_key,
-)
+from cozy.defaults import VERSION_RE, plain_prompt, seed_default_prompts, version_key
 from cozy.schema import MIGRATIONS, before_update_path, init_db
 from cozy.shared import get_db, json_body, json_download, not_found, safe_download_name, text_field
 
@@ -234,7 +232,7 @@ NEW_PROMPT_TEXT = {
     'version': '',
     'description': '',
     'content': '',
-    'post_history_content': DEFAULT_POST_HISTORY_TEMPLATE,
+    'post_history_content': '',
 }
 
 
@@ -336,9 +334,9 @@ def import_system_prompt():
     Expects multipart upload with a ``file`` field whose contents parse as
     ``{"name": str, "version": str, "description": str, "content": str,
     "post_history_content": str}``. ``version`` and ``description`` are
-    optional; a version must read as a number ("2", "2.1"). Legacy
-    system-only prompt JSON is accepted and gets the default post-history
-    template.
+    optional; a version must read as a number ("2", "2.1"). A file exported
+    before the fixed layout holds two templates, and comes in as their plain
+    text (plain_prompt() in cozy/defaults.py).
 
     Name and version identify a prompt together: importing a newer edition of
     one already installed keeps its own name and sits beside it, while the
@@ -357,6 +355,8 @@ def import_system_prompt():
     if invalid:
         return invalid
     name = text_field(payload, 'name') or 'Imported Prompt'
+    fields['content'], fields['post_history_content'] = plain_prompt(
+        fields['content'], fields['post_history_content'])[:2]
 
     with get_db() as conn:
         if conn.execute(

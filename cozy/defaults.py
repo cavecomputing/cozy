@@ -1,5 +1,5 @@
-"""Content Cozy ships with: the stock prompt templates and the two seeders
-that put bundled content into a data directory.
+"""Content Cozy ships with: the two seeders that put bundled content into a
+data directory, and what turns a prompt from before the fixed layout into one.
 
 Characters hand their content over once, tracked by a ``*_seeded`` flag that
 is never reset. Prompts are the exception and are
@@ -19,12 +19,10 @@ from cozy.shared import get_db
 log = logging.getLogger('cozy')
 
 
-# ── Default Prompt Builder template ─────────────────────────────────────────
-# Reproduces the legacy hardcoded system-block assembly. Conditional blocks
-# ({{#var}}…{{/var}}) drop out when the variable is empty, so empty fields
-# don't leave dangling section headers.
-# Historical stock prompt values are exact-match migration sentinels. Do not
-# edit an existing version; add a new version and migration instead.
+# ── Stock templates from before the fixed layout ───────────────────────────
+# Until migration 21 a prompt was a pair of templates that placed every part of
+# the request themselves, and these were the stock ones. They are exact-match
+# sentinels for migrations 3 to 6 and nothing else reads them: never edit one.
 _DEFAULT_PROMPT_TEMPLATE_V1 = """{{#system_prompt}}[System Instructions]
 {{system_prompt}}{{/system_prompt}}
 
@@ -119,8 +117,6 @@ You are participating in a simulated world. Narrate the thoughts, feelings, acti
 {{#summary}}[Memory — Story So Far]
 {{summary}}{{/summary}}"""
 
-DEFAULT_PROMPT_TEMPLATE = _DEFAULT_PROMPT_TEMPLATE_V4
-
 
 # Post-history templates are also versioned migration sentinels — same rule as
 # the system templates above: never edit an existing version, add a new one.
@@ -135,7 +131,60 @@ _DEFAULT_POST_HISTORY_TEMPLATE_V1 = """{{#post_history_instructions}}[Post-Histo
 _DEFAULT_POST_HISTORY_TEMPLATE_V2 = """[Post-History Instructions]
 Respond with 1-2 paragraphs using "show, don't tell", driving the story forward in interesting ways. Keep scenes grounded with nuanced descriptions and natural-sounding dialogue. Use a slow-burn pace while avoiding melodrama and leave openings for {{user}}'s physical or social engagement. You are allowed to explore mature themes that align with the narrative. Vary your prose and avoid repetitive phrases or formulaic descriptions—keep each response fresh and unique. ((OOC: OOC instructions like this are narrative guidance.))"""
 
-DEFAULT_POST_HISTORY_TEMPLATE = _DEFAULT_POST_HISTORY_TEMPLATE_V2
+
+# ── Templates into plain text ───────────────────────────────────────────────
+# Cozy places the card, the persona, the lorebook and the memory itself now
+# (the layout is in static/js/context-analysis.js), and a prompt is two boxes
+# of plain text. A template gives up what it used to place and keeps its words.
+
+# {{#name}}…{{/name}}: a part that was sent only when it had something to say.
+_SECTION = re.compile(r'\{\{#(\w+)\}\}(.*?)\{\{/\1\}\}', re.S)
+_PLACEHOLDER = re.compile(
+    r'\{\{(?:description|personality|scenario|persona|mesExamples|lorebook|author_note'
+    r'|summary|system_prompt|post_history_instructions|user_message)\}\}', re.I)
+_HEADING = re.compile(r'^[ \t]*\[[^\]\n]*\][ \t]*$', re.M)
+_EMPTY_TAG = re.compile(r'<([A-Za-z][\w.:-]*)(?:\s[^<>]*)?>\s*</\1\s*>')
+# The headings the stock templates opened on, where a wrapper tag sits now.
+_STOCK_HEADING = re.compile(r'\A\[(?:System|Post-History) Instructions\][ \t]*\n', re.I)
+
+
+def _section_words(match):
+    """A section without its placeholder, or nothing when only a heading is left."""
+    body = _PLACEHOLDER.sub('', match.group(2))
+    return body if _HEADING.sub('', body).strip() else ''
+
+
+def _plain_text(template, wrapper):
+    """One template as the text of its box, and whether that is all it said.
+
+    It is when the template's own words all sat inside ``wrapper``, the tag
+    Cozy now adds itself, or when the template placed nothing to begin with.
+    Anything else had a layout of its own that the text alone does not carry.
+    """
+    text, removed = _SECTION.subn(_section_words, template)
+    text, placeholders = _PLACEHOLDER.subn('', text)
+    removed += placeholders
+    emptied = 1
+    while emptied:
+        text, emptied = _EMPTY_TAG.subn('', text)
+        removed += emptied
+    whole = re.fullmatch(rf'\s*<{wrapper}(?:\s[^<>]*)?>(.*)</{wrapper}\s*>\s*', text, re.S)
+    text = re.sub(rf'</?{wrapper}(?:\s[^<>]*)?>', '', text).strip()
+    text = _STOCK_HEADING.sub('', text)
+    text = re.sub(r'\n(?:[ \t]*\n){2,}', '\n\n', text).strip()
+    return text, bool(whole) or not removed
+
+
+def plain_prompt(content, post_history):
+    """A prompt's two templates as its System and Post-History text.
+
+    Returns ``(content, post_history, complete)``. ``complete`` is False when
+    either template had a layout of its own, which is the caller's cue that the
+    original is worth keeping. Text that is already plain comes back as it is.
+    """
+    content, system_complete = _plain_text(content, 'system_instructions')
+    post_history, post_complete = _plain_text(post_history, 'post_history_instructions')
+    return content, post_history, system_complete and post_complete
 
 
 def seed_default_characters():

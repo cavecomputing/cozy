@@ -6,6 +6,7 @@ the MIGRATIONS tuple below, appended with the next version and a new name —
 a shipped entry must never be renumbered, renamed or reordered.
 """
 
+import hashlib
 import json
 import logging
 import math
@@ -20,6 +21,7 @@ from cozy.defaults import (
     _DEFAULT_PROMPT_TEMPLATE_V2,
     _DEFAULT_PROMPT_TEMPLATE_V3,
     _DEFAULT_PROMPT_TEMPLATE_V4,
+    plain_prompt,
 )
 from cozy.shared import get_db
 
@@ -410,6 +412,76 @@ def _record_selected_swipes(conn):
     ''')
 
 
+def old_prompt_templates_path():
+    """Where prompts that had a layout of their own are kept as they were."""
+    return os.path.join(shared.DATA_DIR, 'old-prompt-templates.json')
+
+
+# The two prompts 2.1 shipped, by the SHA-256 of their templates. A row still
+# holding one is the bundled prompt untouched, and becomes 3.0.
+_STOCK_PROMPTS_2_1 = {
+    'NanoBear': 'd565a49f19650a79558bc8d53a1cb2f68feeef462b9ea2e1e4085fb81bd00987',
+    'NanoBear Author': 'e61a5f895c8db8390cbcd570eea7a4afd30d57dfe81791a5aaaeb10cc46be31c',
+}
+
+
+def _convert_prompts_to_plain_text(conn):
+    """Turn every prompt's two templates into its System and Post-History text.
+
+    Cozy lays the request out itself now, so a prompt no longer says where the
+    card, the persona, the lorebook and the memory go, only what the model is
+    told before and after the chat (plain_prompt() in cozy/defaults.py). A
+    prompt shaped like the stock ones loses nothing by that. One with a layout
+    of its own keeps its words, and is written as it was to
+    old-prompt-templates.json in the data directory, since the layout is gone.
+
+    The bundled prompts ship as 3.0 with the same text this leaves an untouched
+    2.1 holding, so that row takes the new version here rather than gaining a
+    twin from the seeder.
+    """
+    taken = {
+        (row['name'], row['version'])
+        for row in conn.execute('SELECT name, version FROM system_prompts')
+    }
+    originals = []
+    for row in conn.execute('SELECT * FROM system_prompts').fetchall():
+        templates = (row['content'], row['post_history_content'])
+        content, post_history, complete = plain_prompt(*templates)
+        if (content, post_history) == templates:
+            continue
+        version = row['version']
+        stock = hashlib.sha256('\0'.join(templates).encode()).hexdigest()
+        if (version == '2.1' and _STOCK_PROMPTS_2_1.get(row['name']) == stock
+                and (row['name'], '3.0') not in taken):
+            version = '3.0'
+        conn.execute(
+            'UPDATE system_prompts SET version=?, content=?, post_history_content=? WHERE id=?',
+            (version, content, post_history, row['id']),
+        )
+        if not complete:
+            originals.append({
+                'name': row['name'],
+                'version': row['version'],
+                'description': row['description'],
+                'content': row['content'],
+                'post_history_content': row['post_history_content'],
+            })
+
+    if not originals:
+        return
+    path = old_prompt_templates_path()
+    # A backup from before this migration, restored over an install that has
+    # already kept some, adds to them.
+    try:
+        with open(path, encoding='utf-8') as handle:
+            kept = json.load(handle)
+    except (OSError, ValueError):
+        kept = []
+    with open(path, 'w', encoding='utf-8') as handle:
+        json.dump(kept + originals, handle, indent=2, ensure_ascii=False)
+    log.info('Kept %d prompt templates as they were: %s', len(originals), path)
+
+
 MIGRATIONS = (
     (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
     (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
@@ -431,6 +503,7 @@ MIGRATIONS = (
     (18, 'retire_mirostat_and_typical_p', _retire_mirostat_and_typical_p),
     (19, 'remove_regex_filters', _remove_regex_filters),
     (20, 'record_selected_swipes', _record_selected_swipes),
+    (21, 'convert_prompts_to_plain_text', _convert_prompts_to_plain_text),
 )
 
 

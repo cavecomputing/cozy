@@ -117,10 +117,11 @@ class TestSystemPrompts:
         assert set(bundled_prompt_titles()) <= names
 
         house = next(p for p in prompts if p['name'] == 'NanoBear')
-        # The Prompt Builder variables the character editor checks against.
-        assert '{{description}}' in house['content']
-        assert '{{author_note}}' in house['content']
+        # Two boxes of plain text: Cozy places the card and the memory itself.
+        assert house['content'].strip()
         assert house['post_history_content'].strip()
+        assert '{{description}}' not in house['content']
+        assert '<system_instructions' not in house['content']
 
     def test_list_groups_editions_by_name_newest_first(self, client):
         # Inserted deliberately out of order, the way an upgrade lands them:
@@ -401,10 +402,9 @@ class TestSystemPrompts:
         assert r.status_code == 201
         body = r.get_json()
         assert body['name'] == 'Imported Prompt'
-        # Omitted post_history_content falls back to the current default.
-        assert body['post_history_content'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
+        assert body['post_history_content'] == ''
 
-    def test_import_prompt_accepts_legacy_system_only_json(self, client):
+    def test_import_prompt_accepts_system_only_json(self, client):
         r = client.post(
             '/api/system-prompts/import',
             data={'file': (BytesIO(b'{"name":"Legacy","content":"system only"}'), 'legacy.json')},
@@ -414,7 +414,31 @@ class TestSystemPrompts:
         body = r.get_json()
         assert body['name'] == 'Legacy'
         assert body['content'] == 'system only'
-        assert body['post_history_content'] == defaults.DEFAULT_POST_HISTORY_TEMPLATE
+        assert body['post_history_content'] == ''
+
+    def test_import_turns_a_template_from_the_old_editor_into_plain_text(self, client):
+        """A file exported before the fixed layout still imports, as its words."""
+        template = {
+            'name': 'Old',
+            'content': (
+                '<system_instructions status="enabled">\nPlay {{char}}.\n</system_instructions>\n\n'
+                '<character>\n{{description}}\n\n'
+                '{{#personality}}[Character Personality]\n{{personality}}{{/personality}}\n</character>'
+            ),
+            'post_history_content': (
+                '<post_history_instructions status="enabled">\nKeep it short.\n'
+                '</post_history_instructions>'
+            ),
+        }
+        r = client.post(
+            '/api/system-prompts/import',
+            data={'file': (BytesIO(json.dumps(template).encode()), 'old.json')},
+            content_type='multipart/form-data',
+        )
+        assert r.status_code == 201
+        body = r.get_json()
+        assert body['content'] == 'Play {{char}}.'
+        assert body['post_history_content'] == 'Keep it short.'
 
     def test_export_missing_prompt_returns_404(self, client):
         r = client.get('/api/system-prompts/99999/export')

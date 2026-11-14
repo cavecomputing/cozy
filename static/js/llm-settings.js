@@ -419,19 +419,18 @@ export function showSummaryFallbacks() {
 
 // ── Advanced configuration gate ──────────────────────────────────────────
 // Surfaces hidden unless "Show advanced configuration" is checked in the
-// General tab: the Prompt template editors + Variables help, the buttons that author a prompt, the Summaries
+// General tab: the Prompt editors, the buttons that author a prompt, the Summaries
 // Behavior card, and the Extra request parameters card.
 //
 // What survives on the Prompt page is what a reader needs: the picker, the
 // description as read-only text, and Import/export — someone handed a prompt
 // to try should not have to turn anything on first. New, Rename and Delete
-// only matter once you are authoring one, and the help modal is template
-// syntax, which has no editor to apply it to while the editors are hidden.
+// only matter once you are authoring one, and the help modal explains the
+// editors, which are hidden.
 export function applyAdvancedConfigurationVisibility() {
     const visible = Boolean(state.showAdvancedConfiguration);
     document.querySelectorAll(
-        '.settings-section[data-section="prompt"] .prompt-vars-panel,'
-        + ' .settings-section[data-section="prompt"] .prompt-section-right,'
+        '.settings-section[data-section="prompt"] .prompt-section-right,'
         + ' #settings-sysprompt-help,'
         + ' #settings-sysprompt-new,'
         + ' #settings-sysprompt-rename,'

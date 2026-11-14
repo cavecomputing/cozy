@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { showToast, updateComposerState, markUnusedVar } from './utils.js';
+import { showToast, updateComposerState } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { estimateTextTokens } from './tokenizer.js';
 import { updateContextViews } from './context-meter.js';
@@ -638,7 +638,6 @@ export function renderLorebookFlyout() {
     }
 
     sel.disabled = !chat;
-    markUnusedVar(el.lorebookMarker, 'lorebook');
 }
 
 /** Decode a dropdown option value and persist the selection. */
@@ -683,7 +682,6 @@ export function loadAuthorNote() {
     el.authorNoteInput.dataset.chatId = chat?.id ?? '';
     el.authorNoteInput.disabled = !chat;
     updateAuthorNoteCounter();
-    markUnusedVar(el.authorNoteMarker, 'author_note');
 }
 
 /** Refresh the "≈ N tokens" counter under the Author's Note box. */

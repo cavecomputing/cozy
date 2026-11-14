@@ -5,11 +5,8 @@ messages no longer fit in the model's context window.
 
 They are disabled on new chats.
 
-The summary reaches the model through the `{{summary}}` variable in your prompt
-template, and only through it. A template without that variable sends no
-summary, however full the summary is — Cozy never appends it on its own. The
-Memory flyout marks this with a ⊘ beside the summary card when your active
-template has no slot for it.
+The summary is sent with every message while the chat has one, in a
+`<story_so_far>` tag beside your Author's Note and ahead of the chat history.
 
 ## Configure
 

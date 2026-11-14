@@ -29,14 +29,6 @@ function canJumpToBoundary(analysis) {
         && analysis.firstSelectedMessageId !== state.messages[0].id;
 }
 
-// Which template a segment came from, named only when the other template has
-// the same kind of segment: one "Lorebook" needs no telling apart.
-function templateOf(segment, analysis) {
-    const twice = analysis.segments.some(other => other !== segment && other.id === segment.id);
-    if (!twice) return '';
-    return { system: 'System template', user: 'User template' }[segment.zone] || '';
-}
-
 export function tooltipForSegment(segment, analysis) {
     const formatted = segment.tokens.toLocaleString();
     const pct = analysis.maxTokens > 0
@@ -53,10 +45,11 @@ export function tooltipForSegment(segment, analysis) {
             detail += '<br>Click to jump to where the window starts.';
         }
     }
+    if (segment.id === 'system_prompt') detail += '<br>Your System prompt, in its tag.';
+    if (segment.id === 'post_history') detail += '<br>Your Post-History prompt, in its tag.';
     if (segment.id === 'unused') detail += '<br>Available for future conversation context.';
     if (segment.id === 'response_reserve') detail += '<br>Held back so the model has room to answer.';
-    const template = templateOf(segment, analysis);
-    return `<strong>${segment.label}${template && ` · ${template}`}</strong><br>${detail}`;
+    return `<strong>${segment.label}</strong><br>${detail}`;
 }
 
 function renderSegments(analysis) {
@@ -73,15 +66,13 @@ function renderSegments(analysis) {
         button.type = 'button';
         button.className = 'context-meter-segment';
         button.dataset.source = segment.id;
-        button.dataset.segmentKey = segment.key;
         button.dataset.tip = tooltipForSegment(segment, analysis);
         button.style.flexBasis = `${(segment.tokens / denominator) * 100}%`;
-        const template = templateOf(segment, analysis);
         const jumps = segment.id === 'message_history' && canJumpToBoundary(analysis);
         button.classList.toggle('context-meter-segment--jump', jumps);
         button.setAttribute(
             'aria-label',
-            `${segment.label}${template && `, ${template}`}: approximately ${segment.tokens.toLocaleString()} tokens`
+            `${segment.label}: approximately ${segment.tokens.toLocaleString()} tokens`
             + (jumps ? '. Activate to scroll to the start of the context window' : ''),
         );
         bar.appendChild(button);
@@ -89,10 +80,10 @@ function renderSegments(analysis) {
 
     // Rebuilding detaches the segment an open tooltip may be anchored to
     // (tapped open on touch, where nothing else dismisses it). Follow it to
-    // the same ordered replacement so the numbers stay live, or dismiss it
+    // the same source's replacement so the numbers stay live, or dismiss it
     // when that segment no longer exists.
     retargetTooltip(previous => previous.classList?.contains('context-meter-segment')
-        ? bar.querySelector(`[data-segment-key="${previous.dataset.segmentKey}"]`)
+        ? bar.querySelector(`[data-source="${previous.dataset.source}"]`)
         : null);
 }
 

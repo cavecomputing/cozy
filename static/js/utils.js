@@ -128,29 +128,20 @@ export function chatStamp() {
 }
 
 /**
- * Resolve SillyTavern-style template variables in a string.
- * Supports conditional blocks: {{#var}}…{{/var}} drops out when var is empty.
- * @param {string} template — the raw template with {{var}} placeholders
- * @param {object} context  — { user, char, personality, scenario, description,
- *                              persona, mesExamples, lorebook, author_note, summary,
- *                              system_prompt, post_history_instructions,
- *                              user_message }
+ * Fill in the SillyTavern-style variables a card, a persona or a message may
+ * carry: the two names, a few card fields, the time and a random pick.
+ * @param {string} text
+ * @param {object} context — { user, char, personality, scenario, description,
+ *                             persona, mesExamples }; a field left out fills
+ *                             its variable with nothing
  * @returns {string} the resolved string
  */
-export function resolveTemplateVariables(template, context) {
-    if (!template) return '';
-    template = template.replace(
-        /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,
-        (_, key, body) => {
-            const v = context[key];
-            if (v == null || String(v).trim() === '') return '';
-            return body.replace(/^\n/, '').replace(/\n$/, '');
-        }
-    );
+export function resolveTemplateVariables(text, context) {
+    if (!text) return '';
     // Values go in through functions: a replacement string reads "$&", "$'"
     // and "$$" in a card or message as patterns, and "$'" pasted the rest of
     // the prompt in its place.
-    return template
+    return text
         .replace(/\{\{user\}\}/gi,           () => context.user || '')
         .replace(/\{\{char\}\}/gi,           () => context.char || '')
         .replace(/\{\{personality\}\}/gi,    () => context.personality || '')
@@ -158,13 +149,6 @@ export function resolveTemplateVariables(template, context) {
         .replace(/\{\{description\}\}/gi,    () => context.description || '')
         .replace(/\{\{persona\}\}/gi,        () => context.persona || '')
         .replace(/\{\{mesExamples\}\}/gi,    () => context.mesExamples || '')
-        .replace(/\{\{lorebook\}\}/gi,       () => context.lorebook || '')
-        .replace(/\{\{author_note\}\}/gi,    () => context.author_note || '')
-        .replace(/\{\{summary\}\}/gi,        () => context.summary || '')
-        .replace(/\{\{system_prompt\}\}/gi,  () => context.system_prompt || '')
-        .replace(/\{\{post_history_instructions\}\}/gi,
-                                                () => context.post_history_instructions || '')
-        .replace(/\{\{user_message\}\}/gi,   () => context.user_message || '')
         .replace(/\{\{time\}\}/gi,           () => new Date().toLocaleTimeString())
         .replace(/\{\{date\}\}/gi,           () => new Date().toLocaleDateString())
         // SillyTavern's macro for the time since the last message. Cozy keeps
@@ -177,37 +161,6 @@ export function resolveTemplateVariables(template, context) {
         })
         .replace(/\n{3,}/g, '\n\n')
         .trim();
-}
-
-// An opening tag with optional attributes, whitespace, then its own closing tag.
-const EMPTY_TAG_BLOCK = /<([A-Za-z][\w.:-]*)(?:\s[^<>]*)?>\s*<\/\1\s*>/g;
-// Blank lines pressed against the inside of a wrapper, where a section used to be.
-const TAG_OPEN_PADDING = /(<[A-Za-z][\w.:-]*(?:\s[^<>]*)?>)\s*\n\s*/g;
-const TAG_CLOSE_PADDING = /\s*\n\s*(<\/[A-Za-z][\w.:-]*\s*>)/g;
-
-/**
- * Tidy the wrapper tags a template puts around its sections.
- *
- * A pair left holding nothing goes entirely — a `<world_info>` whose variables
- * all came back empty is still a heading the model reads and tries to honour.
- * A pair that kept something drops the blank lines the resolved-away sections
- * left against its edges, so the tag sits directly on its content. Gaps between
- * two sections that both survived are the template's own spacing and stay.
- *
- * Whitespace-only content makes the empty match innermost by construction;
- * repeating the pass clears a parent emptied by losing its last child.
- */
-export function tidyTagBlocks(text) {
-    let tidied = String(text || '');
-    let previous;
-    do {
-        previous = tidied;
-        tidied = tidied
-            .replace(EMPTY_TAG_BLOCK, '')
-            .replace(TAG_OPEN_PADDING, '$1\n')
-            .replace(TAG_CLOSE_PADDING, '\n$1');
-    } while (tidied !== previous);
-    return tidied;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -419,23 +372,6 @@ function activeLorebookLabel() {
         return book?.name || 'Missing book';
     }
     return 'None';
-}
-
-/** True if the active prompt template references {{name}} or {{#name}}. */
-export function templateHasVar(name) {
-    const sp = state.systemPrompts.find(s => s.id === state.activeSystemPromptId);
-    if (!sp) return true;  // no active template resolvable → don't mark (avoid false alarms)
-    const re = new RegExp('\\{\\{#?' + name + '\\}\\}', 'i');
-    return re.test(sp.content || '') || re.test(sp.post_history_content || '');
-}
-
-/**
- * Show the neutral ⊘ marker when the active prompt template has no
- * {{variable}} for something, so the memory flyout says a feature has nowhere
- * to go before you fill it in.
- */
-export function markUnusedVar(marker, varName) {
-    if (marker) marker.hidden = templateHasVar(varName);
 }
 
 function updateComposerContextControls(hasChat, hasCharacter) {

@@ -12,44 +12,90 @@ BASE_NODE_SETUP = r"""
     state.contextMaxTokens = '0';
     el.settingsContextTokens = { value: '0' };
     state.activePersona = { name: 'Morgan', description: 'A curious user.' };
+
+    // One preset holding the two boxes of the Prompt page.
+    const usePrompt = (content, post_history_content = '') => {
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{ id: 1, name: 'Test', content, post_history_content }];
+    };
+    const SYSTEM_OPEN = '<system_instructions status="enabled" note="How to tell this story. Follow it throughout.">';
+    const inSystemTag = text => `${SYSTEM_OPEN}\n${text}\n</system_instructions>`;
+    const POST_OPEN = '<post_history_instructions status="enabled" note="For the reply you write now.">';
+    const inPostTag = text => `${POST_OPEN}\n${text}\n</post_history_instructions>`;
 """
 
 
-def test_chat_payload_uses_active_custom_system_prompt_template():
-    """Message sends should use the selected custom template, not the default."""
+def test_chat_payload_lays_the_prompt_out_around_the_two_boxes():
+    """The System box, the card, the persona, the lorebook and the memory go
+    out in one fixed layout, every tag saying what it holds, and the
+    Post-History box rides on the end of the latest message."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = {
             name: 'Mira',
             description: 'A careful tester.',
-            system_prompt: 'Always answer as the custom character.',
+            personality: 'Dry.',
+            mes_example: '<START>\n{{char}}: Noted.',
+            scenario: 'A lab at night.',
+            character_book: {
+                entries: [{ enabled: true, constant: true, content: 'The lab is underground.' }],
+            },
         };
-        state.activeSystemPromptId = 2;
-        state.systemPrompts = [
-            {
-                id: 1,
-                name: 'Default',
-                content: 'DEFAULT TEMPLATE {{system_prompt}}',
-                post_history_content: '',
-            },
-            {
-                id: 2,
-                name: 'Custom',
-                content: 'CUSTOM TEMPLATE\n{{#system_prompt}}Character rules: {{system_prompt}}{{/system_prompt}}\nUser={{user}}\nChar={{char}}',
-                post_history_content: '',
-            },
-        ];
-        state.messages = [{ role: 'user', text: 'Did my custom prompt arrive?' }];
+        state.activeChat = { author_note: 'Keep it tense.', active_lorebook_embedded: true };
+        usePrompt('Play {{char}} for {{user}}.', 'Stay with {{char}}.');
+        state.messages = [{ id: 1, role: 'user', text: 'Did my prompt arrive?' }];
 
         const payload = buildChatPayload();
-        const systemMessage = payload.messages[0];
+        assert.deepEqual(payload.messages.map(message => message.role), ['system', 'user']);
+        assert.equal(payload.messages[0].content, [
+            '<system_instructions status="enabled" note="How to tell this story. Follow it throughout.">',
+            'Play Mira for Morgan.',
+            '</system_instructions>',
+            '',
+            '<character note="Who Mira is: background, looks and personality.">',
+            'A careful tester.',
+            '',
+            'Dry.',
+            '',
+            '<example_dialogue note="How Mira talks and acts. A style reference, not events in this story.">',
+            '<START>',
+            'Mira: Noted.',
+            '</example_dialogue>',
+            '</character>',
+            '',
+            '<user note="Morgan, the character the user plays.">',
+            'A curious user.',
+            '</user>',
+            '',
+            '<world_info note="Facts about the setting. True unless the story changes them.">',
+            'The lab is underground.',
+            '',
+            'A lab at night.',
+            '</world_info>',
+            '',
+            '<memory note="From earlier in this chat. For reference; not all of it applies now.">',
+            '<author_note note="The user\'s running notes on the story.">',
+            'Keep it tense.',
+            '</author_note>',
+            '</memory>',
+        ].join('\n'));
+        assert.equal(payload.messages[1].content, [
+            'Did my prompt arrive?',
+            '',
+            '<post_history_instructions status="enabled" note="For the reply you write now.">',
+            'Stay with Mira.',
+            '</post_history_instructions>',
+        ].join('\n'));
 
-        assert.equal(systemMessage.role, 'system');
-        assert.match(systemMessage.content, /CUSTOM TEMPLATE/);
-        assert.match(systemMessage.content, /Character rules: Always answer as the custom character\./);
-        assert.match(systemMessage.content, /User=Morgan/);
-        assert.match(systemMessage.content, /Char=Mira/);
-        assert.doesNotMatch(systemMessage.content, /DEFAULT TEMPLATE/);
-        assert.doesNotMatch(systemMessage.content, /\{\{system_prompt\}\}/);
+        // The summary is the other half of <memory>.
+        const withSummary = analyzeContext({ summaryText: 'They crossed the bridge.' });
+        assert.ok(withSummary.messages[0].content.endsWith([
+            '</author_note>',
+            '',
+            '<story_so_far note="What happened earlier in this chat, summarized.">',
+            'They crossed the bridge.',
+            '</story_so_far>',
+            '</memory>',
+        ].join('\n')));
     """
     run_node_module(code)
 
@@ -79,70 +125,100 @@ def test_prompt_editor_draft_syncs_active_prompt_before_persistence():
     run_node_module(code)
 
 
-def test_whitespace_only_values_still_drop_their_conditional_blocks():
-    """Source tracking must not make a whitespace-only value truthy in {{#var}}.
-
-    Imported cards commonly carry fields like `"scenario": " "`; the legacy
-    builder dropped those blocks, and the marker-based resolver must agree or
-    wrapper labels leak into the outgoing prompt with nothing after them.
-    """
+def test_a_part_with_nothing_to_say_is_left_out_tag_and_all():
+    """An empty tag is still a heading the model reads and tries to honour, so
+    a part with no content takes its tag and its note with it. Imported cards
+    commonly carry fields like `"scenario": " "`, which count as empty."""
     code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira', scenario: ' ' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'SYSTEM.{{#scenario}}\nScenario: {{scenario}}{{/scenario}}'
-                + '{{#author_note}}\nAUTHOR NOTE: {{author_note}}{{/author_note}}',
-            post_history_content: '',
-        }];
+        state.activeCharacter = { name: 'Mira', description: 'A careful tester.', scenario: ' ' };
+        state.activePersona = { name: 'Morgan', description: '' };
         state.activeChat = { author_note: '   ' };
+        usePrompt('   ');
         state.messages = [{ id: 1, role: 'user', text: 'hi' }];
 
-        const payload = buildChatPayload();
-        assert.equal(payload.messages[0].role, 'system');
-        assert.equal(payload.messages[0].content, 'SYSTEM.');
+        const bare = buildChatPayload().messages;
+        assert.equal(bare[0].content,
+            '<character note="Who Mira is: background, looks and personality.">\n'
+            + 'A careful tester.\n</character>');
+        assert.equal(bare[1].content, 'hi');
 
-        // A real value still resolves and is attributed to its source.
-        state.activeChat.author_note = 'Keep it cozy.';
-        const analysis = analyzeContext({});
-        assert.match(analysis.messages[0].content, /AUTHOR NOTE: Keep it cozy\./);
-        assert.doesNotMatch(analysis.messages[0].content, /Scenario:/);
-        assert.ok(analysis.segments.some(segment => segment.id === 'author_note'));
+        // Nothing at all to send means no system message.
+        state.activeCharacter.description = '';
+        assert.deepEqual(buildChatPayload().messages, [{ role: 'user', content: 'hi' }]);
+
+        // Filling a part brings its tag back, and a tag inside another brings
+        // that one with it.
+        state.activePersona.description = 'A curious user.';
+        state.activeCharacter.mes_example = 'Mira: Noted.';
+        const filled = buildChatPayload().messages[0].content;
+        assert.equal(filled, [
+            '<character note="Who Mira is: background, looks and personality.">',
+            '<example_dialogue note="How Mira talks and acts. A style reference, not events in this story.">',
+            'Mira: Noted.',
+            '</example_dialogue>',
+            '</character>',
+            '',
+            '<user note="Morgan, the character the user plays.">',
+            'A curious user.',
+            '</user>',
+        ].join('\n'));
+        assert.doesNotMatch(filled, /<memory|<world_info|<system_instructions/);
     """
     run_node_module(code)
 
 
-def test_wrapper_tags_left_empty_are_dropped_from_the_prompt():
-    """XML-style wrappers around optional sections shouldn't ship as bare tags.
+def test_an_empty_authors_note_leaves_no_gap_above_the_summary():
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activePersona = { name: 'Morgan', description: '' };
+        state.activeChat = { author_note: '' };
+        usePrompt('');
+        state.messages = [{ id: 1, role: 'user', text: 'hi' }];
 
-    A `<memory></memory>` with nothing between it is still a heading the model
-    reads, so a wrapper whose sections all resolved away goes out with them —
-    while a wrapper that kept even one section stays intact.
+        const analysis = analyzeContext({ summaryText: 'They crossed the bridge.' });
+        assert.equal(analysis.messages[0].content, [
+            '<memory note="From earlier in this chat. For reference; not all of it applies now.">',
+            '<story_so_far note="What happened earlier in this chat, summarized.">',
+            'They crossed the bridge.',
+            '</story_so_far>',
+            '</memory>',
+        ].join('\n'));
     """
+    run_node_module(code)
+
+
+def test_the_boxes_are_sent_as_written():
+    """A box is the user's own words: tags and headings in it are text, not
+    layout, and nothing in it is tidied away."""
+    code = BASE_NODE_SETUP + r"""
+        state.activeCharacter = { name: 'Mira' };
+        state.activePersona = { name: 'Morgan', description: '' };
+        usePrompt('[Rules]\n<rule></rule>\n3 < 4 > 2');
+        state.messages = [{ id: 1, role: 'user', text: 'hi' }];
+
+        assert.equal(buildChatPayload().messages[0].content,
+            inSystemTag('[Rules]\n<rule></rule>\n3 < 4 > 2'));
+    """
+    run_node_module(code)
+
+
+def test_only_a_few_variables_work_in_a_box():
+    """The names, the time, the date and a random pick. A box no longer places
+    the card, so {{description}} in one stands for nothing, and so does a
+    card's {{original}}."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira', description: 'A careful tester.' };
         state.activePersona = { name: 'Morgan', description: '' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: '<partner_character>\n{{description}}\n</partner_character>\n\n'
-                + '<user>\n{{#persona}}[Persona]\n{{persona}}{{/persona}}\n</user>\n\n'
-                + '<memory>\n{{#author_note}}[Note]\n{{author_note}}{{/author_note}}\n</memory>',
-            post_history_content: '',
-        }];
-        state.activeChat = { author_note: '' };
+        usePrompt(
+            '{{original}} Play {{char}} for {{USER}}. {{description}}{{#persona}}x{{/persona}} Mood: {{random:calm,calm}}.',
+            '{{summary}}Year {{date}}.',
+        );
         state.messages = [{ id: 1, role: 'user', text: 'hi' }];
 
-        const empty = buildChatPayload().messages[0].content;
-        assert.match(empty, /<partner_character>\nA careful tester\.\n<\/partner_character>/);
-        assert.doesNotMatch(empty, /<user>/);
-        assert.doesNotMatch(empty, /<memory>/);
-
-        // Filling one of them brings its wrapper back.
-        state.activePersona.description = 'A curious user.';
-        const filled = buildChatPayload().messages[0].content;
-        assert.match(filled, /<user>\n\[Persona\]\nA curious user\.\n<\/user>/);
-        assert.doesNotMatch(filled, /<memory>/);
+        const [system, user] = buildChatPayload().messages;
+        assert.ok(system.content.startsWith(inSystemTag('Play Mira for Morgan. x Mood: calm.')));
+        assert.equal(system.content.match(/A careful tester\./g).length, 1);
+        assert.equal(user.content, `hi\n\n${inPostTag(`Year ${new Date().toLocaleDateString()}.`)}`);
     """
     run_node_module(code)
 
@@ -153,8 +229,8 @@ def test_history_opening_on_the_character_gets_the_start_shim():
     the system prompt that the user did not write."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{ id: 1, content: 'SYSTEM.', post_history_content: '' }];
+        state.activePersona = { name: 'Morgan', description: '' };
+        usePrompt('SYSTEM.');
         state.messages = [
             { id: 1, role: 'character', text: 'Hello there, traveller.' },
             { id: 2, role: 'user', text: 'hi' },
@@ -162,7 +238,7 @@ def test_history_opening_on_the_character_gets_the_start_shim():
 
         const payload = buildChatPayload();
         assert.deepEqual(payload.messages, [
-            { role: 'system', content: 'SYSTEM.' },
+            { role: 'system', content: inSystemTag('SYSTEM.') },
             { role: 'user', content: '[Start]' },
             { role: 'assistant', content: 'Hello there, traveller.' },
             { role: 'user', content: 'hi' },
@@ -175,8 +251,8 @@ def test_history_opening_on_the_user_gets_no_shim():
     """That request already alternates, so nothing is added to it at all."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{ id: 1, content: 'SYSTEM.', post_history_content: '' }];
+        state.activePersona = { name: 'Morgan', description: '' };
+        usePrompt('SYSTEM.');
         state.messages = [
             { id: 1, role: 'user', text: 'I speak first.' },
             { id: 2, role: 'character', text: 'And I answer.' },
@@ -184,7 +260,7 @@ def test_history_opening_on_the_user_gets_no_shim():
 
         const payload = buildChatPayload();
         assert.deepEqual(payload.messages, [
-            { role: 'system', content: 'SYSTEM.' },
+            { role: 'system', content: inSystemTag('SYSTEM.') },
             { role: 'user', content: 'I speak first.' },
             { role: 'assistant', content: 'And I answer.' },
         ]);
@@ -192,20 +268,18 @@ def test_history_opening_on_the_user_gets_no_shim():
     run_node_module(code)
 
 
-def test_rendered_templates_exclude_the_alternation_shim():
-    """The editor's preview shows the templates, not the assembled request.
+def test_rendered_prompts_exclude_the_alternation_shim():
+    """The editor's preview shows the two boxes in their layout, not the
+    assembled request.
 
     The [Start] turn in front of a history that opens on the character is the
-    only text assembly still adds, and it has no counterpart in the editor.
+    only text assembly adds outside the layout, and it has no counterpart in
+    the editor. Nor has the message the Post-History box is joined to.
     """
     code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira', description: 'A careful tester.' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'SYSTEM: {{description}}',
-            post_history_content: 'USER TAIL for {{char}}',
-        }];
+        state.activeCharacter = { name: 'Mira' };
+        state.activePersona = { name: 'Morgan', description: '' };
+        usePrompt('SYSTEM for {{char}}', 'TAIL for {{char}}');
         state.messages = [
             { id: 1, role: 'character', text: 'A greeting with <div style=>markup</div>.' },
             { id: 2, role: 'user', text: 'hi' },
@@ -214,100 +288,9 @@ def test_rendered_templates_exclude_the_alternation_shim():
         const analysis = analyzeContext({});
         assert.equal(analysis.messages[1].content, '[Start]');
 
-        const rendered = analysis.renderedTemplates;
-        assert.equal(rendered.system, 'SYSTEM: A careful tester.');
-        assert.equal(rendered.user, 'USER TAIL for Mira');
-        assert.doesNotMatch(rendered.system, /Start|div style/);
-    """
-    run_node_module(code)
-
-
-def test_rendered_user_template_carries_the_wrapped_message():
-    """With {{user_message}} in play the preview shows the wrapped turn."""
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'SYSTEM',
-            post_history_content: '[Context]\n{{user_message}}\n[End]',
-        }];
-        state.messages = [{ id: 1, role: 'user', text: 'Did it wrap?' }];
-
-        const rendered = analyzeContext({}).renderedTemplates;
-        assert.equal(rendered.user, '[Context]\nDid it wrap?\n[End]');
-    """
-    run_node_module(code)
-
-
-def test_nested_wrappers_drop_from_the_inside_out():
-    """Emptying a child empties its parent, so one pass isn't enough."""
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { tidyTagBlocks } from './static/js/utils.js';
-
-        assert.equal(tidyTagBlocks('<memory>\n  <note></note>\n</memory>'), '');
-        assert.equal(
-            tidyTagBlocks('<memory>\n<note>kept</note>\n<gap></gap>\n</memory>'),
-            '<memory>\n<note>kept</note>\n</memory>',
-        );
-        // Attributes on the opening tag are part of the wrapper, not content.
-        assert.equal(tidyTagBlocks('<block status="enabled"> </block>'), '');
-        // Nothing else is touched: unpaired tags, self-closing tags, real text.
-        assert.equal(tidyTagBlocks('<unclosed>\ntext'), '<unclosed>\ntext');
-        assert.equal(tidyTagBlocks('<br/>'), '<br/>');
-        assert.equal(tidyTagBlocks('3 < 4 > 2'), '3 < 4 > 2');
-    """
-    run_node_module(code)
-
-
-def test_wrappers_close_the_gap_a_dropped_section_leaves():
-    """A section that resolved away leaves blank lines against the tag it sat
-    inside. The wrapper closes on its remaining content instead."""
-    code = r"""
-        import assert from 'node:assert/strict';
-        import { tidyTagBlocks } from './static/js/utils.js';
-
-        // Gap at the top, at the bottom, and at both ends.
-        assert.equal(tidyTagBlocks('<memory>\n\n[Memory]\nx\n</memory>'),
-            '<memory>\n[Memory]\nx\n</memory>');
-        assert.equal(tidyTagBlocks('<memory>\n[Note]\nx\n\n</memory>'),
-            '<memory>\n[Note]\nx\n</memory>');
-        assert.equal(tidyTagBlocks('<memory>\n\n[Memory]\nx\n\n</memory>'),
-            '<memory>\n[Memory]\nx\n</memory>');
-
-        // Spacing the template asked for between two surviving sections stays,
-        // and so does the spacing between neighbouring wrappers.
-        assert.equal(tidyTagBlocks('<a>\n[One]\nx\n\n[Two]\ny\n</a>'),
-            '<a>\n[One]\nx\n\n[Two]\ny\n</a>');
-        assert.equal(tidyTagBlocks('<a>\nx\n</a>\n\n<b>\ny\n</b>'),
-            '<a>\nx\n</a>\n\n<b>\ny\n</b>');
-
-        // Content on the tag's own line is left exactly as written.
-        assert.equal(tidyTagBlocks('<a>text</a>'), '<a>text</a>');
-    """
-    run_node_module(code)
-
-
-def test_dropped_section_leaves_no_gap_in_the_assembled_prompt():
-    """End to end: an empty Author's Note must not push the summary down."""
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: '<memory>\n'
-                + "{{#author_note}}[Author's Note]\n{{author_note}}{{/author_note}}\n\n"
-                + '{{#summary}}[Memory]\n{{summary}}{{/summary}}\n'
-                + '</memory>',
-            post_history_content: '',
-        }];
-        state.activeChat = { author_note: '' };
-        state.messages = [{ id: 1, role: 'user', text: 'hi' }];
-
-        const analysis = analyzeContext({ summaryText: 'They crossed the bridge.' });
-        assert.equal(analysis.messages[0].content,
-            '<memory>\n[Memory]\nThey crossed the bridge.\n</memory>');
+        const rendered = analysis.renderedPrompts;
+        assert.equal(rendered.system, inSystemTag('SYSTEM for Mira'));
+        assert.equal(rendered.postHistory, inPostTag('TAIL for Mira'));
     """
     run_node_module(code)
 
@@ -326,12 +309,8 @@ def test_names_inside_card_text_and_history_reach_the_model_resolved():
             scenario: '{{char}} meets {{user}} at the gate.',
             mes_example: '{{user}}: Hi\n{{char}}: Hello.',
         };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: '{{description}}\n{{scenario}}\n{{mesExamples}}\n{{persona}}',
-            post_history_content: '',
-        }];
+        state.activeChat = { author_note: 'Go easy on {{user}}.' };
+        usePrompt('');
         state.messages = [
             { id: 1, role: 'character', text: '*{{char}} salutes {{user}}.*' },
             { id: 2, role: 'user', text: 'Hi, {{char}}.' },
@@ -340,172 +319,62 @@ def test_names_inside_card_text_and_history_reach_the_model_resolved():
         const payload = buildChatPayload();
         const everything = payload.messages.map(m => m.content).join('\n');
         assert.doesNotMatch(everything, /\{\{(char|user)\}\}/i);
-        assert.match(payload.messages[0].content, /^Mira guards Morgan\.\nMira meets Morgan at the gate\./);
-        assert.match(payload.messages[0].content, /Morgan: Hi\nMira: Hello\.\nMorgan is new in town\.$/);
+        for (const line of [
+            'Mira guards Morgan.', 'Mira meets Morgan at the gate.', 'Morgan: Hi\nMira: Hello.',
+            'Morgan is new in town.', 'Go easy on Morgan.',
+        ]) assert.ok(payload.messages[0].content.includes(`\n${line}\n`), line);
         assert.ok(payload.messages.some(m => m.role === 'assistant' && m.content === '*Mira salutes Morgan.*'));
         assert.equal(payload.messages.at(-1).content, 'Hi, Mira.');
     """
     run_node_module(code)
 
 
-def test_default_post_history_template_preserves_character_card_behavior():
+def test_post_history_follows_the_chat_as_its_own_turn_after_the_character():
     code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = {
-            name: 'Mira',
-            post_history_instructions: 'Stay close to {{char}} and leave room for {{user}}.',
-        };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'Default',
-            content: 'System for {{char}}',
-            post_history_content: '{{#post_history_instructions}}[Post-History Instructions]\n{{post_history_instructions}}{{/post_history_instructions}}',
-        }];
+        state.activeCharacter = { name: 'Mira' };
+        usePrompt('System for {{char}}', '((OOC: Write only {{char}}. Do not narrate for {{user}}.))');
         state.messages = [
             { role: 'user', text: 'Hello' },
             { role: 'character', text: 'Hi there.' },
-            { role: 'user', text: 'What happens next?' },
         ];
 
         const payload = buildChatPayload();
-        const lastMessage = payload.messages[payload.messages.length - 1];
-
-        assert.equal(lastMessage.role, 'user');
-        assert.match(lastMessage.content, /What happens next\?/);
-        assert.match(lastMessage.content, /\[Post-History Instructions\]/);
-        assert.match(lastMessage.content, /Stay close to Mira and leave room for Morgan\./);
+        assert.deepEqual(payload.messages.map(m => m.role), ['system', 'user', 'assistant', 'user']);
+        assert.equal(payload.messages.at(-1).content,
+            inPostTag('((OOC: Write only Mira. Do not narrate for Morgan.))'));
     """
     run_node_module(code)
 
 
-def test_empty_post_history_template_appends_nothing():
+def test_an_empty_post_history_box_appends_nothing():
     code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = {
-            name: 'Mira',
-            post_history_instructions: 'This should not be sent.',
-        };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'No Post History',
-            content: 'System for {{char}}',
-            post_history_content: '',
-        }];
+        state.activeCharacter = { name: 'Mira' };
+        usePrompt('System for {{char}}', '  ');
         state.messages = [{ role: 'user', text: 'Hello' }];
 
         const payload = buildChatPayload();
-
-        assert.equal(payload.messages.length, 2);
         assert.deepEqual(payload.messages.map(m => m.role), ['system', 'user']);
-        assert.doesNotMatch(JSON.stringify(payload.messages), /This should not be sent/);
-        assert.doesNotMatch(JSON.stringify(payload.messages), /Post-History/);
+        assert.equal(payload.messages[1].content, 'Hello');
     """
     run_node_module(code)
 
 
-def test_static_post_history_template_appends_without_character_field():
+def test_a_cards_own_prompts_are_not_sent():
+    """The card keeps its system prompt and post-history instructions, but the
+    two boxes are what the model is told."""
     code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira', post_history_instructions: '' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'Static OOC',
-            content: 'System for {{char}}',
-            post_history_content: '((OOC: Write only {{char}}. Do not narrate for {{user}}.))',
-        }];
-        state.messages = [
-            { role: 'user', text: 'Hello' },
-            { role: 'character', text: 'Hi there.' },
-        ];
-
-        const payload = buildChatPayload();
-        const lastMessage = payload.messages[payload.messages.length - 1];
-
-        assert.equal(lastMessage.role, 'user');
-        assert.equal(lastMessage.content, '((OOC: Write only Mira. Do not narrate for Morgan.))');
-    """
-    run_node_module(code)
-
-
-def test_post_history_conditionals_drop_when_character_field_empty():
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira', post_history_instructions: '' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'Conditional',
-            content: 'System for {{char}}',
-            post_history_content: '{{#post_history_instructions}}[Post-History Instructions]\n{{post_history_instructions}}{{/post_history_instructions}}',
-        }];
+        state.activeCharacter = {
+            name: 'Mira',
+            system_prompt: 'CARD SYSTEM',
+            post_history_instructions: 'CARD POST',
+        };
+        usePrompt('Mine.', 'Mine too.');
         state.messages = [{ role: 'user', text: 'Hello' }];
 
-        const payload = buildChatPayload();
-
-        assert.equal(payload.messages.length, 2);
-        assert.doesNotMatch(JSON.stringify(payload.messages), /Post-History/);
-    """
-    run_node_module(code)
-
-
-def test_user_template_wraps_final_user_message_in_place():
-    """{{user_message}} lets the template position lore/author-note around the
-    user's own text within a single, final user turn."""
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira', post_history_instructions: '' };
-        state.activeChat = { author_note: 'Remember: the sky is green.' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'User wrap',
-            content: 'System for {{char}}',
-            post_history_content: '[Note]\n{{author_note}}\n\n{{user_message}}',
-        }];
-        state.messages = [
-            { role: 'user', text: 'Hello' },
-            { role: 'character', text: 'Hi there.' },
-            { role: 'user', text: 'What happens next?' },
-        ];
-
-        const payload = buildChatPayload();
-        const roles = payload.messages.map(m => m.role);
-        const lastMessage = payload.messages[payload.messages.length - 1];
-
-        // system, user(Hello), assistant(Hi), user(wrapped) — no extra turn.
-        assert.deepEqual(roles, ['system', 'user', 'assistant', 'user']);
-        assert.equal(lastMessage.role, 'user');
-        // Author-note sits BEFORE the user's own text, in one turn.
-        assert.equal(lastMessage.content, '[Note]\nRemember: the sky is green.\n\nWhat happens next?');
-        // The raw message is not also present as its own bare turn.
-        assert.equal(
-            payload.messages.filter(m => m.content === 'What happens next?').length, 0);
-    """
-    run_node_module(code)
-
-
-def test_user_template_can_place_content_after_user_message():
-    """The user's text can sit before appended template content when
-    {{user_message}} comes first."""
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira', post_history_instructions: '' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'User then OOC',
-            content: 'System for {{char}}',
-            post_history_content: '{{user_message}}\n\n((OOC: stay in character as {{char}}.))',
-        }];
-        state.messages = [
-            { role: 'user', text: 'Hello' },
-            { role: 'character', text: 'Hi there.' },
-            { role: 'user', text: 'Tell me a story.' },
-        ];
-
-        const payload = buildChatPayload();
-        const lastMessage = payload.messages[payload.messages.length - 1];
-
-        assert.equal(lastMessage.role, 'user');
-        assert.equal(lastMessage.content, 'Tell me a story.\n\n((OOC: stay in character as Mira.))');
-        assert.equal(payload.messages.length, 4);
+        const sent = JSON.stringify(buildChatPayload().messages);
+        assert.doesNotMatch(sent, /CARD SYSTEM|CARD POST/);
+        assert.match(sent, /Mine\./);
+        assert.match(sent, /Mine too\./);
     """
     run_node_module(code)
 
@@ -513,15 +382,10 @@ def test_user_template_can_place_content_after_user_message():
 def test_summary_tokens_reduce_the_raw_message_budget():
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'Summary-aware',
-            content: '{{summary}}',
-            post_history_content: '',
-        }];
-        state.contextMaxTokens = '100';
-        el.settingsContextTokens = { value: '100' };
+        state.activePersona = { name: 'Morgan', description: '' };
+        usePrompt('');
+        state.contextMaxTokens = '150';
+        el.settingsContextTokens = { value: '150' };
         el.samplerMaxTokens = { value: '20' };
         state.messages = Array.from({ length: 12 }, (_, i) => ({
             id: i + 1,
@@ -541,118 +405,32 @@ def test_summary_tokens_reduce_the_raw_message_budget():
         const rawWithout = withoutSummary.messages.filter(m => /message-\d+-/.test(m.content));
         const rawWith = withSummary.messages.filter(m => /message-\d+-/.test(m.content));
         // Full-budget accounting includes role framing and the rendered system
-        // message, so it safely retains one fewer turn than the old raw-only
-        // estimate in each state. A leading character message keeps its own
-        // role framing rather than being folded into the system message.
-        assert.equal(rawWithout.length, 6);
-        assert.equal(rawWith.length, 2);
+        // message, tags and notes included.
+                assert.equal(rawWithout.length, 11);
+        assert.equal(rawWith.length, 3);
     """
     run_node_module(code)
 
 
-def test_template_without_summary_slot_sends_no_memory():
-    """A template with no {{summary}} sends no summary — the request carries
-    only what the templates rendered, never a block assembly wrote itself."""
+def test_the_summary_is_sent_once_in_its_own_tag():
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'Legacy custom prompt',
-            content: 'CUSTOM ROLEPLAY INSTRUCTIONS',
-            post_history_content: '',
-        }];
-        state.activeChat = {
-            summary_enabled: true,
-            summary: {
-                lines: [{ section: 'story', text: 'The lighthouse lens is cracked.', pinned: false }],
-            },
-        };
-        state.messages = [{ id: 1, role: 'user', text: 'What do we do next?' }];
-
-        const payload = buildChatPayload();
-        const serialized = JSON.stringify(payload.messages);
-
-        assert.match(payload.messages[0].content, /CUSTOM ROLEPLAY INSTRUCTIONS/);
-        assert.doesNotMatch(serialized, /MEMORY/);
-        assert.doesNotMatch(serialized, /The lighthouse lens is cracked\./);
-    """
-    run_node_module(code)
-
-
-def test_summary_lands_once_wherever_its_slot_sits():
-    code = BASE_NODE_SETUP + r"""
-        state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
         state.activeChat = {
             summary_enabled: true,
             summary: {
                 lines: [{ section: 'story', text: 'Morgan carries the brass key.', pinned: false }],
             },
         };
+        usePrompt('CUSTOM');
         state.messages = [{ id: 1, role: 'user', text: 'Open the door.' }];
 
-        state.systemPrompts = [{
-            id: 1,
-            name: 'System memory slot',
-            content: 'CUSTOM\n{{summary}}',
-            post_history_content: '',
-        }];
-        const systemSlot = buildChatPayload();
-        assert.equal(
-            (JSON.stringify(systemSlot.messages).match(/Morgan carries the brass key\./g) || []).length,
-            1,
-        );
-        assert.doesNotMatch(systemSlot.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
-
-        state.systemPrompts = [{
-            id: 1,
-            name: 'User memory slot',
-            content: 'CUSTOM',
-            post_history_content: 'Remember this:\n{{summary}}',
-        }];
-        const userSlot = buildChatPayload();
-        assert.equal(
-            (JSON.stringify(userSlot.messages).match(/Morgan carries the brass key\./g) || []).length,
-            1,
-        );
-        assert.doesNotMatch(userSlot.messages[0].content, /\[MEMORY — STORY SO FAR\]/);
-    """
-    run_node_module(code)
-
-
-def test_summary_slot_inside_a_false_conditional_sends_nothing():
-    """A {{summary}} the template resolved away is a slot that wasn't used.
-    Nothing steps in behind it — the summarized turn is simply gone."""
-    code = BASE_NODE_SETUP + r"""
-        state.activePersona = { name: 'Morgan', description: '' };
-        state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'Conditional memory slot',
-            content: 'CUSTOM\n{{#persona}}{{summary}}{{/persona}}',
-            post_history_content: '',
-        }];
-        state.activeChat = {
-            summary_enabled: true,
-            summary_up_to_msg_id: 1,
-            summary: {
-                lines: [{ section: 'story', text: 'The observatory door is sealed.', pinned: false }],
-            },
-        };
-        state.messages = [
-            { id: 1, role: 'character', text: 'SUMMARIZED RAW TURN' },
-            { id: 2, role: 'user', text: 'LIVE TURN' },
-        ];
-
         const payload = buildChatPayload();
-        const serialized = JSON.stringify(payload.messages);
-
-        assert.doesNotMatch(serialized, /MEMORY/);
-        assert.doesNotMatch(serialized, /The observatory door is sealed\./);
-        assert.doesNotMatch(serialized, /SUMMARIZED RAW TURN/);
-        assert.match(serialized, /LIVE TURN/);
+        assert.equal(
+            (JSON.stringify(payload.messages).match(/Morgan carries the brass key\./g) || []).length,
+            1,
+        );
+        assert.match(payload.messages[0].content,
+            /<story_so_far note="[^"]+">\n[^<]*Morgan carries the brass key\.[^<]*\n<\/story_so_far>\n<\/memory>$/);
     """
     run_node_module(code)
 
@@ -660,13 +438,7 @@ def test_summary_slot_inside_a_false_conditional_sends_nothing():
 def test_regen_payload_excludes_summarized_turn_but_keeps_first_live_turn():
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = { name: 'Mira' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            name: 'Summary aware',
-            content: '{{summary}}',
-            post_history_content: '',
-        }];
+        usePrompt('');
         state.activeChat = {
             summary_enabled: true,
             summary_up_to_msg_id: 1,
@@ -684,58 +456,59 @@ def test_regen_payload_excludes_summarized_turn_but_keeps_first_live_turn():
         const serialized = JSON.stringify(payload.messages);
 
         assert.doesNotMatch(serialized, /SUMMARIZED TURN/);
+        assert.match(serialized, /Old history retained\./);
         assert.match(serialized, /FIRST LIVE TURN/);
         assert.doesNotMatch(serialized, /ASSISTANT BEING REGENERATED/);
     """
     run_node_module(code)
 
 
+# A chat with something in every part of the layout.
+EVERY_SOURCE_SETUP = BASE_NODE_SETUP + r"""
+    el.samplerMaxTokens = { value: '100' };
+    state.activeCharacter = {
+        name: 'Mira',
+        description: 'A careful cartographer.',
+        personality: 'Patient and observant.',
+        scenario: 'A storm is coming.',
+        character_book: {
+            entries: [{
+                enabled: true,
+                constant: true,
+                insertion_order: 1,
+                content: 'The observatory stands above the sea.',
+            }],
+        },
+    };
+    state.activePersona = { name: 'Morgan', description: 'An inquisitive sailor.' };
+    state.activeChat = {
+        summary_enabled: true,
+        active_lorebook_embedded: true,
+        author_note: 'Keep the brass key important.',
+    };
+    usePrompt('Never break character.', 'Write only {{char}}. Do not narrate for {{user}}.');
+    state.messages = [
+        { id: 1, role: 'user', text: 'Where are we?' },
+        { id: 2, role: 'character', text: 'At the cliff path.' },
+    ];
+    const analyzeEverySource = () => analyzeContext({
+        summaryText: 'The lantern was lost in the storm.',
+        draftText: 'Search the observatory.',
+    });
+"""
+
+
 def test_context_analysis_attributes_every_semantic_source_and_reconciles_totals():
-    code = BASE_NODE_SETUP + r"""
+    code = EVERY_SOURCE_SETUP + r"""
         state.contextMaxTokens = '1000';
         el.settingsContextTokens = { value: '1000' };
-        el.samplerMaxTokens = { value: '100' };
-        state.summaryCapPct = '10';
-        state.activeCharacter = {
-            name: 'Mira',
-            description: 'A careful cartographer.',
-            personality: 'Patient and observant.',
-            system_prompt: 'Never break character.',
-            character_book: {
-                entries: [{
-                    enabled: true,
-                    constant: true,
-                    insertion_order: 1,
-                    content: 'The observatory stands above the sea.',
-                }],
-            },
-        };
-        state.activePersona = { name: 'Morgan', description: 'An inquisitive sailor.' };
-        state.activeChat = {
-            summary_enabled: true,
-            active_lorebook_embedded: true,
-            author_note: 'Keep the brass key important.',
-        };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'RULES {{system_prompt}}\nCARD {{description}}\nPERSONA {{persona}}\nLORE {{lorebook}}\nLORE AGAIN {{lorebook}}\nNOTE {{author_note}}\nMEMORY {{summary}}',
-            post_history_content: '{{user_message}}',
-        }];
-        state.messages = [
-            { id: 1, role: 'user', text: 'Where are we?' },
-            { id: 2, role: 'character', text: 'At the cliff path.' },
-        ];
 
-        const analysis = analyzeContext({
-            summaryText: 'The lantern was lost in the storm.',
-            draftText: 'Search the observatory.',
-        });
+        const analysis = analyzeEverySource();
         const byId = new Map(analysis.segments.map(segment => [segment.id, segment.tokens]));
         for (const id of [
             'system_prompt', 'character_card', 'persona', 'lorebook',
             'author_note', 'auto_summary', 'message_history', 'current_draft',
-            'response_reserve', 'unused',
+            'post_history', 'response_reserve', 'unused',
         ]) assert.ok(byId.get(id) > 0, `${id} should have tokens`);
 
         const promptTotal = analysis.segments
@@ -753,133 +526,105 @@ def test_context_analysis_attributes_every_semantic_source_and_reconciles_totals
     run_node_module(code)
 
 
-def test_context_segments_follow_system_history_user_prompt_order():
-    code = BASE_NODE_SETUP + r"""
-        import { tooltipForSegment } from './static/js/context-meter.js';
-
-        state.contextMaxTokens = '0';
-        el.settingsContextTokens = { value: '0' };
-        el.samplerMaxTokens = { value: '40' };
-        state.activeCharacter = {
-            name: 'Mira',
-            description: 'A careful cartographer.',
-            character_book: {
-                entries: [{
-                    enabled: true,
-                    constant: true,
-                    insertion_order: 1,
-                    content: 'The observatory stands above the sea.',
-                }],
-            },
-        };
-        state.activePersona = { name: 'Morgan', description: 'An inquisitive sailor.' };
-        state.activeChat = {
-            summary_enabled: false,
-            active_lorebook_embedded: true,
-            author_note: 'Keep the brass key important.',
-        };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: '{{#summary}}{{summary}}{{/summary}}{{persona}}{{lorebook}}{{description}}',
-            post_history_content: '{{author_note}}{{persona}}{{author_note}}{{user_message}}{{lorebook}}',
-        }];
-        state.messages = [{ id: 1, role: 'user', text: 'Where are we?' }];
-
-        const analysis = analyzeContext({ draftText: 'Search the observatory.' });
+def test_context_segments_follow_the_order_of_the_request():
+    """One segment a source, in the order the request reads: the system
+    message's parts, the chat, the draft, then Post-History."""
+    code = EVERY_SOURCE_SETUP + r"""
+        const analysis = analyzeEverySource();
         assert.deepEqual(
-            analysis.segments.map(segment => segment.key),
+            analysis.segments.map(segment => [segment.id, segment.label]),
             [
-                'system:persona',
-                'system:lorebook',
-                'system:character_card',
-                'system:system_prompt',
-                'history:message_history',
-                'history:current_draft',
-                'user:author_note',
-                'user:persona',
-                'user:lorebook',
-                'capacity:response_reserve',
+                ['system_prompt', 'System'],
+                ['character_card', 'Character card'],
+                ['persona', 'Persona'],
+                ['lorebook', 'Lorebook'],
+                ['author_note', "Author's note"],
+                ['auto_summary', 'Auto summary'],
+                ['message_history', 'Message history'],
+                ['current_draft', 'Current draft'],
+                ['post_history', 'Post-History'],
+                ['response_reserve', 'Reserved response'],
             ],
         );
+    """
+    run_node_module(code)
 
-        const personaSegments = analysis.segments.filter(segment => segment.id === 'persona');
-        assert.equal(personaSegments.length, 2);
-        assert.deepEqual(personaSegments.map(segment => segment.zone), ['system', 'user']);
-        assert.equal(
-            analysis.segments.filter(segment => segment.id === 'author_note').length,
-            1,
-            'repeated variables within one tab should be combined',
-        );
-        assert.equal(
-            analysis.segments.some(segment => segment.id === 'auto_summary'),
-            false,
-            'an empty conditional should not create a segment',
-        );
 
-        const promptTotal = analysis.segments
-            .filter(segment => !['response_reserve', 'unused'].includes(segment.id))
-            .reduce((sum, segment) => sum + segment.tokens, 0);
-        assert.equal(promptTotal, analysis.promptTokens);
-        assert.match(tooltipForSegment(personaSegments[0], analysis), /System template/);
-        assert.match(tooltipForSegment(personaSegments[1], analysis), /User template/);
+def test_a_tag_and_its_note_count_toward_the_part_they_wrap():
+    """Cozy's own words are never a segment of their own. With only a persona
+    to send, the whole system message is Persona, and System is exactly the
+    System box in its tag."""
+    code = BASE_NODE_SETUP + r"""
+        import { estimateMessagesTokens } from './static/js/tokenizer.js';
+
+        el.samplerMaxTokens = { value: '0' };
+        state.activeCharacter = { name: 'Mira' };
+        state.activePersona = { name: 'Morgan', description: 'An inquisitive sailor.' };
+        usePrompt('');
+        state.messages = [{ id: 1, role: 'user', text: 'Hello' }];
+
+        const personaOnly = analyzeContext();
+        assert.deepEqual(personaOnly.segments.map(segment => segment.id), ['persona', 'message_history']);
+        assert.equal(personaOnly.segments[0].tokens, estimateMessagesTokens([personaOnly.messages[0]]));
+
+        state.activePersona.description = '';
+        usePrompt('Never break character.');
+        const systemOnly = analyzeContext();
+        assert.deepEqual(systemOnly.segments.map(segment => segment.id), ['system_prompt', 'message_history']);
+        assert.equal(systemOnly.segments[0].tokens, estimateMessagesTokens([
+            { role: 'system', content: inSystemTag('Never break character.') },
+        ]));
+
+        // A tag around two parts opens with the first and closes with the last.
+        state.activeCharacter.scenario = 'A storm is coming.';
+        usePrompt('');
+        const worldInfo = analyzeContext();
+        assert.deepEqual(worldInfo.segments.map(segment => segment.id), ['character_card', 'message_history']);
     """
     run_node_module(code)
 
 
 def test_context_names_count_toward_the_text_they_sit_in():
-    """A {{user}} or {{char}} in template prose is not the persona or the card."""
+    """A {{user}} or {{char}} in a box is not the persona or the card."""
     code = BASE_NODE_SETUP + r"""
-        state.contextMaxTokens = '0';
-        el.settingsContextTokens = { value: '0' };
         el.samplerMaxTokens = { value: '40' };
-        state.activeCharacter = { name: 'Mira', description: 'A careful cartographer.' };
-        state.activePersona = { name: 'Morgan', description: 'An inquisitive sailor.' };
+        state.activeCharacter = { name: 'Mira' };
+        state.activePersona = { name: 'Morgan', description: '' };
         state.activeChat = {};
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'You are {{char}}. {{description}}\n{{persona}}',
-            post_history_content: '{{user_message}}\n((Write only {{char}}. Do not narrate for {{user}}.))',
-        }];
+        usePrompt('You are {{char}}.', '((Write only {{char}}. Do not narrate for {{user}}.))');
         state.messages = [{ id: 1, role: 'user', text: 'Hello' }];
 
         const analysis = analyzeContext();
-        const keys = analysis.segments.map(segment => segment.key);
-        assert.ok(!keys.includes('user:persona'), keys.join(', '));
-        assert.ok(!keys.includes('user:character_card'), keys.join(', '));
-        assert.ok(keys.includes('user:system_prompt'), keys.join(', '));
-        assert.ok(keys.includes('system:persona'), keys.join(', '));
-        assert.ok(keys.includes('system:character_card'), keys.join(', '));
+        assert.deepEqual(
+            analysis.segments.map(segment => segment.id),
+            ['system_prompt', 'message_history', 'post_history', 'response_reserve'],
+        );
         assert.match(JSON.stringify(analysis.messages), /Do not narrate for Morgan\./);
     """
     run_node_module(code)
 
 
-def test_full_context_budget_trims_history_after_fixed_prompt_sources():
-    code = BASE_NODE_SETUP + r"""
-        state.contextMaxTokens = '120';
-        el.settingsContextTokens = { value: '120' };
-        el.samplerMaxTokens = { value: '20' };
-        state.activeCharacter = {
-            name: 'Mira',
-            description: 'x'.repeat(100),
-            system_prompt: 'y'.repeat(80),
-        };
-        state.activeChat = { summary_enabled: false, author_note: 'z'.repeat(60) };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: '{{system_prompt}} {{description}} {{author_note}}',
-            post_history_content: '',
-        }];
-        state.messages = Array.from({ length: 10 }, (_, i) => ({
-            id: i + 1,
-            role: i % 2 ? 'character' : 'user',
-            text: `turn-${i}-${'a'.repeat(20)}`,
-        }));
+# Enough fixed prompt that a 10-message chat cannot all fit beside it.
+TIGHT_WINDOW_SETUP = BASE_NODE_SETUP + r"""
+    state.contextMaxTokens = '200';
+    el.settingsContextTokens = { value: '200' };
+    el.samplerMaxTokens = { value: '20' };
+    state.activeCharacter = { name: 'Mira', description: 'x'.repeat(100) };
+    state.activePersona = { name: 'Morgan', description: '' };
+    state.activeChat = { summary_enabled: false, author_note: 'z'.repeat(60) };
+    usePrompt('y'.repeat(80));
+    state.messages = Array.from({ length: 10 }, (_, i) => ({
+        id: i + 1,
+        role: i % 2 ? 'character' : 'user',
+        text: `turn-${i}-${'a'.repeat(20)}`,
+    }));
+"""
 
+
+def test_full_context_budget_trims_history_after_fixed_prompt_sources():
+    code = TIGHT_WINDOW_SETUP + r"""
         const analysis = analyzeContext();
+        assert.ok(analysis.selectedMessageIds.length > 0);
         assert.ok(analysis.selectedMessageIds.length < state.messages.length);
         assert.deepEqual(
             analysis.selectedMessageIds,
@@ -894,29 +639,8 @@ def test_full_context_budget_trims_history_after_fixed_prompt_sources():
 def test_message_history_tooltip_reports_how_far_context_reaches():
     """The message-history segment tooltip states how many messages are in the
     live window, and how many total, when older turns are trimmed/summarized."""
-    code = BASE_NODE_SETUP + r"""
+    code = TIGHT_WINDOW_SETUP + r"""
         import { tooltipForSegment } from './static/js/context-meter.js';
-
-        state.contextMaxTokens = '120';
-        el.settingsContextTokens = { value: '120' };
-        el.samplerMaxTokens = { value: '20' };
-        state.activeCharacter = {
-            name: 'Mira',
-            description: 'x'.repeat(100),
-            system_prompt: 'y'.repeat(80),
-        };
-        state.activeChat = { summary_enabled: false, author_note: 'z'.repeat(60) };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: '{{system_prompt}} {{description}} {{author_note}}',
-            post_history_content: '',
-        }];
-        state.messages = Array.from({ length: 10 }, (_, i) => ({
-            id: i + 1,
-            role: i % 2 ? 'character' : 'user',
-            text: `turn-${i}-${'a'.repeat(20)}`,
-        }));
 
         const analysis = analyzeContext();
         const inWindow = analysis.selectedMessageIds.length;
@@ -934,17 +658,10 @@ def test_message_history_tooltip_when_every_message_fits():
     code = BASE_NODE_SETUP + r"""
         import { tooltipForSegment } from './static/js/context-meter.js';
 
-        state.contextMaxTokens = '0';
-        el.settingsContextTokens = { value: '0' };
         el.samplerMaxTokens = { value: '30' };
         state.activeCharacter = { name: 'Mira' };
         state.activeChat = { summary_enabled: false };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'CUSTOM INSTRUCTIONS',
-            post_history_content: '',
-        }];
+        usePrompt('CUSTOM INSTRUCTIONS');
         state.messages = [
             { id: 1, role: 'user', text: 'first' },
             { id: 2, role: 'character', text: 'second' },
@@ -960,19 +677,30 @@ def test_message_history_tooltip_when_every_message_fits():
     run_node_module(code)
 
 
+def test_the_two_prompt_segments_are_named_for_their_boxes():
+    code = BASE_NODE_SETUP + r"""
+        import { tooltipForSegment } from './static/js/context-meter.js';
+
+        state.activeCharacter = { name: 'Mira' };
+        usePrompt('Mine.', 'Mine too.');
+        state.messages = [{ id: 1, role: 'user', text: 'first' }];
+
+        const analysis = analyzeContext();
+        const tip = id => tooltipForSegment(analysis.segments.find(s => s.id === id), analysis);
+        assert.match(tip('system_prompt'), /^<strong>System<\/strong>.*Your System prompt/);
+        assert.match(tip('post_history'), /^<strong>Post-History<\/strong>.*Your Post-History prompt/);
+    """
+    run_node_module(code)
+
+
 def test_context_analysis_keeps_latest_turn_and_reports_unavoidable_overflow():
     code = BASE_NODE_SETUP + r"""
         state.contextMaxTokens = '20';
         el.settingsContextTokens = { value: '20' };
         el.samplerMaxTokens = { value: '10' };
-        state.activeCharacter = { name: 'Mira', system_prompt: 'x'.repeat(400) };
+        state.activeCharacter = { name: 'Mira' };
         state.activeChat = { summary_enabled: false };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: '{{system_prompt}}',
-            post_history_content: '',
-        }];
+        usePrompt('x'.repeat(400));
         state.messages = [
             { id: 1, role: 'user', text: 'old turn' },
             { id: 2, role: 'character', text: 'older reply' },
@@ -990,17 +718,10 @@ def test_context_analysis_keeps_latest_turn_and_reports_unavoidable_overflow():
 
 def test_summary_is_attributed_and_unlimited_context_has_no_unused_segment():
     code = BASE_NODE_SETUP + r"""
-        state.contextMaxTokens = '0';
-        el.settingsContextTokens = { value: '0' };
         el.samplerMaxTokens = { value: '30' };
         state.activeCharacter = { name: 'Mira' };
         state.activeChat = { summary_enabled: true };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'CUSTOM INSTRUCTIONS\n{{summary}}',
-            post_history_content: '',
-        }];
+        usePrompt('CUSTOM INSTRUCTIONS');
         state.messages = [{ id: 1, role: 'user', text: 'Where to?' }];
 
         const analysis = analyzeContext({ summaryText: 'The bridge is broken.' });
@@ -1018,20 +739,18 @@ def test_dollar_signs_in_values_reach_the_prompt_as_written():
     """A replacement string reads $&, $' and $$ as patterns; values are text."""
     code = BASE_NODE_SETUP + r"""
         state.activePersona = { name: 'Rich $$ Guy', description: "Says $' and $` and $& a lot." };
-        state.activeCharacter = { name: 'Mira', description: 'Charges $$5, $&.' };
+        state.activeCharacter = { name: 'Mi$&ra', description: 'Charges $$5, $&.' };
         state.activeChat = { author_note: 'Costs $$$.' };
-        state.activeSystemPromptId = 1;
-        state.systemPrompts = [{
-            id: 1,
-            content: 'START {{description}} | {{persona}} | {{author_note}} | {{user}} END',
-            post_history_content: '<turn>{{user_message}}</turn>',
-        }];
+        usePrompt("Pay {{user}} $' now.", 'Tip {{char}} $$.');
         state.messages = [{ role: 'user', text: 'Give me $$$ and $& now' }];
 
         const [system, user] = buildChatPayload().messages;
-        assert.equal(system.content,
-            "START Charges $$5, $&. | Says $' and $` and $& a lot. | Costs $$$. | Rich $$ Guy END");
-        assert.equal(user.content, '<turn>Give me $$$ and $& now</turn>');
+        for (const line of [
+            "Pay Rich $$ Guy $' now.", 'Charges $$5, $&.', "Says $' and $` and $& a lot.", 'Costs $$$.',
+        ]) assert.ok(system.content.includes(`\n${line}\n`), line);
+        assert.match(system.content, /<character note="Who Mi\$&ra is:/);
+        assert.match(system.content, /<user note="Rich \$\$ Guy, the character/);
+        assert.equal(user.content, `Give me $$$ and $& now\n\n${inPostTag('Tip Mi$&ra $$.')}`);
     """
     run_node_module(code)
 
@@ -1048,11 +767,7 @@ REUSE_SETUP = BASE_NODE_SETUP + r"""
     state.activeChat = { id: 1, author_note: 'Keep it short.', active_lorebook_embedded: true };
     state.activeSystemPromptId = 1;
     state.systemPrompts = [
-        {
-            id: 1,
-            content: 'RULES\n{{description}}\n{{persona}}\n{{lorebook}}\n{{author_note}}\n{{summary}}',
-            post_history_content: 'REMINDER',
-        },
+        { id: 1, content: 'RULES', post_history_content: 'REMINDER' },
         { id: 2, content: 'OTHER RULES', post_history_content: '' },
     ];
     state.messages = [
@@ -1086,8 +801,8 @@ def test_any_changed_input_gets_a_fresh_analysis():
             ['a message edited in place', () => { state.messages[0].text = 'EDITED'; }, /EDITED/],
             ['the card', () => { state.activeCharacter.description = 'CARD2'; }, /CARD2/],
             ['the persona', () => { state.activePersona.description = 'PERSONA2'; }, /PERSONA2/],
-            ['the system template', () => { state.systemPrompts[0].content += '\nSYSTEM2'; }, /SYSTEM2/],
-            ['the user template', () => { state.systemPrompts[0].post_history_content = 'USER2'; }, /USER2/],
+            ['the System box', () => { state.systemPrompts[0].content += '\nSYSTEM2'; }, /SYSTEM2/],
+            ['the Post-History box', () => { state.systemPrompts[0].post_history_content = 'POST2'; }, /POST2/],
             ["the author's note", () => { state.activeChat.author_note = 'NOTE2'; }, /NOTE2/],
             ['a lorebook entry edited in place',
                 () => { state.activeCharacter.character_book.entries[0].content = 'LORE2'; }, /LORE2/],

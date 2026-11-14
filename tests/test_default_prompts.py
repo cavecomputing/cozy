@@ -72,6 +72,9 @@ class TestBundledPresets:
                                    'post_history_content'}, filename
             assert preset['content'].strip(), filename
             assert preset['post_history_content'].strip(), filename
+            # Plain text: Cozy adds the tags and places the card itself.
+            text = (preset['content'], preset['post_history_content'])
+            assert defaults.plain_prompt(*text) == (*text, True), filename
             assert preset['version'].strip(), filename
             # The picker's badge adds the "v" itself, so a bundled file
             # carrying one would render "vv2.1".

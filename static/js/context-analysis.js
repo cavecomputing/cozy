@@ -1,4 +1,4 @@
-import { tidyTagBlocks, resolveTemplateVariables } from './utils.js';
+import { resolveTemplateVariables } from './utils.js';
 import { resolveLorebookEntries } from './lorebook.js';
 import { parseThinkingContent } from './thinking.js';
 import {
@@ -12,7 +12,7 @@ import { contextInputs } from './context-budget.js';
 // Semantic sources are deliberately stable: CSS, tooltips, and tests all key
 // off these ids while the active theme supplies their actual colors.
 export const CONTEXT_SOURCES = [
-    { id: 'system_prompt', label: 'System prompt' },
+    { id: 'system_prompt', label: 'System' },
     { id: 'character_card', label: 'Character card' },
     { id: 'persona', label: 'Persona' },
     { id: 'lorebook', label: 'Lorebook' },
@@ -20,128 +20,85 @@ export const CONTEXT_SOURCES = [
     { id: 'auto_summary', label: 'Auto summary' },
     { id: 'message_history', label: 'Message history' },
     { id: 'current_draft', label: 'Current draft' },
+    { id: 'post_history', label: 'Post-History' },
     { id: 'response_reserve', label: 'Reserved response' },
     { id: 'unused', label: 'Unused' },
 ];
 
-// {{user}} and {{char}} are absent on purpose: a name dropped into prose, as in
-// "don't narrate for {{user}}", counts toward the text around it, so only the
-// persona's and the card's own fields show as Persona and Character card.
-const SOURCE_BY_VARIABLE = {
-    personality: 'character_card',
-    scenario: 'character_card',
+// What Cozy sends around the two boxes of the Prompt page, and the only
+// layout there is. A tag holds values by name and tags of its own, each tag
+// says what it is in a note, and one with nothing to hold is not sent.
+const tag = (name, attributes, ...parts) => ({ name, attributes, parts });
+const SYSTEM_LAYOUT = [
+    tag('system_instructions', 'status="enabled" note="How to tell this story. Follow it throughout."',
+        'system'),
+    tag('character', 'note="Who {{char}} is: background, looks and personality."',
+        'description',
+        'personality',
+        tag('example_dialogue', 'note="How {{char}} talks and acts. A style reference, not events in this story."',
+            'mesExamples')),
+    tag('user', 'note="{{user}}, the character the user plays."',
+        'persona'),
+    tag('world_info', 'note="Facts about the setting. True unless the story changes them."',
+        'lorebook',
+        'scenario'),
+    tag('memory', 'note="From earlier in this chat. For reference; not all of it applies now."',
+        tag('author_note', 'note="The user\'s running notes on the story."',
+            'authorNote'),
+        tag('story_so_far', 'note="What happened earlier in this chat, summarized."',
+            'summary')),
+];
+const POST_HISTORY_LAYOUT = [
+    tag('post_history_instructions', 'status="enabled" note="For the reply you write now."',
+        'postHistory'),
+];
+
+const SOURCE_BY_VALUE = {
+    system: 'system_prompt',
     description: 'character_card',
-    persona: 'persona',
+    personality: 'character_card',
     mesExamples: 'character_card',
+    persona: 'persona',
     lorebook: 'lorebook',
-    author_note: 'author_note',
+    scenario: 'character_card',
+    authorNote: 'author_note',
     summary: 'auto_summary',
-    system_prompt: 'system_prompt',
-    post_history_instructions: 'character_card',
+    postHistory: 'post_history',
 };
 
-const ZONE_ORDER = new Map([
-    ['system', 0],
-    ['history', 1],
-    ['user', 2],
-]);
-
-function defaultZoneForSource(source) {
-    return ['message_history', 'current_draft'].includes(source) ? 'history' : 'system';
-}
-
-function normalizeResolvedText(text) {
-    return String(text || '').replace(/\n{3,}/g, '\n\n').trim();
-}
-
 /**
- * Resolve a prompt template once while surrounding dynamic values with private
- * markers. Removing the markers yields the exact outgoing content; keeping
- * their spans lets the token meter attribute repeated and conditional values
- * without maintaining a second template engine.
+ * Lay the values out as the fragments the meter counts. Joined, they are the
+ * exact outgoing text. A tag and its note count toward the value they sit
+ * against, so none of Cozy's own words make a segment of their own.
  */
-function resolveTrackedTemplate(template, context, {
-    defaultSource = 'system_prompt',
-    variableSources = {},
-    zone = 'system',
-} = {}) {
-    if (!template) return { content: '', fragments: [] };
-
-    const markers = [];
-    const trackedContext = { ...context };
-    let markerSequence = 0;
-    for (const [key, value] of Object.entries(context)) {
-        // {{#var}} blocks treat whitespace-only values as empty (see
-        // resolveTemplateVariables); wrapping them in markers would make them
-        // truthy and leak the block's wrapper text into the outgoing prompt.
-        if (value == null || String(value).trim() === '') continue;
-        const source = variableSources[key] || SOURCE_BY_VARIABLE[key];
-        if (!source) continue;
-        const id = `${markerSequence++}`;
-        const open = `\uE000${id}:S\uE001`;
-        const close = `\uE000${id}:E\uE001`;
-        markers.push({ id, open, close, source });
-        trackedContext[key] = `${open}${value}${close}`;
-    }
-
-    // Markers only ever wrap a value with content, so an empty wrapper never
-    // holds one, and the tidy pass only ever removes whitespace around them —
-    // neither can unbalance the walk below.
-    const marked = tidyTagBlocks(resolveTemplateVariables(template, trackedContext));
-    if (!marked) return { content: '', fragments: [] };
-
-    const byOpen = new Map(markers.map(marker => [marker.open, marker]));
-    const markerPattern = /\uE000\d+:[SE]\uE001/g;
+function layOut(parts, values, names) {
     const fragments = [];
-    const stack = [];
-    let cursor = 0;
-    let match;
-
-    while ((match = markerPattern.exec(marked)) !== null) {
-        if (match.index > cursor) {
-            fragments.push({
-                source: stack.at(-1)?.source || defaultSource,
-                zone,
-                text: marked.slice(cursor, match.index),
-            });
+    for (const part of parts) {
+        let inner;
+        if (typeof part === 'string') {
+            inner = values[part] ? [{ source: SOURCE_BY_VALUE[part], text: values[part] }] : [];
+        } else {
+            inner = layOut(part.parts, values, names);
+            if (inner.length > 0) {
+                const open = `<${part.name} ${resolveNames(part.attributes, names)}>\n`;
+                inner.unshift({ source: inner[0].source, text: open });
+                inner.push({ source: inner.at(-1).source, text: `\n</${part.name}>` });
+            }
         }
-        const token = match[0];
-        if (token.endsWith(':S\uE001')) {
-            const marker = byOpen.get(token);
-            if (marker) stack.push(marker);
-        } else if (stack.length > 0) {
-            stack.pop();
-        }
-        cursor = markerPattern.lastIndex;
+        if (inner.length === 0) continue;
+        if (fragments.length > 0) fragments.push({ source: inner[0].source, text: '\n\n' });
+        fragments.push(...inner);
     }
-    if (cursor < marked.length) {
-        fragments.push({
-            source: stack.at(-1)?.source || defaultSource,
-            zone,
-            text: marked.slice(cursor),
-        });
-    }
-
-    const content = normalizeResolvedText(fragments.map(fragment => fragment.text).join(''));
-    return {
-        content,
-        fragments: fragments.filter(fragment => fragment.text),
-    };
+    return fragments;
 }
 
-function trackedMessage(
-    role,
-    content,
-    source,
-    overheadSource = source,
-    zone = defaultZoneForSource(source),
-) {
+// A message's own overhead (its role and framing) counts toward what it opens with.
+function trackedMessage(role, fragments) {
     return {
         role,
-        content,
-        fragments: content ? [{ source, zone, text: content }] : [],
-        overheadSource,
-        overheadZone: zone,
+        content: fragments.map(fragment => fragment.text).join(''),
+        fragments,
+        overheadSource: fragments[0]?.source,
     };
 }
 
@@ -151,15 +108,10 @@ function mergeTrackedMessages(left, right, separator = '\n\n') {
         content: `${left.content}${separator}${right.content}`,
         fragments: [
             ...left.fragments,
-            {
-                source: right.overheadSource || right.fragments[0]?.source || 'system_prompt',
-                zone: right.overheadZone || right.fragments[0]?.zone || 'system',
-                text: separator,
-            },
+            { source: right.overheadSource, text: separator },
             ...right.fragments,
         ],
-        overheadSource: left.overheadSource || right.overheadSource,
-        overheadZone: left.overheadZone || right.overheadZone,
+        overheadSource: left.overheadSource,
     };
 }
 
@@ -176,10 +128,11 @@ function enforceTrackedAlternation(messages) {
     // Strict endpoints reject a conversation that opens on the character's
     // turn, so a window that starts on one gets a minimal user turn in front of
     // it. This is protocol rather than content: it is the only text assembly
-    // adds, and it never touches the system prompt.
+    // adds outside the layout, and it never touches the system prompt.
     const firstNonSystem = out.findIndex(message => message.role !== 'system');
     if (firstNonSystem !== -1 && out[firstNonSystem].role === 'assistant') {
-        out.splice(firstNonSystem, 0, trackedMessage('user', '[Start]', 'system_prompt'));
+        const shim = [{ source: 'message_history', text: '[Start]' }];
+        out.splice(firstNonSystem, 0, trackedMessage('user', shim));
     }
 
     const final = [];
@@ -209,209 +162,89 @@ function allocateInteger(total, weights) {
     return new Map(allocations.map(item => [item.source, item.tokens]));
 }
 
+/** Tokens by source, in the order the sources first appear in the request. */
 function countTrackedTokens(messages) {
     const counts = new Map();
-    const buckets = new Map();
-    let nextOrder = 0;
-    const ensureBucket = (source, zone) => {
-        const normalizedZone = ['message_history', 'current_draft'].includes(source)
-            ? 'history'
-            : (zone || defaultZoneForSource(source));
-        const key = `${normalizedZone}:${source}`;
-        if (!buckets.has(key)) {
-            buckets.set(key, {
-                key,
-                id: source,
-                zone: normalizedZone,
-                order: nextOrder++,
-                tokens: 0,
-            });
-        }
-        return buckets.get(key);
-    };
-    const addSource = (source, tokens) => {
-        if (tokens <= 0) return;
-        counts.set(source, (counts.get(source) || 0) + tokens);
-    };
-    const addBucket = (source, zone, tokens) => {
-        if (tokens <= 0) return;
-        ensureBucket(source, zone).tokens += tokens;
-    };
-
     for (const message of messages) {
         const contentTokens = estimateTextTokens(message.content);
-        const sourceWeights = new Map();
-        const bucketWeights = new Map();
-        for (const fragment of message.fragments) {
-            const weight = estimateTextTokens(fragment.text);
-            const bucket = ensureBucket(fragment.source, fragment.zone);
-            sourceWeights.set(
-                fragment.source,
-                (sourceWeights.get(fragment.source) || 0) + weight,
-            );
-            bucketWeights.set(bucket.key, (bucketWeights.get(bucket.key) || 0) + weight);
+        const weights = new Map();
+        for (const { source, text } of message.fragments) {
+            weights.set(source, (weights.get(source) || 0) + estimateTextTokens(text));
+            if (!counts.has(source)) counts.set(source, 0);
         }
-        for (const [source, tokens] of allocateInteger(contentTokens, sourceWeights)) {
-            addSource(source, tokens);
-            const sourceBucketWeights = new Map(
-                [...bucketWeights].filter(([key]) => buckets.get(key).id === source),
-            );
-            for (const [key, bucketTokens] of allocateInteger(tokens, sourceBucketWeights)) {
-                const bucket = buckets.get(key);
-                addBucket(bucket.id, bucket.zone, bucketTokens);
-            }
-        }
-
         const overhead = estimateMessageTokens({ content: message.content }) - contentTokens;
-        const overheadSource = message.overheadSource
-            || [...sourceWeights.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
-            || 'system_prompt';
-        const overheadZone = message.overheadZone || defaultZoneForSource(overheadSource);
-        addSource(overheadSource, overhead);
-        addBucket(overheadSource, overheadZone, overhead);
+        counts.set(message.overheadSource, (counts.get(message.overheadSource) || 0) + overhead);
+        for (const [source, tokens] of allocateInteger(contentTokens, weights)) {
+            counts.set(source, counts.get(source) + tokens);
+        }
     }
-    return {
-        bySource: counts,
-        buckets: [...buckets.values()]
-            .filter(bucket => bucket.tokens > 0)
-            .sort((left, right) => {
-                const zoneDelta = ZONE_ORDER.get(left.zone) - ZONE_ORDER.get(right.zone);
-                return zoneDelta || left.order - right.order;
-            }),
-    };
-}
-
-function makeTemplateContext({ character, persona, authorNote, summaryText }, lorebookText) {
-    const context = {
-        user: persona.name || 'User',
-        char: character.name || '',
-        personality: character.personality || '',
-        scenario: character.scenario || '',
-        description: character.description || '',
-        persona: persona.description || '',
-        mesExamples: character.mes_example || '',
-        lorebook: lorebookText,
-        author_note: authorNote,
-        summary: summaryText,
-        system_prompt: character.system_prompt || '',
-        post_history_instructions: character.post_history_instructions || '',
-        user_message: '',
-    };
-    // Preserve the request builder's existing behavior: card post-history text
-    // resolves its own {{char}}/{{user}} variables before entering the User
-    // template, and the whole result remains attributed to the card.
-    context.post_history_instructions = resolveTemplateVariables(
-        context.post_history_instructions,
-        context,
-    );
-    // Cards, personas and lorebooks write the two names as {{char}} and
-    // {{user}}. The template pass swaps each value in whole and never looks
-    // inside it, so without this the model read the placeholders themselves.
-    for (const key of Object.keys(context)) {
-        if (key !== 'user' && key !== 'char') context[key] = resolveNames(context[key], context);
-    }
-    return context;
+    return counts;
 }
 
 /** {{char}} and {{user}} replaced by the names they stand for. */
-function resolveNames(text, context) {
+function resolveNames(text, names) {
     return String(text || '')
-        .replace(/\{\{char\}\}/gi, () => context.char)
-        .replace(/\{\{user\}\}/gi, () => context.user);
+        .replace(/\{\{char\}\}/gi, () => names.char)
+        .replace(/\{\{user\}\}/gi, () => names.user);
+}
+
+/** The text for each slot of the layout, '' for one with nothing to say. */
+function layoutValues(inputs, lorebookText, names) {
+    const { character, persona } = inputs;
+    // Cards, personas and lorebooks write the two names as {{char}} and
+    // {{user}}, and some write {{time}} or a {{random}} pick.
+    const filled = text => resolveTemplateVariables(text, names);
+    // A box of the Prompt page is prose. The same few variables work in it and
+    // any other stands for nothing, a card's {{original}} above all.
+    const box = text => filled(text).replace(/\{\{[^{}\n]*\}\}/g, '').trim();
+    return {
+        system: box(inputs.systemText),
+        description: filled(character.description),
+        personality: filled(character.personality),
+        mesExamples: filled(character.mes_example),
+        persona: filled(persona.description),
+        lorebook: filled(lorebookText),
+        scenario: filled(character.scenario),
+        authorNote: filled(inputs.authorNote),
+        summary: filled(inputs.summaryText),
+        postHistory: box(inputs.postHistoryText),
+    };
 }
 
 function assembleMessages(selectedMessages, inputs, resolvedLore) {
     const lorebookContents = resolveLorebookEntries(inputs.lorebook, selectedMessages, resolvedLore);
-    const lorebookText = lorebookContents.join('\n---\n');
+    const names = { user: inputs.persona.name || 'User', char: inputs.character.name || '' };
+    const values = layoutValues(inputs, lorebookContents.join('\n---\n'), names);
 
-    const context = makeTemplateContext(inputs, lorebookText);
-
-    const { systemTemplate, userTemplate } = inputs;
-    const system = resolveTrackedTemplate(systemTemplate, context, { zone: 'system' });
     const messages = [];
-    // Held for the editor's preview: what the two templates alone produced,
-    // before the alternation shims below.
-    let userTurn = '';
-    if (system.content) {
-        messages.push({
-            role: 'system',
-            content: system.content,
-            fragments: system.fragments,
-            overheadSource: 'system_prompt',
-            overheadZone: 'system',
-        });
-    }
+    const system = trackedMessage('system', layOut(SYSTEM_LAYOUT, values, names));
+    if (system.content) messages.push(system);
 
-    const wrapsUserMessage = /\{\{user_message\}\}/i.test(userTemplate);
-    let lastUserIndex = -1;
-    if (wrapsUserMessage) {
-        for (let i = selectedMessages.length - 1; i >= 0; i -= 1) {
-            if (selectedMessages[i].role === 'user') {
-                lastUserIndex = i;
-                break;
-            }
-        }
-    }
-
-    for (let i = 0; i < selectedMessages.length; i += 1) {
-        const message = selectedMessages[i];
-        const source = message._contextSource || 'message_history';
+    for (const message of selectedMessages) {
         // Reasoning blocks never go back into the prompt — they burn context
         // without adding anything the model needs to continue the scene. The
         // names are resolved here as the renderer resolves them on screen, so
         // a greeting copied from a card reads the same to the model as to you.
-        const content = resolveNames(parseThinkingContent(message.text || '').response, context);
+        const content = resolveNames(parseThinkingContent(message.text || '').response, names);
         if (!content) continue;
-
-        if (wrapsUserMessage && i === lastUserIndex) {
-            context.user_message = content;
-            const rendered = resolveTrackedTemplate(userTemplate, context, {
-                variableSources: { user_message: source },
-                zone: 'user',
-            });
-            userTurn = rendered.content;
-            messages.push({
-                role: 'user',
-                content: rendered.content,
-                fragments: rendered.fragments,
-                overheadSource: source,
-                overheadZone: 'history',
-            });
-        } else {
-            messages.push(trackedMessage(
-                message.role === 'user' ? 'user' : 'assistant',
-                content,
-                source,
-            ));
-        }
+        messages.push(trackedMessage(
+            message.role === 'user' ? 'user' : 'assistant',
+            [{ source: message._contextSource || 'message_history', text: content }],
+        ));
     }
 
-    if (!wrapsUserMessage || lastUserIndex === -1) {
-        const rendered = resolveTrackedTemplate(userTemplate, context, { zone: 'user' });
-        userTurn = rendered.content;
-        if (rendered.content) {
-            messages.push({
-                role: 'user',
-                content: rendered.content,
-                fragments: rendered.fragments,
-                overheadSource: 'system_prompt',
-                overheadZone: 'user',
-            });
-        }
-    }
-
-    // The summary reaches the model through {{summary}} or not at all. A
-    // template without the slot sends no memory, which is what the Memory
-    // flyout's ⊘ marker has always told the user it would do.
+    // Its own user turn after the chat, which the alternation pass below joins
+    // to your latest message when that is the turn before it.
+    const postHistory = trackedMessage('user', layOut(POST_HISTORY_LAYOUT, values, names));
+    if (postHistory.content) messages.push(postHistory);
 
     const trackedMessages = enforceTrackedAlternation(messages);
-    const tokenAccounting = countTrackedTokens(trackedMessages);
     return {
-        trackedMessages,
         messages: trackedMessages.map(message => ({ role: message.role, content: message.content })),
-        renderedTemplates: { system: system.content, user: userTurn },
-        tokenCounts: tokenAccounting.bySource,
-        segmentBuckets: tokenAccounting.buckets,
+        // Held for the editor's preview: the layout alone, before the
+        // alternation shims.
+        renderedPrompts: { system: system.content, postHistory: postHistory.content },
+        tokenCounts: countTrackedTokens(trackedMessages),
         lorebookContents,
     };
 }
@@ -506,7 +339,7 @@ function analyze(inputs) {
             assembled = assemble(selected);
         }
 
-        // Exact correction: prompt templates and role alternation can add or
+        // Exact correction: the prompt layout and role alternation can add or
         // remove overhead that a raw-message estimate cannot see.
         while (selected.length > 1
             && estimateMessagesTokens(assembled.messages) + responseTokens > maxTokens) {
@@ -515,7 +348,7 @@ function analyze(inputs) {
         }
 
         // If the rough first pass was conservative, grow back one oldest turn
-        // at a time. Each trial re-resolves lore, conditionals, and alternation.
+        // at a time. Each trial re-resolves lore and alternation.
         let selectedStart = candidates.length - selected.length;
         while (selectedStart > 0) {
             const trialSelection = candidates.slice(selectedStart - 1);
@@ -532,31 +365,12 @@ function analyze(inputs) {
     const overflowTokens = maxTokens > 0 ? Math.max(0, allocatedTokens - maxTokens) : 0;
     const unusedTokens = maxTokens > 0 ? Math.max(0, maxTokens - allocatedTokens) : 0;
     const labels = new Map(CONTEXT_SOURCES.map(source => [source.id, source.label]));
-    const segments = assembled.segmentBuckets.map(bucket => ({
-        key: bucket.key,
-        id: bucket.id,
-        zone: bucket.zone,
-        label: labels.get(bucket.id),
-        tokens: bucket.tokens,
-    }));
-    if (responseTokens > 0) {
-        segments.push({
-            key: 'capacity:response_reserve',
-            id: 'response_reserve',
-            zone: 'capacity',
-            label: labels.get('response_reserve'),
-            tokens: responseTokens,
-        });
-    }
-    if (unusedTokens > 0) {
-        segments.push({
-            key: 'capacity:unused',
-            id: 'unused',
-            zone: 'capacity',
-            label: labels.get('unused'),
-            tokens: unusedTokens,
-        });
-    }
+    const segment = (id, tokens) => ({ id, label: labels.get(id), tokens });
+    const segments = [...assembled.tokenCounts]
+        .filter(([, tokens]) => tokens > 0)
+        .map(([id, tokens]) => segment(id, tokens));
+    if (responseTokens > 0) segments.push(segment('response_reserve', responseTokens));
+    if (unusedTokens > 0) segments.push(segment('unused', unusedTokens));
 
     const selectedMessageIds = selected
         .filter(message => !message._isDraft && message.id != null)
@@ -564,7 +378,7 @@ function analyze(inputs) {
 
     return {
         messages: assembled.messages,
-        renderedTemplates: assembled.renderedTemplates,
+        renderedPrompts: assembled.renderedPrompts,
         selectedMessages: selected,
         selectedMessageIds,
         firstSelectedMessageId: selectedMessageIds[0] ?? null,

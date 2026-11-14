@@ -113,7 +113,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [cozy/auth.py](cozy/auth.py) | The optional password: sign-in page, the guard in front of every route, sign-out. |
 | [cozy/shared.py](cozy/shared.py) | Paths, `get_db()`, and the small request helpers. `BASE_DIR` is the *repo root*, one level above the package — bundled content and `static/themes` hang off it. |
 | [cozy/schema.py](cozy/schema.py) | `init_db()` and the `MIGRATIONS` tuple. |
-| [cozy/defaults.py](cozy/defaults.py) | `DEFAULT_PROMPT_TEMPLATE` and the two seeders. |
+| [cozy/defaults.py](cozy/defaults.py) | The two seeders, the stock prompt texts old migrations match on, and `plain_prompt()`, which turns a template from the old editor into plain text. |
 | [cozy/card_store.py](cozy/card_store.py) | Character-card reads/writes — the layer routes actually call. [cozy/png_utils.py](cozy/png_utils.py) is the raw tEXt-chunk reader beneath it. |
 | [cozy/thumbs.py](cozy/thumbs.py) | `/thumbs/...` WebP avatars, keyed by image content. Pure cache, safe to delete wholesale. |
 | [cozy/summarizer.py](cozy/summarizer.py) | Auto Summaries logic. **Keep it free of Flask, DB and network** so `cozy/routes/chats.py` and `cozy/routes/summaries.py` can both import it. |
@@ -213,14 +213,26 @@ restores can't interleave. The
 per-request `max_content_length` has to be a **number** — Flask falls back to
 the app-wide 20 MB cap when it is `None`, which would 413 any real backup.
 
-### Prompt templates
+### The prompt layout
 
-Mustache-ish: `{{variable}}` plus `{{#var}}…{{/var}}` conditional sections — see
-`DEFAULT_PROMPT_TEMPLATE`, which leaves `{{system_prompt}}` live so per-character instructions still
-flow through. Each saved prompt is **paired**, a `content` template and a `post_history_content`
-(`DEFAULT_POST_HISTORY_TEMPLATE`) injected after the chat history; both live on the `system_prompts`
-row and travel together through the import/export endpoints in
-[cozy/routes/settings.py](cozy/routes/settings.py).
+Cozy owns the layout of what is sent; a prompt is only the words in two boxes. `SYSTEM_LAYOUT` and
+`POST_HISTORY_LAYOUT` in [context-analysis.js](static/js/context-analysis.js) are that layout: which
+tag wraps which part, each tag's `note`, and the order. A part with nothing in it is left out, and
+so is a tag left with nothing inside. Each saved prompt is **paired**, `content` (the System box)
+and `post_history_content` (the Post-History box, sent after the chat history); both live on the
+`system_prompts` row as plain text and travel together through the import/export endpoints in
+[cozy/routes/settings.py](cozy/routes/settings.py). In a box `{{char}}`, `{{user}}`, `{{time}}`,
+`{{date}}` and `{{random:a,b}}` are filled in and any other `{{…}}` is dropped, so a card field can't
+be sent twice by naming it there.
+
+The meter counts a tag with the part it wraps, the first part for an opening tag and the last for
+a closing one, so the layout costs the parts it serves and nothing is left over to explain.
+
+Prompts used to be templates the user wrote. Migration 21 and the import route both run
+`plain_prompt()` in [cozy/defaults.py](cozy/defaults.py) over them, and the migration writes a
+template whose words did not all sit inside the two wrapper tags to
+`$DATA_DIR/old-prompt-templates.json` first. That file is the user's own text, so it travels in
+backups like any other.
 
 ### Optional password
 

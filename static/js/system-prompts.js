@@ -1,14 +1,16 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
-import { downloadUrl, sanitize, showToast, copyText, flashSettingsSavedTick } from './utils.js';
+import { downloadUrl, sanitize, showToast, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog, promptDialog } from './confirm.js';
-import { previewChatPayload, previewRenderedTemplates } from './request-builder.js';
+import { previewChatPayload, previewRenderedPrompts } from './request-builder.js';
 import { newestPreset } from './preset-match.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAIRED PROMPT BUILDER
+// PROMPT PRESETS
 // ═══════════════════════════════════════════════════════════════════════════
+// A preset is two boxes of plain text, System and Post-History. The layout
+// they are sent in belongs to context-analysis.js.
 
 // Standard house prompt ("NanoBear"); an "Author" second word ("NanoBear
 // Author") is a variant, never the default. Mirrors STANDARD_NANOBEAR_RE in
@@ -164,7 +166,7 @@ export async function createSystemPrompt() {
     const name = await promptDialog({ title: 'New prompt', confirmLabel: 'Create' });
     if (!name || !name.trim()) return;
     // A new prompt starts as a copy of the selected one, editors included, so
-    // a template you have been working on can be forked without retyping it.
+    // a prompt you have been working on can be forked without retyping it.
     const source = syncActivePromptFromEditors();
     try {
         const created = await API.createSystemPrompt({
@@ -252,7 +254,7 @@ export async function exportSystemPrompt() {
         return;
     }
     // Persist any unsaved editor edits so the export reflects both the
-    // System and User content currently on screen.
+    // System and Post-History text currently on screen.
     await savePromptFields();
     window.location.href = `/api/system-prompts/${state.activeSystemPromptId}/export`;
 }
@@ -276,20 +278,18 @@ export function exportPreviewPayload() {
 }
 
 // ── Filled-in preview flyout ───────────────────────────────────────────────
-// The two templates as the request builder's own analysis pass renders them —
-// nothing is resolved a second time here. Scoped to the templates on purpose:
-// the [Start] alternation shim assembly may add has no counterpart in the
-// editor, and belongs to the whole-request preview behind the eye icon.
-// Compiled on open, discarded on close.
+// The two boxes in the layout Cozy sends them in, as the request builder's own
+// analysis pass rendered them — nothing is resolved a second time here. Scoped
+// to the layout on purpose: the [Start] alternation shim assembly may add has
+// no counterpart in the editor, and belongs to the whole-request preview behind
+// the eye icon. Compiled on open, discarded on close.
 
 // Run over already-escaped text, so a literal tag in the prompt reads as one.
 const RENDERED_TAG = /&lt;\/?[A-Za-z][\w.:-]*(?:\s[^&]*?)?&gt;/g;
-const RENDERED_HEADING = /^\[[^\]\n]+\]$/gm;
 
 function prettifyPrompt(text) {
     return sanitize(text)
-        .replace(RENDERED_TAG, tag => `<span class="prompt-rendered-tag">${tag}</span>`)
-        .replace(RENDERED_HEADING, head => `<span class="prompt-rendered-heading">${head}</span>`);
+        .replace(RENDERED_TAG, tag => `<span class="prompt-rendered-tag">${tag}</span>`);
 }
 
 function renderedBlock(title, caption, text, emptyNote) {
@@ -306,13 +306,13 @@ export function openRenderedPrompts() {
     if (!el.promptRenderedFlyout || !el.promptRenderedBody) return;
     syncActivePromptFromEditors();
 
-    const { system, user } = previewRenderedTemplates();
+    const { system, postHistory } = previewRenderedPrompts();
 
     el.promptRenderedBody.innerHTML =
-        renderedBlock('System', 'System tab, filled in', system,
-            'Nothing — the System template resolved to no content.')
-        + renderedBlock('User', 'User tab, filled in', user,
-            'Nothing — the User template resolved to no content.');
+        renderedBlock('System', 'sent before the chat', system,
+            'Nothing — the System box and every part after it are empty.')
+        + renderedBlock('Post-History', 'sent after the chat', postHistory,
+            'Nothing — the Post-History box is empty.');
     el.promptRenderedBody.scrollTop = 0;
     el.promptRenderedFlyout.hidden = false;
     el.promptRenderedBtn?.setAttribute('aria-expanded', 'true');
@@ -330,23 +330,6 @@ export function toggleRenderedPrompts() {
     else closeRenderedPrompts();
 }
 
-/**
- * Wire the Prompt Variables panel: click-to-copy on each variable tag.
- * Static markup, so one binding at startup is enough.
- */
-export function initPromptVarsPanel() {
-    const panel = document.querySelector('.prompt-vars-panel');
-    if (!panel) return;
-    panel.addEventListener('click', async e => {
-        const code = e.target.closest('.settings-help-vars dt code');
-        if (!code) return;
-        const tag = code.textContent.trim();
-        const ok = await copyText(tag);
-        showToast(ok ? `Copied ${tag}` : 'Copy failed — select the tag manually',
-            ok ? 'success' : 'error', 2000);
-    });
-}
-
 export function switchPromptBuilderMode(mode) {
     const selected = mode === 'post-history' ? 'post-history' : 'system';
     document.querySelectorAll('[data-prompt-builder-tab]').forEach(btn => {
@@ -354,6 +337,7 @@ export function switchPromptBuilderMode(mode) {
         btn.classList.toggle('active', active);
         btn.setAttribute('aria-selected', String(active));
     });
-    if (el.syspromptContent) el.syspromptContent.hidden = selected !== 'system';
-    if (el.postHistoryContent) el.postHistoryContent.hidden = selected !== 'post-history';
+    document.querySelectorAll('[data-prompt-box]').forEach(node => {
+        node.hidden = node.dataset.promptBox !== selected;
+    });
 }

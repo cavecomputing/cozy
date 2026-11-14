@@ -1,6 +1,6 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
-import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, templateHasVar, withBusy, updateTabTitle } from './utils.js';
+import { applyAvatar, AVATAR, getInitials, showToast, Flyouts, updateComposerState, withBusy, updateTabTitle } from './utils.js';
 import { renderCharList, selectCharacter, deleteCharacter } from './characters.js';
 import { renderLorebookFlyout, renderLorebookList } from './lorebooks.js';
 import { renderMessages } from './messages.js';
@@ -44,44 +44,6 @@ const fields = {
     creator:       document.getElementById('cf-creator'),
     version:       document.getElementById('cf-version'),
 };
-
-// Fields that map to prompt template variables. When the active template
-// doesn't reference a field's {{variable}}, whatever is typed there is never
-// sent — so we surface a neutral marker next to the label.
-// (mes_example → mesExamples camelCase does not auto-derive.)
-const PROMPT_FIELD_VARS = [
-    ['description',   'description'],
-    ['personality',   'personality'],
-    ['scenario',      'scenario'],
-    ['mes_example',   'mesExamples'],
-    ['system_prompt', 'system_prompt'],
-    ['post_history',  'post_history_instructions'],
-];
-
-const fieldMarkers = {
-    description:   document.getElementById('cf-description-marker'),
-    personality:   document.getElementById('cf-personality-marker'),
-    scenario:      document.getElementById('cf-scenario-marker'),
-    mes_example:   document.getElementById('cf-mes-example-marker'),
-    system_prompt: document.getElementById('cf-system-prompt-marker'),
-    post_history:  document.getElementById('cf-post-history-marker'),
-};
-
-/**
- * Mark each prompt field the active template leaves out, empty or not, and
- * let its placeholder say so: an example of what to write would invite text
- * that is never sent.
- */
-function updateFieldMarkers() {
-    const promptName = state.systemPrompts.find(p => p.id === state.activeSystemPromptId)?.name;
-    for (const [key, varName] of PROMPT_FIELD_VARS) {
-        const field = fields[key];
-        const sent = templateHasVar(varName);
-        fieldMarkers[key].hidden = sent;
-        field.dataset.placeholder ??= field.placeholder;
-        field.placeholder = sent ? field.dataset.placeholder : `Not sent by ${promptName}, your current prompt.`;
-    }
-}
 
 const altGreetingsList = document.getElementById('alt-greetings-list');
 const addGreetingBtn   = document.getElementById('add-greeting-btn');
@@ -223,7 +185,6 @@ function open(char = null) {
     deleteBtn.hidden = !char;                       // only show delete on edit, not create
     if (char) populate(char);
     else      clearForm();
-    updateFieldMarkers();
     loadedForm = JSON.stringify(collect());
     overlay.hidden = false;
     // Same rule as the composer: no autofocus on a touch device, where it

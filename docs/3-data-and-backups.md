@@ -8,6 +8,7 @@ Cozy stores local data in `data/` by default:
 data/
   cozy_chat.db
   cozy_chat.before-update.db
+  old-prompt-templates.json
   characters/
   personas/
   themes/
@@ -21,6 +22,12 @@ the PNG files in `characters/`.
 `cozy_chat.before-update.db` appears the first time an update changes the
 database: it is a copy of the database as it was just before, made by Cozy
 itself when it starts. See [Go back after an update](#go-back-after-an-update).
+
+`old-prompt-templates.json` appears only if you had written a prompt template
+of your own before prompts became two plain text boxes. Cozy kept the words of
+each one in **Settings → Prompt** and saved the originals here as they were,
+so nothing you wrote is lost. It is a text file: open it in any editor to read
+them, and delete it once you no longer want them.
 
 `thumbs/` is a cache of downscaled avatar images that Cozy generates from the
 files in `characters/` and `personas/` as they are requested. It holds nothing

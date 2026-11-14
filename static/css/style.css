@@ -3316,7 +3316,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    variable a theme may declare on :root to retune the meter to its own palette.
    The hex is the fallback, not a declaration, which is what lets the theme —
    loaded before this file — win. */
-.context-meter-segment[data-source="system_prompt"]    { background: var(--meter-system-prompt,    #8b5cf6); }
+/* Post-History is the other half of your prompt, so it wears the same colour. */
+.context-meter-segment:is([data-source="system_prompt"], [data-source="post_history"]) { background: var(--meter-system-prompt, #8b5cf6); }
 .context-meter-segment[data-source="character_card"]   { background: var(--meter-character-card,   #ec4899); }
 .context-meter-segment[data-source="persona"]          { background: var(--meter-persona,          #06b6d4); }
 .context-meter-segment[data-source="lorebook"]         { background: var(--meter-lorebook,         #22c55e); }
@@ -3489,12 +3490,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    so a button flush against the padding still reads as indented. */
 .memory-card-header > .icon-btn:last-of-type {
     margin-right: -5px;
-}
-
-/* The header is already a flex row with its own gap — drop the marker's
-   label-hugging margin so it sits at the same spacing as the icon. */
-.memory-card-header .field-unused-marker {
-    margin-left: -0.2rem;
 }
 
 .memory-card-body {
@@ -4470,8 +4465,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    .section-label, which names app chrome, not content. */
 .settings-card-header h4,
 .preset-subhead,
-.sampler-group-header,
-.prompt-vars-title {
+.sampler-group-header {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -4945,8 +4939,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
 
-/* The settings pane's container, as in the prompt editor's fold but one step
-   narrower: the preset picker's row of actions wraps. */
+/* Against the settings pane's container, which is the viewport minus the
+   sidebar and the settings nav: the preset picker's row of actions wraps. */
 @container (max-width: 800px) {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
@@ -4955,7 +4949,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* ── Prompt page ─────────────────────────────────────────────────────────── */
-/* Prompt section: controls across the top, variables beside the editor. */
+/* Prompt section: the preset's controls, then the editor. */
 .settings-section[data-section="prompt"]:not([hidden]) {
     display: flex;
     flex-direction: column;
@@ -4965,9 +4959,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .prompt-section-body {
     display: grid;
     min-height: 0;
-    /* Editor first, reference column second: the template is what you came to
-       edit, and the variable list is what you consult while editing it. */
-    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
     flex: none;
     align-items: stretch;
@@ -5074,46 +5066,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-cool);
     /* Like a title-row button elsewhere, Preview may not set the row's height. */
     margin-block: calc(-1 * var(--space-2));
-}
-
-.prompt-vars-panel {
-    flex: 1;
-    min-height: 0;
-    /* A card's full padding would leave the longest variable chip no room. */
-    grid-column: 2;
-    grid-row: 2;
-    overflow: visible;
-    max-height: none;
-    padding-inline: var(--space-4);
-}
-
-.prompt-vars-title {
-    margin-bottom: var(--space-2);
-}
-
-.prompt-vars-title--sub {
-    margin-top: 0.9rem;
-    padding-top: 0.7rem;
-    border-top: 1px solid var(--line);
-}
-
-.prompt-vars-lead {
-    margin: 0 0 0.5rem;
-    font-size: var(--text-xs);
-    line-height: 1.4;
-    color: var(--fg-quiet);
-}
-
-.prompt-vars-note {
-    margin: 0.7rem 0 0;
-    font-size: var(--text-xs);
-    line-height: 1.45;
-    color: var(--fg-quiet);
-}
-
-.prompt-vars-note strong {
-    color: var(--fg);
-    font-weight: 600;
 }
 
 .prompt-section-right {
@@ -5232,11 +5184,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-cool);
 }
 
-.prompt-rendered-heading {
-    color: var(--fg-quiet);
-    font-weight: 600;
-}
-
 .prompt-section-right .prompt-builder-bar {
     flex: none;
 }
@@ -5269,48 +5216,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     text-decoration: underline;
 }
 
-/* Compact stacked variable list for the narrow left column */
-.prompt-vars-panel .settings-help-vars {
-    display: block;
-    margin: 0;
-}
-
-.prompt-vars-panel .settings-help-vars dt {
-    margin-top: 0.5rem;
-}
-
-.prompt-vars-panel .settings-help-vars dt:first-of-type {
-    margin-top: 0;
-}
-
-.prompt-vars-panel .settings-help-vars dt code {
-    font-size: var(--text-xs);
-    white-space: normal;
-}
-
-.prompt-vars-panel .settings-help-vars dd {
-    margin: 0.15rem 0 0;
-    color: var(--fg-quiet);
-    font-size: var(--text-xs);
-    line-height: 1.4;
-}
-
-/* Template tags run long and carry no spaces to break at. */
-.prompt-vars-panel :is(dt code, dd, .prompt-vars-lead, .prompt-vars-note) {
-    font-size: var(--text-xs);
-    overflow-wrap: anywhere;
-}
-
-.prompt-vars-panel dt { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
-
-.prompt-vars-toggle { display: none; }
-
-/* In the two-column workspace the reference sets the row height; both editors
-   fill that same row, so changing tabs never changes the panel's height. */
-@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
-    .prompt-section-right .form-textarea { resize: none; }
-}
-
 /* Import/export makes this picker row one button wider than the others, too
    wide for its card just above the width where the shared rule wraps them.
    The picker gives up width down to its 12rem floor first, then the row wraps
@@ -5318,15 +5223,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
     .prompt-select-row { flex-wrap: wrap; }
     .settings-card-header > .prompt-select-row > .cozy-select { flex: 1 1 12rem; max-width: 17rem; }
-}
-
-/* Against the pane, not the viewport: the editor and its Variables column are
-   side by side only while the pane is wide enough for both, and the pane is
-   the viewport minus the sidebar and the settings nav. A viewport breakpoint
-   would fold this at the wrong moment on every screen but one. */
-@container (max-width: 950px) {
-    .prompt-section-body { grid-template-columns: minmax(0, 1fr); }
-    .prompt-vars-panel { grid-column: 1; grid-row: 3; }
 }
 
 /* ── Lorebooks page ──────────────────────────────────────────────────────── */
@@ -6005,20 +5901,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-cool);
 }
 
-.prompt-help-example {
-    margin: 0.4rem 0 0.6rem;
-    padding: 0.6rem 0.8rem;
-    background: var(--pre-bg);
-    border: 1px solid var(--pre-border);
-    border-radius: var(--radius);
-    font-family: var(--font-mono);
-    font-size: var(--text-md);
-    line-height: 1.5;
-    color: var(--text-color);
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
 .prompt-help-note {
     font-size: var(--text-md);
     font-style: italic;
@@ -6031,43 +5913,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .prompt-help-tips li { margin-bottom: 0.35rem; }
-
-.settings-help-vars {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    column-gap: 0.85rem;
-    row-gap: 0.3rem;
-    margin: 0.4rem 0 0.2rem;
-    font-size: var(--text-sm);
-}
-
-.settings-help-vars dt {
-    margin: 0;
-}
-
-.settings-help-vars dt code {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    color: var(--fg-cool);
-    background: var(--code-bg);
-    border: 1px solid var(--code-border);
-    border-radius: var(--radius-control);
-    padding: 0.05rem 0.3rem;
-    white-space: nowrap;
-    cursor: copy;
-    transition: border-color var(--motion-fast) ease, color var(--motion-fast) ease;
-}
-
-.settings-help-vars dt code:hover {
-    border-color: var(--fg-accent);
-    color: var(--fg-accent);
-}
-
-.settings-help-vars dd {
-    margin: 0;
-    color: var(--fg-quiet);
-    align-self: center;
-}
 
 .prompt-preview-content {
     white-space: pre-wrap;
@@ -7311,36 +7156,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .prompt-section-right .form-textarea:focus-visible {
         outline: 2px solid var(--fg-accent);
         outline-offset: 2px;
-    }
-
-    .prompt-vars-panel { flex: none; padding: 0; }
-
-    .prompt-vars-toggle {
-        display: flex;
-        align-items: center;
-        gap: 0.625rem;
-        width: 100%;
-        min-height: 52px;
-        border: 0;
-        background: transparent;
-        color: var(--fg-heading);
-        font: 700 1.125rem/1.25 var(--font-mono);
-        padding: var(--space-4);
-        border-radius: var(--radius);
-    }
-
-    .prompt-vars-toggle > span:last-child { margin-left: auto; }
-
-    #prompt-vars-content { padding: 0 var(--space-4) var(--space-4); }
-
-    .prompt-vars-toggle[aria-expanded="false"] + #prompt-vars-content { display: none; }
-
-    #prompt-vars-content > .settings-card-header { display: none; }
-
-    .prompt-vars-panel dt code {
-        display: inline-flex;
-        align-items: center;
-        min-height: 44px;
     }
 
     /* ── Lorebooks page ──────────────────────────────────────────────────── */
