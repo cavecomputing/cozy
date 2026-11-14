@@ -171,9 +171,8 @@ and each one ends with a link to the next.
 7. [Troubleshooting](docs/7-troubleshooting.md): common problems and how to
    fix each one.
 
-For developers: the
-[database schema](https://cavecomputing.github.io/cozy/database-schema.html),
-and [notes on seeding and backups](docs/database-schema.md).
+For developers: the [database reference](docs/database-schema.md) has every
+table, the migrations, and how bundled characters and prompts are seeded.
 
 ## License
 
