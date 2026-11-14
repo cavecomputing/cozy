@@ -87,6 +87,21 @@ async function sendOnce(text) {
 }
 
 /**
+ * Say that the reply to chat `chatId` failed, with a Retry. `kept` is whether
+ * there is a reply to take again, part of this one or the one a new swipe was
+ * for: Retry then asks for another take beside it, and otherwise for the reply
+ * this chat is still waiting on. /retry is not the same thing: it regenerates
+ * the reply before it.
+ */
+export function showReplyFailure(chatId, message, kept, cutShort = kept) {
+    const retry = kept ? regenerateLastAssistantMessage : () => handleSend('');
+    showToast(`${cutShort ? 'Reply cut short. ' : ''}${message}`, 'error', 8000, {
+        label: 'Retry',
+        onClick: () => { if (state.activeChat?.id === chatId) retry(); },
+    });
+}
+
+/**
  * Draw the reply to chat `chatId` at the end of it as the server writes it,
  * and the saved message in its place once it is done. `read` opens the stream
  * and resolves with that message. `memoryFirst` is for a reply this page asks
@@ -133,14 +148,8 @@ export async function receiveReply(chatId, read, memoryFirst = false) {
             whenGenerationEnds(() => refreshOpenChat(true));
         } else if (err.name !== 'AbortError') {
             console.error('LLM error:', err);
-            // Retry asks again for the reply this send was waiting on, or for
-            // another take beside the part that was kept. /retry is not the
-            // same thing: it regenerates the reply before it.
-            const retry = saved ? regenerateLastAssistantMessage : () => handleSend('');
-            showToast(`${saved ? 'Reply cut short. ' : ''}${source}: ${err.message}`, 'error', 8000, {
-                label: 'Retry',
-                onClick: () => { if (state.activeChat?.id === chatId) retry(); },
-            });
+            showReplyFailure(chatId, `${source}: ${err.message}`, !!saved);
+            llm.failureShownFor = chatId;
         }
     } finally {
         stream.stop();

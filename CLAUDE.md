@@ -251,8 +251,11 @@ and `_finish()` holds the one rule for what a reply cut short keeps: the part th
 that was reasoning alone. The stream ends by saying what was saved (`{"saved": row}`), and that row
 is what the page shows; **the page never posts a reply**. In the page, aborting
 `llm.abortController` only stops listening, as leaving a chat does, and `stopGeneration()` is what
-asks the server to stop. Replies live in memory (`_replies`, one per chat), as the summary jobs do,
-so both need the **single gunicorn worker** Docker runs, and a restart loses a reply in flight.
+asks the server to stop. A reply that **failed** stays in `_replies` until the next `GET` for its
+chat, which is answered once with why as JSON, or until the chat is sent another: the page that
+asked may have been gone when it failed, and would come back to no reply and no reason. Replies
+live in memory (`_replies`, one per chat), as the summary jobs do, so both need the **single
+gunicorn worker** Docker runs, and a restart loses a reply in flight.
 
 ### Context analysis
 

@@ -301,12 +301,15 @@ export const API = {
      * The reply the server is writing for a chat, to read from its first word:
      * `swipeOf` is the message it is a new swipe of, if it is one. Null when
      * there is none. With no `read`, one ended moments ago, so the chat this
-     * page holds may be from before it was saved.
+     * page holds may be from before it was saved; `failure` is why, when it
+     * ended in one that no page has been told of.
      */
     async followReply(chatId, signal) {
         const res = await fetch(`/api/llm/chat?chat_id=${chatId}`, { signal });
         if (!res.ok) throw new Error(await apiError(res, 'Could not rejoin the reply'));
         if (res.status === 204) return null;
+        // One that failed with no page there to hear it: why, and nothing to read.
+        if (res.headers.get('Content-Type')?.startsWith('application/json')) return { failure: await res.json() };
         return {
             swipeOf: Number(res.headers.get('X-Swipe-Of')) || null,
             read: res.status === 200 ? onToken => readReply(res, onToken) : null,

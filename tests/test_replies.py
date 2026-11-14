@@ -194,6 +194,31 @@ def test_a_reply_that_fails_before_any_text_saves_nothing(client, sample_chat, m
     assert texts(client, sample_chat) == []
 
 
+def test_a_failure_nobody_heard_is_told_once_to_the_page_that_comes_back(client, sample_chat, model):
+    model(said('Hel'), {'error': 'overloaded'})
+    url = f'/api/llm/chat?chat_id={sample_chat["id"]}'
+    # The page asks and is gone, as a phone put in a pocket is.
+    client.post(url, json=PAYLOAD).close()
+    wait_for(lambda: llm._replies[sample_chat['id']].done)
+
+    told = client.get(url)
+    assert told.status_code == 200
+    assert told.get_json() == {'error': 'overloaded', 'cut_short': True, 'swipe_of': None}
+    # Once is enough: the next page to open the chat is not told again.
+    assert client.get(url).status_code == 204
+
+
+def test_a_failure_is_forgotten_when_the_chat_is_asked_for_another_reply(client, sample_chat, model):
+    url = f'/api/llm/chat?chat_id={sample_chat["id"]}'
+    model({'error': 'overloaded'})
+    client.post(url, json=PAYLOAD).get_data()
+    assert llm._replies[sample_chat['id']].error == 'overloaded'
+
+    model(said('Hello'), '[DONE]')
+    client.post(url, json=PAYLOAD).get_data()
+    assert client.get(url).status_code == 205
+
+
 def test_a_new_swipe_is_saved_to_its_message_and_put_on_show(client, sample_chat, model):
     chat_id = sample_chat['id']
     message = client.post(f'/api/chats/{chat_id}/messages', json={

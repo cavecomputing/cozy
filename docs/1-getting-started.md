@@ -252,8 +252,10 @@ you want.
   another chat or close the page, and the reply is there when you come back;
   if it is still being written, you pick it up where it has got to. A second
   device that opens the chat sees the same reply arriving. Only **Stop** ends
-  a reply early, and it keeps the part that had arrived. A reply being
-  written at the moment Cozy itself is restarted is lost.
+  a reply early, and it keeps the part that had arrived. If the reply failed
+  while you were away, the chat says why when you come back, with a
+  **Retry**. A reply being written at the moment Cozy itself is restarted is
+  lost.
 - **`/` to type** — pressed anywhere outside a text box, **/** jumps to the
   chat box, ready to type. The slash itself isn't typed.
 - **Branches** — the branching-arrows button on a reply forks the chat there:

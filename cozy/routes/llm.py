@@ -343,6 +343,9 @@ class Reply:
         self.reasoning = []
         self.content = []
         self.done = False
+        # What ended it early, if a failure did, and whether part of it was kept.
+        self.error = None
+        self.cut_short = False
         self.changed = threading.Condition()
 
 
@@ -392,6 +395,7 @@ def _finish(reply, whole=False, error=None):
             if text.strip():
                 # Ahead of the error, which is where a page stops reading.
                 reply.events.append(json.dumps({'saved': _save_reply(reply, text.strip())}))
+                reply.cut_short = bool(error)
         except sqlite3.Error as e:
             # Its chat was deleted meanwhile, or the database would not take it.
             log.error('Chat reply could not be saved: %s', e)
@@ -401,8 +405,12 @@ def _finish(reply, whole=False, error=None):
         elif not whole:
             # A Stop is an ending. Without this the page reads it as a dropped connection.
             reply.events.append('[DONE]')
+        reply.error = error
         reply.done = True
         reply.changed.notify_all()
+    if error:
+        # Kept for the page that comes back to it: see follow_chat().
+        return
     forget = threading.Timer(REPLY_KEPT_SECONDS, _forget, (reply,))
     forget.daemon = True
     forget.start()
@@ -619,10 +627,19 @@ def follow_chat():
 
     204 when there is none. 205 when one ended moments ago: the chat this page
     holds may be from before it was saved, so the page should load it again.
+
+    A reply that failed is answered with why, as JSON, to the first page that
+    asks. The failure went out on the reply's own stream, but the page that
+    sent for it may have been long gone by then, a phone in a pocket, and would
+    come back to a message with no reply and nothing to say what happened. It
+    stays on record until it is told once or the chat is asked for another.
     """
     reply = _replies.get(request.args.get('chat_id', type=int))
     if not reply:
         return '', 204
+    if reply.error:
+        _forget(reply)
+        return jsonify({'error': reply.error, 'cut_short': reply.cut_short, 'swipe_of': reply.message_id})
     if reply.done:
         return '', 205
     return _follow(reply)

@@ -6,7 +6,7 @@ import {
 } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { renderMessages, appendMessage, flushEdit, revealMessage, refreshBranchPills, receiveSwipe } from './messages.js';
-import { receiveReply } from './send.js';
+import { receiveReply, showReplyFailure } from './send.js';
 import { renderLorebookFlyout, loadAuthorNote, flushAuthorNote } from './lorebooks.js';
 import { clearDraft, restoreDraft, saveDraft } from './drafts.js';
 import { renderPersonaList, updateUserProfile } from './personas.js';
@@ -422,6 +422,14 @@ async function followReply() {
     if (!reply) return;
     if (!reply.read) {
         await reloadOpenChat();
+        // The server kept this for a page that wasn't there when it happened.
+        // One that was has said so already, and has now taken it back.
+        const { failure } = reply;
+        const shown = llm.failureShownFor === chatId;
+        llm.failureShownFor = null;
+        if (failure && !shown && state.activeChat?.id === chatId) {
+            showReplyFailure(chatId, `Chat API: ${failure.error}`, failure.cut_short || !!failure.swipe_of, failure.cut_short);
+        }
         return;
     }
     // A new swipe streams into the bubble of the message it belongs to.

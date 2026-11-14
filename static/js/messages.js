@@ -255,6 +255,7 @@ export async function receiveSwipe(msgEl, followed = null) {
         } else if (err.name !== 'AbortError') {
             console.error('Regen error:', err);
             showToast(`${saved ? 'Reply cut short. ' : ''}${source}: ${err.message}`);
+            llm.failureShownFor = chatId;
         }
     } finally {
         // The bubble outlives the stream here, and a draw still queued would

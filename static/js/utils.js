@@ -355,6 +355,7 @@ let screenLock = null;
 export function beginGeneration() {
     if (llm.generationActive) return false;
     llm.generationActive = true;
+    llm.failureShownFor = null;
     // A slow reply can outlast a phone's auto-lock, and a locked phone stops
     // the page mid-stream. Best effort: unsupported or refused is fine.
     screenLock = navigator.wakeLock?.request('screen').catch(() => null);

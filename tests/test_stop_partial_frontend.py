@@ -160,7 +160,7 @@ def test_a_dropped_connection_is_told_apart_from_an_error():
     """)
 
 
-def test_follow_reply_reads_the_three_answers():
+def test_follow_reply_reads_the_four_answers():
     run_node_module(STREAM_SETUP + r"""
         stubStream([], null, { status: 204 });
         assert.equal(await API.followReply(7), null);
@@ -181,6 +181,15 @@ def test_follow_reply_reads_the_three_answers():
         let text = '';
         assert.deepEqual(await reply.read(t => { text = t; }), { id: 31, content: 'a second take' });
         assert.equal(text, 'a second take');
+
+        // One that failed with no page listening: why, in place of a stream.
+        const failure = { error: 'overloaded', cut_short: false, swipe_of: null };
+        globalThis.fetch = async () => ({
+            ok: true, status: 200,
+            headers: { get: name => (name === 'Content-Type' ? 'application/json' : null) },
+            json: async () => failure,
+        });
+        assert.deepEqual(await API.followReply(7), { failure });
     """)
 
 
