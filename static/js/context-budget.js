@@ -69,15 +69,6 @@ function resolveActiveLorebook(chat, character, lorebooks) {
 }
 
 /**
- * Everything a context analysis is built from, gathered in one place.
- * context-analysis.js works from this alone and cannot see `state`, which is
- * what lets it hand back the analysis it already has when nothing here has
- * changed. Anything new the analysis needs from the app has to be added here.
- *
- * `candidates` are copies holding only what assembly reads: the raw-history
- * messages, then the draft if there is one.
- */
-/**
  * The open card's own prompt for a box (`system_prompt` or
  * `post_history_instructions`) while Use character prompts has it sent in
  * place of the user's, or '' when the user's is.
@@ -88,6 +79,15 @@ export function cardPrompt(field) {
     return /^(\{\{original\}\}\s*)*$/i.test(text) ? '' : text;
 }
 
+/**
+ * Everything a context analysis is built from, gathered in one place.
+ * context-analysis.js works from this alone and cannot see `state`, which is
+ * what lets it hand back the analysis it already has when nothing here has
+ * changed. Anything new the analysis needs from the app has to be added here.
+ *
+ * `candidates` are copies holding only what assembly reads: the raw-history
+ * messages, then the draft if there is one.
+ */
 export function contextInputs({ excludeLastN = 0, draftText = '', summaryText = '' } = {}) {
     const candidates = getRawHistoryMessages(state.messages, { excludeLastN })
         .map(message => ({
