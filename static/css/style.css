@@ -2012,7 +2012,6 @@ input[type="checkbox"]:checked::after {
     padding: 0 0.625rem;
     min-height: 0;
     position: relative;
-    container-type: inline-size;   /* for the scrollbar gutter on #chat-scroll */
 }
 
 /* ── Transcript ──────────────────────────────────────────────────────────── */
@@ -2079,9 +2078,16 @@ input[type="checkbox"]:checked::after {
    centre the messages a half-scrollbar left of it. A gutter on both sides
    keeps the two columns on one centre line, scrolling or not, but only once
    the column is capped: on a narrower pane the messages fill the width, and
-   two gutters would inset both of their edges from the composer's. 45.5rem
-   is the 44rem column plus room for two thin scrollbars. */
-@container (min-width: 45.5rem) {
+   two gutters would inset both of their edges from the composer's. 46.75rem
+   is the 44rem column, room for two thin scrollbars and #chat-history's
+   padding; the pane is that wide beside the 240px sidebar, or at the top of
+   the phone shell's range, where the sidebar is a drawer.
+   A media query and not a container query on #chat-history, which is what
+   this was: WebKit lays a size container out before it styles what is new
+   inside it, so every redraw of a streaming reply was first laid out with
+   the reply empty, and Safari pulled the view up to where the transcript
+   would then end. */
+@media (min-width: calc(46.75rem + 240px)), (min-width: 46.75rem) and (max-width: 768px) {
     #chat-scroll { scrollbar-gutter: stable both-edges; }
 }
 
