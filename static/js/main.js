@@ -862,9 +862,6 @@ function bindSettingsHandlers() {
     el.syspromptNew?.addEventListener('click', createSystemPrompt);
     el.syspromptRename?.addEventListener('click', renameSystemPrompt);
     el.syspromptDelete?.addEventListener('click', deleteSystemPrompt);
-    el.promptEnableAdvanced?.addEventListener('click', () => {
-        setAdvancedConfigurationVisible(true);
-    });
     el.syspromptPreview?.addEventListener('click', () => {
         previewSystemPrompt();
         openSettingsSubmodal(el.promptPreviewModal);

@@ -41,7 +41,6 @@ export function syncActivePromptFromEditors() {
     p.version = readVersionEditor(p.version || '');
     if (el.syspromptContent) p.content = el.syspromptContent.value;
     if (el.postHistoryContent) p.post_history_content = el.postHistoryContent.value;
-    renderPromptDescription(p);
     decorateOption(p);
     return p;
 }
@@ -64,14 +63,6 @@ export function normalizeVersionEditor() {
     if (!el.syspromptVersion) return;
     el.syspromptVersion.value = activePrompt()?.version || '';
     el.syspromptVersion.setAttribute('aria-invalid', 'false');
-}
-
-/** Show the active prompt's description under the selector (basic mode). */
-function renderPromptDescription(prompt) {
-    if (!el.syspromptDescriptionText) return;
-    const text = (prompt?.description || '').trim();
-    el.syspromptDescriptionText.textContent = prompt ? (text || 'No description') : '';
-    el.syspromptDescriptionText.classList.toggle('prompt-description-text--empty', Boolean(prompt) && !text);
 }
 
 /**
@@ -99,7 +90,6 @@ function setEditorValues(prompt) {
     if (el.postHistoryContent) {
         el.postHistoryContent.value = prompt ? (prompt.post_history_content || '') : '';
     }
-    renderPromptDescription(prompt);
 }
 
 async function savePromptFields({ showSuccess = false } = {}) {

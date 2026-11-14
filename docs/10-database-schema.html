@@ -652,7 +652,7 @@
         <tbody>
           <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
           <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. No UNIQUE constraint — the routes reject a clash with 409 instead, on <b>name and version together</b>.</td></tr>
-          <tr><td class="c-name">version</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">A number, optionally with one decimal part — <code>2</code>, <code>2.1</code> — or blank. Never stores the <code>v</code>; the picker's pill adds it. Editable only with advanced configuration on.</td></tr>
+          <tr><td class="c-name">version</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">A number, optionally with one decimal part — <code>2</code>, <code>2.1</code> — or blank. Never stores the <code>v</code>; the picker's pill adds it.</td></tr>
           <tr><td class="c-name">description</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">One line under the selector.</td></tr>
           <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">The System prompt, as typed. Sent inside <code>&lt;system_instructions&gt;</code>, ahead of the character, persona, lore and memory Cozy places after it.</td></tr>
           <tr><td class="c-name">post_history_content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">The Post-History prompt, as typed. Sent after the history inside <code>&lt;post_history_instructions&gt;</code>; travels with its partner through import/export.</td></tr>

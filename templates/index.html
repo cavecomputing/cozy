@@ -237,7 +237,7 @@
                                     <label class="settings-row-label" for="settings-show-advanced-toggle">Show advanced configuration</label>
                                     <input type="checkbox" id="settings-show-advanced-toggle" aria-describedby="show-advanced-hint">
                                 </div>
-                                <p id="show-advanced-hint" class="settings-hint">Reveals the prompt editor, summary behavior settings, and extra request parameters.</p>
+                                <p id="show-advanced-hint" class="settings-hint">Reveals summary behavior settings and extra request parameters.</p>
                             </section>
                         </div>
                     </div>
@@ -505,9 +505,7 @@
                                             <input type="file" id="settings-sysprompt-import-file" accept="application/json,.json" hidden>
                                         </div>
                                     </header>
-                                    <p id="settings-sysprompt-description-text" class="prompt-description-text"></p>
-                                    <p id="settings-prompt-basic-hint" class="prompt-basic-hint" hidden>To edit the prompt, turn on <button id="settings-prompt-enable-advanced" class="prompt-basic-hint-link">advanced configuration</button>.</p>
-                                    <div id="settings-prompt-meta-row" class="prompt-meta-row" hidden>
+                                    <div class="prompt-meta-row">
                                         <div class="settings-row settings-row--field">
                                             <label class="settings-row-label" for="settings-sysprompt-description">Description</label>
                                             <input id="settings-sysprompt-description" type="text" class="form-input prompt-description-input" placeholder="Add a short description…" aria-label="Prompt description" autocomplete="off">
@@ -533,7 +531,6 @@
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                                         <span class="settings-action-label">Preview</span>
                                     </button>
-                                    <span class="advanced-badge" data-tip="Advanced configuration">ADV</span>
                                 </div>
                                 <p class="settings-hint" data-prompt-box="system">Sent first. Cozy wraps it in &lt;system_instructions&gt; and adds the character, your persona, world info and memory after it. &#123;&#123;char&#125;&#125; and &#123;&#123;user&#125;&#125; become their names.</p>
                                 <textarea id="settings-sysprompt-content" class="form-textarea" data-prompt-box="system" placeholder="How the model should tell the story…"></textarea>

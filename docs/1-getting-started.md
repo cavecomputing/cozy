@@ -217,11 +217,9 @@ you want.
   **Settings → API** shows exactly what will be sent. The
   pill beside a preset's name is its version, and two versions of the same
   preset can sit side by side once an update ships.
-  **Import/export** is always available, so a preset someone shares with you
-  can be loaded straight in. The buttons that author a preset — **+**, which
-  copies the selected one so you can edit the copy, **Rename** and
-  **Delete** — appear once **Show advanced configuration** is ticked in
-  **Settings → General**. Do not rename a bundled preset: Cozy restores the
+  **Import/export** loads a preset someone shares with you. **New** copies
+  the selected preset so you can edit the copy, and **Rename** and **Delete**
+  act on the selected one. Do not rename a bundled preset: Cozy restores the
   original under its old name on the next start, because the files in
   `default_prompts/` are the source of truth for those.
 - **Theme** — **Settings → General** changes the colors. This

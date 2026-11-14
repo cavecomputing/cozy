@@ -4973,18 +4973,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     grid-column: 1 / -1;
 }
 
-/* Prompt description under the selector: read-only text in basic mode. */
-.prompt-description-text {
-    margin: 0;
-    font-size: var(--text-md);
-    color: var(--text-secondary);
-}
-
-.prompt-description-text--empty {
-    font-style: italic;
-    opacity: 0.75;
-}
-
 /* Scoped to the description and version rows on purpose: the extra class
    outweighs .form-input's own `width: 100%`, so the version box keeps its
    width wherever the two rules sit. */
@@ -5196,24 +5184,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     resize: vertical;
     line-height: 1.65;
     font-family: var(--font-mono);
-}
-
-/* The line under the preset's description while advanced configuration is
-   off, saying where the template editor went. */
-.prompt-basic-hint {
-    margin: var(--space-2) 0 0;
-    font-size: var(--text-md);
-    color: var(--text-secondary);
-}
-
-.prompt-basic-hint-link {
-    background: none;
-    border: none;
-    padding: 0;
-    color: var(--fg-cool);
-    font: inherit;
-    cursor: pointer;
-    text-decoration: underline;
 }
 
 /* Import/export makes this picker row one button wider than the others, too
@@ -7194,12 +7164,16 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .sampler-help-row dt { margin-bottom: 0.1rem; }
 }
 
-/* ── Smallest phones ─────────────────────────────────────────────────────── */
+/* ── Smaller phones ──────────────────────────────────────────────────────── */
+/* Title-size tabs and Preview share one row. Below the width of a current
+   iPhone the pencil gives up its place, and on the smallest phones Preview's
+   label does too. */
+@media (max-width: 389px) {
+    .prompt-builder-bar > .settings-card-icon { display: none; }
+}
+
 @media (max-width: 359px) {
-    /* The smallest phones have no room for title-size tabs beside Preview's label. */
-    :is(.prompt-builder-bar > .settings-card-icon, .prompt-rendered-btn .settings-action-label) {
-        display: none;
-    }
+    .prompt-rendered-btn .settings-action-label { display: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

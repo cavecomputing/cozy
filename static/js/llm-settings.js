@@ -419,31 +419,12 @@ export function showSummaryFallbacks() {
 
 // ── Advanced configuration gate ──────────────────────────────────────────
 // Surfaces hidden unless "Show advanced configuration" is checked in the
-// General tab: the Prompt editors, the buttons that author a prompt, the Summaries
-// Behavior card, and the Extra request parameters card.
-//
-// What survives on the Prompt page is what a reader needs: the picker, the
-// description as read-only text, and Import/export — someone handed a prompt
-// to try should not have to turn anything on first. New, Rename and Delete
-// only matter once you are authoring one, and the help modal explains the
-// editors, which are hidden.
+// General tab: the Summaries Behavior card and the Extra request parameters
+// card.
 export function applyAdvancedConfigurationVisibility() {
     const visible = Boolean(state.showAdvancedConfiguration);
-    document.querySelectorAll(
-        '.settings-section[data-section="prompt"] .prompt-section-right,'
-        + ' #settings-sysprompt-help,'
-        + ' #settings-sysprompt-new,'
-        + ' #settings-sysprompt-rename,'
-        + ' #settings-sysprompt-delete,'
-        + ' #summary-behavior-card,'
-        + ' #extra-params-card'
-    ).forEach(node => { node.hidden = !visible; });
-    // The basic-mode hint holds the editor's place while it is hidden.
-    if (el.promptBasicHint) el.promptBasicHint.hidden = visible;
-    // The prompt description is plain text in basic mode; the description and
-    // version fields become editable once advanced configuration is shown.
-    if (el.promptMetaRow) el.promptMetaRow.hidden = !visible;
-    if (el.syspromptDescriptionText) el.syspromptDescriptionText.hidden = visible;
+    document.querySelectorAll('#summary-behavior-card, #extra-params-card')
+        .forEach(node => { node.hidden = !visible; });
 }
 
 /**
