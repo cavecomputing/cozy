@@ -22,9 +22,10 @@ commit work that is half done or has failing tests.
 does `main` move. The release number is `version` in [pyproject.toml](pyproject.toml), and the user
 picks it. A release is one commit on `dev` that sets it (run `uv lock` so `uv.lock` carries the same
 number), then `main` is fast-forwarded to `dev` (`git push origin dev:main`, which Git refuses if
-`main` holds a commit `dev` lacks), so the two share one history. Nothing else bumps the version. A
-fix that can't wait for a release still lands on `dev` first; ask the user before it reaches
-`main`.
+`main` holds a commit `dev` lacks), so the two share one history. That commit is tagged
+`v<version>` and the tag pushed; the GitHub release is made from the tag, by the user since agent
+sessions cannot create one. Nothing else bumps the version. A fix that can't wait for a release
+still lands on `dev` first; ask the user before it reaches `main`.
 
 **One commit, one concern.** A commit has to be reviewable on its own and safe to revert on its own,
 so split unrelated work rather than bundling it: a bug fix and a docs correction that happened to
