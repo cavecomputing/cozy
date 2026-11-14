@@ -89,3 +89,7 @@ The highest version in the migration registry is what "the database version"
 means for Cozy — see "The database version" in [10-database-schema.html](https://cavecomputing.github.io/cozy/10-database-schema.html#version).
 That number is what a backup carries; how backup and restore treat it is
 covered in [Data and Backups](3-data-and-backups.md).
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

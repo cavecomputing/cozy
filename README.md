@@ -127,15 +127,15 @@ this on a network you trust, or reach Cozy through a VPN. See
 
 ## Documentation
 
-- [Getting started](docs/1-getting-started.md)
-- [Advanced setup](docs/2-advanced-setup.md)
-- [Data and backups](docs/3-data-and-backups.md)
-- [Troubleshooting](docs/4-troubleshooting.md)
-- [Auto Summaries](docs/5-auto-summaries.md)
-- [Sampler settings](docs/6-sampler-settings.md)
-- [Security](docs/7-security.md)
-- [User themes](docs/9-user-themes.md)
-- [Database schema](https://cavecomputing.github.io/cozy/10-database-schema.html) — the browsable reference, with [notes on seeding and data](docs/10-database-schema.md)
+- [Getting started](docs/1-getting-started.md): connect an AI server, add a character, set up your persona, and learn the shortcuts in a chat.
+- [Advanced setup](docs/2-advanced-setup.md): Docker, a different port or address, a different data folder, updating, and running the tests.
+- [Data and backups](docs/3-data-and-backups.md): where your data is, how to back it up and restore it, and how to go back after an update.
+- [Troubleshooting](docs/4-troubleshooting.md): what to check when Cozy does not open, the connection test fails, or a reply stops early.
+- [Auto Summaries](docs/5-auto-summaries.md): how Cozy remembers messages that no longer fit in the model's context.
+- [Sampler settings](docs/6-sampler-settings.md): what each sampler does, and which servers accept it.
+- [Security](docs/7-security.md): who can reach Cozy, how to require a password, and what is stored as plain text.
+- [User themes](docs/9-user-themes.md): make your own color theme, with every variable a theme can set.
+- [Database schema](https://cavecomputing.github.io/cozy/10-database-schema.html): the browsable reference for developers, with [notes on seeding and data](docs/10-database-schema.md).
 
 ## License
 

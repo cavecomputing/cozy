@@ -305,6 +305,15 @@ click it, or your change is lost.
   places, history, or side characters → manage them under
   **Settings → Lorebooks**, and attach them from the memory button next
   to the chat input.
+- You want to use Cozy from a phone or another computer →
+  [Mobile use](../README.md#mobile-use) in the README. Read
+  [Security](7-security.md) before you let other devices reach Cozy.
+- You want Cozy to keep running in the background, or on a server →
+  [Advanced setup](2-advanced-setup.md).
 - Before updating Cozy, copy the `data/` directory somewhere safe.
   Everything you made lives there, and going back to an older version is
   not supported. → [Data and backups](3-data-and-backups.md).
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

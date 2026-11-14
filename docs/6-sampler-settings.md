@@ -6,7 +6,9 @@ predictable, varied, or resistant to repetition.
 Cozy sends enabled sampler values to the configured LLM server. The server
 decides how to apply them. Unsupported settings may be ignored or rejected.
 
-Start with the defaults. Change one setting at a time.
+Start with the defaults. Change one setting at a time. Where to find these
+settings in the app is in
+[Check the samplers](1-getting-started.md#2-check-the-samplers).
 
 ## Core settings
 
@@ -58,6 +60,8 @@ If a request fails after enabling a sampler:
 3. Check your LLM server's documentation for the exact parameter name and
    supported range.
 
+See also [A sampler causes request errors](4-troubleshooting.md#a-sampler-causes-request-errors).
+
 Backend-specific JSON can be added under **Settings → API → Extra request parameters**.
 That card appears once **Show advanced configuration** is ticked in
 **Settings → General**.
@@ -76,3 +80,7 @@ For more predictable replies, lower Temperature. For more varied replies, raise
 it gradually. If replies start repeating the same phrases, turn on Repetition
 penalty at around `1.05`. Avoid enabling several advanced filters at once
 unless you know how your server combines them.
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

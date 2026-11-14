@@ -51,7 +51,9 @@ tokens are spent out of that same allowance before a single word of the summary
 is written, so a low Max response tokens can cut the reply off mid-summary. If
 runs keep failing with *"cut off by its completion token limit"*, raise **Max
 response tokens** in **Settings → API → Context & generation**, or point the
-summarizer at a non-reasoning model — it only has to write a few bullets.
+summarizer at a non-reasoning model — it only has to write a few bullets. The
+same steps are under
+[A summary run keeps failing](4-troubleshooting.md#a-summary-run-keeps-failing).
 
 **Each batch gets one retry.** When the summarizer can't be reached or answers in
 the wrong format, Cozy tries that batch again — after a few seconds' pause for a
@@ -146,7 +148,7 @@ The rebuild saves after every batch, exactly as a normal run does, so a failure 
 batch 18 of 20 keeps those eighteen entries and the next run carries on from
 there instead of starting over. The old summary, though, is gone the moment you
 confirm. Take a backup of `cozy_chat.db` first if it is something you would want
-back.
+back; see [Data and backups](3-data-and-backups.md).
 
 Reset is also how you convert a summary created by an older version of Cozy,
 which produced several entries per batch, into the current one-entry-per-batch
@@ -169,3 +171,7 @@ since a relationship dossier may already describe what happened after it.
   summary.
 - Stopping a run takes effect between batches, not instantly: a request already
   sent to the summarizer runs to completion first.
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

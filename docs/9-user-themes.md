@@ -400,5 +400,8 @@ Check each of these, in order:
 3. Check under **Settings → General → Theme** that this browser is using the
    theme you edited.
 
-For anything else, see [Troubleshooting](4-troubleshooting.md). The full list
-of guides is in the [README](../README.md#documentation).
+For anything else, see [Troubleshooting](4-troubleshooting.md).
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

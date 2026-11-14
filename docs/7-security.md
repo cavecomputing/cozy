@@ -7,6 +7,9 @@ you [set a password](#require-a-password), there is no login screen either, and
 anything that can reach Cozy can read your chats and use your API key.
 
 The default Python and Docker configurations listen only on the local computer.
+How to change that is in Advanced setup: for Python,
+[Use a different address or port](2-advanced-setup.md#use-a-different-address-or-port);
+for Docker, [Use a different port](2-advanced-setup.md#use-a-different-port).
 Do not listen on a public network interface unless you are only accessing over LAN. If you do, set a password.
 Do not make this accessible over the internet unless your remote access method is a VPN. Consider authentication via reverse proxy.
 
@@ -98,3 +101,7 @@ stopping Cozy and copying folders. See
 Because API keys are stored as plain text in the Cozy database, a backup
 contains them in plain text too. Keep backup files as private as the data
 directory itself.
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

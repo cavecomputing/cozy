@@ -29,6 +29,9 @@ each one in **Settings → Prompt** and saved the originals here as they were,
 so nothing you wrote is lost. It is a text file: open it in any editor to read
 them, and delete it once you no longer want them.
 
+`themes/` holds the color themes you added yourself. See
+[User themes](9-user-themes.md).
+
 `thumbs/` is a cache of downscaled avatar images that Cozy generates from the
 files in `characters/` and `personas/` as they are requested. It holds nothing
 of its own, so it is safe to delete at any time and safe to leave out of a
@@ -145,4 +148,9 @@ Use an absolute path when the location might otherwise be unclear.
 ## Private information
 
 API keys are stored as plain text in `cozy_chat.db`. Store backups somewhere
-private and do not commit the data directory to Git.
+private and do not commit the data directory to Git. See
+[Security](7-security.md#private-data).
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

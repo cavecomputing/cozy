@@ -122,6 +122,16 @@ thinking is billed against the same token allowance as the summary itself.
 Batches already folded in are kept, and the next run resumes from there. See
 [Auto Summaries](5-auto-summaries.md#configure).
 
+## A theme is missing or looks wrong
+
+See [Fix a theme that does not work](9-user-themes.md#fix-a-theme-that-does-not-work).
+
+## You cannot sign in
+
+The sign-in page only exists when `COZY_PASSWORD` is set. If you forgot the
+password, set a new one and restart Cozy. See
+[Require a password](7-security.md#require-a-password).
+
 ## An update fails
 
 1. Stop Cozy.
@@ -131,3 +141,7 @@ Batches already folded in are kept, and the next run resumes from there. See
 
 Do not fix an update by deleting `data/`; that directory contains your chats and
 settings.
+
+---
+
+Back to the [list of all guides](../README.md#documentation).

@@ -219,6 +219,9 @@ it as it was before in the data directory; see
 page that was left open, or the installed app on a phone, loads the new
 version by itself the next time you come back to it.
 
+If the update does not work, see
+[An update fails](4-troubleshooting.md#an-update-fails).
+
 ## Run the tests
 
 You only need this if you changed the code and want to check that it
@@ -236,3 +239,6 @@ Without Node.js those tests are **skipped, not failed**. A run that
 reports success on a machine without Node.js has tested none of that
 JavaScript. Look at the summary line for skips before trusting a pass.
 
+---
+
+Back to the [list of all guides](../README.md#documentation).
