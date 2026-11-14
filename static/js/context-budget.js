@@ -39,19 +39,14 @@ export function getResponseTokenReserve() {
 /**
  * Return the raw-history zone used by requests, memory aging, and the context
  * UI. Once an active summary covers a positive message id, keeping that same
- * message verbatim would double-count it. Rebuilds opt back into full history.
+ * message verbatim would double-count it.
  */
-export function getRawHistoryMessages(messages = state.messages, {
-    excludeLastN = 0,
-    includeSummarized = false,
-} = {}) {
+export function getRawHistoryMessages(messages = state.messages, { excludeLastN = 0 } = {}) {
     const source = Array.isArray(messages) ? messages : [];
     const candidates = excludeLastN > 0
         ? source.slice(0, -excludeLastN)
         : source;
-    if (includeSummarized || !state.activeChat?.summary_enabled) {
-        return candidates;
-    }
+    if (!state.activeChat?.summary_enabled) return candidates;
 
     const watermark = Number(state.activeChat.summary_up_to_msg_id) || 0;
     if (watermark <= 0) return candidates;
@@ -93,14 +88,8 @@ export function cardPrompt(field) {
     return /^(\{\{original\}\}\s*)*$/i.test(text) ? '' : text;
 }
 
-export function contextInputs({
-    excludeLastN = 0,
-    draftText = '',
-    summaryText = '',
-    includeSummarized = false,
-    messages = state.messages,
-} = {}) {
-    const candidates = getRawHistoryMessages(messages, { excludeLastN, includeSummarized })
+export function contextInputs({ excludeLastN = 0, draftText = '', summaryText = '' } = {}) {
+    const candidates = getRawHistoryMessages(state.messages, { excludeLastN })
         .map(message => ({
             role: message.role,
             text: message.text,

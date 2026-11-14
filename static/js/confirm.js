@@ -92,7 +92,6 @@ function close(result) {
  * @param {string} opts.title         — short question ("Delete Alice?")
  * @param {string} [opts.message]     — consequence line under the title
  * @param {string} [opts.confirmLabel='Delete']
- * @param {string} [opts.cancelLabel='Cancel']
  * @param {boolean} [opts.danger=true] — red confirm button when true
  * @returns {Promise<boolean>}
  */
@@ -100,7 +99,6 @@ export function confirmDialog({
     title,
     message = '',
     confirmLabel = 'Delete',
-    cancelLabel = 'Cancel',
     danger = true,
 } = {}) {
     if (!overlay) build();
@@ -114,7 +112,6 @@ export function confirmDialog({
     const msgEl = overlay.querySelector('.confirm-message');
     msgEl.textContent = message;
     msgEl.hidden = !message;
-    overlay.querySelector('.confirm-cancel span').textContent = cancelLabel;
     const accept = overlay.querySelector('.confirm-accept');
     accept.querySelector('span').textContent = confirmLabel;
     accept.disabled = false;
@@ -136,30 +133,18 @@ export function confirmDialog({
  *
  * @param {object} opts
  * @param {string} opts.title           — what is being named ("Rename preset")
- * @param {string} [opts.message]       — explanatory line under the title
  * @param {string} [opts.value='']      — starting text, selected on open
- * @param {string} [opts.placeholder='']
  * @param {string} [opts.confirmLabel='Save']
- * @param {string} [opts.cancelLabel='Cancel']
  * @returns {Promise<string|null>}
  */
-export function promptDialog({
-    title,
-    message = '',
-    value = '',
-    placeholder = '',
-    confirmLabel = 'Save',
-    cancelLabel = 'Cancel',
-} = {}) {
+export function promptDialog({ title, value = '', confirmLabel = 'Save' } = {}) {
     if (!overlay) build();
     if (resolveFn) close(false);
     isPrompt = true;
 
     overlay.querySelector('.confirm-title').textContent = title || 'Enter a name';
-    const msgEl = overlay.querySelector('.confirm-message');
-    msgEl.textContent = message;
-    msgEl.hidden = !message;
-    overlay.querySelector('.confirm-cancel span').textContent = cancelLabel;
+    // The overlay is shared: a confirm's consequence line must not carry over.
+    overlay.querySelector('.confirm-message').hidden = true;
 
     const accept = overlay.querySelector('.confirm-accept');
     accept.querySelector('span').textContent = confirmLabel;
@@ -170,7 +155,6 @@ export function promptDialog({
     const input = overlay.querySelector('.confirm-input');
     input.hidden = false;
     input.value = value;
-    input.placeholder = placeholder;
 
     returnFocus = document.activeElement;
     overlay.hidden = false;

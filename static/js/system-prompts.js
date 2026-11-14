@@ -93,7 +93,7 @@ function setEditorValues(prompt) {
     }
 }
 
-async function savePromptFields({ showSuccess = false } = {}) {
+async function savePromptFields() {
     if (!state.activeSystemPromptId) return;
     const p = syncActivePromptFromEditors();
     if (!p) return;
@@ -105,9 +105,7 @@ async function savePromptFields({ showSuccess = false } = {}) {
             post_history_content: p.post_history_content || '',
         });
         flashSettingsSavedTick();
-        if (showSuccess) showToast('Prompt saved', 'success');
     } catch (e) {
-        if (showSuccess) showToast('Failed to save prompt');
         console.warn('Failed to update prompt:', e);
     }
 }
