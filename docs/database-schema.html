@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--
   The schema reference: every table, laid out for reading.
-  Hand-maintained — a schema change belongs here. database-schema.md points at this
+  Hand-maintained: a schema change belongs here. database-schema.md points at this
   page instead of repeating the schema, so this is the only copy.
 -->
 
@@ -332,7 +332,7 @@
     <header class="masthead">
       <h1>Cozy Database Schema</h1>
       <p>Every table SQLite actually holds after <code>init_db()</code>, read out of a freshly created
-        <code>cozy_chat.db</code> rather than transcribed. Character cards are not in here — they live on disk
+        <code>cozy_chat.db</code> rather than transcribed. Character cards are not in here. They live on disk
         as PNGs, and this database only indexes them.</p>
       <div class="facts">
         <span><b>10</b> tables</span>
@@ -347,7 +347,7 @@
     <section id="map">
       <div class="table-head"><h2>How the rows hang together</h2></div>
       <p class="purpose">Only three foreign keys are declared, and all three cascade. Everything drawn with a
-        dashed line is a reference the application maintains itself — SQLite will not clean it up for you.</p>
+        dashed line is a reference the application maintains itself. SQLite will not clean it up for you.</p>
       <div class="map">
         <svg viewBox="0 0 660 250" role="img" aria-label="characters cascades to chats, chats cascades to messages, messages cascades to message_swipes; personas and lorebooks are referenced by chats and messages without declared foreign keys.">
           <defs>
@@ -417,9 +417,9 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name">filename</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">PNG filename under <code>data/characters/</code>. NOT NULL, UNIQUE.</td></tr>
-          <tr><td class="c-name">crc</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">CRC32 hex of the file, so a rename on disk is recognised as the same card.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">filename</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">PNG filename under <code>data/characters/</code>. NOT NULL, UNIQUE.</td></tr>
+          <tr><td class="c-name">crc</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">CRC32 hex of the file, so a rename on disk is recognised as the same card.</td></tr>
           <tr><td class="c-name">missing</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> once the file is gone from disk.</td></tr>
           <tr><td class="c-name">pinned_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">Pin time, <code>NULL</code> when unpinned. Pinned characters list first; the sidebar sorts both groups by name.</td></tr>
           <tr><td class="c-name">archived</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> while archived: the character is listed in the sidebar's folded <em>Archived</em> section. Archiving clears <code>pinned_at</code>. Not the retired gallery's <code>archived_at</code>, which migration 08 dropped.</td></tr>
@@ -444,16 +444,16 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name ref">character_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>characters.id</code>, ON DELETE CASCADE.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Named for its local creation time, <code>YYYY-MM-DD:HH-MM-SS</code>, until renamed.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name ref">character_id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">NOT NULL. FK → <code>characters.id</code>, ON DELETE CASCADE.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">Named for its local creation time, <code>YYYY-MM-DD:HH-MM-SS</code>, until renamed.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
           <tr><td class="c-name">updated_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Last activity; drives sidebar ordering.</td></tr>
           <tr><td class="c-name">active_lorebook_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Standalone lorebook chosen for this chat. No declared FK.</td></tr>
           <tr><td class="c-name">active_lorebook_embedded</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> when the card's own embedded lorebook is the one in use.</td></tr>
           <tr><td class="c-name">author_note</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Injected by the prompt builder for this chat only.</td></tr>
           <tr><td class="c-name">summary_enabled</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note">Auto Summaries on for this chat.</td></tr>
-          <tr><td class="c-name">summary_json</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note"><code>{"lines": [{"section": "story"|"bonds", "text": …, "start_msg_id": …, "end_msg_id": …}]}</code> — one story entry per summarized batch.</td></tr>
+          <tr><td class="c-name">summary_json</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note"><code>{"lines": [{"section": "story"|"bonds", "text": …, "start_msg_id": …, "end_msg_id": …}]}</code>. One story entry per summarized batch.</td></tr>
           <tr><td class="c-name">summary_up_to_msg_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Highest message id already folded in.</td></tr>
           <tr><td class="c-name">summary_status</td><td class="c-type">TEXT</td><td class="c-def">'idle'</td><td class="c-note"><code>idle</code>, <code>running</code>, or <code>error</code>.</td></tr>
           <tr><td class="c-name">summary_status_detail</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Progress or error text shown in the memory panel.</td></tr>
@@ -494,10 +494,10 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name ref">chat_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>chats.id</code>, ON DELETE CASCADE.</td></tr>
-          <tr><td class="c-name">role</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note"><code>CHECK(role IN ('user','character'))</code>.</td></tr>
-          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">The text on show: a copy of the selected swipe's, kept in step by the message and swipe routes, so anything reading a chat need not look at swipes.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name ref">chat_id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">NOT NULL. FK → <code>chats.id</code>, ON DELETE CASCADE.</td></tr>
+          <tr><td class="c-name">role</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note"><code>CHECK(role IN ('user','character'))</code>.</td></tr>
+          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">The text on show: a copy of the selected swipe's, kept in step by the message and swipe routes, so anything reading a chat need not look at swipes.</td></tr>
           <tr><td class="c-name">persona_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">Persona this line was spoken by. No declared FK.</td></tr>
           <tr><td class="c-name">persona_name</td><td class="c-type">TEXT</td><td class="c-def">NULL</td><td class="c-note">That persona's name, filled in when the persona is deleted. NULL while it exists, and its current name is shown.</td></tr>
           <tr><td class="c-name">selected_swipe_id</td><td class="c-type">INTEGER</td><td class="c-def">NULL</td><td class="c-note">The <code>message_swipes.id</code> on show. NULL means the first, which is where a new message starts. No declared FK. Recorded because text cannot say which: two swipes can read the same.</td></tr>
@@ -524,9 +524,9 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name ref">message_id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">NOT NULL. FK → <code>messages.id</code>, ON DELETE CASCADE.</td></tr>
-          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">The variant's text.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name ref">message_id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">NOT NULL. FK → <code>messages.id</code>, ON DELETE CASCADE.</td></tr>
+          <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">The variant's text.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation; also the swipe order.</td></tr>
           <tr><td class="c-name">edited_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">When an edit last changed this variant's text, <code>NULL</code> if none has. Saving the same text or picking a swipe leaves it alone. Shown as the message's <em>(edited)</em> label, and a fork copies it.</td></tr>
         </tbody>
@@ -548,8 +548,8 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. Substituted for <code>{{user}}</code>.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">NOT NULL. Substituted for <code>{{user}}</code>.</td></tr>
           <tr><td class="c-name">tagline</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Short line under the name in the sidebar.</td></tr>
           <tr><td class="c-name">description</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Sent with each request as the persona block.</td></tr>
           <tr><td class="c-name">avatar_path</td><td class="c-type">TEXT</td><td class="c-def">NULL</td><td class="c-note">Filename under <code>data/personas/</code>.</td></tr>
@@ -572,13 +572,13 @@
 
     <section id="lorebooks">
       <div class="table-head"><h2>lorebooks</h2><span class="chip chip-soft">JSON blob</span></div>
-      <p class="purpose">A whole book — entries, keys and scan settings — serialized into one column, in the
+      <p class="purpose">A whole book (entries, keys and scan settings) serialized into one column, in the
         format character cards embed theirs in.</p>
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. Shown in the picker.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">NOT NULL. Shown in the picker.</td></tr>
           <tr><td class="c-name">book</td><td class="c-type">TEXT</td><td class="c-def">'{}'</td><td class="c-note">The book itself as JSON: entries, keys, insertion order, scan depth.</td></tr>
           <tr><td class="c-name">created_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Creation.</td></tr>
           <tr><td class="c-name">updated_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">Last edit.</td></tr>
@@ -595,7 +595,7 @@
 
     <section id="settings">
       <div class="table-head"><h2>settings</h2><span class="chip chip-soft">key/value</span></div>
-      <p class="purpose">One row per setting, values always TEXT — <code>'1'</code> and <code>'0'</code> stand in
+      <p class="purpose">One row per setting, values always TEXT: <code>'1'</code> and <code>'0'</code> stand in
         for booleans. The API key lives here in plain text and is masked on its way out of the routes.
         With <code>COZY_PASSWORD</code> set, <code>secret_key</code> holds the random half of the sign-in
         cookie's signing key: created on the first start with a password, never sent by any route, left out
@@ -603,8 +603,8 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">key</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">Primary key.</td></tr>
-          <tr><td class="c-name">value</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. Everything is a string, including numbers and flags.</td></tr>
+          <tr><td class="c-name key">key</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">Primary key.</td></tr>
+          <tr><td class="c-name">value</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">NOT NULL. Everything is a string, including numbers and flags.</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -616,8 +616,8 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL, UNIQUE — a clash is a 409, not a second row.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">NOT NULL, UNIQUE. A clash is a 409, not a second row.</td></tr>
           <tr><td class="c-name">api_endpoint</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">OpenAI-compatible base URL, normally ending <code>/v1</code>.</td></tr>
           <tr><td class="c-name">api_key</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Stored plain; masked in every response.</td></tr>
           <tr><td class="c-name">api_model</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">Model identifier sent with the request.</td></tr>
@@ -644,15 +644,15 @@
         of the chat, and <code>post_history_content</code> the Post-History prompt, sent after it. Cozy owns the
         layout around them, so neither holds tags or placeholders for the card, the persona or the memory. Bundled prompts are restored from
         <code>default_prompts/</code> on every start, so a deleted one comes back and the filename is the title,
-        with the edition in <code>version</code> — a revision is a version bump inside the existing file.
+        with the edition in <code>version</code>. A revision is a version bump inside the existing file.
         <b>Name and version identify a prompt together</b>: two editions of one prompt sit side by side, while the
         same name at the same version is refused.</p>
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key, autoincrement.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL. No UNIQUE constraint — the routes reject a clash with 409 instead, on <b>name and version together</b>.</td></tr>
-          <tr><td class="c-name">version</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">A number, optionally with one decimal part — <code>2</code>, <code>2.1</code> — or blank. Never stores the <code>v</code>; the picker's pill adds it.</td></tr>
+          <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">NOT NULL. No UNIQUE constraint. The routes reject a clash with 409 instead, on <b>name and version together</b>.</td></tr>
+          <tr><td class="c-name">version</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">A number, optionally with one decimal part, such as <code>2</code> or <code>2.1</code>, or blank. Never stores the <code>v</code>; the picker's pill adds it.</td></tr>
           <tr><td class="c-name">description</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">One line under the selector.</td></tr>
           <tr><td class="c-name">content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">The System prompt, as typed. Sent inside <code>&lt;system_instructions&gt;</code>, ahead of the character, persona, lore and memory Cozy places after it.</td></tr>
           <tr><td class="c-name">post_history_content</td><td class="c-type">TEXT</td><td class="c-def">''</td><td class="c-note">The Post-History prompt, as typed. Sent after the history inside <code>&lt;post_history_instructions&gt;</code>; travels with its partner through import/export.</td></tr>
@@ -679,8 +679,8 @@
       <div class="scroller"><table>
         <thead><tr><th>Column</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td class="c-name key">version</td><td class="c-type">INTEGER</td><td class="c-def">—</td><td class="c-note">Primary key. Must be unique and increasing across the registry.</td></tr>
-          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">—</td><td class="c-note">NOT NULL, UNIQUE. Stable forever once shipped.</td></tr>
+          <tr><td class="c-name key">version</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key. Must be unique and increasing across the registry.</td></tr>
+          <tr><td class="c-name">name</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">NOT NULL, UNIQUE. Stable forever once shipped.</td></tr>
           <tr><td class="c-name">applied_at</td><td class="c-type">DATETIME</td><td class="c-def">CURRENT_TIMESTAMP</td><td class="c-note">NOT NULL. Written after the migration succeeds.</td></tr>
         </tbody>
       </table></div>
@@ -711,7 +711,7 @@
         <li><span class="v">04</span><span class="n">add_narrative_preamble_to_default_prompt</span><span class="d">V2 → V3 preamble, untouched copies only.</span></li>
         <li><span class="v">05</span><span class="n">upgrade_default_prompt_to_v4</span><span class="d">V3 → V4: prose guidance moves to the post-history template.</span></li>
         <li><span class="v">06</span><span class="n">enforce_house_style_post_history</span><span class="d">V1 post-history → the enforced house-style V2.</span></li>
-        <li><span class="v">07</span><span class="n">rename_default_prompt_to_nanobear</span><span class="d">Rename "Default" to "NanoBear" — the one migration that matches on name, not content.</span></li>
+        <li><span class="v">07</span><span class="n">rename_default_prompt_to_nanobear</span><span class="d">Rename "Default" to "NanoBear". The one migration that matches on name, not content.</span></li>
         <li><span class="v">08</span><span class="n">remove_character_gallery</span><span class="d">Retire gallery settings, collection tables, and the archive column.</span></li>
         <li><span class="v">09</span><span class="n">backfill_chat_persona</span><span class="d">Seed <code>chats.persona_id</code> from each chat's own history.</span></li>
         <li><span class="v">10</span><span class="n">delete_summary_compress_batch</span><span class="d">Drop the retired summary compression setting.</span></li>
@@ -760,11 +760,11 @@
         <p>There is no separate version number. The highest entry in the migration registry <strong>is</strong> the
           schema this build understands, and the highest row in a database's ledger is the schema that database is
           at. <code>pyproject.toml</code>'s <code>0.0.0</code> is a packaging placeholder and the About page's build
-          string names a Git commit — neither is a schema version.</p>
+          string names a Git commit. Neither is a schema version.</p>
         <p>That number is what a backup carries. <code>GET /api/backup</code> zips the data directory with a
           <code>cozy-backup.json</code> naming it; <code>POST /api/backup/restore</code> compares it against the
           registry: <strong>lower</strong> restores and is migrated up by <code>init_db()</code>,
-          <strong>equal</strong> restores as-is, <strong>higher</strong> is refused with 409 — that archive knows
+          <strong>equal</strong> restores as-is, <strong>higher</strong> is refused with 409, because that archive knows
           migrations this build does not.</p>
         <p>A start that finds an existing database behind the registry copies it first, through SQLite's backup
           API, to <code>cozy_chat.before-update.db</code> beside it. Migrations only go up, so that copy is the

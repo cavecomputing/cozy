@@ -4,7 +4,7 @@ This page is for developers who work on Cozy's code. You do not need it to
 use Cozy. For where your data is and how to back it up, see
 [Running Cozy](6-running-cozy.md#where-your-data-is).
 
-Cozy uses SQLite (`data/cozy_chat.db`) for chat history, user personas, settings, and a lightweight character index. Character card data itself is stored in PNG files on disk — see [Where your data is](6-running-cozy.md#where-your-data-is).
+Cozy uses SQLite (`data/cozy_chat.db`) for chat history, user personas, settings, and a lightweight character index. Character card data itself is stored in PNG files on disk. See [Where your data is](6-running-cozy.md#where-your-data-is).
 
 ## Schema reference
 
@@ -30,7 +30,7 @@ data at startup, each by its own seeder:
 | Content | Source | Bookkeeping |
 |---------|--------|-------------|
 | Character cards | `default_characters/` | `default_characters_seeded` |
-| Prompt presets | `default_prompts/` | none — restored every start |
+| Prompt presets | `default_prompts/` | none: restored every start |
 
 The flag flips to `1` whether or not anything was inserted, and is never
 reset, so deleting a bundled character keeps it deleted. A name already taken
@@ -49,19 +49,19 @@ The directory, not the database, is the source of truth for which presets exist.
 - Dropping a JSON file into `default_prompts/` makes it appear on the next
   start, on new and existing installs alike.
 - Deleting a preset in Settings removes it until the next start, then it is
-  back. Removing one for good means deleting its file — under Docker, that
+  back. Removing one for good means deleting its file. Under Docker, that
   means rebuilding the image, since only `data/` is mounted.
 - A title at a version already present is skipped, never overwritten, so edits
   to a bundled preset survive a restart. Renaming one does not: the original
   pair is missing again, so the bundled copy returns beside the renamed row.
 - A file that fails to parse is logged and skipped; the next start retries it.
 
-A preset's title is its **filename** minus `.json`, not the `name` inside it —
-the two are kept identical so a hand-import lands under the same title.
+A preset's title is its **filename** minus `.json`, not the `name` inside it.
+The two are kept identical so a hand-import lands under the same title.
 
 A bundled file carries a `version` string, which seeds into the row's `version`
 column and shows as a pill beside the name in the prompt picker. It must read as
-a number with at most one decimal part — `2`, `2.1` — and must **not** include
+a number with at most one decimal part, such as `2` or `2.1`, and must **not** include
 the `v`, which the pill adds for you. A file without one seeds blank.
 
 Name and version identify a prompt together, which is what makes a revision a
@@ -73,7 +73,7 @@ is refused, by the seeder and the import route alike.
 
 On a fresh install the bundle also picks the starting selection: seeding sets
 `active_system_prompt` to the **standard NanoBear carrying the greatest
-version**, which is how a newer house version takes over — bumping
+version**, which is how a newer house version takes over: bumping
 `NanoBear.json` to `2.2` is the whole change. "Standard" is
 `STANDARD_NANOBEAR_RE` in `cozy/defaults.py`: a title starting `NanoBear` whose
 next word is not `Author`, so the Author variant never claims the default
@@ -83,13 +83,13 @@ keeps its own selection, so this only ever applies once.
 
 Versions compare as numbers, not text, so `2.10` ranks above `2.2`.
 
-Seeded characters become ordinary cards on disk — the `characters` index picks
+Seeded characters become ordinary cards on disk. The `characters` index picks
 them up on the next listing request, and deleting one deletes it for good.
 
 ## Database version and backups
 
 The highest version in the migration registry is what "the database version"
-means for Cozy — see "The database version" in [database-schema.html](https://cavecomputing.github.io/cozy/database-schema.html#version).
+means for Cozy. See "The database version" in [database-schema.html](https://cavecomputing.github.io/cozy/database-schema.html#version).
 That number is what a backup carries; how backup and restore treat it is
 covered in [Back up and restore](6-running-cozy.md#back-up-and-restore).
 

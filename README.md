@@ -7,12 +7,12 @@
 </p>
 
 
-Cozy is a chat app for AI roleplay. You talk to characters — ones you make, or
-ones you download from the usual character-sharing sites — and Cozy handles the
+Cozy is a chat app for AI roleplay. You talk to characters, ones you make or
+ones you download from the usual character-sharing sites, and Cozy handles the
 rest: remembering who they are, keeping long chats from running out of room, and
 making the whole thing look nice while you do it.
 
-**Cozy is not the AI.** It's the app you chat *in* — it doesn't include an AI model,
+**Cozy is not the AI.** It's the app you chat *in*. It doesn't include an AI model,
 download one, or do any of the thinking itself. You point it at an AI service
 you already have: a paid one online (OpenRouter and similar), or one running on
 your own computer (llama.cpp, Ollama, KoboldCpp, LM Studio). Almost all of them
@@ -95,7 +95,7 @@ And if you would like some more details on character cards, personas, etc., chec
    | llama.cpp | `http://localhost:8080/v1` |
    | KoboldCpp | `http://localhost:5001/v1` |
 
-   These are defaults — if you changed a port when setting up a local service, adjust the URL to match. If you don't know the endpoint for
+   These are defaults. If you changed a port when setting up a local service, adjust the URL to match. If you don't know the endpoint for
    your service, check its documentation for its OpenAI-compatible base URL.
 6. Under `Connection` enter an `API key` if your server requires one.
 7. Under `Connection` select or search for the `Model` identifier, then click `Test connection` at the top of the page.
@@ -184,7 +184,7 @@ Redistributions and derivative works must preserve the attribution in
 
 ## Acknowledgements
 
-- **Sasha** — the character card included with a fresh install was created by
+- **Sasha**: the character card included with a fresh install was created by
   **Chunchunmaru** and is used here with their permission. The original is
   [Sasha - Your new innocent warden](https://chub.ai/characters/Chunchunmaru/sasha-your-new-innocent-warden-756ba28f7556).
   She is an ordinary character card in Cozy like any other: edit or delete her and
@@ -192,7 +192,7 @@ Redistributions and derivative works must preserve the attribution in
 
 - **Marinara** ([SpicyMarinara](https://github.com/SpicyMarinara) on GitHub) helped me
   with the original LittleBear preset I wrote for SillyTavern a long time ago. None of
-  that preset ships here — the Bear naming is all that carried over — but it's where I
+  that preset ships here (the Bear naming is all that carried over), but it's where I
   got into making roleplay content in the first place.
 
 ---
