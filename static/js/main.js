@@ -10,7 +10,7 @@ import {
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
-import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
+import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, refreshChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderNearTop, shownText } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
@@ -1109,8 +1109,12 @@ function bindChatHandlers() {
         closeSlashCommands();
         const isOpen = !el.chatFlyout.hidden;
         Flyouts.closeAllExcept('chat');
-        // Drawn again so each row's "2 hours ago" is as of now.
-        if (!isOpen) renderChats();
+        // Drawn again so each row's "2 hours ago" is as of now, then once more
+        // if the server's list has moved on from this page's.
+        if (!isOpen) {
+            renderChats();
+            refreshChats().catch(err => console.error('Could not refresh the chats:', err));
+        }
         el.chatFlyout.hidden = isOpen;
         el.chatFlyoutBtn.setAttribute('aria-expanded', String(!isOpen));
         // The open chat is the one last opened, which needn't be the top row.

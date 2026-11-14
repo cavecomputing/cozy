@@ -34,6 +34,27 @@ function lastUsedFirst() {
         (b.updated_at || '').localeCompare(a.updated_at || '') || b.id - a.id);
 }
 
+/**
+ * Read this character's chats again, for a list about to be looked at: a chat
+ * another device made, and a reply that landed in a chat this page had left,
+ * which moves it up. The open chat keeps its own object, which the page writes
+ * to, and takes only when it was last written in.
+ */
+export async function refreshChats() {
+    const charId = state.activeCharacter?.id;
+    if (!charId) return;
+    const listed = chats => JSON.stringify(chats.map(c => [c.id, c.name, c.updated_at]));
+    const chats = await API.getChats(charId);
+    // A redraw would close a rename in progress, and an unchanged list needs none.
+    if (state.activeCharacter?.id !== charId || listed(chats) === listed(state.chats)
+        || el.flyoutChatList.querySelector('.chat-rename-input')) return;
+    const open = state.activeChat;
+    state.chats = chats.map(c => (c.id === open?.id ? Object.assign(open, { updated_at: c.updated_at }) : c));
+    renderChats();
+    refreshBranchPills();
+    el.flyoutChatList.querySelector('.chat-item.active')?.scrollIntoView({ block: 'nearest' });
+}
+
 function buildChatItem(chat) {
     const li = document.createElement('li');
     li.className = `chat-item${chat.id === state.activeChat?.id ? ' active' : ''}`;
