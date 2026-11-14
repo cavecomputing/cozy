@@ -5186,6 +5186,44 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-family: var(--font-mono);
 }
 
+/* Use character prompts. While a card's own prompt is sent in place of the
+   box, the tab says so in the warning colour, because what is on screen is no
+   longer the user's text or theirs to edit here. */
+.prompt-card-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: color-mix(in srgb, var(--status-warning) 14%, transparent);
+    border: 1px solid var(--status-warning);
+    border-radius: var(--radius);
+    line-height: 1.5;
+}
+
+.prompt-card-callout svg {
+    flex: none;
+    margin-top: 1px;
+    color: var(--status-warning);
+}
+
+.prompt-card-callout p { margin: 0; }
+
+.prompt-card-callout strong { color: var(--status-warning); }
+
+/* The card's text, shown but not editable here. */
+.prompt-card-text {
+    color: var(--text-secondary);
+    border-style: dashed;
+    cursor: default;
+}
+
+/* The switch sits at the foot of the editor card, under a rule of its own. */
+.prompt-card-switch {
+    margin-top: var(--space-3);
+    border-top: 1px solid var(--line-soft);
+}
+
 /* Import/export makes this picker row one button wider than the others, too
    wide for its card just above the width where the shared rule wraps them.
    The picker gives up width down to its 12rem floor first, then the row wraps

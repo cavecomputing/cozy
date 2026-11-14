@@ -1,6 +1,7 @@
 import { state, el } from './state.js';
 import { API } from './api.js';
 import { saveLLMSettings } from './llm-settings.js';
+import { cardPrompt } from './context-budget.js';
 import { downloadUrl, sanitize, showToast, flashSettingsSavedTick } from './utils.js';
 import { confirmDialog, promptDialog } from './confirm.js';
 import { previewChatPayload, previewRenderedPrompts } from './request-builder.js';
@@ -327,7 +328,37 @@ export function switchPromptBuilderMode(mode) {
         btn.classList.toggle('active', active);
         btn.setAttribute('aria-selected', String(active));
     });
+    showPromptBoxes();
+}
+
+// What the card calls each box's prompt, and how the line saying it has none ends.
+const CARD_PROMPTS = {
+    system: ['system_prompt', 'system prompt', 'so yours is sent.'],
+    'post-history': ['post_history_instructions', 'post-history instructions', 'so yours are sent.'],
+};
+
+/**
+ * Show the open tab's box as the open chat sends it: the user's own text, or
+ * the card's, read-only under a warning, while Use character prompts has the
+ * card's sent instead. The user's box is only hidden then, never written to,
+ * so its text is there again when the switch goes off.
+ */
+export function showPromptBoxes() {
+    const tab = el.promptBuilderTabs?.querySelector('.active')?.dataset.promptBuilderTab || 'system';
+    const [field, called, yoursSent] = CARD_PROMPTS[tab];
+    const character = state.useCharacterPrompts ? state.activeCharacter : null;
+    const cardText = cardPrompt(field);
     document.querySelectorAll('[data-prompt-box]').forEach(node => {
-        node.hidden = node.dataset.promptBox !== selected;
+        const replaced = node.matches('textarea') ? cardText : character;
+        node.hidden = node.dataset.promptBox !== tab || Boolean(replaced);
     });
+    el.promptCardCallout.hidden = el.promptCardText.hidden = !cardText;
+    el.promptCardNone.hidden = !character || Boolean(cardText);
+    if (!character) return;
+    el.promptCardCallout.querySelector('strong').textContent = `${character.name}'s card replaces this prompt.`;
+    el.promptCardCallout.querySelector('span').textContent =
+        `Use character prompts is on, so the card's ${called} below ${tab === 'system' ? 'is' : 'are'} sent instead of yours. `
+        + `Edit ${tab === 'system' ? 'it' : 'them'} in ${character.name}'s character editor. Your text is kept for when you turn the switch off.`;
+    el.promptCardText.value = cardText;
+    el.promptCardNone.textContent = `${character.name}'s card has no ${called}, ${yoursSent}`;
 }

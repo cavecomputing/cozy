@@ -532,10 +532,23 @@
                                         <span class="settings-action-label">Preview</span>
                                     </button>
                                 </div>
+                                <div id="prompt-card-callout" class="prompt-card-callout" role="note" hidden>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                    <p><strong></strong> <span></span></p>
+                                </div>
+                                <textarea id="prompt-card-text" class="form-textarea prompt-card-text" aria-describedby="prompt-card-callout" readonly hidden></textarea>
+                                <p id="prompt-card-none" class="settings-hint" hidden></p>
                                 <p class="settings-hint" data-prompt-box="system">Sent first. Cozy wraps it in &lt;system_instructions&gt; and adds the character, your persona, world info and memory after it. &#123;&#123;char&#125;&#125; and &#123;&#123;user&#125;&#125; become their names.</p>
                                 <textarea id="settings-sysprompt-content" class="form-textarea" data-prompt-box="system" placeholder="How the model should tell the story…"></textarea>
                                 <p class="settings-hint" data-prompt-box="post-history" hidden>Sent after the chat, right before the reply, wrapped in &lt;post_history_instructions&gt;. &#123;&#123;char&#125;&#125; and &#123;&#123;user&#125;&#125; become their names.</p>
                                 <textarea id="settings-posthistory-content" class="form-textarea" data-prompt-box="post-history" placeholder="A last word before each reply…" hidden></textarea>
+                                <div class="settings-row prompt-card-switch">
+                                    <div class="settings-row-text">
+                                        <label class="settings-row-label" for="settings-use-character-prompts">Use character prompts</label>
+                                        <span class="settings-row-hint">When a card has its own system prompt or post-history instructions, they replace yours for that character.</span>
+                                    </div>
+                                    <input type="checkbox" id="settings-use-character-prompts">
+                                </div>
                                 <div id="prompt-rendered-flyout" class="prompt-rendered-flyout" role="dialog" aria-labelledby="prompt-rendered-title" hidden>
                                     <header class="prompt-rendered-header">
                                         <h4 id="prompt-rendered-title">Filled in</h4>
@@ -901,12 +914,12 @@
                     </div>
                     <div class="tab-panel" id="tab-advanced" role="tabpanel" hidden>
                         <div class="form-group">
-                            <label class="form-label" for="cf-system-prompt">System prompt<span class="help-tip field-unused-marker" tabindex="0" aria-label="Not sent" data-tip="Kept with the card, but not sent: your own System prompt is.">⊘</span></label>
-                            <textarea id="cf-system-prompt" class="form-textarea" rows="4" placeholder="Kept with the card, not sent."></textarea>
+                            <label class="form-label" for="cf-system-prompt">System prompt<span class="help-tip field-unused-marker" tabindex="0" aria-label="Not sent" data-tip="Kept with the card, but not sent: your own System prompt is. Use character prompts, in Settings → Prompt, sends this one instead.">⊘</span></label>
+                            <textarea id="cf-system-prompt" class="form-textarea" rows="4" placeholder="How the card's author wants the story told…"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="cf-post-history">Post history instructions<span class="help-tip field-unused-marker" tabindex="0" aria-label="Not sent" data-tip="Kept with the card, but not sent: your own Post-History prompt is.">⊘</span></label>
-                            <textarea id="cf-post-history" class="form-textarea" rows="3" placeholder="Kept with the card, not sent."></textarea>
+                            <label class="form-label" for="cf-post-history">Post history instructions<span class="help-tip field-unused-marker" tabindex="0" aria-label="Not sent" data-tip="Kept with the card, but not sent: your own Post-History prompt is. Use character prompts, in Settings → Prompt, sends these instead.">⊘</span></label>
+                            <textarea id="cf-post-history" class="form-textarea" rows="3" placeholder="The card author's last word before each reply…"></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="cf-creator-notes">Creator notes</label>
@@ -1145,6 +1158,9 @@
                     <li><code>&#123;&#123;random:a,b,c&#125;&#125;</code> becomes one of the comma-separated options, picked each time the prompt is built.</li>
                 </ul>
                 <p class="prompt-help-note">Any other <code>&#123;&#123;variable&#125;&#125;</code> in a box is removed. The same few work in cards, personas and lorebook entries.</p>
+
+                <h3>Use character prompts</h3>
+                <p>Some cards come with a system prompt or post-history instructions of their own. Cozy keeps them with the card and sends yours. Turn on <strong>Use character prompts</strong>, under the editor, and a card that has one replaces the matching box while you chat with that character. The tab then shows the card's text, and your own is kept for every other character.</p>
 
                 <h3>The one thing Cozy adds</h3>
                 <p>Everything in the request comes from that layout and your chat, with a single exception. A request can't open on the character's turn — strict endpoints reject it — so when the oldest message still in context is one of theirs, Cozy puts a one-line user turn reading <code>[Start]</code> in front of it. Chats whose oldest message is yours never see it.</p>

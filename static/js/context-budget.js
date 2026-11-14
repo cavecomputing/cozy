@@ -82,6 +82,17 @@ function resolveActiveLorebook(chat, character, lorebooks) {
  * `candidates` are copies holding only what assembly reads: the raw-history
  * messages, then the draft if there is one.
  */
+/**
+ * The open card's own prompt for a box (`system_prompt` or
+ * `post_history_instructions`) while Use character prompts has it sent in
+ * place of the user's, or '' when the user's is.
+ */
+export function cardPrompt(field) {
+    const text = state.useCharacterPrompts ? String(state.activeCharacter?.[field] || '').trim() : '';
+    // {{original}} on its own asks for the user's prompt, as having none does.
+    return /^(\{\{original\}\}\s*)*$/i.test(text) ? '' : text;
+}
+
 export function contextInputs({
     excludeLastN = 0,
     draftText = '',
@@ -118,8 +129,8 @@ export function contextInputs({
             mes_example: character.mes_example,
         },
         persona: { name: persona.name, description: persona.description },
-        systemText: prompt?.content || '',
-        postHistoryText: prompt?.post_history_content || '',
+        systemText: cardPrompt('system_prompt') || prompt?.content || '',
+        postHistoryText: cardPrompt('post_history_instructions') || prompt?.post_history_content || '',
         lorebook: resolveActiveLorebook(state.activeChat, character, state.lorebooks),
     };
 }

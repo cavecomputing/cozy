@@ -162,7 +162,8 @@ What the fields mean:
   talks and formats replies.
 - **System prompt** and **Post history instructions** — the card author's own
   instructions. Cozy keeps them with the card but sends your prompt from
-  **Settings → Prompt** instead, so both are marked with ⊘.
+  **Settings → Prompt** instead, so both are marked with ⊘. **Use character
+  prompts** on that page sends the card's in place of yours.
 - **Creator notes**, **Tags**, **Creator**, **Version** — saved with the
   card when you export it.
 
@@ -211,7 +212,11 @@ you want.
   last word sent after the chat, just before each reply. Cozy puts the
   character, your persona, lorebook entries, your Author's Note and the
   summary between them, each in a labelled tag, and leaves out whatever is
-  empty. `{{char}}` and `{{user}}` become the two names in either box. Cozy
+  empty. `{{char}}` and `{{user}}` become the two names in either box.
+  **Use character prompts**, under the boxes, is off to begin with. Turned on,
+  a card that brings its own system prompt or post-history instructions
+  replaces the matching box while you chat with that character, and the page
+  shows the card's text in that tab so you can see what is being sent. Cozy
   includes two ready-made presets, NanoBear and NanoBear Author. The **?**
   button on that page shows the whole layout, and the eye icon on
   **Settings → API** shows exactly what will be sent. The

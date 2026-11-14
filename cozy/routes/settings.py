@@ -118,6 +118,7 @@ SETTINGS_KEYS = {
     'active_samplers',
     'show_context_token_meter',
     'show_advanced_configuration',
+    'use_character_prompts',
     'context_max_tokens',
     'extra_request_params',
     # Auto Summaries — configuration (per-chat enablement lives on the chat row)

@@ -359,9 +359,9 @@ def test_an_empty_post_history_box_appends_nothing():
     run_node_module(code)
 
 
-def test_a_cards_own_prompts_are_not_sent():
+def test_a_cards_own_prompts_are_not_sent_unless_asked_for():
     """The card keeps its system prompt and post-history instructions, but the
-    two boxes are what the model is told."""
+    two boxes are what the model is told while Use character prompts is off."""
     code = BASE_NODE_SETUP + r"""
         state.activeCharacter = {
             name: 'Mira',
@@ -375,6 +375,46 @@ def test_a_cards_own_prompts_are_not_sent():
         assert.doesNotMatch(sent, /CARD SYSTEM|CARD POST/);
         assert.match(sent, /Mine\./);
         assert.match(sent, /Mine too\./);
+    """
+    run_node_module(code)
+
+
+def test_use_character_prompts_sends_the_cards_prompt_in_place_of_the_box():
+    """Each of the card's two prompts replaces its own box and no more: a card
+    with a system prompt and no post-history instructions leaves the user's
+    Post-History in. The card's text goes in the same tag, with its names
+    filled in and {{original}}, which Cozy does not support, dropped."""
+    code = BASE_NODE_SETUP + r"""
+        state.useCharacterPrompts = true;
+        state.activeCharacter = {
+            name: 'Mira',
+            system_prompt: '{{original}} [Only ever speak as {{char}}.]',
+            post_history_instructions: '',
+        };
+        usePrompt('Mine.', 'Mine too.');
+        state.messages = [{ role: 'user', text: 'Hello' }];
+
+        const [system, user] = buildChatPayload().messages;
+        assert.ok(system.content.startsWith(inSystemTag('[Only ever speak as Mira.]')));
+        assert.equal(user.content, 'Hello\n\n' + inPostTag('Mine too.'));
+
+        // Leaving the character leaves the card's prompt behind with it.
+        state.activeCharacter = { name: 'Noor' };
+        assert.ok(buildChatPayload().messages[0].content.startsWith(inSystemTag('Mine.')));
+    """
+    run_node_module(code)
+
+
+def test_a_card_prompt_of_only_original_sends_the_users():
+    """{{original}} on its own is a card asking for the user's prompt. Taking
+    it as the card's would send no system instructions at all."""
+    code = BASE_NODE_SETUP + r"""
+        state.useCharacterPrompts = true;
+        state.activeCharacter = { name: 'Mira', system_prompt: ' {{original}} ' };
+        usePrompt('Mine.');
+        state.messages = [{ role: 'user', text: 'Hello' }];
+
+        assert.ok(buildChatPayload().messages[0].content.startsWith(inSystemTag('Mine.')));
     """
     run_node_module(code)
 

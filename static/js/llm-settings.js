@@ -386,6 +386,8 @@ function applySettingsToUI(s) {
     if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = state.showContextTokenMeter;
     state.showAdvancedConfiguration = s.show_advanced_configuration === '1';
     if (el.settingsAdvancedToggle) el.settingsAdvancedToggle.checked = state.showAdvancedConfiguration;
+    state.useCharacterPrompts = s.use_character_prompts === '1';
+    if (el.useCharacterPrompts) el.useCharacterPrompts.checked = state.useCharacterPrompts;
     state.extraRequestParams = s.extra_request_params || '';
     if (el.extraParams) el.extraParams.value = state.extraRequestParams;
     // Auto Summaries config

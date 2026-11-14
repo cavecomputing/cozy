@@ -16,7 +16,7 @@ import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
 import {
-    loadLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
+    loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
     flushLLMSettingsSave, applyAdvancedConfigurationVisibility,
     setAdvancedConfigurationVisible,
     browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
@@ -30,7 +30,7 @@ import {
     deleteSystemPrompt,
     updateSystemPromptContent, syncActivePromptFromEditors, normalizeVersionEditor,
     previewSystemPrompt, importSystemPrompt, handleSystemPromptImportFile,
-    exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode,
+    exportSystemPrompt, exportPreviewPayload, switchPromptBuilderMode, showPromptBoxes,
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, canLeaveLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
@@ -120,6 +120,8 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
         void loadStorageStats();
     }
     if (key === 'summaries') showSummaryFallbacks();
+    // The open chat's card may have changed since the page was last shown.
+    if (key === 'prompt') showPromptBoxes();
     savePrefs();
 }
 
@@ -824,6 +826,12 @@ function bindSettingsHandlers() {
     el.promptBuilderTabs?.addEventListener('click', e => {
         const btn = e.target.closest('[data-prompt-builder-tab]');
         if (btn) switchPromptBuilderMode(btn.dataset.promptBuilderTab);
+    });
+    el.useCharacterPrompts?.addEventListener('change', () => {
+        state.useCharacterPrompts = el.useCharacterPrompts.checked;
+        saveLLMSettings({ use_character_prompts: state.useCharacterPrompts ? '1' : '0' });
+        showPromptBoxes();
+        updateContextViews();
     });
     el.syspromptSelect?.addEventListener('change', () => {
         selectSystemPrompt(el.syspromptSelect.value).then(() => {

@@ -1,7 +1,7 @@
 import { state, el } from './state.js';
 import { scrollToBottom } from './utils.js';
 import { activeSummaryText } from './summaries.js';
-import { getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
+import { cardPrompt, getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
 import { retargetTooltip } from './tooltips.js';
 import { saveLLMSettings } from './llm-settings.js';
@@ -29,6 +29,9 @@ function canJumpToBoundary(analysis) {
         && analysis.firstSelectedMessageId !== state.messages[0].id;
 }
 
+// The card field that can stand in for each of the user's two boxes.
+const CARD_PROMPT_FIELDS = { system_prompt: 'system_prompt', post_history: 'post_history_instructions' };
+
 export function tooltipForSegment(segment, analysis) {
     const formatted = segment.tokens.toLocaleString();
     const pct = analysis.maxTokens > 0
@@ -45,11 +48,20 @@ export function tooltipForSegment(segment, analysis) {
             detail += '<br>Click to jump to where the window starts.';
         }
     }
-    if (segment.id === 'system_prompt') detail += '<br>Your System prompt, in its tag.';
-    if (segment.id === 'post_history') detail += '<br>Your Post-History prompt, in its tag.';
+    let label = segment.label;
+    const cardField = CARD_PROMPT_FIELDS[segment.id];
+    if (cardField) {
+        if (cardPrompt(cardField)) {
+            const name = state.activeCharacter.name.replace(/[&<>]/g, c => `&#${c.charCodeAt(0)};`);
+            label += ` · from ${name}'s card`;
+            detail += '<br>The card\'s own, sent in place of yours.';
+        } else {
+            detail += `<br>Your ${segment.label} prompt, in its tag.`;
+        }
+    }
     if (segment.id === 'unused') detail += '<br>Available for future conversation context.';
     if (segment.id === 'response_reserve') detail += '<br>Held back so the model has room to answer.';
-    return `<strong>${segment.label}</strong><br>${detail}`;
+    return `<strong>${label}</strong><br>${detail}`;
 }
 
 function renderSegments(analysis) {

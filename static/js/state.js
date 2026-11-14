@@ -23,6 +23,7 @@ export const state = {
     contextMaxTokens:    '32768',
     showContextTokenMeter: false,
     showAdvancedConfiguration: false,
+    useCharacterPrompts: false,
     modelList:           [],     // model ids from /api/llm/models
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -135,6 +136,10 @@ export function initElements() {
         syspromptExport:     document.getElementById('settings-sysprompt-export'),
         syspromptImportFile: document.getElementById('settings-sysprompt-import-file'),
         promptBuilderTabs:   document.getElementById('prompt-builder-tabs'),
+        useCharacterPrompts: document.getElementById('settings-use-character-prompts'),
+        promptCardCallout:   document.getElementById('prompt-card-callout'),
+        promptCardText:      document.getElementById('prompt-card-text'),
+        promptCardNone:      document.getElementById('prompt-card-none'),
         postHistoryContent:  document.getElementById('settings-posthistory-content'),
         promptRenderedBtn:    document.getElementById('prompt-rendered-btn'),
         promptRenderedFlyout: document.getElementById('prompt-rendered-flyout'),

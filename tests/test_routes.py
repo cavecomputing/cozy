@@ -88,6 +88,13 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['show_advanced_configuration'] == '1'
 
+    def test_use_character_prompts_defaults_off_and_persists(self, client):
+        r = client.get('/api/settings')
+        assert r.get_json()['use_character_prompts'] == '0'
+        client.put('/api/settings', json={'use_character_prompts': '1'})
+        r = client.get('/api/settings')
+        assert r.get_json()['use_character_prompts'] == '1'
+
     def test_retired_gallery_setting_is_rejected(self, client):
         client.put('/api/settings', json={'show_gallery_button': '0'})
         r = client.get('/api/settings')

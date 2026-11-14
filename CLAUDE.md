@@ -225,6 +225,13 @@ and `post_history_content` (the Post-History box, sent after the chat history); 
 `{{date}}` and `{{random:a,b}}` are filled in and any other `{{…}}` is dropped, so a card field can't
 be sent twice by naming it there.
 
+A card's own `system_prompt` and `post_history_instructions` are not sent unless the
+`use_character_prompts` setting is on (off by default). Then each replaces its own box for that
+character, never adds to it, and `{{original}}` is not supported. `cardPrompt()` in
+[context-budget.js](static/js/context-budget.js) is the one place that decides, for the request, the
+meter and the Prompt page alike; the page shows the card's text read-only and never writes it into
+the user's box, which is saved from whatever that box holds.
+
 The meter counts a tag with the part it wraps, the first part for an opening tag and the last for
 a closing one, so the layout costs the parts it serves and nothing is left over to explain.
 

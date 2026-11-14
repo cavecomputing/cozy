@@ -109,6 +109,27 @@ def test_message_history_tooltip_advertises_the_jump_only_with_a_separator():
     """)
 
 
+def test_the_tooltip_names_the_card_whose_prompt_is_sent():
+    """With Use character prompts on, the System segment is the card's text,
+    so its tooltip says whose. A box the card leaves alone is still the user's."""
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { state } from './static/js/state.js';
+        import { tooltipForSegment } from './static/js/context-meter.js';
+
+        const analysis = { maxTokens: 4096, allocatedTokens: 400 };
+        const system = { id: 'system_prompt', label: 'System', tokens: 40 };
+        const post = { id: 'post_history', label: 'Post-History', tokens: 40 };
+        state.activeCharacter = { name: 'Sasha <3', system_prompt: 'Stay in character.' };
+
+        assert.match(tooltipForSegment(system, analysis), /^<strong>System<\/strong>.*Your System prompt/);
+
+        state.useCharacterPrompts = true;
+        assert.match(tooltipForSegment(system, analysis), /^<strong>System · from Sasha &#60;3's card<\/strong>/);
+        assert.match(tooltipForSegment(post, analysis), /^<strong>Post-History<\/strong>.*Your Post-History prompt/);
+    """)
+
+
 def test_response_reserve_follows_a_max_tokens_in_extra_request_params():
     """buildChatPayload merges extra_request_params over the samplers, so a
     max_tokens there — not the Max response tokens field — is what the model

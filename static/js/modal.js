@@ -176,6 +176,10 @@ function open(char = null) {
     avatarInput.value = '';
     importInput.value = '';
     switchTab('basic');
+    // The card's two prompts are marked as not sent, unless the switch sends them.
+    overlay.querySelectorAll('.field-unused-marker').forEach(marker => {
+        marker.hidden = state.useCharacterPrompts;
+    });
     titleEl.textContent = char ? 'Edit Character' : 'New Character';
     // Export only makes sense when editing an existing card; import is always available
     exportLabel.hidden = !char;
