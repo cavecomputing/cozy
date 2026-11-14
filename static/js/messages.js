@@ -689,7 +689,8 @@ export async function appendMessage(role, text, persist = true, saved = null) {
 // ═══════════════════════════════════════════════════════════════════════════
 // MESSAGE EDITING
 // ═══════════════════════════════════════════════════════════════════════════
-export function startEditing(messageEl) {
+/** Open a message for editing, on `typed` when given: what a failed save left unsaved. */
+export function startEditing(messageEl, typed = null) {
     if (messageEl.classList.contains('editing')) return;
     // Only one message can be open at a time: state.currentEdit is a single
     // slot, and finishEditing acts on whatever it holds rather than on the
@@ -713,7 +714,7 @@ export function startEditing(messageEl) {
 
     const { text } = drawnMessages.get(messageEl);
     const editParsed = parseThinkingContent(text);
-    contentDiv.textContent = editParsed.hasThinking ? editParsed.response : text;
+    contentDiv.textContent = typed ?? (editParsed.hasThinking ? editParsed.response : text);
     contentDiv.contentEditable = 'plaintext-only';
     // preventScroll: don't let the browser "scroll the focused element into
     // view". The message sits inside the #chat-scroll container, and on iOS
@@ -767,16 +768,29 @@ export function finishEditing(save) {
         const { thinkingSegment } = parseThinkingContent(msg.text);
         const rawText = thinkingSegment ? thinkingSegment + '\n\n' + editedResponse : editedResponse;
         const idx = msg.activeSwipeIndex;
+        const unedited = msg.swipes[idx];
         // Saving the text unchanged is not an edit, as the server agrees.
         if (rawText !== msg.text) {
             const editedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            msg.swipes[idx] = { ...msg.swipes[idx], content: rawText, edited_at: editedAt };
+            msg.swipes[idx] = { ...unedited, content: rawText, edited_at: editedAt };
             setActiveSwipe(msg, idx);
         }
         if (msg.id) {
             API.updateMessage(msg.id, rawText, idx).catch(err => {
                 console.error('Edit save failed:', err);
                 showToast('Edit failed to save: ' + err.message);
+                // The server still has the old text, and the next catch-up
+                // would put it back over the edit without a word. So the
+                // message goes back to it now, and the editor opens again on
+                // what was typed, where Save can be pressed once more.
+                msg.swipes[idx] = unedited;
+                if (msg.activeSwipeIndex !== idx || !messageEl.isConnected) return;
+                setActiveSwipe(msg, idx);
+                renderSwipeBody(messageEl.querySelector('.msg-body'), contentDiv, msg.text);
+                setEditedLabel(messageEl, unedited.edited_at);
+                updateContextViews();
+                // Not over another edit: opening this one would save that one.
+                if (!state.currentEdit) startEditing(messageEl, editedResponse);
             });
         }
     }

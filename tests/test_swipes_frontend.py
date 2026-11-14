@@ -81,7 +81,7 @@ SETUP = r"""
         };
         const actionsBar = stubEl();
         const msgEl = {
-            dataset, style: {}, parts, actionsBar,
+            dataset, style: {}, parts, actionsBar, isConnected: true,
             classList: {
                 add: name => classes.add(name),
                 remove: name => classes.delete(name),
@@ -188,6 +188,30 @@ def test_an_edit_rewrites_the_swipe_on_screen_and_names_it_to_the_server():
         assert.deepEqual(updates, [[2, 'second take, reworded', 1]]);
         assert.equal(state.currentEdit, null);
         assert.equal(replyEl.classList.contains('editing'), false);
+    """)
+
+
+def test_an_edit_that_cannot_be_saved_goes_back_and_reopens_on_what_was_typed():
+    """The server kept the old text. Shown as saved, the new text only lasted
+    until the next catch-up put the old one back without a word."""
+    run_node_module(SETUP + r"""
+        API.updateMessage = async () => { throw new Error('unreachable'); };
+        // The toast's own timer would hold node open for its five seconds.
+        const setTimer = globalThis.setTimeout;
+        globalThis.setTimeout = (fn, ms) => { const timer = setTimer(fn, ms); if (ms >= 5000) timer.unref(); return timer; };
+
+        startEditing(replyEl);
+        replyEl.parts['.message-content'].textContent = 'second take, reworded';
+        finishEditing(true);
+        await settle();
+
+        assert.equal(reply.text, 'second take');
+        assert.deepEqual(shown(), ['first take', 'second take', 'third take']);
+        assert.equal(Boolean(reply.swipes[1].edited_at), false);
+        // Open again on what was typed, so Save can be pressed once more.
+        assert.equal(state.currentEdit.element, replyEl);
+        assert.equal(replyEl.classList.contains('editing'), true);
+        assert.equal(replyEl.parts['.message-content'].textContent, 'second take, reworded');
     """)
 
 
