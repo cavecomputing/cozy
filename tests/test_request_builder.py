@@ -827,6 +827,35 @@ def test_context_segments_follow_system_history_user_prompt_order():
     run_node_module(code)
 
 
+def test_context_names_count_toward_the_text_they_sit_in():
+    """A {{user}} or {{char}} in template prose is not the persona or the card."""
+    code = BASE_NODE_SETUP + r"""
+        state.contextMaxTokens = '0';
+        el.settingsContextTokens = { value: '0' };
+        el.samplerMaxTokens = { value: '40' };
+        state.activeCharacter = { name: 'Mira', description: 'A careful cartographer.' };
+        state.activePersona = { name: 'Morgan', description: 'An inquisitive sailor.' };
+        state.activeChat = {};
+        state.activeSystemPromptId = 1;
+        state.systemPrompts = [{
+            id: 1,
+            content: 'You are {{char}}. {{description}}\n{{persona}}',
+            post_history_content: '{{user_message}}\n((Write only {{char}}. Do not narrate for {{user}}.))',
+        }];
+        state.messages = [{ id: 1, role: 'user', text: 'Hello' }];
+
+        const analysis = analyzeContext();
+        const keys = analysis.segments.map(segment => segment.key);
+        assert.ok(!keys.includes('user:persona'), keys.join(', '));
+        assert.ok(!keys.includes('user:character_card'), keys.join(', '));
+        assert.ok(keys.includes('user:system_prompt'), keys.join(', '));
+        assert.ok(keys.includes('system:persona'), keys.join(', '));
+        assert.ok(keys.includes('system:character_card'), keys.join(', '));
+        assert.match(JSON.stringify(analysis.messages), /Do not narrate for Morgan\./);
+    """
+    run_node_module(code)
+
+
 def test_full_context_budget_trims_history_after_fixed_prompt_sources():
     code = BASE_NODE_SETUP + r"""
         state.contextMaxTokens = '120';

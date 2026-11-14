@@ -24,9 +24,10 @@ export const CONTEXT_SOURCES = [
     { id: 'unused', label: 'Unused' },
 ];
 
+// {{user}} and {{char}} are absent on purpose: a name dropped into prose, as in
+// "don't narrate for {{user}}", counts toward the text around it, so only the
+// persona's and the card's own fields show as Persona and Character card.
 const SOURCE_BY_VARIABLE = {
-    user: 'persona',
-    char: 'character_card',
     personality: 'character_card',
     scenario: 'character_card',
     description: 'character_card',
