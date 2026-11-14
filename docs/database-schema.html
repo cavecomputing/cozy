@@ -419,7 +419,7 @@
         <tbody>
           <tr><td class="c-name key">id</td><td class="c-type">INTEGER</td><td class="c-def">none</td><td class="c-note">Primary key, autoincrement.</td></tr>
           <tr><td class="c-name">filename</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">PNG filename under <code>data/characters/</code>. NOT NULL, UNIQUE.</td></tr>
-          <tr><td class="c-name">crc</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">CRC32 hex of the file, so a rename on disk is recognised as the same card.</td></tr>
+          <tr><td class="c-name">crc</td><td class="c-type">TEXT</td><td class="c-def">none</td><td class="c-note">CRC32 hex of the file, so a rename on disk is recognized as the same card.</td></tr>
           <tr><td class="c-name">missing</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> once the file is gone from disk.</td></tr>
           <tr><td class="c-name">pinned_at</td><td class="c-type">DATETIME</td><td class="c-def">NULL</td><td class="c-note">Pin time, <code>NULL</code> when unpinned. Pinned characters list first; the sidebar sorts both groups by name.</td></tr>
           <tr><td class="c-name">archived</td><td class="c-type">INTEGER</td><td class="c-def">0</td><td class="c-note"><code>1</code> while archived: the character is listed in the sidebar's folded <em>Archived</em> section. Archiving clears <code>pinned_at</code>. Not the retired gallery's <code>archived_at</code>, which migration 08 dropped.</td></tr>
@@ -776,7 +776,7 @@
         <code>thumbs/</code> cache is keyed by image content and rebuilt on demand, so it is left out.</p>
     </section>
 
-    <footer>Read out of a freshly initialised cozy_chat.db · SQLite 3 · schema version 20</footer>
+    <footer>Read out of a freshly initialized cozy_chat.db · SQLite 3 · schema version 20</footer>
   </main>
 </div>
 
