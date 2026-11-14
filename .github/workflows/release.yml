@@ -1,0 +1,48 @@
+# Publishes a GitHub release when a push to main changes the version in
+# pyproject.toml. The release is tagged v<version> on the pushed commit.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [pyproject.toml]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create the release if the version changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          read_version() {
+            python3 -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["project"]["version"])'
+          }
+          version=$(read_version < pyproject.toml)
+          previous=$(git show "$BEFORE:pyproject.toml" 2>/dev/null | read_version 2>/dev/null || true)
+          if [ "$version" = "$previous" ]; then
+            echo "Version is still $version; nothing to release."
+            exit 0
+          fi
+          # Semantic Versioning 2.0.0: MAJOR.MINOR.PATCH, optional -prerelease and +build.
+          semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
+          if ! printf '%s' "$version" | grep -Eq "$semver"; then
+            echo "::error::pyproject.toml version '$version' is not a semantic version."
+            exit 1
+          fi
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
+            echo "::error::Tag $tag already exists; a release needs a new version."
+            exit 1
+          fi
+          prerelease=()
+          case "$version" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --generate-notes "${prerelease[@]}"
