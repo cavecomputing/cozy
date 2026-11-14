@@ -1993,13 +1993,7 @@ input[type="checkbox"]:checked::after {
     display: none;
     justify-content: space-between;
     align-items: center;
-    /* Sticky for iOS's sake, not for scrolling: the page never scrolls, so
-       this sits where a relative header would. An installed app on iOS 26 and
-       later gets a system blur over its top edge unless the box found there
-       is fixed or sticky, full width and one plain colour, which WebKit then
-       carries up into the status bar instead (fixedContainerEdges). */
-    position: sticky;
-    top: 0;
+    position: relative;
 }
 
 #current-char-name {
@@ -6555,6 +6549,19 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         padding: 0 var(--mobile-inline-padding) 0 calc(var(--space-5) - (var(--mobile-tap-target) - 20px) / 2);
         gap: 0.5rem;
         flex-shrink: 0;
+    }
+
+    /* Sticky for iOS's sake, not for scrolling: the page never scrolls, so
+       this sits where the relative header does. An installed app on iOS 26
+       and later gets a system blur over its top edge unless the box found
+       there is fixed or sticky, full width and one plain colour, which WebKit
+       then carries up into the status bar instead (fixedContainerEdges).
+       Only while the drawer is shut: with it open the drawer is the box at
+       the top edge and keeps that colour, and a sticky header beneath it had
+       iPhones dropping rows from the drawer's list as it scrolled. */
+    body:not(.mobile-drawer-open) #main-content > header {
+        position: sticky;
+        top: 0;
     }
 
     #main-content > header #current-char-name {
