@@ -4,15 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Git workflow
 
-The repository is **public and has users**, so anything that lands on `main` is something a stranger
-may run. The user reviews changes after they land rather than before, so the verification below is
-what keeps `main` working.
+The repository is **public and has users**, and `main` is what they run, so `main` moves only at a
+release. All work happens on `dev`. The user reviews changes on `dev` after they land rather than
+before, so the verification below is what keeps `dev` ready to release.
 
-**Commit and push finished work without waiting to be asked.** When a task is done and verified,
-commit it directly to `main`, since this project uses no feature branches or PRs, and push. Then
-report what changed, how it was verified, and the commit hashes, so the user can review or revert
-it. Only include files belonging to the task — leave unrelated pre-existing changes and stray
-untracked files alone. Don't commit work that is half done or has failing tests.
+**Work on `dev`.** A fresh checkout starts on `main`, so begin with
+`git fetch origin dev && git checkout -B dev origin/dev`. `dev` is the one working branch: no
+feature branches or PRs.
+
+**Commit and push finished work to `dev` without waiting to be asked.** When a task is done and
+verified, commit it to `dev` and push (`git push origin HEAD:dev`). Then report what changed, how it
+was verified, and the commit hashes, so the user can review or revert it. Only include files
+belonging to the task — leave unrelated pre-existing changes and stray untracked files alone. Don't
+commit work that is half done or has failing tests.
+
+**Never commit or push to `main` as part of a task.** A release is the user's call, and only then
+does `main` move. The release number is `version` in [pyproject.toml](pyproject.toml), and the user
+picks it. A release is one commit on `dev` that sets it (run `uv lock` so `uv.lock` carries the same
+number), then `main` is fast-forwarded to `dev` (`git push origin dev:main`, which Git refuses if
+`main` holds a commit `dev` lacks), so the two share one history. Nothing else bumps the version. A
+fix that can't wait for a release still lands on `dev` first; ask the user before it reaches
+`main`.
 
 **One commit, one concern.** A commit has to be reviewable on its own and safe to revert on its own,
 so split unrelated work rather than bundling it: a bug fix and a docs correction that happened to
@@ -89,7 +101,7 @@ Production (Docker) runs gunicorn with the `gthread` worker class — required b
 
 ### How much verification a change needs
 
-Match the effort to the change; a public repo makes a broken `main` everyone's problem, but it does
+Match the effort to the change; a public repo makes a broken release everyone's problem, but it does
 not make every edit worth a full boot-and-click cycle.
 
 Run the tests that cover what was touched, and the full suite before every
@@ -175,8 +187,8 @@ A seeded prompt is a copy of a file that outranks it.
 ### The database version, and backups
 
 The highest version in `MIGRATIONS` **is** the database version — there is no
-second scheme, and `pyproject.toml`'s `0.0.0` and the About build string are
-not it. A database's own version is the highest row in its `schema_migrations`
+second scheme, and the release number in `pyproject.toml` and the About build
+string are not it. A database's own version is the highest row in its `schema_migrations`
 ledger.
 
 `/api/backup` zips the data directory with a `cozy-backup.json` naming that
@@ -349,8 +361,9 @@ script and `applyTheme()` both use it, because two spellings of it would fetch t
   feature also means checking the README feature list and the matching `docs/` page.
 
 The About page's build string comes from the current Git commit via
-[cozy/build_info.py](cozy/build_info.py) (checkouts read `.git`, Docker embeds `.cozy-commit`). The
-`0.0.0` in `pyproject.toml` is a permanent packaging placeholder, not a version — never bump it.
+[cozy/build_info.py](cozy/build_info.py) (checkouts read `.git`, Docker embeds `.cozy-commit`). It
+names the exact build, while the release number in `pyproject.toml` (see Git workflow) names the
+release.
 
 Every response carries that label as `X-Cozy-Build`, and the page carries the one it was rendered
 with (`data-build`). A page that comes back to the front and finds the two differ reloads itself,

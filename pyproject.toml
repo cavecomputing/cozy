@@ -1,6 +1,6 @@
 [project]
 name = "cozy"
-version = "0.0.0" # Packaging placeholder; running builds use their Git commit.
+version = "0.0.0" # The release number; set only at a release (see CLAUDE.md).
 description = "A single-user Flask web app for chatting with LLM character cards."
 readme = "README.md"
 requires-python = ">=3.12"

@@ -415,9 +415,9 @@ registry is the schema this build understands, and the highest row in a
 database's `schema_migrations` table is the schema that database is at. It is
 currently 21.
 
-Two other numbers are not the database version: the `0.0.0` in
-`pyproject.toml` is a packaging placeholder, and the build string on the
-About page names a Git commit.
+Two other numbers are not the database version: the `version` in
+`pyproject.toml` is the release number, and the build string on the About
+page names a Git commit.
 
 A backup carries the database version. `GET /api/backup` zips the data
 directory with a `cozy-backup.json` file that names it.
