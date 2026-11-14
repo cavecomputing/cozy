@@ -1352,14 +1352,21 @@ function bindMessageHandlers() {
                 // A re-render (chat switch, reload) during the dialog would
                 // leave msgEl orphaned and state.messages pointing elsewhere.
                 if (!ok || !document.contains(msgEl)) return;
-                const at = state.messages.indexOf(msg);
-                if (at !== -1) state.messages.splice(at, 1);
+                // Gone from the screen once it is gone from the server. Taken
+                // off first, a delete that failed came back on the next
+                // catch-up. The bin is busy meanwhile, against a second click.
                 if (msg.id) {
-                    API.deleteMessage(msg.id).catch(err => {
+                    try {
+                        await withBusy(e.target.closest('.delete-msg-btn'), null, () => API.deleteMessage(msg.id));
+                    } catch (err) {
                         console.error('Message delete failed:', err);
                         showToast('Failed to delete message: ' + err.message);
-                    });
+                        return;
+                    }
+                    if (!document.contains(msgEl)) return;
                 }
+                const at = state.messages.indexOf(msg);
+                if (at !== -1) state.messages.splice(at, 1);
                 msgEl.closest('.message-container').remove();
                 // The message has left the context too, which the meter and
                 // the separator otherwise show only at the next keystroke.
