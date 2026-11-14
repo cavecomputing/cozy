@@ -324,6 +324,12 @@ The About page's build string comes from the current Git commit via
 [cozy/build_info.py](cozy/build_info.py) (checkouts read `.git`, Docker embeds `.cozy-commit`). The
 `0.0.0` in `pyproject.toml` is a permanent packaging placeholder, not a version — never bump it.
 
+Every response carries that label as `X-Cozy-Build`, and the page carries the one it was rendered
+with (`data-build`). A page that comes back to the front and finds the two differ reloads itself,
+once and only with nothing open or under way (`reloadAfterUpdate()` in
+[main.js](static/js/main.js)), which is what lets a change to what the page sends ship without
+stranding pages left open, an installed phone app above all.
+
 ## Testing gotchas
 
 [tests/conftest.py](tests/conftest.py) sets `COZY_DATA_DIR` to a temp dir at *import* time, then a per-test fixture monkeypatches `shared.DATABASE`/`CHARACTERS_DIR`/`PERSONAS_DIR`/`THEMES_DIR`. [app.py](app.py) and route modules resolve data paths through `cozy.shared`, so new path constants used at runtime should follow the same pattern or be included in the fixture when tests need to isolate them.

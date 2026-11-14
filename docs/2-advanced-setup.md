@@ -213,7 +213,9 @@ uv sync
 uv run app.py
 ```
 
-When Cozy starts, it updates its database automatically.
+When Cozy starts, it updates its database automatically. A page that was
+left open, or the installed app on a phone, loads the new version by itself
+the next time you come back to it.
 
 ## Run the tests
 

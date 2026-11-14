@@ -2120,6 +2120,12 @@ class TestBuildAssets:
         assert f'/assets/{build}/css/style.css' in page
         assert '/static/js/' not in page
 
+    def test_every_answer_names_the_build_the_page_can_compare_its_own_with(self, client):
+        # An open page reloads itself when the two stop matching.
+        build = shared.BUILD_INFO.display
+        assert f'<html lang="en" data-build="{build}">' in client.get('/').get_data(as_text=True)
+        assert client.get('/api/settings').headers['X-Cozy-Build'] == build
+
     def test_serves_the_static_file(self, client):
         r = client.get(f'/assets/{shared.BUILD_INFO.display}/js/main.js')
         assert r.status_code == 200

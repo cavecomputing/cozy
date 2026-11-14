@@ -2,7 +2,7 @@
 // ENTRY POINT — orchestrates all modules
 // ═══════════════════════════════════════════════════════════════════════════
 import { state, el, llm, icons, initElements } from './state.js';
-import { API, prefetchSelection, dropPrefetched } from './api.js';
+import { API, prefetchSelection, dropPrefetched, serverBuild } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
@@ -1111,13 +1111,28 @@ async function refreshSettings() {
     updateContextViews();
 }
 
+// An update restarts the server under a page that stays open, and the old page
+// goes on sending what the new server may no longer take. So a page that comes
+// back to the front on another build loads itself again: with nothing open or
+// under way, so nothing is lost, and once for a build, so that a page that
+// can't get the new one doesn't reload for ever.
+function reloadAfterUpdate() {
+    if (!serverBuild || serverBuild === document.documentElement.dataset.build
+        || sessionStorage.getItem('cozy/reloaded-for') === serverBuild
+        || panelOpen() || confirmOpen() || state.currentEdit || llm.generationActive) return;
+    sessionStorage.setItem('cozy/reloaded-for', serverBuild);
+    saveDraft();
+    location.reload();
+}
+
 function bindChatHandlers() {
     // Back in front: another device or window may have used this chat since,
     // or changed what it is sent with.
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener('visibilitychange', async () => {
         if (document.hidden) return;
         refreshOpenChat();
-        refreshSettings();
+        await refreshSettings();
+        reloadAfterUpdate();
     });
 
     // Chat flyout — toggle open/close

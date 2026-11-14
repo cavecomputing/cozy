@@ -49,6 +49,14 @@ def handle_exception(e):
 # put every upload route in reach — /api/backup/restore among them, which
 # replaces the whole data directory. Browsers say where a request came from;
 # writes that did not come from Cozy's own page are refused.
+@app.after_request
+def name_the_build(response):
+    # A page left open across an update reads this on its way back to the
+    # front, and loads itself again when it isn't the build it was served.
+    response.headers['X-Cozy-Build'] = shared.BUILD_INFO.display
+    return response
+
+
 @app.before_request
 def refuse_cross_site_writes():
     if request.method in ('GET', 'HEAD', 'OPTIONS'):

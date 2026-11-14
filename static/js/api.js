@@ -10,6 +10,9 @@ export async function apiError(r, fallback) {
     try { const e = await r.json(); return e.error || fallback; } catch { return fallback; }
 }
 
+// The build the server last said it is running: every answer names it.
+export let serverBuild = null;
+
 // Responses fetched before anything asked for them, each handed out once.
 const prefetched = new Map();
 
@@ -44,6 +47,7 @@ async function jsonRequest(url, { method = 'GET', body, fallback = 'Request fail
     const early = method === 'GET' ? prefetched.get(url) : null;
     prefetched.delete(url);
     const r = await (early || fetch(url, options));
+    serverBuild = r.headers.get('X-Cozy-Build') || serverBuild;
     if (!r.ok) throw new Error(await apiError(r, fallback));
     return r.json();
 }
