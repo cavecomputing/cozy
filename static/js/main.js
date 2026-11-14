@@ -1099,9 +1099,26 @@ function bindRowMenuKeys(container, menu, triggerSelector, closeMenu) {
     });
 }
 
+// The model, the prompt and the samplers are read at startup and sent from
+// this page's copy from then on. An installed app stays open for days, so one
+// changed on another device went on being sent as it was. Read again on every
+// return, unless Settings is open here, where they are being typed.
+async function refreshSettings() {
+    if (!el.settingsFlyout.hidden) return;
+    await flushLLMSettingsSave();
+    await loadSystemPrompts(await loadLLMSettings());
+    applyAdvancedConfigurationVisibility();
+    updateContextViews();
+}
+
 function bindChatHandlers() {
-    // Back in front: another device or window may have used this chat since.
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshOpenChat(); });
+    // Back in front: another device or window may have used this chat since,
+    // or changed what it is sent with.
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) return;
+        refreshOpenChat();
+        refreshSettings();
+    });
 
     // Chat flyout — toggle open/close
     el.chatFlyoutBtn.addEventListener('click', e => {
