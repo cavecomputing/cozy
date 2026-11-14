@@ -465,7 +465,7 @@ function bindDragToClose(panel, handle, { vertical, close, backdrop, when = () =
 
 // The drawer shows while the finger brings it in, but is only opened (focus,
 // the chat made inert) once let go far enough; short of that it goes back.
-function bindEdgeSwipeToOpen() {
+function bindSwipeToOpen() {
     const panel = el.sidebar, backdrop = el.mobileBackdrop;
     const drawerShell = window.matchMedia(MOBILE_SHELL_QUERY);
     const offset = dist => `translateX(calc(-100% - var(--frame-left) + ${dist}px))`;
@@ -1666,7 +1666,7 @@ async function init() {
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
     bindSwipeToClose();
-    bindEdgeSwipeToOpen();
+    bindSwipeToOpen();
     bindBackButton();
     bindSettingsHandlers();
     initStorageStats();
