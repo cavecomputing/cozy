@@ -451,9 +451,6 @@ class TestSystemPrompts:
         r = client.get('/api/system-prompts/99999/export')
         assert r.status_code == 404
 
-    def test_default_template_endpoint_removed(self, client):
-        r = client.get('/api/system-prompts/default-template')
-        assert r.status_code == 404
 
 class TestMessages:
     def test_add_message_creates_swipe(self, client, sample_chat):

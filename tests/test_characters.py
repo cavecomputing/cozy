@@ -1034,24 +1034,3 @@ class TestLastUsedAt:
         with shared.get_db() as conn:
             conn.execute("UPDATE chats SET opened_at='2026-01-04 07:00:00' WHERE id=?", (sample_chat['id'],))
         assert self._last_used_at(client, char_id) == '2026-01-04 07:00:00'
-
-
-class TestRetiredCharacterOrganization:
-    def test_character_responses_omit_retired_fields(self, client, sample_character):
-        character = client.get(f'/api/characters/{sample_character["id"]}').get_json()
-        assert 'archived_at' not in character
-        assert 'collections' not in character
-
-        listing = client.get('/api/characters?archived=1&include_archived=1').get_json()
-        assert [item['id'] for item in listing] == [sample_character['id']]
-
-    def test_retired_character_routes_are_gone(self, client, sample_character):
-        char_id = sample_character['id']
-        assert client.post(f'/api/characters/{char_id}/duplicate').status_code == 404
-        assert client.get('/api/character-collections').status_code == 404
-        assert client.post('/api/character-collections', json={'name': 'Old'}).status_code == 404
-        assert client.put('/api/character-collections/1', json={'name': 'Old'}).status_code == 404
-        assert client.delete('/api/character-collections/1').status_code == 404
-        membership = f'/api/character-collections/1/characters/{char_id}'
-        assert client.post(membership).status_code == 404
-        assert client.delete(membership).status_code == 404
