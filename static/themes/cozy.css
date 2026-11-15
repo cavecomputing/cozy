@@ -1,6 +1,6 @@
-/* Cozy — Signature Theme (the cavecomputing palette: Gruvbox dark surfaces,
-   yellow for labels and focus, green for done, blue for addresses, orange for
-   warnings) */
+/* Cozy — the marshmallow logo's colours: navy surfaces, the logo's cream for
+   the text, labels, focus and the primary button, and soft pastels for
+   speech, names, links and warnings so the cream stays in front */
 :root {
     /* Corner radius for cards. Controls take 0.6 of it (see --radius-control
        in style.css). */
@@ -9,41 +9,42 @@
     /* Layout — the darker ground (the loading screen, the inset wells), the
        app's surface, and raised cards on it. The sidebar shares the surface so
        the two read as one. */
-    --app-bg:         #1d2021;
-    --bg-color:       #282828;
+    --app-bg:         #050d1c;
+    --bg-color:       #0c1424;
     --sidebar-bg:     var(--bg-color);
-    --char-msg-bg:    #32302f;
+    --char-msg-bg:    #1b263a;
     --hover-bg:       var(--border-color);
     --active-bg:      var(--hover-bg);
     --input-bg:       var(--app-bg);
-    --border-color:   #3c3836;
+    --border-color:   #242f44;
 
-    /* Typography */
-    --text-color:     #ebdbb2;
-    --text-secondary: #a89984;
+    /* Typography — a cream a step softer than the logo's, for long reading */
+    --text-color:     #e9e2d9;
+    --text-secondary: #a0aabb;
 
-    /* Accent (yellow). Labels, active rows, focus and the primary button. */
-    --accent-color:   #fabd2f;
-    --danger-color:   #fe8019;   /* orange — the palette has no red that reads on its raised surfaces */
+    /* Accent (the logo's cream). Labels, active rows, focus and the primary
+       button. */
+    --accent-color:   #fdf5ec;
+    --danger-color:   #f47a79;   /* coral */
     --danger-bg-hover: color-mix(in srgb, var(--danger-color) 14%, transparent);
-    --success-color:  #8ec07c;
-    --cool-color:     #83a598;   /* blue — links, addresses, references */
-    --accent-alt:     #b8bb26;   /* green — section icons, the brand's second accent */
+    --success-color:  #8ed09c;
+    --cool-color:     #9dbbf2;   /* periwinkle — links, addresses, references */
+    --accent-alt:     var(--cool-color);   /* section icons */
 
     /* Elevation — the lifted shadow, for surfaces that genuinely float
        (flyouts, menus, toasts). */
-    --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
-    --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
+    --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.42);
+    --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 6%, transparent);
 
-    /* RP markdown — speech in aqua, narration muted, emphasis in
-       the accent and intense actions in orange. */
-    --rp-dialogue-color:  #8ec07c;   /* aqua */
+    /* RP markdown — speech in mint, narration muted, emphasis in gold and
+       intense actions in peach. */
+    --rp-dialogue-color:  #99dbc3;   /* mint */
     --rp-action-color:    var(--text-secondary);   /* muted — italics/actions */
-    --rp-emphasis-color:  var(--accent-color);   /* yellow — bold/strong emphasis */
+    --rp-emphasis-color:  #eacb76;   /* gold — bold/strong emphasis */
     --rp-quote-color:     var(--text-color);   /* blockquotes/narration */
     --rp-quote-bg:        var(--bg-color);
-    --rp-ooc-color:       var(--cool-color);   /* blue — code/OOC text */
-    --rp-intense-color:   #fe8019;   /* orange — bold+italic intense actions */
+    --rp-ooc-color:       var(--cool-color);   /* periwinkle — code/OOC text */
+    --rp-intense-color:   #f4b082;   /* peach — bold+italic intense actions */
     --rp-intense-shadow:  none;
     --code-bg:            var(--bg-color);
     --code-border:        var(--border-color);
@@ -53,33 +54,32 @@
     /* Avatars */
     --avatar-text-color:  var(--app-bg);
 
-    /* Buttons */
+    /* Buttons — navy on the cream, as in the logo */
     --btn-primary-color:      var(--app-bg);
     --btn-danger-hover-color: var(--app-bg);
 
     /* Overlays & backdrops */
-    --overlay-bg:     rgba(17, 18, 19, 0.72);
+    --overlay-bg:     rgba(3, 8, 18, 0.72);
     --overlay-color:  var(--text-color);
-    --backdrop-bg:    rgba(17, 18, 19, 0.6);
+    --backdrop-bg:    rgba(3, 8, 18, 0.6);
 
-    /* Context token meter — one Gruvbox hue per source. */
-    --meter-system-prompt:    #fabd2f;
-    --meter-character-card:   #d3869b;
-    --meter-persona:          #8ec07c;
-    --meter-lorebook:         #b8bb26;
-    --meter-author-note:      #d79921;
-    --meter-auto-summary:     #b16286;
-    --meter-message-history:  #83a598;
-    --meter-current-draft:    #689d6a;
-    --meter-response-reserve: #fe8019;
+    /* Context token meter — one pastel per source. */
+    --meter-system-prompt:    #eacb76;
+    --meter-character-card:   #ecabc9;
+    --meter-persona:          #99dbc3;
+    --meter-lorebook:         #8ed09c;
+    --meter-author-note:      #f4b082;
+    --meter-auto-summary:     #b49ce1;
+    --meter-message-history:  #9dbbf2;
+    --meter-current-draft:    #63b4b8;
+    --meter-response-reserve: #f47a79;
     --meter-unused:           var(--border-color);
 
-    /* The character's name in its message header: rose, the palette's
-       character accent. */
-    --char-name-color:          #d3869b;
+    /* The character's name in its message header: marshmallow pink. */
+    --char-name-color:          #ecabc9;
 
     /* User message — the raised bubble, in the character's colours (style.css
        falls back to them for every --user-* the theme leaves out). */
-    --user-hr-mid-color:        #504945;
-    --editable-bg:              color-mix(in srgb, var(--accent-color) 6%, transparent);
+    --user-hr-mid-color:        #364053;
+    --editable-bg:              color-mix(in srgb, var(--accent-color) 5%, transparent);
 }

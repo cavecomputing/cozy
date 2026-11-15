@@ -1,85 +1,83 @@
-/* Cozy Light — the cavecomputing palette on paper: Gruvbox light surfaces,
-   green for the primary button, a deepened yellow for labels and focus, blue
-   for addresses, orange for warnings. The light half of the design system,
-   laid out like cozy.css so the two stay easy to compare. */
+/* Cozy Light — the marshmallow logo turned over: the logo's cream as paper,
+   its dark ink for the text, labels and the primary button, and the pastels
+   of cozy.css in darker steps that read on cream. Laid out like cozy.css so
+   the two stay easy to compare. */
 :root {
     --radius-md: 10px;
 
     /* Layout — the ground (the loading screen), the app's surface (the
        paper), raised cards on it, and the inset wells. */
-    --app-bg:         #f9f5d7;
-    --bg-color:       #fbf1c7;
+    --app-bg:         #fffcf8;
+    --bg-color:       #fdf5ec;
     --sidebar-bg:     var(--bg-color);
-    --char-msg-bg:    #f2e5bc;
-    --hover-bg:       #ebdbb2;
+    --char-msg-bg:    #f3e8dc;
+    --hover-bg:       #e9ddd0;
     --active-bg:      var(--hover-bg);
-    --input-bg:       #fffcf2;
-    --border-color:   #e0d3ac;
+    --input-bg:       #fffefc;
+    --border-color:   #e3d7ca;
 
-    /* Typography */
-    --text-color:     #3c3836;
-    --text-secondary: #665c54;
+    /* Typography — the logo's ink */
+    --text-color:     #17121b;
+    --text-secondary: #5f5766;
 
-    /* Accent — green fills (the primary button, toggles, sliders); the
-       palette's yellow reads only 3.3:1 on paper, so labels, active rows and
-       focus take it deepened. */
-    --accent-color:   #79740e;
-    --accent-text:    #8a5a0e;
-    --danger-color:   #af3a03;   /* orange, as in cozy.css */
+    /* Accent — the ink again, so the primary button is the logo: cream on
+       ink. */
+    --accent-color:   #17121b;
+    --accent-text:    #17121b;
+    --danger-color:   #b63132;   /* coral, as in cozy.css */
     --danger-bg-hover: color-mix(in srgb, var(--danger-color) 12%, transparent);
-    --success-color:  #427b58;
-    --cool-color:     #076678;   /* blue — links, addresses, references */
-    --accent-alt:     var(--accent-color);   /* green — section icons, as in cozy.css */
+    --success-color:  #2c6d3e;
+    --cool-color:     #375998;   /* periwinkle — links, addresses, references */
+    --accent-alt:     var(--cool-color);   /* section icons, as in cozy.css */
 
     /* Elevation — soft shadows in the ink colour, never black on paper. */
-    --shadow-md:          0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
-    --card-shadow:        0 1px 2px rgba(60, 56, 54, 0.07), 0 4px 12px rgba(60, 56, 54, 0.07);
-    --lift-shadow:        0 2px 4px rgba(60, 56, 54, 0.09), 0 12px 26px rgba(60, 56, 54, 0.13);
-    --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
+    --shadow-md:          0 2px 4px rgba(23, 18, 27, 0.09), 0 12px 26px rgba(23, 18, 27, 0.13);
+    --card-shadow:        0 1px 2px rgba(23, 18, 27, 0.07), 0 4px 12px rgba(23, 18, 27, 0.07);
+    --lift-shadow:        0 2px 4px rgba(23, 18, 27, 0.09), 0 12px 26px rgba(23, 18, 27, 0.13);
+    --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 6%, transparent);
 
-    /* RP markdown — speech in aqua, narration muted, emphasis in
-       the label yellow and intense actions in orange. */
-    --rp-dialogue-color:  #376b4b;   /* aqua, darkened to read on the bubble */
+    /* RP markdown — speech in mint, narration muted, emphasis in gold and
+       intense actions in peach, each darkened to read on the bubble. */
+    --rp-dialogue-color:  #1f6954;
     --rp-action-color:    var(--text-secondary);
-    --rp-emphasis-color:  var(--accent-text);
+    --rp-emphasis-color:  #876114;
     --rp-quote-color:     var(--text-color);
     --rp-quote-bg:        var(--bg-color);
     --rp-ooc-color:       var(--cool-color);
-    --rp-intense-color:   #af3a03;
+    --rp-intense-color:   #a15421;
     --rp-intense-shadow:  none;
     --code-bg:            var(--bg-color);
     --code-border:        var(--border-color);
     --pre-bg:             var(--app-bg);
     --pre-border:         var(--border-color);
 
-    /* Avatars and buttons — white text on the green and aqua fills, where
-       the paper colour reads under the 4.5:1 small text needs */
+    /* Avatars and buttons — white text on the avatar fills, cream on the ink
+       button */
     --avatar-text-color:      #fff;
-    --btn-primary-color:      #fff;
+    --btn-primary-color:      var(--bg-color);
     --btn-danger-hover-color: var(--bg-color);
 
     /* Overlays & backdrops */
-    --overlay-bg:     rgba(40, 40, 40, 0.6);
+    --overlay-bg:     rgba(23, 18, 27, 0.6);
     --overlay-color:  var(--bg-color);
-    --backdrop-bg:    rgba(60, 56, 54, 0.35);
+    --backdrop-bg:    rgba(23, 18, 27, 0.35);
 
-    /* Context token meter — the same sources as cozy.css, in the palette's
-       darker steps. */
-    --meter-system-prompt:    #b57614;
-    --meter-character-card:   #8f3f71;
-    --meter-persona:          #427b58;
-    --meter-lorebook:         #79740e;
-    --meter-author-note:      #d79921;
-    --meter-auto-summary:     #b16286;
-    --meter-message-history:  #076678;
-    --meter-current-draft:    #689d6a;
-    --meter-response-reserve: #af3a03;
+    /* Context token meter — the same sources as cozy.css, in darker steps. */
+    --meter-system-prompt:    #876114;
+    --meter-character-card:   #8d3d67;
+    --meter-persona:          #1f6954;
+    --meter-lorebook:         #2c6d3e;
+    --meter-author-note:      #a15421;
+    --meter-auto-summary:     #6e519d;
+    --meter-message-history:  #375998;
+    --meter-current-draft:    #1d777b;
+    --meter-response-reserve: #b63132;
     --meter-unused:           var(--border-color);
 
-    --char-name-color:          #8f3f71;
+    --char-name-color:          #8d3d67;
 
     /* User message — the raised bubble in the character's colours, as in
        cozy.css. */
-    --user-hr-mid-color:        #d5c4a1;
-    --editable-bg:              color-mix(in srgb, var(--accent-color) 6%, transparent);
+    --user-hr-mid-color:        #c6bcb0;
+    --editable-bg:              color-mix(in srgb, var(--accent-color) 5%, transparent);
 }

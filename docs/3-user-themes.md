@@ -56,7 +56,7 @@ themes, and an update can overwrite it.
 Create a file named `my-theme.css` in the themes folder, with this content:
 
 ```css
-@import url("/themes/cozy.css");
+@import url("/themes/gruvbox.css");
 
 :root {
     --app-bg: #10131a;
@@ -74,9 +74,9 @@ Create a file named `my-theme.css` in the themes folder, with this content:
 
 What each part does:
 
-- The `@import` line loads Cozy's default theme, so every color starts with a
-  value. It must be the first line of the file. CSS ignores an `@import` that
-  comes after any other rule.
+- The `@import` line loads the built-in Gruvbox theme, so every color starts
+  with a value. It must be the first line of the file. CSS ignores an
+  `@import` that comes after any other rule.
 - The lines inside `:root { }` replace eight of those values with your own.
   Each line is one variable: a name that starts with `--`, a colon, a color,
   and a semicolon.
