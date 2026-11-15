@@ -15,7 +15,8 @@ The guide assumes Cozy is installed and open in your browser. If it is not,
 follow **Quick start** in the [README](../README.md#quick-start) first.
 
 The first time Cozy opens, it shows a setup page instead of a chat. The setup
-covers steps 1, 3 and 4 in a shorter form:
+covers steps 1, 3 and 4 in a shorter form. Its steps go in order: a step shows
+its fields and buttons only once the one before it is done.
 
 - **Connect an AI server.** Pick your service, or **Other**, and Cozy fills in
   the **Endpoint**. Add your **API key** if the server needs one, set the

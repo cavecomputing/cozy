@@ -34,14 +34,17 @@ function giveBack() {
     borrowed = [];
 }
 
-/** Mark the done steps, and dim the ones after the first step left to do. */
+/** Mark the done steps, and dim the ones after the first step left to do, without their controls. */
 function renderSteps() {
     const current = steps.findIndex(step => !step.classList.contains('is-done'));
     steps.forEach((step, i) => {
         const done = step.classList.contains('is-done');
-        step.classList.toggle('is-later', !done && i > current);
+        // A step after the one to do now shows only what it is: its fields and
+        // buttons appear when it is reached, so Skip is the only way past one.
+        const later = !done && i > current;
+        step.classList.toggle('is-later', later);
         step.querySelector('.setup-step-num').textContent = done ? '✓' : String(i + 1);
-        step.querySelector('.setup-step-act').hidden = done;
+        step.querySelector('.setup-step-act').hidden = done || later;
         // Only the step to do now gets the filled button; importing stays the other way.
         step.querySelectorAll('.setup-step-act .btn:not(.setup-import)').forEach(btn => {
             btn.classList.toggle('btn-primary', i === current);

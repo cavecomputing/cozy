@@ -2930,7 +2930,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .setup-step:last-child { border-bottom: 1px solid var(--line); }
 
-/* A step not reached yet is quieter, never locked. */
+/* A step not reached yet is quieter, and setup.js hides its controls. */
 .setup-step.is-later { opacity: 0.55; }
 
 .setup-step-num {
