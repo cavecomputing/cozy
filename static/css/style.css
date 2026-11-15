@@ -5748,31 +5748,23 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .about-storage-segment--other,
 .about-storage-dot--other { background-color: var(--storage-other); }
 
-/* The breakdown reads as a data table: one bordered box on the shell colour,
-   its rows parted by soft rules. */
+/* The breakdown: plain rows on the page, as every settings section's are,
+   in two columns where there is room. */
 .about-storage-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: var(--space-4);
-    background-color: var(--surface-panel);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    overflow: hidden;
+    column-gap: var(--space-5);
+    margin-top: var(--space-3);
 }
 
-/* A row of the table. Every row rules its top edge and rides up a pixel, so
-   the first row's rule tucks under the box's own edge and is clipped, in one
-   column or two. */
 .about-storage-tile {
     display: grid;
     grid-template-columns: 7px minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.5rem;
     min-width: 0;
-    min-height: 58px;
-    margin-top: -1px;
-    padding: var(--space-3) var(--space-4);
-    border-top: 1px solid var(--line-soft);
+    min-height: 52px;
+    padding: var(--space-3) 0;
 }
 
 .about-storage-dot {
@@ -5781,24 +5773,27 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     border-radius: var(--radius-pill);
 }
 
+/* The thumbnail cache is not in the total, so its pill is only an outline. */
+.about-storage-dot--cache {
+    box-sizing: border-box;
+    border: 1.5px dashed var(--fg-quiet);
+}
+
 .about-storage-tile-body,
-.about-storage-tile-value,
-.about-storage-cache-body {
+.about-storage-tile-value {
     display: flex;
     flex-direction: column;
     min-width: 0;
 }
 
-.about-storage-tile-title,
-.about-storage-cache-body strong {
+.about-storage-tile-title {
     color: var(--fg);
     font-size: var(--text-sm);
     font-weight: 700;
     line-height: 1.3;
 }
 
-.about-storage-tile-desc,
-.about-storage-cache-body span {
+.about-storage-tile-desc {
     margin-top: 0.08rem;
     overflow: hidden;
     color: var(--fg-quiet);
@@ -5827,30 +5822,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg-quiet);
     font-size: var(--text-2xs);
     line-height: 1.3;
-}
-
-.about-storage-cache {
-    display: grid;
-    grid-template-columns: 30px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0.55rem;
-    margin-top: 0.55rem;
-    /* The tiles' 12px inline, so its icon and size line up with theirs. */
-    padding: var(--space-4);
-    border-radius: var(--radius);
-    border: 0;
-    background: transparent;
-}
-
-.about-storage-cache-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    color: var(--text-secondary);
-    background-color: var(--hover-bg);
-    border-radius: 50%;
 }
 
 .about-storage-status {
@@ -5888,35 +5859,22 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     text-decoration-thickness: 2px;
 }
 
-/* Documentation links: tiles rather than a bare list. */
+/* Documentation links: plain rows, two to a line where there is room. */
 .about-link-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.4rem;
-    margin-top: 0.4rem;
+    column-gap: var(--space-5);
 }
 
-/* A documentation link is a small card on the shell colour: the one kind of
-   tile here you can open, so it answers the pointer in the link hue. */
+/* A documentation link is a row: its icon, then the underlined title with a
+   line about it. Only the title is underlined, so the row as a whole isn't. */
 .settings-section[data-section="about"] a.about-link {
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    padding: 0.5rem 0.6rem;
-    background-color: var(--surface-panel);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
+    padding: var(--space-2) 0;
     color: var(--fg);
     text-decoration: none;
-    transition: background-color var(--motion-base) ease, border-color var(--motion-base) ease;
-}
-
-@media (hover: hover) {
-    .settings-section[data-section="about"] a.about-link:hover {
-        background-color: var(--surface-quiet);
-        border-color: var(--fg-cool);
-        text-decoration: none;
-    }
 }
 
 .about-link-icon {
@@ -5948,17 +5906,15 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     text-underline-offset: 3px;
 }
 
+/* The whole row answers the pointer, through its title. */
+.about-link:hover .about-link-title {
+    text-decoration-thickness: 2px;
+}
+
 .about-link-desc {
     font-size: var(--text-xs);
     line-height: 1.35;
     color: var(--fg-quiet);
-}
-
-/* First child of its card, and the only one that is a bordered box — without
-   this its border would sit on the header's separator. Matches the gap
-   `.about-link-grid` already leaves below it. */
-.about-link--primary {
-    margin-top: 0.4rem;
 }
 
 .about-link--primary .about-link-icon {
@@ -5975,22 +5931,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-size: var(--text-2xs);
 }
 
-.about-link-arrow {
-    flex-shrink: 0;
-    margin-left: auto;
-    color: var(--fg-quiet);
-}
-
-.about-link:hover .about-link-arrow {
-    color: var(--fg-cool);
-}
-
 /* A credit is a field row: the name in the label column, the note beside it,
    the name level with the note's first line. */
 .settings-row--field.about-credit { align-items: baseline; }
 
-/* The link tiles are boxes of their own, so the note under them needs room. */
-.about-link-grid + .settings-hint { padding-top: var(--space-4); }
+/* The note under the links stands apart from the last row of them. */
+.about-link-grid + .settings-hint { padding-top: var(--space-3); }
 
 /* ── Help panels ─────────────────────────────────────────────────────────── */
 /* Shared by every settings help panel — the prose ones (Prompt syntax) and the
@@ -7329,7 +7275,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     :is(.about-storage-grid, .about-link-grid) { grid-template-columns: minmax(0, 1fr); }
 
-    :is(.about-storage-summary-note, .about-storage-tile-desc, .about-storage-cache-body span) {
+    :is(.about-storage-summary-note, .about-storage-tile-desc) {
         white-space: normal;
     }
 
