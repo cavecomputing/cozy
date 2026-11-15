@@ -7,7 +7,7 @@
 
 let portal = null;
 let activeTrigger = null;
-const TRIGGER_SELECTOR = '.help-tip, .context-meter-segment, .advanced-badge';
+const TRIGGER_SELECTOR = '.help-tip, .context-meter-segment';
 
 function ensurePortal() {
     if (portal) return portal;

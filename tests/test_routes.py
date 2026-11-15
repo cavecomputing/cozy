@@ -82,13 +82,6 @@ class TestSettings:
         r = client.get('/api/settings')
         assert r.get_json()['show_context_token_meter'] == '1'
 
-    def test_advanced_configuration_setting_defaults_hidden_and_persists(self, client):
-        r = client.get('/api/settings')
-        assert r.get_json()['show_advanced_configuration'] == '0'
-        client.put('/api/settings', json={'show_advanced_configuration': '1'})
-        r = client.get('/api/settings')
-        assert r.get_json()['show_advanced_configuration'] == '1'
-
     def test_use_character_prompts_defaults_off_and_persists(self, client):
         r = client.get('/api/settings')
         assert r.get_json()['use_character_prompts'] == '0'

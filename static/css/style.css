@@ -1054,8 +1054,7 @@ input[type="checkbox"]:checked::after {
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */
 /* The DS badge, minus its status dot: an inset pill in mono caps. */
-.sampler-advanced-badge,
-.advanced-badge {
+.sampler-advanced-badge {
     margin-left: auto;
     font-family: var(--font-mono);
     font-size: var(--text-2xs);

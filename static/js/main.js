@@ -17,8 +17,7 @@ import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
 import {
     loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
-    flushLLMSettingsSave, applyAdvancedConfigurationVisibility,
-    setAdvancedConfigurationVisible,
+    flushLLMSettingsSave,
     browseModels, browseSummaryModels, closeModelMenu, closeSummaryModelMenu,
     selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
     activatePreset, createNewPreset, renamePreset, deletePreset, searchModelsFromInput,
@@ -679,7 +678,6 @@ function bindSettingsHandlers() {
         renderThemePicker();
         const s = await loadLLMSettings();
         await loadSystemPrompts(s);
-        applyAdvancedConfigurationVisibility();
     };
     el.settingsBtn?.addEventListener('click', openSettings);
     el.settingsCloseBtn?.addEventListener('click', () => {
@@ -738,9 +736,6 @@ function bindSettingsHandlers() {
     });
     el.settingsContextMeterToggle?.addEventListener('change', () => {
         setContextMeterVisible(el.settingsContextMeterToggle.checked);
-    });
-    el.settingsAdvancedToggle?.addEventListener('change', () => {
-        setAdvancedConfigurationVisible(el.settingsAdvancedToggle.checked);
     });
     // Auto Summaries config — autosave while typing, flush on blur.
     el.summaryEndpoint?.addEventListener('input', () => {
@@ -1104,7 +1099,6 @@ async function refreshSettings() {
     if (!el.settingsFlyout.hidden) return;
     await flushLLMSettingsSave();
     await loadSystemPrompts(await loadLLMSettings());
-    applyAdvancedConfigurationVisibility();
     updateContextViews();
 }
 
@@ -1718,8 +1712,7 @@ async function init() {
         loadThemeList(),
         loadPersonas(),
         loadLLMSettings()
-            .then(loaded => loadSystemPrompts(settings = loaded))
-            .then(() => applyAdvancedConfigurationVisibility()),
+            .then(loaded => loadSystemPrompts(settings = loaded)),
         loadLorebooks(),
     ]);
     // Deliberately not in the group above: loadCharacters() cascades into

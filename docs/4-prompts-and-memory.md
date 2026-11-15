@@ -367,8 +367,7 @@ So the summary remembers the recent past, not the whole chat. For anything the
 AI must always know, use the [Author's Note](#authors-note). It is sent word
 for word with every message and is never deleted.
 
-To change the 10%: turn on **Show advanced configuration** in **Settings →
-General**. A **Behavior** card with **Size cap** then appears in **Settings →
+To change the 10%, set **Size cap** in the **Behavior** card in **Settings →
 Summaries**.
 
 **While an update is running.** If you send a message while a summary update

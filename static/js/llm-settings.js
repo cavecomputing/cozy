@@ -386,8 +386,6 @@ function applySettingsToUI(s) {
     state.contextMaxTokens = s.context_max_tokens || '32768';
     state.showContextTokenMeter = s.show_context_token_meter === '1';
     if (el.settingsContextMeterToggle) el.settingsContextMeterToggle.checked = state.showContextTokenMeter;
-    state.showAdvancedConfiguration = s.show_advanced_configuration === '1';
-    if (el.settingsAdvancedToggle) el.settingsAdvancedToggle.checked = state.showAdvancedConfiguration;
     state.useCharacterPrompts = s.use_character_prompts === '1';
     if (el.useCharacterPrompts) el.useCharacterPrompts.checked = state.useCharacterPrompts;
     state.extraRequestParams = s.extra_request_params || '';
@@ -419,27 +417,6 @@ export function showSummaryFallbacks() {
     if (el.summaryEndpoint) el.summaryEndpoint.placeholder = el.apiEndpoint?.value.trim() || 'https://api.openai.com/v1';
     if (el.summaryModel) el.summaryModel.placeholder = el.apiModel?.value.trim() || 'model-name';
     if (el.summaryKey && !state.summaryApiKeySet) el.summaryKey.placeholder = el.apiKey?.value ? 'Main key' : 'sk-...';
-}
-
-// ── Advanced configuration gate ──────────────────────────────────────────
-// Surfaces hidden unless "Show advanced configuration" is checked in the
-// General tab: the Summaries Behavior card and the Extra request parameters
-// card.
-export function applyAdvancedConfigurationVisibility() {
-    const visible = Boolean(state.showAdvancedConfiguration);
-    document.querySelectorAll('#summary-behavior-card, #extra-params-card')
-        .forEach(node => { node.hidden = !visible; });
-}
-
-/**
- * Show or hide the advanced configuration UI and remember the choice.
- * Shared by the General-tab checkbox, so gated pages update live.
- */
-export function setAdvancedConfigurationVisible(visible) {
-    state.showAdvancedConfiguration = visible;
-    if (el.settingsAdvancedToggle) el.settingsAdvancedToggle.checked = visible;
-    saveLLMSettings({ show_advanced_configuration: visible ? '1' : '0' });
-    applyAdvancedConfigurationVisibility();
 }
 
 export async function activatePreset(id) {

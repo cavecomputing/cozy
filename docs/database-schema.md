@@ -435,7 +435,6 @@ fresh install, in the order they are written:
 |---|---|
 | `context_max_tokens` | `'32768'` |
 | `show_context_token_meter` | `'0'` |
-| `show_advanced_configuration` | `'0'` |
 | `use_character_prompts` | `'0'` |
 | `extra_request_params` | `''` |
 | `summary_api_endpoint` | `''` |

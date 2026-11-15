@@ -22,7 +22,6 @@ export const state = {
     modelContextLength:  null,
     contextMaxTokens:    '32768',
     showContextTokenMeter: false,
-    showAdvancedConfiguration: false,
     useCharacterPrompts: false,
     modelDetails:        {},    // id → context_length (populated on model refresh)
     activeSamplers:      null,  // Set<string> of active sampler keys, null = all active
@@ -110,7 +109,6 @@ export function initElements() {
         backupRestore:     document.getElementById('about-backup-restore'),
         backupFile:        document.getElementById('about-backup-file'),
         settingsContextMeterToggle: document.getElementById('settings-context-meter-toggle'),
-        settingsAdvancedToggle: document.getElementById('settings-show-advanced-toggle'),
         mobileMenuBtn:     document.getElementById('mobile-menu-btn'),
         mobileBackdrop:    document.getElementById('mobile-backdrop'),
         apiEndpoint:       document.getElementById('settings-api-endpoint'),

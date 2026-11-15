@@ -270,10 +270,6 @@ def init_db():
             "ON CONFLICT(key) DO NOTHING"
         )
         conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('show_advanced_configuration', '0') "
-            "ON CONFLICT(key) DO NOTHING"
-        )
-        conn.execute(
             "INSERT INTO settings (key, value) VALUES ('use_character_prompts', '0') "
             "ON CONFLICT(key) DO NOTHING"
         )

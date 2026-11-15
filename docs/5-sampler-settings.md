@@ -102,10 +102,8 @@ If a message fails after you turned a sampler on:
 Some servers accept settings that Cozy has no control for, such as Mirostat
 or Typical-P. You can send them as JSON.
 
-1. Open **Settings → General** and turn on **Show advanced configuration**.
-2. Open **Settings → API**. An **Extra request parameters** card is now on
-   the page.
-3. Type the settings as JSON. For example `{"mirostat": 2, "mirostat_tau": 5.0}`
+1. Open **Settings → API** and find the **Extra request parameters** card.
+2. Type the settings as JSON. For example `{"mirostat": 2, "mirostat_tau": 5.0}`
    or `{"typical_p": 0.9}`.
 
 Cozy adds this JSON to every request. Use the setting names from your AI
