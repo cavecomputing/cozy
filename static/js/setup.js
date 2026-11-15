@@ -18,7 +18,7 @@ import { showSavedPersona } from './personas.js';
 
 // Looked up when the setup opens, never at import: bare node imports this
 // module (through characters.js) in the frontend tests, where there is no page.
-let setup, connectBtn, connectStatus, characterList, steps;
+let setup, connectBtn, connectStatus, connectHint, characterList, steps;
 
 // Where each borrowed node lives in Settings, to put it back.
 let borrowed = [];
@@ -80,8 +80,14 @@ export function renderSetupCharacters() {
     renderSteps();
 }
 
-async function connect() {
+/** Back to the line under Connect that says what it does, from a failed test's reason. */
+function clearConnectError() {
+    connectStatus.textContent = connectHint;
     connectStatus.classList.remove('is-error');
+}
+
+async function connect() {
+    clearConnectError();
     try {
         await withBusy(connectBtn, 'Connecting…', async () => {
             await flushLLMSettingsSave({ strict: true });
@@ -118,6 +124,7 @@ export function openSetup() {
     setup = $('setup');
     connectBtn = $('setup-connect');
     connectStatus = $('setup-connect-status');
+    connectHint = connectStatus.textContent;
     characterList = $('setup-characters');
     steps = ['connect', 'name', 'character'].map(id => $(`setup-step-${id}`));
 
@@ -130,6 +137,13 @@ export function openSetup() {
         if (other) el.apiEndpoint.focus();
     });
     connectBtn.addEventListener('click', connect);
+    // A failed test's reason is about the connection as it was. Once any part
+    // of it changes, the reason left under Connect read as the new one's.
+    // Capturing, because the events the fields are sent by hand don't bubble,
+    // and a model picked from the menu is a click, not a change.
+    const fields = $('setup-connect-fields');
+    for (const type of ['input', 'change']) fields.addEventListener(type, clearConnectError, true);
+    el.modelPickerMenu.addEventListener('click', clearConnectError);
     $('setup-name-form').addEventListener('submit', saveName);
     // The character editor's own file input: the card is imported, opened
     // behind the setup, and renderCharList() adds it to the list above.
