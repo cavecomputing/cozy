@@ -5,9 +5,9 @@ A theme sets Cozy's colors. To change the theme:
 1. Open **Settings → General**.
 2. Pick one under **Theme**.
 
-Cozy comes with six themes: **Cozy** (the default), **Cozy Light**,
-**Everforest Dark**, **Everforest Light**, **Solarized Dark** and **Solarized
-Light**. The choice is saved in the browser you made it in, so your phone and
+Cozy comes with eight themes: **Cozy** (the default), **Cozy Light**,
+**Gruvbox**, **Gruvbox Light**, **Everforest Dark**, **Everforest Light**,
+**Solarized Dark** and **Solarized Light**. The choice is saved in the browser you made it in, so your phone and
 your computer can use different themes.
 
 You can also add a theme of your own. A theme you add is called a user theme.
@@ -154,12 +154,14 @@ set. Change the file name in it to start from another one:
 @import url("/themes/everforest-dark.css");
 ```
 
-Cozy has six built-in themes:
+Cozy has eight built-in themes:
 
 | File name to import | Name in the list | Kind |
 |---|---|---|
 | `cozy.css` | Cozy (the default) | Dark |
 | `cozy-light.css` | Cozy Light | Light |
+| `gruvbox.css` | Gruvbox | Dark |
+| `gruvbox-light.css` | Gruvbox Light | Light |
 | `everforest-dark.css` | Everforest Dark | Dark |
 | `everforest-light.css` | Everforest Light | Light |
 | `solarized-dark.css` | Solarized Dark | Dark |
@@ -295,7 +297,7 @@ color, and the segments have to stay easy to tell apart.
 | `--meter-response-reserve` | The room kept for the reply | `#f97316` |
 | `--meter-unused` | The empty part | A mix of `--border-color` and `--bg-color` |
 
-Only `cozy.css` and `cozy-light.css` set these. The other four built-in themes
+Only the Cozy and Gruvbox themes set these. The other four built-in themes
 use the fallbacks, which were chosen for dark themes. Set your own if they are
 hard to see on your colors.
 

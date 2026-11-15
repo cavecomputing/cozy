@@ -1,0 +1,84 @@
+/* Gruvbox — the cavecomputing palette: Gruvbox dark surfaces, yellow for
+   labels and focus, green for done, blue for addresses, orange for warnings */
+:root {
+    /* Corner radius for cards. Controls take 0.6 of it (see --radius-control
+       in style.css). */
+    --radius-md: 10px;
+
+    /* Layout — the darker ground (the loading screen, the inset wells), the
+       app's surface, and raised cards on it. The sidebar shares the surface so
+       the two read as one. */
+    --app-bg:         #1d2021;
+    --bg-color:       #282828;
+    --sidebar-bg:     var(--bg-color);
+    --char-msg-bg:    #32302f;
+    --hover-bg:       var(--border-color);
+    --active-bg:      var(--hover-bg);
+    --input-bg:       var(--app-bg);
+    --border-color:   #3c3836;
+
+    /* Typography */
+    --text-color:     #ebdbb2;
+    --text-secondary: #a89984;
+
+    /* Accent (yellow). Labels, active rows, focus and the primary button. */
+    --accent-color:   #fabd2f;
+    --danger-color:   #fe8019;   /* orange — the palette has no red that reads on its raised surfaces */
+    --danger-bg-hover: color-mix(in srgb, var(--danger-color) 14%, transparent);
+    --success-color:  #8ec07c;
+    --cool-color:     #83a598;   /* blue — links, addresses, references */
+    --accent-alt:     #b8bb26;   /* green — section icons, the brand's second accent */
+
+    /* Elevation — the lifted shadow, for surfaces that genuinely float
+       (flyouts, menus, toasts). */
+    --shadow-md:          0 2px 4px rgba(0, 0, 0, 0.32), 0 12px 28px rgba(0, 0, 0, 0.34);
+    --accent-edit-bg:     color-mix(in srgb, var(--accent-color) 8%, transparent);
+
+    /* RP markdown — speech in aqua, narration muted, emphasis in
+       the accent and intense actions in orange. */
+    --rp-dialogue-color:  #8ec07c;   /* aqua */
+    --rp-action-color:    var(--text-secondary);   /* muted — italics/actions */
+    --rp-emphasis-color:  var(--accent-color);   /* yellow — bold/strong emphasis */
+    --rp-quote-color:     var(--text-color);   /* blockquotes/narration */
+    --rp-quote-bg:        var(--bg-color);
+    --rp-ooc-color:       var(--cool-color);   /* blue — code/OOC text */
+    --rp-intense-color:   #fe8019;   /* orange — bold+italic intense actions */
+    --rp-intense-shadow:  none;
+    --code-bg:            var(--bg-color);
+    --code-border:        var(--border-color);
+    --pre-bg:             var(--app-bg);
+    --pre-border:         var(--border-color);
+
+    /* Avatars */
+    --avatar-text-color:  var(--app-bg);
+
+    /* Buttons */
+    --btn-primary-color:      var(--app-bg);
+    --btn-danger-hover-color: var(--app-bg);
+
+    /* Overlays & backdrops */
+    --overlay-bg:     rgba(17, 18, 19, 0.72);
+    --overlay-color:  var(--text-color);
+    --backdrop-bg:    rgba(17, 18, 19, 0.6);
+
+    /* Context token meter — one Gruvbox hue per source. */
+    --meter-system-prompt:    #fabd2f;
+    --meter-character-card:   #d3869b;
+    --meter-persona:          #8ec07c;
+    --meter-lorebook:         #b8bb26;
+    --meter-author-note:      #d79921;
+    --meter-auto-summary:     #b16286;
+    --meter-message-history:  #83a598;
+    --meter-current-draft:    #689d6a;
+    --meter-response-reserve: #fe8019;
+    --meter-unused:           var(--border-color);
+
+    /* The character's name in its message header: rose, the palette's
+       character accent. */
+    --char-name-color:          #d3869b;
+
+    /* User message — the raised bubble, in the character's colours (style.css
+       falls back to them for every --user-* the theme leaves out). */
+    --user-hr-mid-color:        #504945;
+    --editable-bg:              color-mix(in srgb, var(--accent-color) 6%, transparent);
+}

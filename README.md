@@ -47,7 +47,7 @@ switches to Claude's own format by itself.
   context: prompt, character, lorebook, summary and messages.
 - **Personas and prompt presets.** Keep several of each, and switch between
   them with a [slash command](docs/2-using-cozy.md#slash-commands).
-- **Themes.** Six are built in, and [one CSS file](docs/3-user-themes.md) adds
+- **Themes.** Eight are built in, and [one CSS file](docs/3-user-themes.md) adds
   your own.
 - **Phone friendly.** The same app works on a phone and can be added to the
   Home Screen.

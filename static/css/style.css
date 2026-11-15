@@ -80,8 +80,8 @@
     --settings-nav-width: clamp(180px, 16vw, 230px);
     --shell-pane-width: calc(100vw - var(--settings-nav-width));
 
-    /* One radius, which a theme names --radius-md: Cozy and Cozy Light set
-       10px, the other bundled themes take the 8px fallback. */
+    /* One radius, which a theme names --radius-md: the Cozy and Gruvbox
+       themes set 10px, the other bundled themes take the 8px fallback. */
     --radius: var(--radius-md, 8px);
     --radius-pill: 999px;   /* circles stay 50%: that is geometry, not a token */
     /* Two ranks of corner: small controls (buttons, fields, tags) and cards.
