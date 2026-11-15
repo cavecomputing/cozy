@@ -2837,6 +2837,171 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     line-height: 1.45;
 }
 
+/* ── First-run setup ─────────────────────────────────────────────────────── */
+/* The whole window on a fresh install (static/js/setup.js hides the sidebar
+   and the chat while it is open): three steps on the bare surface, one hairline
+   between each, with the theme picker and Skip in a bar above them. */
+.setup {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 var(--page-gutter) calc(env(safe-area-inset-bottom, 0px) + var(--space-6));
+    color: var(--fg-quiet);
+}
+
+.setup-bar {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: calc(env(safe-area-inset-top, 0px) + var(--space-4)) 0 var(--space-4);
+}
+
+.setup-theme {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+}
+
+.setup-theme .cozy-select { width: 11rem; }
+
+.setup-skip {
+    background: none;
+    border: none;
+    padding: var(--space-3);
+    min-height: var(--mobile-tap-target);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    color: var(--fg-quiet);
+}
+
+.setup-skip:hover { color: var(--fg); }
+
+.setup-inner {
+    width: 100%;
+    max-width: 32rem;
+    margin: auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    text-align: center;
+}
+
+.setup-title {
+    margin-top: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: var(--text-4xl);
+    color: var(--fg-heading);
+}
+
+.setup-lead { font-size: var(--text-2xl); }
+
+/* The steps are narrow enough that the moved API rows put each label over
+   its field, as they do on a phone-width settings card. */
+.setup-steps {
+    list-style: none;
+    align-self: stretch;
+    margin-top: var(--space-3);
+    text-align: left;
+    container-type: inline-size;
+}
+
+.setup-step {
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    gap: var(--space-4);
+    padding: var(--space-5) 0;
+    border-top: 1px solid var(--line);
+}
+
+.setup-step:last-child { border-bottom: 1px solid var(--line); }
+
+/* A step not reached yet is quieter, never locked. */
+.setup-step.is-later { opacity: 0.55; }
+
+.setup-step-num {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-size: var(--text-md);
+    font-weight: 700;
+    color: var(--fg);
+}
+
+.setup-step.is-done .setup-step-num {
+    background: var(--status-success);
+    border-color: var(--status-success);
+    color: var(--app-bg);
+}
+
+.setup-step-title {
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    line-height: 1.75rem;
+    color: var(--fg-heading);
+}
+
+.setup-step.is-done .setup-step-title { color: var(--fg-quiet); }
+
+.setup-step-text {
+    font-size: var(--text-xl);
+    line-height: 1.45;
+}
+
+.setup-step-act {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+.setup-step-act > .settings-row { align-self: stretch; }
+
+.setup-step-actions {
+    align-self: stretch;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    font-size: var(--text-lg);
+}
+
+.setup-step-actions .form-input { flex: 1 1 10rem; max-width: 16rem; }
+
+.setup-step-note.is-error { color: var(--status-danger); }
+
+.setup-characters {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.setup-character {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.setup-guide { font-size: var(--text-xl); }
+
+.setup-guide a { color: var(--fg-cool); }
+
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPOSER
    ═══════════════════════════════════════════════════════════════════════════ */

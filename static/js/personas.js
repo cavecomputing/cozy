@@ -302,13 +302,7 @@ export function showPersonaForm(editPersona = null) {
             }
         }
         try {
-            state.personas = await API.getPersonas();
-            state.activePersona = state.personas.find(p => p.id === persona.id) || state.activePersona;
-            updateUserProfile();
-            rerenderMessageText();
-            renderPersonaList();
-            savePrefs();
-            updateContextViews();
+            await showSavedPersona(persona.id);
         } catch (err) { console.error(err); showToast(err.message || 'Connection failed', 'error'); }
         saveBtnEl.disabled = false;
         cleanup();
@@ -321,6 +315,17 @@ export function showPersonaForm(editPersona = null) {
     // edge off-screen.
     el.personaForm.scrollIntoView({ block: 'nearest' });
     nameInput.focus({ preventScroll: true });
+}
+
+/** Reload the personas after one was saved, and show it everywhere it appears. */
+export async function showSavedPersona(id) {
+    state.personas = await API.getPersonas();
+    state.activePersona = state.personas.find(p => p.id === id) || state.activePersona;
+    updateUserProfile();
+    rerenderMessageText();
+    renderPersonaList();
+    savePrefs();
+    updateContextViews();
 }
 
 export async function loadPersonas() {

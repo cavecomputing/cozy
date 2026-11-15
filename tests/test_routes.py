@@ -9,6 +9,7 @@ import pytest
 
 from cozy import shared
 from cozy import defaults
+from cozy import schema
 from cozy.build_info import BuildInfo
 import cozy.routes.llm as llm_module
 from cozy.routes import settings as settings_module
@@ -94,6 +95,21 @@ class TestSettings:
         client.put('/api/settings', json={'use_character_prompts': '1'})
         r = client.get('/api/settings')
         assert r.get_json()['use_character_prompts'] == '1'
+
+    def test_setup_is_owed_by_a_fresh_install_until_it_is_done(self, client):
+        # The fixture's database is created new for each test.
+        assert client.get('/api/settings').get_json()['setup_pending'] == '1'
+        client.put('/api/settings', json={'setup_pending': '0'})
+        assert client.get('/api/settings').get_json()['setup_pending'] == '0'
+        schema.init_db()
+        assert client.get('/api/settings').get_json()['setup_pending'] == '0'
+
+    def test_an_existing_install_is_not_sent_through_setup(self, client):
+        # A database from before the setup existed has no row for it.
+        with shared.get_db() as conn:
+            conn.execute("DELETE FROM settings WHERE key='setup_pending'")
+        schema.init_db()
+        assert client.get('/api/settings').get_json()['setup_pending'] == '0'
 
     def test_retired_gallery_setting_is_rejected(self, client):
         client.put('/api/settings', json={'show_gallery_button': '0'})

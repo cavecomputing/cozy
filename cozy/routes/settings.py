@@ -124,6 +124,7 @@ SETTINGS_KEYS = {
     # Auto Summaries — configuration (per-chat enablement lives on the chat row)
     'summary_api_endpoint', 'summary_api_key', 'summary_api_model',
     'summary_cap_pct',
+    'setup_pending',
 }
 
 # Settings keys holding secrets: masked on read, and skipped on write when the

@@ -5,6 +5,7 @@ import { applyAvatar, AVATAR, compareCharacters, recentCharacters, parseDbStamp,
 import { loadChats, renderChats } from './chats.js';
 import { renderMessages, flushEdit } from './messages.js';
 import { forgetCharacterLorebook } from './lorebooks.js';
+import { renderSetupCharacters } from './setup.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SIDEBAR — CHARACTER LIST
@@ -53,6 +54,7 @@ export function renderCharList() {
         if (char.archived && !archivedOpen) return;
         el.charList.appendChild(charRow(char));
     });
+    renderSetupCharacters();
 }
 
 /** One character's row, in Recent or the list: avatar, name, a star if pinned,

@@ -443,11 +443,16 @@ fresh install, in the order they are written:
 | `summary_api_model` | `''` |
 | `summary_cap_pct` | `'10'` |
 | `default_characters_seeded` | `'1'` |
+| `setup_pending` | `'1'` |
 | `active_system_prompt` | `'2'` |
 
 - `default_characters_seeded` is `'1'` here because the character seeder has
   already run. It is set whether or not anything was inserted, and it is never
   reset. That is why a bundled character you delete stays deleted.
+- `setup_pending` is `'1'` only on a fresh install, which makes the page open
+  on the first-run setup. Finishing or skipping the setup writes `'0'`, and
+  nothing sets it back. A database that had no row for it, from before the
+  setup existed, gets `'0'`.
 - `active_system_prompt` is the `id` of the selected row in `system_prompts`.
   On a fresh install that is the bundled **NanoBear**.
 - With `COZY_PASSWORD` set there is one more row, `secret_key`. See

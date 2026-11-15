@@ -62,6 +62,76 @@
         </div>
     </div>
 
+    <!-- First-run setup: the whole window on a fresh install, until it is
+         finished or skipped (static/js/setup.js). The API page's connection
+         rows and the theme picker are moved in while it is open and put back
+         after, so what is typed here is saved exactly as Settings saves it. -->
+    <div id="setup" class="setup" hidden>
+        <div class="setup-bar">
+            <div class="setup-theme" id="setup-theme"><span aria-hidden="true">Theme</span></div>
+            <button type="button" class="setup-skip" id="setup-skip">Skip</button>
+        </div>
+        <div class="setup-inner">
+            <img class="setup-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="72" height="72">
+            <h1 class="setup-title">Welcome to Cozy</h1>
+            <p class="setup-lead">Three steps before your first chat.</p>
+            <ol class="setup-steps">
+                <li class="setup-step" id="setup-step-connect">
+                    <span class="setup-step-num" aria-hidden="true">1</span>
+                    <div class="setup-step-body">
+                        <h2 class="setup-step-title">Connect an AI server</h2>
+                        <p class="setup-step-text">Cozy has no AI of its own. Pick the service you use, or Other for any server that speaks the OpenAI format.</p>
+                        <div class="setup-step-act" id="setup-connect-fields">
+                            <div class="settings-row settings-row--field">
+                                <label class="settings-row-label" for="setup-service">Service</label>
+                                <select id="setup-service" class="form-input settings-select">
+                                    <option value="" disabled hidden selected>Choose one</option>
+                                    <option value="https://openrouter.ai/api/v1">OpenRouter</option>
+                                    <option value="https://api.anthropic.com/v1">Anthropic</option>
+                                    <option value="http://localhost:1234/v1">LM Studio</option>
+                                    <option value="http://localhost:11434/v1">Ollama</option>
+                                    <option value="http://localhost:8080/v1">llama.cpp</option>
+                                    <option value="http://localhost:5001/v1">KoboldCpp</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <!-- The Endpoint, API key and Model rows from the API page go here. -->
+                            <div class="setup-step-actions">
+                                <button type="button" class="btn btn-primary btn-sm" id="setup-connect">Connect</button>
+                                <span class="setup-step-note" id="setup-connect-status" role="status">Connect tests it. What you enter here is saved in Settings → API.</span>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                <li class="setup-step" id="setup-step-name">
+                    <span class="setup-step-num" aria-hidden="true">2</span>
+                    <div class="setup-step-body">
+                        <h2 class="setup-step-title">Tell it your name</h2>
+                        <p class="setup-step-text">Characters use it for you. Until you change it, they call you "User".</p>
+                        <form class="setup-step-act" id="setup-name-form">
+                            <div class="setup-step-actions">
+                                <input type="text" id="setup-name" class="form-input" placeholder="Your name" autocomplete="given-name" aria-label="Your name">
+                                <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </li>
+                <li class="setup-step" id="setup-step-character">
+                    <span class="setup-step-num" aria-hidden="true">3</span>
+                    <div class="setup-step-body">
+                        <h2 class="setup-step-title">Pick a character</h2>
+                        <p class="setup-step-text">Start with a character that came with Cozy, or import a card of your own.</p>
+                        <div class="setup-step-act">
+                            <ul class="setup-characters" id="setup-characters"></ul>
+                            <button type="button" class="btn btn-secondary btn-sm setup-import" id="setup-import">Import a card</button>
+                        </div>
+                    </div>
+                </li>
+            </ol>
+            <p class="setup-guide"><a href="https://github.com/cavecomputing/cozy/blob/main/docs/1-getting-started.md" target="_blank" rel="noopener noreferrer">Getting started guide</a></p>
+        </div>
+    </div>
+
     <!-- ================================================================
          SIDEBAR
     ================================================================ -->

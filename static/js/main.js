@@ -41,6 +41,7 @@ import { clearAllDrafts, saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
 import { updateContextMeter, updateContextViews, initContextMeter, setContextMeterVisible } from './context-meter.js';
 import { enhanceSettingsSelects } from './custom-select.js';
+import { openSetup } from './setup.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
 import { confirmDialog } from './confirm.js';
 import { initStorageStats, loadStorageStats } from './storage-stats.js';
@@ -1704,11 +1705,12 @@ async function init() {
     // so they go out together. System prompts still follow settings so they
     // can reuse that response, but their own list was asked for above and is
     // usually back by then.
+    let settings;
     await Promise.all([
         loadThemeList(),
         loadPersonas(),
         loadLLMSettings()
-            .then(settings => loadSystemPrompts(settings))
+            .then(loaded => loadSystemPrompts(settings = loaded))
             .then(() => applyAdvancedConfigurationVisibility()),
         loadLorebooks(),
     ]);
@@ -1742,6 +1744,8 @@ async function init() {
     bindPersonaHandlers();
     bindScrollHandlers();
     enhanceSettingsSelects();
+    // After the selects are themed: the setup borrows the Theme picker.
+    if (settings?.setup_pending === '1') openSetup();
 }
 
 init().catch(err => {

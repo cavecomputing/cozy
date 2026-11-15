@@ -303,6 +303,13 @@ def init_db():
             "ON CONFLICT(key) DO NOTHING",
             ('0' if fresh_install else '1',)
         )
+        # The first-run setup (static/js/setup.js) opens while this is '1'. Only a
+        # fresh install owes it; finishing or skipping the setup writes '0'.
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('setup_pending', ?) "
+            "ON CONFLICT(key) DO NOTHING",
+            ('1' if fresh_install else '0',)
+        )
 
         # Seed a default persona if the table is empty
         if conn.execute('SELECT COUNT(*) FROM personas').fetchone()[0] == 0:

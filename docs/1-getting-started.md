@@ -14,6 +14,23 @@ steps:
 The guide assumes Cozy is installed and open in your browser. If it is not,
 follow **Quick start** in the [README](../README.md#quick-start) first.
 
+The first time Cozy opens, it shows a setup page instead of a chat. The setup
+covers steps 1, 3 and 4 in a shorter form:
+
+- **Connect an AI server.** Pick your service, or **Other**, and Cozy fills in
+  the **Endpoint**. Add your **API key** if the server needs one, set the
+  **Model**, and click **Connect**. Cozy tests the connection. What you type is
+  saved in **Settings → API**, the same as typing it there.
+- **Tell it your name.** Type a name and click **Save**. This renames the
+  persona **User**.
+- **Pick a character.** Click **Chat with** a character to finish the setup and
+  open that chat. **Import a card** adds a character from a file first.
+
+The **Theme** menu at the top left changes the theme while you set up.
+**Skip**, at the top right, closes the setup without doing the rest. The setup
+shows only once: after you finish or skip it, it does not come back. The steps
+below do the same things from Settings, and cover what the setup leaves out.
+
 Do the steps in order. Each one says when you are done with it.
 
 ## 1. Connect an AI server

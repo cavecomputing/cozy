@@ -68,6 +68,10 @@ And if you would like some more details on character cards, personas, etc., chec
 
 ## First-start configuration
 
+A new install opens on a setup page that connects your AI server, asks your
+name, and lets you pick a first character. If you skipped it, or want to
+change something later, these are the same steps in Settings:
+
 1. Connect to Cozy.
 2. Open `Settings` in the bottom left.
 3. Navigate to `API`.
