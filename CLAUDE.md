@@ -140,8 +140,8 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [app.py](app.py) | Entry point, and the only Python file at the repo root — `Flask(__name__)` resolves `templates/` and `static/` beside it, and `gunicorn app:app` names it. Registers eight blueprints from [cozy/routes/](cozy/routes/) (all `/api/*`), runs `init_db()` and the seeders, then installs the sign-in guard when `COZY_PASSWORD` is set. |
 | [cozy/auth.py](cozy/auth.py) | The optional password: sign-in page, the guard in front of every route, sign-out. |
 | [cozy/shared.py](cozy/shared.py) | Paths, `get_db()`, and the small request helpers. `BASE_DIR` is the *repo root*, one level above the package — bundled content and `static/themes` hang off it. |
-| [cozy/schema.py](cozy/schema.py) | `init_db()` and the `MIGRATIONS` tuple. |
-| [cozy/defaults.py](cozy/defaults.py) | The two seeders, the stock prompt texts old migrations match on, and `plain_prompt()`, which turns a template from the old editor into plain text. |
+| [cozy/schema.py](cozy/schema.py) | `init_db()`, `BASELINE_VERSION` and the `MIGRATIONS` tuple. |
+| [cozy/defaults.py](cozy/defaults.py) | The two seeders, and `plain_prompt()`, which turns an imported template from the old editor into plain text. |
 | [cozy/card_store.py](cozy/card_store.py) | Character-card reads/writes — the layer routes actually call. [cozy/png_utils.py](cozy/png_utils.py) is the raw tEXt-chunk reader beneath it. |
 | [cozy/thumbs.py](cozy/thumbs.py) | `/thumbs/...` WebP avatars, keyed by image content. Pure cache, safe to delete wholesale. |
 | [cozy/summarizer.py](cozy/summarizer.py) | Auto Summaries logic. **Keep it free of Flask, DB and network** so `cozy/routes/chats.py` and `cozy/routes/summaries.py` can both import it. |
@@ -191,8 +191,9 @@ A seeded prompt is a copy of a file that outranks it.
 
 `init_db()` must stay idempotent.
 
-- **Adding a column** → the `PRAGMA table_info` / `ALTER TABLE ADD COLUMN` block near the end of
-  `init_db()` in [cozy/schema.py](cozy/schema.py), guarded by a column-presence check.
+- **Adding a column** → the `CREATE TABLE` in `init_db()` in [cozy/schema.py](cozy/schema.py), plus
+  an `ALTER TABLE ADD COLUMN` at the marked spot after the script, guarded by a `PRAGMA table_info`
+  column-presence check, since a new database already has the column.
 - **Changing existing rows** (rewriting a stock template, renaming, deleting a retired setting) →
   the `MIGRATIONS` tuple in [cozy/schema.py](cozy/schema.py). Append with the next version and a new
   name; a shipped entry must **never be renumbered, renamed or reordered**, because
@@ -200,17 +201,23 @@ A seeded prompt is a copy of a file that outranks it.
   that no longer matches. Migrations touching stock prompts check for user edits first and skip
   customized rows.
 
+Both lists are empty today. On 2026-11-14 the owner had the 21 migrations and every column upgrade
+removed, since theirs was the only install. `BASELINE_VERSION` (21) is what a new database is created
+at and the oldest one `init_db()` opens: on an older one it raises, before touching it, and names
+`LAST_UPGRADING_COMMIT`, the last build that can still upgrade it. The next migration is 22.
+
 ### The database version, and backups
 
-The highest version in `MIGRATIONS` **is** the database version — there is no
-second scheme, and the release number in `pyproject.toml` and the About build
+The highest version in `MIGRATIONS` **is** the database version, or `BASELINE_VERSION` while the
+tuple is empty; `database_version()` in [cozy/schema.py](cozy/schema.py) is the one place that says
+so. There is no second scheme, and the release number in `pyproject.toml` and the About build
 string are not it. A database's own version is the highest row in its `schema_migrations`
 ledger.
 
 `/api/backup` zips the data directory with a `cozy-backup.json` naming that
 number; `/api/backup/restore` refuses an archive numbered **higher** than this
-build's registry and migrates a lower one up by running `init_db()` after the
-swap. So appending a migration is also what makes older backups restorable —
+build's registry or **below the baseline**, and migrates a lower one up by running `init_db()`
+after the swap. So appending a migration is also what makes older backups restorable —
 nothing else needs bumping, and nothing may renumber what shipped.
 
 A start that finds an existing database behind the registry copies it first to
@@ -263,11 +270,8 @@ the user's box, which is saved from whatever that box holds.
 The meter counts a tag with the part it wraps, the first part for an opening tag and the last for
 a closing one, so the layout costs the parts it serves and nothing is left over to explain.
 
-Prompts used to be templates the user wrote. Migration 21 and the import route both run
-`plain_prompt()` in [cozy/defaults.py](cozy/defaults.py) over them, and the migration writes a
-template whose words did not all sit inside the two wrapper tags to
-`$DATA_DIR/old-prompt-templates.json` first. That file is the user's own text, so it travels in
-backups like any other.
+Prompts used to be templates the user wrote. The import route runs `plain_prompt()` in
+[cozy/defaults.py](cozy/defaults.py) over a file exported back then, so it comes in as plain text.
 
 ### Optional password
 

@@ -1979,40 +1979,6 @@ def test_migration_idempotent_and_columns_present():
         assert col in cols
 
 
-def test_migration_deletes_the_retired_compress_batch_setting(client):
-    """Migration 10 removes the setting from databases that already have it."""
-    with shared.get_db() as conn:
-        conn.execute(
-            'INSERT INTO settings (key, value) VALUES (?, ?) '
-            'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-            ('summary_compress_batch', '3'),
-        )
-        conn.execute('DELETE FROM schema_migrations WHERE version=?', (10,))
-
-    schema.init_db()
-
-    assert 'summary_compress_batch' not in get_settings()
-    schema.init_db()  # rerunning must be a no-op, not an error
-    assert 'summary_compress_batch' not in get_settings()
-
-
-def test_migration_deletes_the_retired_trigger_interval_setting(client):
-    """Migration 15 removes the message-count batch setting, and startup never re-seeds it."""
-    with shared.get_db() as conn:
-        conn.execute(
-            'INSERT INTO settings (key, value) VALUES (?, ?) '
-            'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-            ('summary_trigger_interval', '4'),
-        )
-        conn.execute('DELETE FROM schema_migrations WHERE version=?', (15,))
-
-    schema.init_db()
-
-    assert 'summary_trigger_interval' not in get_settings()
-    schema.init_db()  # rerunning must be a no-op, not an error
-    assert 'summary_trigger_interval' not in get_settings()
-
-
 def test_startup_recovery_resets_running(client, sample_chat):
     cid = sample_chat['id']
     with shared.get_db() as conn:

@@ -12,7 +12,7 @@ and the database holds only an index of those files.
 |---|---|
 | Tables | 10 |
 | Indexes | 3 |
-| Database version | 21, the highest migration |
+| Database version | 21, the baseline |
 | Journal mode | WAL |
 | `synchronous` | NORMAL |
 | `foreign_keys` | ON, set on every connection |
@@ -83,7 +83,7 @@ time.
 | `crc` | TEXT | none | CRC32 hex of the file, so a rename on disk is recognized as the same card. |
 | `missing` | INTEGER | `0` | `1` once the file is gone from disk. |
 | `pinned_at` | DATETIME | `NULL` | Pin time, `NULL` when unpinned. Pinned characters list first; the sidebar sorts both groups by name. |
-| `archived` | INTEGER | `0` | `1` while archived: the character is listed in the sidebar's folded Archived section. Archiving clears `pinned_at`. Not the retired gallery's `archived_at`, which migration 08 dropped. |
+| `archived` | INTEGER | `0` | `1` while archived: the character is listed in the sidebar's folded Archived section. Archiving clears `pinned_at`. |
 | `created_at` | DATETIME | `CURRENT_TIMESTAMP` | First registration. |
 
 ```sql
@@ -373,47 +373,29 @@ character's chats and the transcript that opens from it.
 
 ## Migrations
 
+A new database is created at version 21, which is the baseline, and
+`schema_migrations` records it as one row named `baseline`. The registry in
+`cozy/schema.py` is empty today. The next migration is number 22.
+
 Each migration runs once, in order, in its own transaction. An entry that has
 shipped is never renumbered, renamed or reordered. Cozy refuses to start when
 a version recorded in `schema_migrations` has a name that no longer matches
-the registry in `cozy/schema.py`.
+the registry, or when the registry holds a version that is not above the
+baseline.
 
-| Version | Name | What it does |
-|---:|---|---|
-| 1 | `retire_duplicate_greeting_cleanup` | Baseline: the old destructive greeting repair is retired, not re-run. |
-| 2 | `delete_legacy_context_max_messages` | Drop the retired message-count context limit. |
-| 3 | `add_summary_to_legacy_default_prompt` | Add summary memory to untouched copies of the old stock prompt. |
-| 4 | `add_narrative_preamble_to_default_prompt` | V2 → V3 preamble, untouched copies only. |
-| 5 | `upgrade_default_prompt_to_v4` | V3 → V4: prose guidance moves to the post-history template. |
-| 6 | `enforce_house_style_post_history` | V1 post-history → the enforced house-style V2. |
-| 7 | `rename_default_prompt_to_nanobear` | Rename "Default" to "NanoBear". The one migration that matches on name, not content. |
-| 8 | `remove_character_gallery` | Retire gallery settings, collection tables, and the archive column. |
-| 9 | `backfill_chat_persona` | Seed `chats.persona_id` from each chat's own history. |
-| 10 | `delete_summary_compress_batch` | Drop the retired summary compression setting. |
-| 11 | `delete_default_prompts_seeded` | Drop the retired one-shot flag for prompt seeding. |
-| 12 | `backfill_stock_prompt_descriptions` | Fill blank descriptions on bundled NanoBear prompts; user-set text untouched. |
-| 13 | `backfill_stock_prompt_versions` | Set `version` on the two bundled NanoBear prompts that shipped before the column. |
-| 14 | `merge_versioned_stock_prompt_titles` | Rename "NanoBear v2.1" titles to the bundled names, or drop an untouched duplicate of the seeded copy. |
-| 15 | `delete_summary_trigger_interval` | Drop the retired message-count summary batch setting. |
-| 16 | `drop_lorebook_notice_dismissed` | Drop `chats.lorebook_notice_dismissed`, left over from the retired "has a lorebook" banner. |
-| 17 | `delete_lorebook_global_overrides` | Drop the retired install-wide lorebook Scan depth override and Always inject all entries settings. |
-| 18 | `retire_mirostat_and_typical_p` | Retire the Mirostat and Typical-P samplers, in the settings and every API preset; one that was on moves into `extra_request_params`. |
-| 19 | `remove_regex_filters` | Drop the retired regex output filters: the `regex_presets` table and the `active_regex_preset` and `default_regex_seeded` settings. Replies a filter already rewrote keep that text. |
-| 20 | `record_selected_swipes` | Fill `messages.selected_swipe_id` with the swipe holding the message's text, which is how the swipe on show used to be found. A message whose text none of its swipes holds gets it as a swipe first. |
-| 21 | `convert_prompts_to_plain_text` | Turn every prompt from a template into the plain text of its two boxes: the words inside `<system_instructions>` and `<post_history_instructions>`, with the placeholders and the layout around them gone. An untouched bundled 2.1 becomes 3.0. A prompt with words outside those tags keeps them, and its original goes to `old-prompt-templates.json` in the data directory. |
-
-Migrations 3 to 7 rewrote the stock prompt while it lived in the code. The
-bundled prompt is now a file in `default_prompts/`, and a revision arrives as
-a version bump inside that file. Migration 14 only renames the rows left from
-the time when the edition was part of the title. Migration 21 moves prompts
-from templates to plain text, which Cozy lays out itself.
+Cozy does not open a database below version 21. The 21 migrations that led up
+to the baseline were removed, so nothing in this build can upgrade one. On
+such a database Cozy stops at start, changes nothing, and names the last
+commit that still has those migrations, `fc337a2`. A database that was
+upgraded through them holds their 21 rows in `schema_migrations` where a new
+database holds the one `baseline` row. Both are at version 21.
 
 ## The database version, and backups
 
 There is no separate version number. The highest entry in the migration
-registry is the schema this build understands, and the highest row in a
-database's `schema_migrations` table is the schema that database is at. It is
-currently 21.
+registry is the schema this build understands, or the baseline while the
+registry is empty. The highest row in a database's `schema_migrations` table
+is the schema that database is at. Both are currently 21.
 
 Two other numbers are not the database version: the `version` in
 `pyproject.toml` is the release number, and the build string on the About
@@ -425,7 +407,8 @@ directory with a `cozy-backup.json` file that names it.
 
 | The backup's version is | What restore does |
 |---|---|
-| Lower | Restores it, then `init_db()` migrates it up. |
+| Below 21 | Refuses with 409, because nothing in this build upgrades it. |
+| Lower, and 21 or above | Restores it, then `init_db()` migrates it up. |
 | Equal | Restores it as it is. |
 | Higher | Refuses with 409, because that backup has migrations this build does not know. |
 

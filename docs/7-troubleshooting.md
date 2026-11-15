@@ -14,6 +14,7 @@ with the thing to try first.
 - [You cannot sign in](#you-cannot-sign-in)
 - [You cannot change files in `data/`](#you-cannot-change-files-in-data)
 - [An update fails](#an-update-fails)
+- [The database is too old](#the-database-is-too-old)
 - [See more in the logs](#see-more-in-the-logs)
 
 ## Cozy does not open
@@ -170,6 +171,26 @@ settings.
 
 To return to the version you had before, see
 [Go back after an update](6-running-cozy.md#go-back-after-an-update).
+
+## The database is too old
+
+Cozy opens a database at version 21 or later. On an older one it stops at
+start with an error that begins with the path of the database and says
+`is at database version`, followed by a number below 21. Cozy changes nothing
+in the database when this happens.
+
+The last Cozy that can update such a database is the Git commit `fc337a2`. To
+update the database:
+
+1. Copy the `data/` folder to a safe place.
+2. Run `git checkout fc337a2`, then start Cozy once. It updates the database
+   to version 21.
+3. Stop Cozy.
+4. Run `git checkout main`, then follow [Update Cozy](6-running-cozy.md#update-cozy).
+
+A backup file made before version 21 is refused in the same way when you
+restore it. Restore it in the Cozy from commit `fc337a2` instead, then update
+as above.
 
 ## See more in the logs
 

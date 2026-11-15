@@ -6,7 +6,6 @@ import re
 
 from cozy import shared
 from cozy import defaults
-from cozy import schema
 
 
 def _active_prompt_name():
@@ -407,48 +406,3 @@ class TestSeeding:
             shared.BUNDLED_PROMPTS_DIR = original_dir
 
         assert _prompt_names() == ['Broken v1', 'Good v1']
-
-
-class TestUpgradeFromTheSeededFlag:
-    def test_the_retired_flag_is_deleted(self):
-        with shared.get_db() as conn:
-            conn.execute(
-                "INSERT INTO settings (key, value) VALUES ('default_prompts_seeded', '1') "
-                "ON CONFLICT(key) DO UPDATE SET value='1'"
-            )
-            conn.execute(
-                'DELETE FROM schema_migrations WHERE name=?',
-                ('delete_default_prompts_seeded',),
-            )
-
-        schema.init_db()
-
-        with shared.get_db() as conn:
-            flag = conn.execute(
-                "SELECT 1 FROM settings WHERE key='default_prompts_seeded'"
-            ).fetchone()
-        assert flag is None
-
-    def test_the_new_nanobear_reaches_an_install_that_already_seeded(self):
-        # The old bundle had a plain "NanoBear" inserted by init_db(). The
-        # versioned titles are new files, so an upgrade is owed them and the
-        # prompt the user is already on is left exactly as it was.
-        with shared.get_db() as conn:
-            conn.execute(
-                "INSERT INTO settings (key, value) VALUES ('default_prompts_seeded', '1') "
-                "ON CONFLICT(key) DO UPDATE SET value='1'"
-            )
-            conn.execute(
-                'INSERT INTO system_prompts (name, content, post_history_content) '
-                "VALUES ('NanoBear', 'the old stock prompt', '')",
-            )
-
-        schema.init_db()
-        defaults.seed_default_prompts()
-
-        assert _prompt_names() == sorted([*_bundled_titles(), 'NanoBear'])
-        with shared.get_db() as conn:
-            old = conn.execute(
-                "SELECT content FROM system_prompts WHERE name='NanoBear'"
-            ).fetchone()
-        assert old['content'] == 'the old stock prompt'

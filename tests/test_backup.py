@@ -6,10 +6,10 @@ import tempfile
 import zipfile
 
 import app as app_module
-from cozy import shared
+from cozy import schema, shared
 from cozy.png_utils import make_minimal_png
 from cozy.routes.settings import BACKUP_MANIFEST
-from cozy.schema import MIGRATIONS, before_update_path
+from cozy.schema import BASELINE_VERSION, before_update_path, database_version
 
 
 def create_character(client, name):
@@ -58,7 +58,7 @@ class TestBackupDownload:
             database = archive.read(os.path.basename(shared.DATABASE))
 
         assert manifest['app'] == 'cozy'
-        assert manifest['schema_version'] == MIGRATIONS[-1][0]
+        assert manifest['schema_version'] == database_version()
         assert database.startswith(b'SQLite format 3')
         assert 'themes/mine.css' in names
         assert any(name.startswith('characters/') for name in names)
@@ -136,11 +136,23 @@ class TestBackupRestore:
     def test_restore_rejects_a_newer_schema_version(self, client):
         body = make_backup_bytes(
             {os.path.basename(shared.DATABASE): b'SQLite format 3\x00'},
-            manifest={'app': 'cozy', 'schema_version': MIGRATIONS[-1][0] + 1},
+            manifest={'app': 'cozy', 'schema_version': database_version() + 1},
         )
         r = restore(client, body)
         assert r.status_code == 409
         assert 'newer version of Cozy' in r.get_json()['error']
+
+    def test_restore_rejects_a_backup_from_before_the_baseline(self, client):
+        create_character(client, 'Still Here')
+        body = make_backup_bytes(
+            {os.path.basename(shared.DATABASE): b'SQLite format 3\x00'},
+            manifest={'app': 'cozy', 'schema_version': BASELINE_VERSION - 1},
+        )
+        r = restore(client, body)
+        assert r.status_code == 409
+        assert 'older version of Cozy' in r.get_json()['error']
+        names = [c['name'] for c in client.get('/api/characters').get_json()]
+        assert names == ['Still Here']
 
     def test_restore_rejects_files_that_are_not_backups(self, client):
         assert restore(client, b'this is not a zip').status_code == 400
@@ -148,7 +160,7 @@ class TestBackupRestore:
         assert restore(client, no_manifest).status_code == 400
         no_database = make_backup_bytes(
             {'themes/mine.css': b'body {}'},
-            manifest={'app': 'cozy', 'schema_version': 1},
+            manifest={'app': 'cozy', 'schema_version': BASELINE_VERSION},
         )
         assert restore(client, no_database).status_code == 400
 
@@ -158,7 +170,7 @@ class TestBackupRestore:
                 os.path.basename(shared.DATABASE): b'SQLite format 3\x00',
                 '../escaped.txt': b'nope',
             },
-            manifest={'app': 'cozy', 'schema_version': 1},
+            manifest={'app': 'cozy', 'schema_version': BASELINE_VERSION},
         )
         r = restore(client, body)
         assert r.status_code == 400
@@ -170,7 +182,7 @@ class TestBackupRestore:
         create_character(client, 'Still Here')
         body = make_backup_bytes(
             {os.path.basename(shared.DATABASE): b'not a database at all'},
-            manifest={'app': 'cozy', 'schema_version': 1},
+            manifest={'app': 'cozy', 'schema_version': BASELINE_VERSION},
         )
         r = restore(client, body)
         assert r.status_code == 400
@@ -271,21 +283,19 @@ class TestBackupRestore:
         assert len(oversized) > cap
         assert restore(client, oversized).status_code == 200
 
-    def test_an_older_backup_is_migrated_and_reseeded(self, client):
+    def test_an_older_backup_is_migrated_and_reseeded(self, client, monkeypatch):
         """A restore runs init_db(), so a database taken at an older schema
         version comes back recorded at this build's version."""
-        backup = client.get('/api/backup').data
-        with zipfile.ZipFile(io.BytesIO(backup)) as archive:
-            members = {
-                name: archive.read(name)
-                for name in archive.namelist() if name != BACKUP_MANIFEST
-            }
-        older = make_backup_bytes(members, manifest={'app': 'cozy', 'schema_version': 1})
+        older = client.get('/api/backup').data
+        newer_version = database_version() + 1
+        monkeypatch.setattr(schema, 'MIGRATIONS', (
+            *schema.MIGRATIONS, (newer_version, 'added_since_the_backup', lambda conn: None),
+        ))
 
         assert restore(client, older).status_code == 200
         with shared.get_db() as conn:
             version = conn.execute(
                 'SELECT MAX(version) AS version FROM schema_migrations'
             ).fetchone()['version']
-        assert version == MIGRATIONS[-1][0]
+        assert version == newer_version
         assert client.get('/api/system-prompts').get_json()

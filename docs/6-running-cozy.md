@@ -267,7 +267,6 @@ Docker uses the same folder.
 | `themes/` | Themes you added. See [Themes](3-user-themes.md). |
 | `thumbs/` | Small copies of pictures, made by Cozy to load faster. You can delete this folder at any time, also while Cozy is running. Cozy makes the copies again. |
 | `cozy_chat.before-update.db` | A copy of the database from just before the last update that changed it. See [Go back after an update](#go-back-after-an-update). |
-| `old-prompt-templates.json` | Exists only if an update converted a prompt template you had written into the two text boxes in **Settings → Prompt**. It holds your original templates, unchanged. Open it in any text editor. Delete it when you no longer want them. |
 
 **Settings → About → Storage** shows how much space each of these uses.
 **Your data** is the total of everything a backup includes. The thumbnail
@@ -336,6 +335,9 @@ What Cozy checks, and what it does not:
 
 - **A backup from an older version of Cozy works.** Cozy updates its database
   during the restore, the same way it does when it starts after an update.
+  The one exception is a backup made before database version 21. Cozy refuses
+  it and changes nothing. See
+  [The database is too old](7-troubleshooting.md#the-database-is-too-old).
 - **A backup from a newer version of Cozy is refused.** Update Cozy first.
 - **The disk needs room for both.** Cozy deletes the old data only after the
   whole backup is in place. If there is not enough free space, Cozy refuses
@@ -389,7 +391,9 @@ Keep `data-old/` until you have seen that the restored copy works.
    ```
 
 When Cozy starts, it updates its database by itself. You do not run anything
-else.
+else. The one exception is a database older than version 21. Cozy does not
+start on it. See
+[The database is too old](7-troubleshooting.md#the-database-is-too-old).
 
 A Cozy page that was left open, and the app installed on a phone, load the new
 version by themselves the next time you return to them.

@@ -1,520 +1,45 @@
 """Database schema: table creation, additive column upgrades, and migrations.
 
-``init_db()`` must stay idempotent. Adding a column goes in the
-``PRAGMA table_info`` block near the end of it; changing existing rows goes in
-the MIGRATIONS tuple below, appended with the next version and a new name —
-a shipped entry must never be renumbered, renamed or reordered.
+``init_db()`` must stay idempotent. Adding a column goes in its CREATE TABLE
+and, behind a column-presence check, at the marked spot after the script;
+changing existing rows goes in the MIGRATIONS tuple below, appended with the
+next version and a new name — a shipped entry must never be renumbered,
+renamed or reordered.
 """
 
-import hashlib
-import json
 import logging
-import math
 import os
 import sqlite3
 
 from cozy import shared
-from cozy.defaults import (
-    _DEFAULT_POST_HISTORY_TEMPLATE_V1,
-    _DEFAULT_POST_HISTORY_TEMPLATE_V2,
-    _DEFAULT_PROMPT_TEMPLATE_V1,
-    _DEFAULT_PROMPT_TEMPLATE_V2,
-    _DEFAULT_PROMPT_TEMPLATE_V3,
-    _DEFAULT_PROMPT_TEMPLATE_V4,
-    plain_prompt,
-)
 from cozy.shared import get_db
 
 log = logging.getLogger('cozy')
 
-
-def _retire_duplicate_greeting_cleanup(_conn):
-    """Baseline databases after retiring the old destructive greeting repair."""
-    # The repair ran on every startup before migration tracking existed. Current
-    # databases are considered repaired; rerunning it could delete intentional
-    # later messages that happen to repeat the opening greeting.
-    return None
-
-
-def _delete_legacy_context_max_messages(conn):
-    """Remove the retired message-count context limit from old databases."""
-    conn.execute(
-        'DELETE FROM settings WHERE key=?',
-        ('context_max_messages',),
-    )
-
-
-def _delete_summary_compress_batch(conn):
-    """Remove the retired summary compression setting.
-
-    A batch of messages now becomes exactly one summary entry, so there is no second
-    pass merging entries and nothing left for the setting to size.
-    """
-    conn.execute(
-        'DELETE FROM settings WHERE key=?',
-        ('summary_compress_batch',),
-    )
-
-
-# Migrations 3-7 upgrade a stock prompt that init_db() used to insert inline.
-# Nothing creates that row any more — the house prompt ships as a file in
-# default_prompts/ and a revision arrives as a version bump inside it — so this
-# is the last of them. They stay for databases that predate them, where the stock row is
-# still whatever version was current when it was written.
-def _add_summary_to_legacy_default_prompt(conn):
-    """Add summary memory to untouched copies of the former stock prompt."""
-    conn.execute(
-        'UPDATE system_prompts SET content=? WHERE content=?',
-        (_DEFAULT_PROMPT_TEMPLATE_V2, _DEFAULT_PROMPT_TEMPLATE_V1),
-    )
-
-
-def _add_narrative_preamble_to_default_prompt(conn):
-    """Upgrade untouched copies of the V2 stock prompt to the V3 preamble."""
-    conn.execute(
-        'UPDATE system_prompts SET content=? WHERE content=?',
-        (_DEFAULT_PROMPT_TEMPLATE_V3, _DEFAULT_PROMPT_TEMPLATE_V2),
-    )
-
-
-def _upgrade_default_prompt_to_v4(conn):
-    """Upgrade untouched copies of the V3 stock prompt to V4 (prose guidance
-    moves to the post-history template; section headers title-cased)."""
-    conn.execute(
-        'UPDATE system_prompts SET content=? WHERE content=?',
-        (_DEFAULT_PROMPT_TEMPLATE_V4, _DEFAULT_PROMPT_TEMPLATE_V3),
-    )
-
-
-def _enforce_house_style_post_history(conn):
-    """Replace untouched copies of the V1 stock post-history template with the
-    enforced house-style V2 (which drops {{post_history_instructions}})."""
-    conn.execute(
-        'UPDATE system_prompts SET post_history_content=? WHERE post_history_content=?',
-        (_DEFAULT_POST_HISTORY_TEMPLATE_V2, _DEFAULT_POST_HISTORY_TEMPLATE_V1),
-    )
-
-
-def _rename_default_prompt_to_nanobear(conn):
-    """Rename the stock 'Default' prompt to 'NanoBear'.
-
-    Only the name changes — the templates are untouched, so a user who edited
-    the stock prompt keeps their edits under the new label. Skipped entirely if
-    a NanoBear already exists, which keeps a re-run from producing two.
-    """
-    if conn.execute("SELECT 1 FROM system_prompts WHERE name='NanoBear'").fetchone():
-        return
-    conn.execute("UPDATE system_prompts SET name='NanoBear' WHERE name='Default'")
-
-
-def _remove_character_gallery(conn):
-    """Retire gallery-only settings and organization state.
-
-    Dropping ``archived_at`` makes every former archive row an ordinary
-    character again without touching its card PNG or related chats.
-    """
-    conn.execute("DELETE FROM settings WHERE key='show_gallery_button'")
-    conn.execute('DROP TABLE IF EXISTS character_collection_members')
-    conn.execute('DROP TABLE IF EXISTS character_collections')
-    character_cols = {
-        row['name'] for row in conn.execute('PRAGMA table_info(characters)').fetchall()
-    }
-    if 'archived_at' in character_cols:
-        conn.execute('ALTER TABLE characters DROP COLUMN archived_at')
-
-
-def _backfill_chat_persona(conn):
-    """Seed the new ``chats.persona_id`` from each chat's own history.
-
-    Before this column the persona was a browser preference, so opening an old
-    chat on a second machine used whatever persona that machine last touched.
-    The messages already record who was speaking, so the last user message is
-    the chat's own answer — better than leaving every existing chat to fall
-    back to the local preference forever.
-
-    A database old enough to predate ``messages.persona_id`` has nothing to read,
-    and keeps every chat at NULL.
-    """
-    message_cols = {
-        row['name'] for row in conn.execute('PRAGMA table_info(messages)').fetchall()
-    }
-    if 'persona_id' not in message_cols:
-        return
-    conn.execute('''
-        UPDATE chats SET persona_id = (
-            SELECT m.persona_id FROM messages m
-            WHERE m.chat_id = chats.id AND m.role = 'user' AND m.persona_id IS NOT NULL
-            ORDER BY m.id DESC LIMIT 1
-        ) WHERE persona_id IS NULL
-    ''')
-
-
-def _delete_default_prompts_seeded(conn):
-    """Remove the retired one-shot flag for bundled prompt seeding.
-
-    Prompts are now restored from `default_prompts/` on every start, so there
-    is no first run left for a flag to mark. See seed_default_prompts().
-    """
-    conn.execute(
-        'DELETE FROM settings WHERE key=?',
-        ('default_prompts_seeded',),
-    )
-
-
-def _backfill_stock_prompt_descriptions(conn):
-    """Fill blank descriptions on the bundled NanoBear prompts.
-
-    The description column is new, so every pre-existing row holds ''. Only
-    those rows are touched — a description the user already set is theirs and
-    stays. Text comes from the bundled files, the same source the seeder
-    reads, so the two can never disagree. A missing file is skipped rather
-    than failing startup.
-
-    The column is guaranteed here: _run_migrations() runs after the
-    ADD COLUMN block in init_db(). Guarding on it would be worse than
-    useless — a skipped run is still recorded as done and never retried.
-    """
-    for title in ('NanoBear v2.1', 'NanoBear Author v1'):
-        try:
-            with open(os.path.join(shared.BUNDLED_PROMPTS_DIR, title + '.json'), encoding='utf-8') as handle:
-                description = json.load(handle).get('description', '')
-        except (OSError, ValueError, AttributeError):
-            continue
-        if not isinstance(description, str) or not description:
-            continue
-        conn.execute(
-            "UPDATE system_prompts SET description=? WHERE name=? AND description=''",
-            (description, title),
-        )
-
-
-def _backfill_stock_prompt_versions(conn):
-    """Set the version on the bundled prompts that shipped before the column.
-
-    The titles and their versions are written out here rather than read from
-    default_prompts/, so what this migration does stays fixed as the bundle
-    moves on — these are the two presets that existed when the column was
-    added, and a later NanoBear arrives as a new file carrying its own version.
-
-    Nothing guards on the current value: the ADD COLUMN block in init_db()
-    runs first and leaves every row at '', so there is no user-set version
-    to overwrite. A row the user edited keeps its edits — only the version
-    of the preset it descends from is filled in.
-    """
-    for title, version in (('NanoBear v2.1', '2.1'), ('NanoBear Author v2.1', '2.1')):
-        conn.execute(
-            'UPDATE system_prompts SET version=? WHERE name=?',
-            (version, title),
-        )
-
-
-def _merge_versioned_stock_prompt_titles(conn):
-    """Fold the old "NanoBear v2.1" titles into the ones the bundle ships now.
-
-    Before the version column the edition lived in the title. Migration 13 gave
-    those rows version 2.1, but the bundle now ships "NanoBear" at 2.1, which
-    the seeder took for a different preset — so an upgraded install listed each
-    one twice, the old row showing "NanoBear v2.1 v2.1" in the picker.
-
-    This runs before the seeder, so where the new title is still free, taking
-    it is the whole fix: the seeder then finds the pair present and adds
-    nothing, and edits in the row survive under the new title. An install that
-    already gained the duplicate drops the old row only while its templates
-    still match the seeded one, moving the active selection across; a row the
-    user edited is theirs and stays.
-    """
-    pair = "SELECT id, content, post_history_content FROM system_prompts WHERE name=? AND version='2.1'"
-    for old, new in (('NanoBear v2.1', 'NanoBear'), ('NanoBear Author v2.1', 'NanoBear Author')):
-        stale = conn.execute(pair, (old,)).fetchone()
-        if not stale:
-            continue
-        current = conn.execute(pair, (new,)).fetchone()
-        if current is None:
-            conn.execute('UPDATE system_prompts SET name=? WHERE id=?', (new, stale['id']))
-        elif (stale['content'], stale['post_history_content']) == (
-            current['content'], current['post_history_content']
-        ):
-            conn.execute(
-                "UPDATE settings SET value=? WHERE key='active_system_prompt' AND value=?",
-                (str(current['id']), str(stale['id'])),
-            )
-            conn.execute('DELETE FROM system_prompts WHERE id=?', (stale['id'],))
-
-
-def _delete_summary_trigger_interval(conn):
-    """Remove the retired message-count batch setting.
-
-    A batch is now a fixed amount of text rather than a number of messages, so reply
-    length no longer decides how much each summary entry covers, and there is nothing
-    left for the setting to size.
-    """
-    conn.execute(
-        'DELETE FROM settings WHERE key=?',
-        ('summary_trigger_interval',),
-    )
-
-
-def _drop_lorebook_notice_dismissed(conn):
-    """Drop the flag behind the retired "has a lorebook" banner.
-
-    The banner above the composer only repeated what the memory panel already
-    shows, the chat's active lorebook, so it went, and with it the per-chat
-    record of having dismissed it.
-    """
-    chat_cols = {row['name'] for row in conn.execute('PRAGMA table_info(chats)').fetchall()}
-    if 'lorebook_notice_dismissed' in chat_cols:
-        conn.execute('ALTER TABLE chats DROP COLUMN lorebook_notice_dismissed')
-
-
-def _delete_lorebook_global_overrides(conn):
-    """Remove the retired install-wide lorebook overrides.
-
-    Each book's own Scan depth and each entry's Always include already cover
-    what "Scan depth override" and "Always inject all entries" did, without
-    silently changing every book at once.
-    """
-    conn.execute(
-        'DELETE FROM settings WHERE key IN (?, ?)',
-        ('lorebook_scan_depth_override', 'lorebook_always_inject_all'),
-    )
-
-
-# Each retired sampler: the value of its first setting that switches it off,
-# and its settings as (setting, request parameter, type, default when unset).
-_RETIRED_SAMPLERS = {
-    'mirostat': (0, (
-        ('sampler_mirostat', 'mirostat', int, '0'),
-        ('sampler_mirostat_tau', 'mirostat_tau', float, '5.0'),
-        ('sampler_mirostat_eta', 'mirostat_eta', float, '0.1'),
-    )),
-    'typical_p': (1.0, (
-        ('sampler_typical_p', 'typical_p', float, '1.0'),
-    )),
-}
-
-
-def _fold_retired_samplers(values):
-    """Move a switched-on Mirostat or Typical-P into extra_request_params.
-
-    ``values`` maps setting keys to strings, which is what both the settings
-    table and a preset's settings_json hold. A sampler that was switched on and
-    doing something keeps being sent through extra parameters, which the
-    request already merges over the samplers; one left at its "off" value (mode
-    0, Typical-P 1.0) is simply dropped. A key the user already set in extra
-    parameters wins, as it did in the request. Extra parameters that were not a
-    JSON object were already ignored by the request, and are left alone.
-    """
-    raw_active = values.get('active_samplers')
-    # An older format listed sampler_* field keys.
-    active = [key.removeprefix('sampler_') for key in raw_active.split(',')] if raw_active else []
-    moved = {}
-    for group, (off, fields) in _RETIRED_SAMPLERS.items():
-        if group not in active:
-            continue
-        params = {}
-        for setting, param, cast, default in fields:
-            try:
-                number = float(values.get(setting) or default)
-            except ValueError:
-                continue
-            if math.isfinite(number):
-                params[param] = cast(number)
-        lead = params.get(fields[0][1])
-        if lead is not None and lead != off:
-            moved.update(params)
-    if moved:
-        raw_extra = values.get('extra_request_params') or ''
-        try:
-            extra = json.loads(raw_extra) if raw_extra.strip() else {}
-        except ValueError:
-            extra = None
-        if isinstance(extra, dict):
-            values['extra_request_params'] = json.dumps({**moved, **extra}, ensure_ascii=False)
-    if raw_active is not None:
-        values['active_samplers'] = ','.join(
-            key for key in raw_active.split(',')
-            if key.removeprefix('sampler_') not in _RETIRED_SAMPLERS
-        )
-    for _off, fields in _RETIRED_SAMPLERS.values():
-        for setting, *_rest in fields:
-            values.pop(setting, None)
-    return values
-
-
-def _retire_mirostat_and_typical_p(conn):
-    """Retire the Mirostat and Typical-P samplers, keeping any that were in use.
-
-    Min-P, DRY and XTC cover what both were for, so they left the sampler list.
-    The live settings and every API preset's snapshot are folded the same way;
-    see _fold_retired_samplers().
-    """
-    settings = {row['key']: row['value'] for row in conn.execute('SELECT key, value FROM settings')}
-    folded = _fold_retired_samplers(dict(settings))
-    for key in settings.keys() - folded.keys():
-        conn.execute('DELETE FROM settings WHERE key=?', (key,))
-    for key, value in folded.items():
-        if settings.get(key) != value:
-            conn.execute(
-                'INSERT INTO settings (key, value) VALUES (?, ?) '
-                'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-                (key, value),
-            )
-
-    for row in conn.execute('SELECT id, settings_json FROM api_presets').fetchall():
-        try:
-            snapshot = json.loads(row['settings_json'] or '{}')
-        except ValueError:
-            continue
-        if not isinstance(snapshot, dict):
-            continue
-        folded = _fold_retired_samplers(dict(snapshot))
-        if folded != snapshot:
-            conn.execute(
-                'UPDATE api_presets SET settings_json=? WHERE id=?',
-                (json.dumps(folded), row['id']),
-            )
-
-
-def _remove_regex_filters(conn):
-    """Drop the retired regex output filters and their settings.
-
-    The Regex tab rewrote character replies with find/replace presets. Replies
-    an at-save filter already rewrote keep that text; only the presets, the
-    active selection and the bundled presets' seeding flag go.
-    """
-    conn.execute('DROP TABLE IF EXISTS regex_presets')
-    conn.execute(
-        "DELETE FROM settings WHERE key IN ('active_regex_preset', 'default_regex_seeded')"
-    )
-
-
-def _record_selected_swipes(conn):
-    """Note on each message which of its swipes is on show.
-
-    Nothing recorded that before: the swipe on show was whichever held the same
-    text as `messages.content`, which cannot tell two swipes with the same text
-    apart. A message whose text no swipe of its own holds (one from before
-    swipes, or edited before edits reached the swipe) gets it as a swipe first,
-    so every message ends up with a swipe that is the one on show.
-    """
-    conn.execute('''
-        INSERT INTO message_swipes (message_id, content, created_at)
-        SELECT m.id, m.content, m.created_at FROM messages m
-        WHERE NOT EXISTS (
-            SELECT 1 FROM message_swipes s WHERE s.message_id = m.id AND s.content = m.content
-        )
-    ''')
-    conn.execute('''
-        UPDATE messages SET selected_swipe_id = (
-            SELECT MIN(s.id) FROM message_swipes s
-            WHERE s.message_id = messages.id AND s.content = messages.content
-        )
-    ''')
-
-
-def old_prompt_templates_path():
-    """Where prompts that had a layout of their own are kept as they were."""
-    return os.path.join(shared.DATA_DIR, 'old-prompt-templates.json')
-
-
-# The two prompts 2.1 shipped, by the SHA-256 of their templates. A row still
-# holding one is the bundled prompt untouched, and becomes 3.0.
-_STOCK_PROMPTS_2_1 = {
-    'NanoBear': 'd565a49f19650a79558bc8d53a1cb2f68feeef462b9ea2e1e4085fb81bd00987',
-    'NanoBear Author': 'e61a5f895c8db8390cbcd570eea7a4afd30d57dfe81791a5aaaeb10cc46be31c',
-}
-
-
-def _convert_prompts_to_plain_text(conn):
-    """Turn every prompt's two templates into its System and Post-History text.
-
-    Cozy lays the request out itself now, so a prompt no longer says where the
-    card, the persona, the lorebook and the memory go, only what the model is
-    told before and after the chat (plain_prompt() in cozy/defaults.py). A
-    prompt shaped like the stock ones loses nothing by that. One with a layout
-    of its own keeps its words, and is written as it was to
-    old-prompt-templates.json in the data directory, since the layout is gone.
-
-    The bundled prompts ship as 3.0 with the same text this leaves an untouched
-    2.1 holding, so that row takes the new version here rather than gaining a
-    twin from the seeder.
-    """
-    taken = {
-        (row['name'], row['version'])
-        for row in conn.execute('SELECT name, version FROM system_prompts')
-    }
-    originals = []
-    for row in conn.execute('SELECT * FROM system_prompts').fetchall():
-        templates = (row['content'], row['post_history_content'])
-        content, post_history, complete = plain_prompt(*templates)
-        if (content, post_history) == templates:
-            continue
-        version = row['version']
-        stock = hashlib.sha256('\0'.join(templates).encode()).hexdigest()
-        if (version == '2.1' and _STOCK_PROMPTS_2_1.get(row['name']) == stock
-                and (row['name'], '3.0') not in taken):
-            version = '3.0'
-        conn.execute(
-            'UPDATE system_prompts SET version=?, content=?, post_history_content=? WHERE id=?',
-            (version, content, post_history, row['id']),
-        )
-        if not complete:
-            originals.append({
-                'name': row['name'],
-                'version': row['version'],
-                'description': row['description'],
-                'content': row['content'],
-                'post_history_content': row['post_history_content'],
-            })
-
-    if not originals:
-        return
-    path = old_prompt_templates_path()
-    # A backup from before this migration, restored over an install that has
-    # already kept some, adds to them.
-    try:
-        with open(path, encoding='utf-8') as handle:
-            kept = json.load(handle)
-    except (OSError, ValueError):
-        kept = []
-    with open(path, 'w', encoding='utf-8') as handle:
-        json.dump(kept + originals, handle, indent=2, ensure_ascii=False)
-    log.info('Kept %d prompt templates as they were: %s', len(originals), path)
-
-
-MIGRATIONS = (
-    (1, 'retire_duplicate_greeting_cleanup', _retire_duplicate_greeting_cleanup),
-    (2, 'delete_legacy_context_max_messages', _delete_legacy_context_max_messages),
-    (3, 'add_summary_to_legacy_default_prompt', _add_summary_to_legacy_default_prompt),
-    (4, 'add_narrative_preamble_to_default_prompt', _add_narrative_preamble_to_default_prompt),
-    (5, 'upgrade_default_prompt_to_v4', _upgrade_default_prompt_to_v4),
-    (6, 'enforce_house_style_post_history', _enforce_house_style_post_history),
-    (7, 'rename_default_prompt_to_nanobear', _rename_default_prompt_to_nanobear),
-    (8, 'remove_character_gallery', _remove_character_gallery),
-    (9, 'backfill_chat_persona', _backfill_chat_persona),
-    (10, 'delete_summary_compress_batch', _delete_summary_compress_batch),
-    (11, 'delete_default_prompts_seeded', _delete_default_prompts_seeded),
-    (12, 'backfill_stock_prompt_descriptions', _backfill_stock_prompt_descriptions),
-    (13, 'backfill_stock_prompt_versions', _backfill_stock_prompt_versions),
-    (14, 'merge_versioned_stock_prompt_titles', _merge_versioned_stock_prompt_titles),
-    (15, 'delete_summary_trigger_interval', _delete_summary_trigger_interval),
-    (16, 'drop_lorebook_notice_dismissed', _drop_lorebook_notice_dismissed),
-    (17, 'delete_lorebook_global_overrides', _delete_lorebook_global_overrides),
-    (18, 'retire_mirostat_and_typical_p', _retire_mirostat_and_typical_p),
-    (19, 'remove_regex_filters', _remove_regex_filters),
-    (20, 'record_selected_swipes', _record_selected_swipes),
-    (21, 'convert_prompts_to_plain_text', _convert_prompts_to_plain_text),
-)
+# The version a new database is created at, and the oldest one this build
+# opens. The steps that brought an older database up to it are gone: the last
+# build that has them is LAST_UPGRADING_COMMIT.
+BASELINE_VERSION = 21
+LAST_UPGRADING_COMMIT = 'fc337a2'
+
+# (version, name, function taking the connection), numbered from the baseline up.
+MIGRATIONS = ()
+
+
+def database_version():
+    """The database version this build works at."""
+    return MIGRATIONS[-1][0] if MIGRATIONS else BASELINE_VERSION
 
 
 def _run_migrations(conn):
     """Run pending migrations in version order within the caller's transaction,
     and return the names of those that ran."""
     applied = []
-    previous_version = 0
+    previous_version = BASELINE_VERSION
     for version, name, migrate in MIGRATIONS:
         if version <= previous_version:
-            raise RuntimeError('Schema migrations must have unique, increasing versions')
+            raise RuntimeError(
+                'Schema migrations must have unique, increasing versions above the baseline')
         previous_version = version
 
         row = conn.execute(
@@ -543,7 +68,16 @@ def before_update_path():
     return f'{os.path.splitext(shared.DATABASE)[0]}.before-update.db'
 
 
-def _copy_before_migrating():
+def _version_on_disk():
+    """The version of the database on disk: the highest in its ledger, 0 without one."""
+    with get_db() as conn:
+        try:
+            return conn.execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0] or 0
+        except sqlite3.OperationalError:
+            return 0  # From before the ledger.
+
+
+def _copy_before_migrating(version):
     """Copy the database beside itself when this start is about to migrate it.
 
     A migration rewrites rows where they are and nothing migrates back down, so
@@ -553,12 +87,6 @@ def _copy_before_migrating():
     replaces it.
     """
     with get_db() as conn:
-        try:
-            version = conn.execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0] or 0
-        except sqlite3.OperationalError:
-            version = 0  # From before the ledger.
-        if version >= MIGRATIONS[-1][0]:
-            return
         copy = sqlite3.connect(before_update_path())
         try:
             conn.backup(copy)
@@ -573,7 +101,16 @@ def init_db():
     # install must not drop a character into a library the user already curates.
     fresh_install = not os.path.exists(shared.DATABASE)
     if not fresh_install:
-        _copy_before_migrating()
+        version = _version_on_disk()
+        if version < BASELINE_VERSION:
+            raise RuntimeError(
+                f'{shared.DATABASE} is at database version {version}. This Cozy opens '
+                f'version {BASELINE_VERSION} and later, and no longer upgrades an older '
+                f'one. Start Cozy at commit {LAST_UPGRADING_COMMIT} once to upgrade it, '
+                'then update again.'
+            )
+        if version < database_version():
+            _copy_before_migrating(version)
 
     with get_db() as conn:
         # journal_mode lives in the database header, so setting it once here
@@ -689,8 +226,6 @@ def init_db():
                 updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
-            DROP INDEX IF EXISTS idx_messages_chat_created;
-
             CREATE INDEX IF NOT EXISTS idx_chats_character_created
                 ON chats(character_id, created_at, id);
             CREATE INDEX IF NOT EXISTS idx_messages_chat_id
@@ -703,46 +238,8 @@ def init_db():
         # concurrent startup processes cannot both observe a pending migration.
         conn.execute('BEGIN IMMEDIATE')
 
-        # Migration: add pinned_at to existing databases
-        cols = [c[1] for c in conn.execute('PRAGMA table_info(characters)').fetchall()]
-        if 'pinned_at' not in cols:
-            conn.execute('ALTER TABLE characters ADD COLUMN pinned_at DATETIME DEFAULT NULL')
-        # Not `archived_at`: migration 8 drops that column (the retired gallery's
-        # archive) and runs after this block, so a database below version 8
-        # would lose it again until the next start.
-        if 'archived' not in cols:
-            conn.execute('ALTER TABLE characters ADD COLUMN archived INTEGER NOT NULL DEFAULT 0')
-
-        chat_cols = [c[1] for c in conn.execute('PRAGMA table_info(chats)').fetchall()]
-        if chat_cols and 'author_note' not in chat_cols:
-            conn.execute("ALTER TABLE chats ADD COLUMN author_note TEXT NOT NULL DEFAULT ''")
-        if chat_cols and 'summary_enabled' not in chat_cols:
-            conn.execute('ALTER TABLE chats ADD COLUMN summary_enabled INTEGER NOT NULL DEFAULT 0')
-        if chat_cols and 'summary_json' not in chat_cols:
-            conn.execute("ALTER TABLE chats ADD COLUMN summary_json TEXT NOT NULL DEFAULT ''")
-        if chat_cols and 'summary_up_to_msg_id' not in chat_cols:
-            conn.execute('ALTER TABLE chats ADD COLUMN summary_up_to_msg_id INTEGER DEFAULT NULL')
-        if chat_cols and 'summary_status' not in chat_cols:
-            conn.execute("ALTER TABLE chats ADD COLUMN summary_status TEXT NOT NULL DEFAULT 'idle'")
-        if chat_cols and 'summary_status_detail' not in chat_cols:
-            conn.execute("ALTER TABLE chats ADD COLUMN summary_status_detail TEXT NOT NULL DEFAULT ''")
-        if chat_cols and 'persona_id' not in chat_cols:
-            conn.execute('ALTER TABLE chats ADD COLUMN persona_id INTEGER DEFAULT NULL')
-        for fork_col in ('parent_chat_id', 'parent_msg_id', 'fork_msg_id'):
-            if chat_cols and fork_col not in chat_cols:
-                conn.execute(f'ALTER TABLE chats ADD COLUMN {fork_col} INTEGER DEFAULT NULL')
-        if chat_cols and 'opened_at' not in chat_cols:
-            conn.execute('ALTER TABLE chats ADD COLUMN opened_at DATETIME DEFAULT NULL')
-
-        message_cols = [c[1] for c in conn.execute('PRAGMA table_info(messages)').fetchall()]
-        if message_cols and 'persona_name' not in message_cols:
-            conn.execute('ALTER TABLE messages ADD COLUMN persona_name TEXT DEFAULT NULL')
-        if message_cols and 'selected_swipe_id' not in message_cols:
-            conn.execute('ALTER TABLE messages ADD COLUMN selected_swipe_id INTEGER DEFAULT NULL')
-
-        swipe_cols = [c[1] for c in conn.execute('PRAGMA table_info(message_swipes)').fetchall()]
-        if swipe_cols and 'edited_at' not in swipe_cols:
-            conn.execute('ALTER TABLE message_swipes ADD COLUMN edited_at DATETIME DEFAULT NULL')
+        # A column added since the baseline goes here, behind a check that the
+        # database lacks it: a new database already has it from the script above.
 
         # A server restart kills any in-flight summary thread; clear stale state so
         # a chat isn't stuck showing "running" forever. Partial progress is safe:
@@ -752,32 +249,17 @@ def init_db():
             "WHERE summary_status='running'"
         )
 
-        preset_cols = [c[1] for c in conn.execute('PRAGMA table_info(api_presets)').fetchall()]
-        if preset_cols and 'settings_json' not in preset_cols:
-            conn.execute("ALTER TABLE api_presets ADD COLUMN settings_json TEXT NOT NULL DEFAULT '{}'")
-
-        system_prompt_cols = [c[1] for c in conn.execute('PRAGMA table_info(system_prompts)').fetchall()]
-        if system_prompt_cols and 'version' not in system_prompt_cols:
-            conn.execute("ALTER TABLE system_prompts ADD COLUMN version TEXT NOT NULL DEFAULT ''")
-        if system_prompt_cols and 'description' not in system_prompt_cols:
-            conn.execute("ALTER TABLE system_prompts ADD COLUMN description TEXT NOT NULL DEFAULT ''")
-        if system_prompt_cols and 'post_history_content' not in system_prompt_cols:
-            conn.execute("ALTER TABLE system_prompts ADD COLUMN post_history_content TEXT NOT NULL DEFAULT ''")
-            # Backfill with the V1 stock sentinel; the enforce_house_style_post_history
-            # migration below then bumps these to the current default, keeping legacy
-            # DBs on the same path as ones that already had the column.
+        if fresh_install:
             conn.execute(
-                'UPDATE system_prompts SET post_history_content = ? '
-                "WHERE post_history_content = ''",
-                (_DEFAULT_POST_HISTORY_TEMPLATE_V1,)
+                "INSERT OR IGNORE INTO schema_migrations (version, name) VALUES (?, 'baseline')",
+                (BASELINE_VERSION,),
             )
-
         applied = _run_migrations(conn)
         if fresh_install:
             log.info('Created the database at %s', shared.DATABASE)
         elif applied:
             log.info('Migrated the database to version %d: %s',
-                     MIGRATIONS[-1][0], ', '.join(applied))
+                     database_version(), ', '.join(applied))
 
         conn.execute(
             "INSERT INTO settings (key, value) VALUES ('context_max_tokens', '32768') "

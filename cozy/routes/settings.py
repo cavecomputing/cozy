@@ -15,7 +15,7 @@ from flask import Blueprint, request, jsonify, Response
 
 from cozy import shared
 from cozy.defaults import VERSION_RE, plain_prompt, seed_default_prompts, version_key
-from cozy.schema import MIGRATIONS, before_update_path, init_db
+from cozy.schema import BASELINE_VERSION, before_update_path, database_version, init_db
 from cozy.shared import get_db, json_body, json_download, not_found, safe_download_name, text_field
 
 log = logging.getLogger('cozy')
@@ -567,7 +567,8 @@ def activate_preset(preset_id):
 #
 # Restoring is destructive by design: the data directory is emptied and the
 # archive takes its place. init_db() then runs, so a backup from an older build
-# is migrated up exactly as a normal start would migrate it.
+# is migrated up exactly as a normal start would migrate it. One from before
+# the baseline is refused, as a start on its database would be.
 
 BACKUP_MANIFEST = 'cozy-backup.json'
 
@@ -777,7 +778,7 @@ def restore_backup():
     upload = request.files.get('file')
     if not upload:
         return jsonify({'error': 'No file uploaded'}), 400
-    known_version = MIGRATIONS[-1][0]
+    known_version = database_version()
     with _RESTORE_LOCK, tempfile.TemporaryDirectory() as workspace:
         staged = os.path.join(workspace, 'data')
         os.makedirs(staged)
@@ -796,6 +797,11 @@ def restore_backup():
                         'This backup was made by a newer version of Cozy '
                         f'(database version {version}, this build understands '
                         f'{known_version}). Update Cozy, then restore it.'}), 409
+                if version < BASELINE_VERSION:
+                    return jsonify({'error':
+                        'This backup was made by an older version of Cozy '
+                        f'(database version {version}, this build opens '
+                        f'{BASELINE_VERSION} and later). Nothing was changed.'}), 409
                 if not _room_to_restore(archive, workspace):
                     return jsonify({'error':
                         'There is not enough free disk space to unpack this '
