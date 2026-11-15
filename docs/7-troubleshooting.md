@@ -28,8 +28,8 @@ First check that Cozy is running.
   running. The second shows its log.
 
   ```bash
-  docker compose -f docker/compose.yml ps
-  docker compose -f docker/compose.yml logs -f
+  docker compose ps
+  docker compose logs -f
   ```
 
 Then check the address. The default is <http://localhost:5000>. If you
@@ -153,9 +153,9 @@ everything in `data/`. If your own account has a different ID, build the app
 with your IDs:
 
 ```bash
-docker compose -f docker/compose.yml down
-docker compose -f docker/compose.yml build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
-docker compose -f docker/compose.yml up -d
+docker compose down
+docker compose build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
+docker compose up -d
 ```
 
 ## An update fails
@@ -195,7 +195,7 @@ as above.
 ## See more in the logs
 
 Cozy writes a log: in the terminal for Python, and in
-`docker compose -f docker/compose.yml logs -f` for Docker. The
+`docker compose logs -f` for Docker. The
 `COZY_LOG_LEVEL` environment variable sets how much it writes.
 
 | Value | What is logged |
@@ -214,7 +214,7 @@ COZY_LOG_LEVEL=DEBUG uv run app.py
 ```
 
 Docker: put the line `COZY_LOG_LEVEL=DEBUG` in the file `docker/.env`, then
-run `docker compose -f docker/compose.yml up -d`.
+run `docker compose up -d`.
 
 ---
 
