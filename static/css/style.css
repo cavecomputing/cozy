@@ -5577,8 +5577,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 /* Phone-narrow: Add entry stays in the title row and the search takes the
    line under it; labels go over controls, except a number's, which stays
-   beside it as in a settings row, and an entry's keys take a full line with
-   its move and delete buttons under them. */
+   beside it as in a settings row, an entry's keys take a full line with its
+   move and delete buttons under them, and its switches go one to a line
+   rather than wrapping two and then one. */
 @container (max-width: 640px) {
     .lorebook-entry-search {
         order: 1;
@@ -5589,6 +5590,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .lorebook-entry-field:not(.lorebook-entry-field-narrow) { grid-template-columns: minmax(0, 1fr); }
     .lorebook-entry-field-narrow { grid-template-columns: minmax(0, 1fr) auto; }
     .lorebook-entry-keys-wrap { flex-basis: 100%; }
+    .lorebook-entry-meta { flex-direction: column; }
 }
 
 /* ── About page ──────────────────────────────────────────────────────────── */
