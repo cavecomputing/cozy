@@ -101,6 +101,8 @@ async function connect() {
     finishStep(steps[0], `Connected to ${el.apiEndpoint.value}, model ${el.apiModel.value}.`);
 }
 
+const finishName = name => finishStep(steps[1], `Characters will call you ${name}.`);
+
 async function saveName(e) {
     e.preventDefault();
     const nameInput = document.getElementById('setup-name');
@@ -116,7 +118,7 @@ async function saveName(e) {
         showToast(err.message || 'Could not save your name', 'error');
         return;
     }
-    finishStep(steps[1], `Characters will call you ${name}.`);
+    finishName(name);
 }
 
 export function openSetup() {
@@ -158,6 +160,12 @@ export function openSetup() {
     el.sidebar.hidden = true;
     $('main-content').hidden = true;
     setup.hidden = false;
+    // Opened again by a reload part-way: show what was already saved. That a
+    // connection passed its test is not saved, so Connect is asked for again.
+    const endpoint = el.apiEndpoint.value;
+    if (endpoint) service.value = [...service.options].some(option => option.value === endpoint) ? endpoint : 'other';
+    const persona = state.activePersona;
+    if (persona && persona.tagline !== 'Change me!') finishName(persona.name);
     renderSetupCharacters();
 }
 
