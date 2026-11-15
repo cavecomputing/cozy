@@ -27,7 +27,9 @@ UNREADABLE_IMAGE = 'That file is not an image Cozy can read'
 
 def _unique_filename(name):
     """Return a non-colliding PNG filename in shared.CHARACTERS_DIR based on *name*."""
-    base = secure_filename(name) or 'character'
+    # Cut short, since a file name holds 255 bytes: a longer name could not be
+    # written at all, and the character was refused with a server error.
+    base = (secure_filename(name) or 'character')[:100]
     if base.lower().endswith('.png'):
         base = base[:-4]
     candidate = f"{base}.png"

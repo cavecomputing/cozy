@@ -548,6 +548,14 @@ class TestMalformedUploads:
         # The download is named from the card too, as the card holds it.
         assert client.get(f"/api/characters/{r.get_json()['id']}/export").status_code == 200
 
+    def test_import_takes_a_card_whose_name_is_longer_than_a_file_name(self, client):
+        r = client.post('/api/characters/import', data={
+            'file': (BytesIO(_png_with_card(v2_card(name='N' * 400))), 'long.png'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 201
+        assert r.get_json()['name'] == 'N' * 400
+        assert os.listdir(shared.CHARACTERS_DIR) == ['N' * 100 + '.png']
+
     def test_fields_of_the_wrong_type_reach_the_page_as_the_right_one(self, client):
         """A hand-written card can hold a null description or tags as one
         string. The file is left as its author wrote it; what the API reports
