@@ -5576,8 +5576,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* Phone-narrow: Add entry stays in the title row and the search takes the
-   line under it; labels go over controls, and an entry's keys take a full
-   line with its move and delete buttons under them. */
+   line under it; labels go over controls, except a number's, which stays
+   beside it as in a settings row, and an entry's keys take a full line with
+   its move and delete buttons under them. */
 @container (max-width: 640px) {
     .lorebook-entry-search {
         order: 1;
@@ -5585,7 +5586,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         max-width: none;
     }
     #settings-lorebook-add-entry { margin-left: auto; }
-    .lorebook-entry-field { grid-template-columns: minmax(0, 1fr); }
+    .lorebook-entry-field:not(.lorebook-entry-field-narrow) { grid-template-columns: minmax(0, 1fr); }
+    .lorebook-entry-field-narrow { grid-template-columns: minmax(0, 1fr) auto; }
     .lorebook-entry-keys-wrap { flex-basis: 100%; }
 }
 
@@ -6124,13 +6126,20 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 /* The paired cards stack before their field rows get cramped, and the field
    rows put the label over the control once a card is phone-narrow, when the
-   storage table's two columns would also run each title into its size. */
+   storage table's two columns would also run each title into its size. A
+   number is the exception: it fits beside its label, so it stays there, at
+   the row's end where the switches sit. */
 @container (max-width: 1060px) {
     .settings-card-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @container (max-width: 640px) {
-    .settings-row.settings-row--field { grid-template-columns: minmax(0, 1fr); }
+    .settings-row.settings-row--field:not(:has(> .form-input[type="number"], > .prompt-version-input)) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .settings-row.settings-row--field:has(> .form-input[type="number"], > .prompt-version-input) {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
     /* Under its label a select runs the row's width, as the switches do. */
     .settings-row--field > .cozy-select { max-width: none; }
     .about-storage-grid { grid-template-columns: minmax(0, 1fr); }
