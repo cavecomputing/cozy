@@ -1677,8 +1677,11 @@ async function init() {
     // A message's markup is drawn inside Cozy's own page, so a style sheet in
     // one restyles all of it: a card's greeting or a reply holding
     // <style>body{display:none}</style> left a blank window on every load.
-    // A form would send the tab away, or post to Cozy's own routes.
-    DOMPurify.setConfig({ FORBID_TAGS: ['style', 'form'] });
+    // A form would send the tab away, or post to Cozy's own routes. And an id
+    // or name of Cozy's own (user-input, chat-history) put the card's element
+    // in the way of every lookup that came after it in the page, so each one
+    // is kept apart by a prefix.
+    DOMPurify.setConfig({ FORBID_TAGS: ['style', 'form'], SANITIZE_NAMED_PROPS: true });
     // A link in a reply would take Cozy's own tab, and the chat with it, so
     // every rendered link opens in a new one.
     DOMPurify.addHook('afterSanitizeAttributes', node => {
