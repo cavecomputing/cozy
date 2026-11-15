@@ -3,22 +3,11 @@
 </p>
 
 <p align="center">
-  A cozy app for AI roleplay with a little Discord inspiration ✨
+  AI roleplay with some Discord inspiration ✨
 </p>
 
 
-Cozy is a chat app for AI roleplay. You talk to characters, ones you make or
-ones you download from the usual character-sharing sites, and Cozy handles the
-rest: remembering who they are, keeping long chats from running out of room, and
-making the whole thing look nice while you do it.
-
-**Cozy is not the AI.** It's the app you chat *in*. It doesn't include an AI model,
-download one, or do any of the thinking itself. You point it at an AI service
-you already have: a paid one online (OpenRouter and similar), or one running on
-your own computer (llama.cpp, Ollama, KoboldCpp, LM Studio). Almost all of them
-work, because almost all of them speak the same "OpenAI-style" language Cozy
-expects. Anthropic's Claude API works too: Cozy recognizes its address and
-switches to Claude's own format by itself.
+Cozy is an AI roleplay app that tries to stay out of your way. Talking to characters is easy, importing and making characters is easy, configuring things is easy. Easy, cozy, and simple. Any OpenAI-compatible API is supported as well as the Anthropic API. 
 
 <p align="center">
   <img src="assets/5.png" alt="Chat view on desktop" width="49%">
@@ -26,9 +15,9 @@ switches to Claude's own format by itself.
 </p>
 
 > [!IMPORTANT]
-> Cozy is feature complete, not stable. The set of features is settled for now,
-> but the code still changes: fixes, polish, and tweaks to how things work. Back
-> up your data before updating. Downgrading to an older version is not supported.
+> Cozy is fairly unstable, feature wise.
+> Back up your data before running updates.
+> Downgrading to older versions is not supported.
 
 ## What Cozy does
 
@@ -196,7 +185,7 @@ Redistributions and derivative works must preserve the attribution in
 
 ---
 
-Howdy! This whole app is "vibe coded slop". If that bothers you...🤷   
-Cozy is feature complete, which isn't the same as stable. What it can do is pretty much set in stone (for now), so I'm not planning to add more, but the code will keep changing: bug fixes, polish, and changes to how existing things work. I'm still trying to avoid breaking changes and ship proper migrations to keep things stableish. If you try to check out an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take a coding harness but then it completely replaced SillyTavern for my use. Maybe other people will like it?
+Howdy! This app is "vibe coded slop" with my occasional personal touches. If that bothers you...🤷   
+Cozy is somewhat feature complete, which isn't the same as stable. What it can do is pretty much set in stone (for now), but the code will keep changing: bug fixes, polish, and changes to how existing things work. If you try to check out an old version to use, do not expect it will then migrate to a newer version. It'll probably just die. This really only started as a project to see how far I could actually take a coding harness but then it completely replaced SillyTavern for my use. Maybe other people will like it?
 
-As an aside, I personally put a lot of weight in *ideas*. As such, I would super appreciate if you linked to this repo if you decide to fork this or use ideas from it. Other than that, go nuts and make cool things ❤️
+As an aside, I would super appreciate if you linked to this repo if you decide to use ideas from it. Other than that, go nuts and make cool things ❤️
