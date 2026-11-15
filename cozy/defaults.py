@@ -3,7 +3,7 @@ data directory, and what turns a prompt from before the fixed layout into one.
 
 Characters hand their content over once, tracked by a ``*_seeded`` flag that
 is never reset. Prompts are the exception and are
-restored on every start, which makes default_prompts/ — not the database —
+restored on every start, which makes cozy/bundled/prompts/ — not the database —
 the source of truth for which presets exist.
 """
 

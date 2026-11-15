@@ -311,7 +311,7 @@ Each prompt is a pair of plain text: `content` is the System prompt, sent in
 front of the chat, and `post_history_content` the Post-History prompt, sent
 after it. Cozy owns the layout around them, so neither holds tags or
 placeholders for the card, the persona or the memory. Bundled prompts are
-restored from `default_prompts/` on every start, so a deleted one comes back
+restored from `cozy/bundled/prompts/` on every start, so a deleted one comes back
 and the filename is the title, with the edition in `version`. A revision is a
 version bump inside the existing file. **Name and version identify a prompt
 together**: two editions of one prompt sit side by side, while the same name at
@@ -471,8 +471,8 @@ data at startup, each by its own seeder:
 
 | Content | Source | Bookkeeping |
 |---------|--------|-------------|
-| Character cards | `default_characters/` | `default_characters_seeded` |
-| Prompt presets | `default_prompts/` | none: restored every start |
+| Character cards | `cozy/bundled/characters/` | `default_characters_seeded` |
+| Prompt presets | `cozy/bundled/prompts/` | none: restored every start |
 
 The flag flips to `1` whether or not anything was inserted, and is never
 reset, so deleting a bundled character keeps it deleted. A name already taken
@@ -488,7 +488,7 @@ bookkeeping and is deliberately not once-only: on every start it inserts any
 bundled preset whose title **and version** are missing from `system_prompts`.
 The directory, not the database, is the source of truth for which presets exist.
 
-- Dropping a JSON file into `default_prompts/` makes it appear on the next
+- Dropping a JSON file into `cozy/bundled/prompts/` makes it appear on the next
   start, on new and existing installs alike.
 - Deleting a preset in Settings removes it until the next start, then it is
   back. Removing one for good means deleting its file. Under Docker, that

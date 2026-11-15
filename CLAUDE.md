@@ -159,8 +159,8 @@ Everything else is in `data/cozy_chat.db`; [docs/database-schema.md](docs/databa
 ### Bundled content, and who owns it afterwards
 
 Two seeders run from [app.py](app.py): characters from
-[default_characters/](default_characters/) and prompts from
-[default_prompts/](default_prompts/). Characters are handed over once and never looked at again;
+[cozy/bundled/characters/](cozy/bundled/characters/) and prompts from
+[cozy/bundled/prompts/](cozy/bundled/prompts/). Characters are handed over once and never looked at again;
 prompts are not.
 
 - Characters use the `default_characters_seeded` flag. It flips to `'1'` whether or not anything
@@ -169,7 +169,7 @@ prompts are not.
 - Characters seed on fresh installs only — an upgrade must not drop a card into a library the user
   curates.
 - Prompts are the exception to every line above: no flag, and **restored on every start**. Anything
-  in [default_prompts/](default_prompts/) missing from `system_prompts` is reinserted, so the
+  in [cozy/bundled/prompts/](cozy/bundled/prompts/) missing from `system_prompts` is reinserted, so the
   directory is the source of truth and a deleted preset comes back — removing one means deleting
   its file. A title is the **filename**, and a preset is identified by that title **together with
   its `version`** — the same pair `/api/system-prompts` rejects a duplicate on. So shipping a

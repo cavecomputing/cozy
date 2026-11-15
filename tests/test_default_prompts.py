@@ -1,4 +1,4 @@
-"""Tests for the prompt presets Cozy ships in default_prompts/ and seeds."""
+"""Tests for the prompt presets Cozy ships in cozy/bundled/prompts/ and seeds."""
 
 import json
 import os
@@ -140,7 +140,7 @@ class TestSeeding:
         assert row is not None and row['version'] == ''
 
     def test_a_malformed_version_in_a_bundle_file_seeds_blank(self, tmp_path):
-        # default_prompts/ is a directory anyone can drop a file into, so it is
+        # cozy/bundled/prompts/ is a directory anyone can drop a file into, so it is
         # not validated input. A "v" would otherwise reach the picker's badge
         # as "vv2.1" and the export filename.
         _seed_custom_bundle(tmp_path, {

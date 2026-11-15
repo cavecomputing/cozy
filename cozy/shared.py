@@ -16,8 +16,8 @@ from flask import jsonify, request, Response
 from cozy.build_info import get_build_info
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-# The repository root, one level above this package — the anchor for the
-# bundled content directories, static/themes, and the build-info lookup.
+# The repository root, one level above this package — the anchor for
+# static/themes and the build-info lookup.
 BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR     = os.environ.get('COZY_DATA_DIR', os.path.join(BASE_DIR, 'data'))
 DATABASE     = os.path.join(DATA_DIR, 'cozy_chat.db')
@@ -31,7 +31,7 @@ THUMBS_DIR     = os.path.join(DATA_DIR, 'thumbs')
 BUILTIN_THEMES_DIR = os.path.join(BASE_DIR, 'static', 'themes')
 # Character cards shipped with Cozy. Copied into CHARACTERS_DIR once, on the
 # first run of a fresh install — see seed_default_characters().
-BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
+BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'cozy', 'bundled', 'characters')
 # Prompt presets shipped with Cozy as {name, version, description, content,
 # post_history_content} JSON — the same payload the export endpoint produces.
 # The *filename* minus .json is the title each one is seeded under, and a preset
@@ -40,7 +40,7 @@ BUNDLED_CHARACTERS_DIR = os.path.join(BASE_DIR, 'default_characters')
 # and neither disturbs the other. Anything missing from system_prompts is
 # restored from here on every start, so this directory — not the database — is
 # the source of truth for which presets exist; see seed_default_prompts().
-BUNDLED_PROMPTS_DIR = os.path.join(BASE_DIR, 'default_prompts')
+BUNDLED_PROMPTS_DIR = os.path.join(BASE_DIR, 'cozy', 'bundled', 'prompts')
 ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Cap on decoded image dimensions (~8000x8000). Character cards and persona
 # avatars are user-supplied, and a small crafted file can otherwise expand to
