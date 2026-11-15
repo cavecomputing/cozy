@@ -1674,6 +1674,11 @@ async function init() {
     window.addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === 'Escape') && (e.isComposing || e.keyCode === 229)) e.stopPropagation();
     }, true);
+    // A message's markup is drawn inside Cozy's own page, so a style sheet in
+    // one restyles all of it: a card's greeting or a reply holding
+    // <style>body{display:none}</style> left a blank window on every load.
+    // A form would send the tab away, or post to Cozy's own routes.
+    DOMPurify.setConfig({ FORBID_TAGS: ['style', 'form'] });
     // A link in a reply would take Cozy's own tab, and the chat with it, so
     // every rendered link opens in a new one.
     DOMPurify.addHook('afterSanitizeAttributes', node => {
