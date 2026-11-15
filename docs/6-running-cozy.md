@@ -30,12 +30,13 @@ Go to the part you need:
 Use Docker when Cozy should keep running in the background, for example on a
 server.
 
-You need Git, and Docker with the `docker compose` command.
+You need Git, and Docker with the `docker compose` command, version 2.20 or
+newer (`docker compose version` shows it).
 
 **Start Cozy:**
 
 ```bash
-docker compose -f docker/compose.yml up -d --build
+docker compose up -d --build
 ```
 
 Then open <http://localhost:5000> in your browser.
@@ -47,13 +48,13 @@ the terminal.
 **Check that it is running:**
 
 ```bash
-docker compose -f docker/compose.yml ps
+docker compose ps
 ```
 
 **Read the logs:**
 
 ```bash
-docker compose -f docker/compose.yml logs -f
+docker compose logs -f
 ```
 
 New log lines appear as they happen. Press `Ctrl+C` to stop watching. Cozy
@@ -62,7 +63,7 @@ keeps running.
 **Stop Cozy:**
 
 ```bash
-docker compose -f docker/compose.yml down
+docker compose down
 ```
 
 This removes the container. It does not delete your `data/` folder. Your
@@ -71,7 +72,7 @@ chats, characters and settings stay where they are.
 **Open a command line inside the container.** You rarely need this:
 
 ```bash
-docker compose -f docker/compose.yml exec cozypub /bin/sh
+docker compose exec cozypub /bin/sh
 ```
 
 ### Use a different port
@@ -94,7 +95,7 @@ The line has three parts:
 To use port 8080:
 
 1. Change the line to `- "127.0.0.1:8080:5000"`.
-2. Run `docker compose -f docker/compose.yml up -d`.
+2. Run `docker compose up -d`.
 3. Open `http://localhost:8080`.
 
 ### File permissions on Linux
@@ -107,9 +108,9 @@ unable to change or copy the files in `data/`. To fix this, build the app
 with your own IDs:
 
 ```bash
-docker compose -f docker/compose.yml down
-docker compose -f docker/compose.yml build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
-docker compose -f docker/compose.yml up -d
+docker compose down
+docker compose build --build-arg UID=$(id -u) --build-arg GID=$(id -g)
+docker compose up -d
 ```
 
 ## Run Cozy with Python
@@ -177,7 +178,7 @@ your phone or another computer on the same network, do these three steps.
    Docker: put the password in `docker/.env`, as described in
    [Require a password](#require-a-password). Then, in `docker/compose.yml`,
    remove `127.0.0.1:` from the ports line, so it reads `- "5000:5000"`. Then
-   run `docker compose -f docker/compose.yml up -d`.
+   run `docker compose up -d`.
 3. **On the other device, open** `http://<address>:5000`, where `<address>` is
    the network address of the computer that runs Cozy. For example
    `http://192.168.1.20:5000`. The sign-in page appears. Type the password.
@@ -222,7 +223,7 @@ uv run app.py --host 0.0.0.0
 
 Docker:
 
-1. Create a file named `.env` in the `docker/` folder, next to `compose.yml`.
+1. Create a file named `.env` in the `docker/` folder, next to `docker/compose.yml`.
 2. Put this one line in it:
 
    ```text
@@ -230,7 +231,7 @@ Docker:
    ```
 
    Keep the single quotes. They make a `$` in the password stay a `$`.
-3. Start or restart Cozy with `docker compose -f docker/compose.yml up -d`.
+3. Start or restart Cozy with `docker compose up -d`.
 
 Git ignores the `.env` file, and it is not copied into the Docker image.
 
@@ -299,7 +300,7 @@ volumes:
   - /path/to/cozy-data:/data
 ```
 
-Then run `docker compose -f docker/compose.yml up -d`.
+Then run `docker compose up -d`.
 
 ## Back up and restore
 
@@ -349,7 +350,7 @@ What Cozy checks, and what it does not:
 
 ### Back up by hand
 
-1. Stop Cozy. Docker: `docker compose -f docker/compose.yml down`. Python:
+1. Stop Cozy. Docker: `docker compose down`. Python:
    press `Ctrl+C` in the terminal that runs Cozy.
 2. Copy the whole `data/` folder to a safe place.
 
@@ -367,7 +368,7 @@ Keep `data-old/` until you have seen that the restored copy works.
 
 ## Update Cozy
 
-1. Stop Cozy. Docker: `docker compose -f docker/compose.yml down`. Python:
+1. Stop Cozy. Docker: `docker compose down`. Python:
    press `Ctrl+C` in the terminal that runs Cozy.
 2. [Back up your data](#back-up-and-restore). An older version of Cozy cannot
    read data that a newer version has changed.
@@ -377,7 +378,7 @@ Keep `data-old/` until you have seen that the restored copy works.
 
    ```bash
    git pull
-   docker compose -f docker/compose.yml up -d --build
+   docker compose up -d --build
    ```
 
    Python:
