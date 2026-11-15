@@ -91,6 +91,23 @@ def test_a_reply_is_saved_though_the_page_never_reads_it(client, sample_chat, mo
     assert message['role'] == 'character'
 
 
+def test_an_emoji_split_between_two_chunks_is_saved_as_one_character(client, sample_chat, model):
+    # As a server that escapes its JSON sends one: "\ud83d" in a chunk, "\ude00" in the next.
+    model(said('Hi \ud83d'), said('\ude00 there'), '[DONE]')
+    stream = events(client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json=PAYLOAD))
+    assert stream[-1]['saved']['content'] == 'Hi \U0001f600 there'
+    assert texts(client, sample_chat) == ['Hi \U0001f600 there']
+
+
+def test_half_an_emoji_at_the_end_of_a_reply_does_not_stop_it_being_saved(client, sample_chat, model):
+    model(said('Cut off \ud83d'), '[DONE]')
+    stream = events(client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json=PAYLOAD))
+    assert stream[-1]['saved']['content'] == 'Cut off \ufffd'
+    # The chat is free for its next reply.
+    model(said('Next'), '[DONE]')
+    assert client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json=PAYLOAD).status_code == 200
+
+
 def test_a_page_that_comes_back_reads_the_reply_from_its_first_word(client, sample_chat, model):
     upstream = model(thought('Hmm.'), said('Hel'), HOLD, said('lo'), '[DONE]')
     url = f'/api/llm/chat?chat_id={sample_chat["id"]}'

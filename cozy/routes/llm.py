@@ -389,6 +389,12 @@ def _finish(reply, whole=False, error=None):
         reasoning = ''.join(reply.reasoning)
         if reasoning:
             text = f'<think>{reasoning}</think>{text}'
+        # A provider that escapes its JSON can split an emoji between two
+        # chunks, half in each. Joined here they are still two halves, which
+        # the database refuses: the save raised, the reply never ended, and its
+        # chat took no other until a restart. The page reads the two as one
+        # character, so they are made one here, and a half left over a mark.
+        text = text.encode('utf-16', 'surrogatepass').decode('utf-16', 'replace')
         if not whole:
             text = close_incomplete_thinking(text) if strip_thinking_content(text) else ''
         try:
