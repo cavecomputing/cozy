@@ -77,8 +77,8 @@ async function readReply(res, onToken) {
         try { json = JSON.parse(line.slice(6)); } catch { return; }
         if (json?.saved) { saved = json.saved; return; }
         if (json?.error) throw Object.assign(new Error(json.error), { saved });
-        finishReason = json.choices?.[0]?.finish_reason || finishReason;
-        const delta = json.choices?.[0]?.delta || {};
+        finishReason = json?.choices?.[0]?.finish_reason || finishReason;
+        const delta = json?.choices?.[0]?.delta || {};
         const reasonTok = delta.reasoning_content || delta.reasoning || '';
         const contentTok = delta.content || '';
         if (reasonTok) reasoning += reasonTok;

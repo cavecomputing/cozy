@@ -97,6 +97,26 @@ def test_stream_resolves_with_what_the_server_saved():
     """)
 
 
+def test_stream_reads_past_a_chunk_that_is_not_an_object():
+    """The server passes on what the provider sent, and `null` is valid JSON.
+    Reading `choices` of it threw, which the page showed as the reply failing
+    though the server went on to save it."""
+    run_node_module(STREAM_SETUP + r"""
+        stubStream([
+            'data: null\n',
+            'data: [1, 2]\n',
+            'data: "text"\n',
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}\n',
+            'data: [DONE]\n',
+            'data: {"saved":{"id":9,"content":"Hello"}}\n',
+        ]);
+        const seen = [];
+        const saved = await API.streamChatCompletion({ model: 'm' }, text => seen.push(text), null, 7);
+        assert.deepEqual(saved, { id: 9, content: 'Hello' });
+        assert.deepEqual(seen, ['Hello']);
+    """)
+
+
 def test_stream_says_why_a_reply_that_ended_early_stopped():
     """A reply cut at max_tokens, or by a dropped connection, looks finished."""
     run_node_module(STREAM_SETUP + r"""
