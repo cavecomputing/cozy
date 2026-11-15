@@ -2282,6 +2282,11 @@ input[type="checkbox"]:checked::after {
     word-wrap: break-word;
     overflow-wrap: break-word;
     line-height: 1.6;
+    /* A card's markup keeps its inline styles, so it can colour its own text.
+       This keeps whatever it draws inside its own message: a greeting holding
+       a position: fixed box used to cover the chat, the header and, on a
+       phone, the menu button. */
+    contain: layout paint;
 }
 
 /* Markdown typography inside bubbles — RP-enhanced styles */
@@ -2792,6 +2797,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--text-secondary);
     max-height: 300px;
     overflow-y: auto;
+    /* The model's markup too, kept inside its box as .message-content is. */
+    contain: layout paint;
 }
 
 .thinking-content.open { display: block; }
