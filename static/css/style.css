@@ -4288,8 +4288,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
-    /* Mobile-only drill-down back arrow — never show on desktop */
-    #settings-back-btn { display: none; }
+    /* The phone's drill-down back arrow and top-bar help — never on desktop,
+       where each page's header carries its own help. */
+    :is(#settings-back-btn, #settings-page-help) { display: none; }
 
     /* Settings covers the character rail rather than opening beside it, so
        its own menu stands where the characters were and the window has two
@@ -7103,12 +7104,18 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         letter-spacing: 0;
         color: var(--fg-heading);
         text-align: center;
+    }
+
+    /* Centred between the back arrow and the page's help, or the room the
+       help would take on a page without one. */
+    #settings-flyout:has(.in-detail) #settings-title:has(+ #settings-page-help[hidden]) {
         padding-right: 44px;
     }
 
     .settings-page-header { position: static; padding: var(--space-3) var(--page-gutter); }
 
-    .settings-page-header h3 { display: none; }
+    /* The top bar shows the page's title and its help button instead. */
+    :is(.settings-page-header h3, .settings-page-header [data-help]) { display: none; }
 
     .settings-page-header p { margin: 0; font-size: var(--text-lg); }
 

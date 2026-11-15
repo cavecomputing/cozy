@@ -209,9 +209,19 @@ function bindBackupHandlers() {
 
 function updateSettingsHeader() {
     const detail = isMobileSettings() && el.settingsShell.classList.contains('in-detail');
+    const page = el.settingsPane.querySelector('.settings-section:not([hidden])');
     document.getElementById('settings-title').textContent = detail
-        ? el.settingsPane.querySelector('.settings-section:not([hidden]) h3').textContent
+        ? page.querySelector('h3').textContent
         : 'Settings';
+    // The page's own help button, in the top bar beside its title.
+    const pageHelp = detail && page.querySelector('.settings-page-header [data-help]');
+    const topHelp = document.getElementById('settings-page-help');
+    topHelp.hidden = !pageHelp;
+    if (pageHelp) {
+        topHelp.dataset.help = pageHelp.dataset.help;
+        topHelp.title = pageHelp.title;
+        topHelp.setAttribute('aria-label', pageHelp.getAttribute('aria-label'));
+    }
 }
 
 function exitSettingsDetail() {
