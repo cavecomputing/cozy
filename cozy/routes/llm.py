@@ -537,6 +537,11 @@ def _write_reply(reply, url, headers, body, anthropic, logged_url):
 def _follow(reply):
     """The SSE response that plays a reply from its start and keeps up with it."""
     def events():
+        # The status and headers only leave with the first chunk of the body.
+        # Before the model's first word there is nothing to replay, and a page
+        # rejoining then would wait that long to hear a reply is there at all:
+        # with nothing drawn and Send free, only to be told one is under way.
+        yield ': following\n\n'
         sent = 0
         while True:
             with reply.changed:

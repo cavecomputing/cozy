@@ -1034,7 +1034,8 @@ class TestLLMProxy:
             'model': 'test-model', 'messages': [{'role': 'user', 'content': 'hi'}],
         })
 
-        lines = [line for line in r.get_data(as_text=True).split('\n') if line]
+        # Comment lines (": …") carry nothing, as in any SSE stream.
+        lines = [line for line in r.get_data(as_text=True).split('\n') if line and not line.startswith(':')]
         assert lines[-2] == 'data: [DONE]'
         text = ''
         for line in lines[:-2]:

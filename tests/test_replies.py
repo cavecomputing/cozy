@@ -110,6 +110,23 @@ def test_a_page_that_comes_back_reads_the_reply_from_its_first_word(client, samp
     assert saved['saved']['id'] == client.get(f'/api/chats/{sample_chat["id"]}/messages').get_json()[0]['id']
 
 
+def test_a_page_that_comes_back_before_the_first_word_hears_at_once(client, sample_chat, model):
+    """The headers go with the first chunk of the body, and until they arrive
+    the page has no reply to draw and offers Send, which is refused."""
+    upstream = model(HOLD, said('Hello'), '[DONE]')
+    url = f'/api/llm/chat?chat_id={sample_chat["id"]}'
+    client.post(url, json=PAYLOAD).close()
+
+    stream = client.get(url).response
+    first = []
+    reader = threading.Thread(target=lambda: first.append(next(stream)), daemon=True)
+    reader.start()
+    reader.join(1)
+    assert first == [b': following\n\n']
+    upstream.release.set()
+    assert b'"saved"' in b''.join(stream)
+
+
 def test_the_chat_says_when_no_reply_is_running_and_when_one_just_ended(client, sample_chat, model):
     url = f'/api/llm/chat?chat_id={sample_chat["id"]}'
     assert client.get(url).status_code == 204
@@ -278,6 +295,7 @@ def test_a_listener_with_nothing_to_hear_is_sent_a_comment_line(client, sample_c
     upstream = model(HOLD, said('Hello'), '[DONE]')
     stream = client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json=PAYLOAD).response
 
+    assert next(stream) == b': following\n\n'
     assert next(stream) == b': waiting\n\n'
     upstream.release.set()
     assert b'"saved"' in b''.join(stream)
