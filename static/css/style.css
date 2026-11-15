@@ -7203,30 +7203,30 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     .sampler-reset-btn { min-height: 44px; }
 
+    /* As tall as its rows, and no taller than the room between the page
+       header and the bottom edge. */
     .sampler-popover {
         position: fixed;
         top: calc(80px + env(safe-area-inset-top, 0px));
-        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
         left: calc(16px + env(safe-area-inset-left, 0px));
         right: calc(16px + env(safe-area-inset-right, 0px));
         width: auto;
         min-width: 0;
         max-width: none;
-        max-height: none;
+        max-height: calc(100dvh - 156px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     }
 
-    .sampler-popover-footer { display: flex; }
+    /* Done lines up with the ADV badges above it. */
+    .sampler-popover-footer {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: 0.35rem 0.6rem 0.6rem 0;
+    }
 
     .sampler-done-btn {
-        display: block;
+        display: inline-flex;
         min-height: 44px;
-        padding: 0 0.6rem;
-        background: none;
-        border: 0;
-        border-radius: var(--radius-control);
-        color: var(--fg-accent);
-        font: 600 var(--text-md) var(--font-mono);
-        cursor: pointer;
     }
 
     .sampler-popover input[type="checkbox"] { margin-block: 0; }

@@ -133,7 +133,7 @@ export function renderSamplerPopover() {
     resetBtn.addEventListener('click', resetActiveSamplers);
     const doneBtn = document.createElement('button');
     doneBtn.type = 'button';
-    doneBtn.className = 'sampler-done-btn';
+    doneBtn.className = 'btn btn-primary sampler-done-btn';
     doneBtn.textContent = 'Done';
     footer.append(resetBtn, doneBtn);
     pop.append(rows, footer);

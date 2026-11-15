@@ -901,7 +901,7 @@ function bindSettingsHandlers() {
         e.stopPropagation();
         setSamplerPopoverOpen(el.samplerPopover.hidden);
     });
-    // On a phone the list fills the screen, leaving little outside it to tap,
+    // On a phone the list covers most of the screen, leaving little outside it to tap,
     // so it has a Done button there (style.css hides it elsewhere).
     el.samplerPopover?.addEventListener('click', e => {
         if (!e.target.closest('.sampler-done-btn')) return;
