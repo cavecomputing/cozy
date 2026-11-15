@@ -102,7 +102,7 @@ def text_field(data, key):
 def safe_download_name(name, fallback='download'):
     """Return a conservative display filename stem for download headers."""
     safe = ''.join(
-        c for c in (name or '')
+        c for c in str(name or '')
         if (c.isascii() and c.isalnum()) or c in (' ', '-', '_')
     ).strip()
     return safe or fallback

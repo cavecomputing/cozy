@@ -545,6 +545,8 @@ class TestMalformedUploads:
         assert r.status_code == 201
         assert r.get_json()['name'] == shown
         assert [c['name'] for c in client.get('/api/characters').get_json()] == [shown]
+        # The download is named from the card too, as the card holds it.
+        assert client.get(f"/api/characters/{r.get_json()['id']}/export").status_code == 200
 
     def test_fields_of_the_wrong_type_reach_the_page_as_the_right_one(self, client):
         """A hand-written card can hold a null description or tags as one
