@@ -587,14 +587,17 @@
                             <div class="prompt-section-right settings-card">
                                 <div class="prompt-builder-bar settings-card-header">
                                     <svg class="settings-card-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                                    <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
-                                        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system"><span>System</span></button>
-                                        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history"><span>Post-History</span></button>
+                                    <h4>Instructions</h4>
+                                    <div class="preset-select-row">
+                                        <div id="prompt-builder-tabs" class="prompt-builder-tabs" role="tablist" aria-label="Prompt builder editor">
+                                            <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-prompt-builder-tab="system"><span>System</span></button>
+                                            <button class="tab-btn" type="button" role="tab" aria-selected="false" data-prompt-builder-tab="post-history"><span>Post-History</span></button>
+                                        </div>
+                                        <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both as they are sent" aria-label="Preview both as they are sent" aria-expanded="false" aria-controls="prompt-rendered-flyout">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                            <span class="settings-action-label">Preview</span>
+                                        </button>
                                     </div>
-                                    <button id="prompt-rendered-btn" class="icon-btn prompt-rendered-btn" type="button" title="Preview both as they are sent" aria-label="Preview both as they are sent" aria-expanded="false" aria-controls="prompt-rendered-flyout">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                                        <span class="settings-action-label">Preview</span>
-                                    </button>
                                 </div>
                                 <div id="prompt-card-callout" class="prompt-card-callout" role="note" hidden>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>

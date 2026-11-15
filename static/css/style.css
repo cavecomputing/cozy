@@ -4650,9 +4650,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     line-height: 1.25;
 }
 
-/* The hairline that runs on from a title (or the Prompt editor's tabs, its
-   title) to the section's controls, or to the edge when it has none. */
-.settings-card-header > :is(h4, .prompt-builder-tabs)::after {
+/* The hairline that runs on from a title to the section's controls, or to the
+   edge when it has none. */
+.settings-card-header > h4::after {
     content: "";
     flex: 1 1 auto;
     height: 1px;
@@ -5176,34 +5176,32 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-left: auto;
 }
 
+/* The editor's System / Post-History switch sits among the title row's
+   controls: two segments in an inset like the ghost buttons beside it, as
+   tall as Preview, the open one raised on the page colour. */
 .prompt-builder-tabs {
     display: flex;
-    flex: 1;
-    min-width: 0;
-}
-
-/* The editor's tab bar is its title row: the tabs set as the title, the
-   active one underlined. The tab carries the padding under its words, and
-   the negative margin keeps that padding out of the title row's height. */
-.prompt-builder-tabs .tab-btn {
-    padding: 0 var(--space-3) calc(0.625rem - 1px);
-    margin-bottom: calc(-0.625rem - 1px);
-    font-size: 1.125rem;
-    font-weight: 700;
-    line-height: 1.25;
-}
-
-.prompt-builder-tabs .tab-btn:first-child { padding-left: 0; }
-
-.prompt-rendered-btn {
     flex: none;
-    width: auto;
-    display: flex;
-    gap: var(--space-2);
-    padding: var(--space-3);
-    color: var(--fg-cool);
-    /* Like a title-row button elsewhere, Preview may not set the row's height. */
-    margin-block: calc(-1 * var(--space-2));
+    gap: 2px;
+    padding: 2px;
+    background: var(--surface-quiet);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+}
+
+.prompt-builder-tabs .tab-btn {
+    justify-content: center;
+    min-height: 28px;
+    margin: 0;
+    padding: 0 var(--space-3);
+    border: none;
+    border-radius: calc(var(--radius-control) - 2px);
+}
+
+.prompt-builder-tabs .tab-btn.active {
+    background: var(--bg-color);
+    color: var(--fg-heading);
+    box-shadow: 0 0 0 1px var(--line);
 }
 
 .prompt-section-right {
@@ -7213,11 +7211,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .prompt-select-row .export-dropdown { flex-basis: 100%; }
 
     /* ── Prompt page ─────────────────────────────────────────────────────── */
-    /* Preview keeps its desktop padding over the phone .icon-btn padding. */
-    .prompt-rendered-btn {
-        padding: var(--space-3);
-    }
-
     .prompt-section-body {
         display: flex;
         flex-direction: column;
@@ -7230,7 +7223,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         grid-row: auto;
     }
 
-    .prompt-builder-tabs .tab-btn { min-height: 44px; }
+    /* The switch grows with Preview to fill its row, a tap target tall. */
+    .prompt-builder-tabs { flex: 1 1 auto; }
+
+    .prompt-builder-tabs .tab-btn {
+        flex: 1;
+        min-height: calc(var(--mobile-tap-target) - 6px);
+    }
 
     .prompt-section-right { flex: none; min-height: 0; }
 
@@ -7290,13 +7289,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* ── Smaller phones ──────────────────────────────────────────────────────── */
-/* Title-size tabs and Preview share one row. Below the width of a current
-   iPhone the pencil gives up its place, and on the smallest phones Preview's
-   label does too. */
-@media (max-width: 389px) {
-    .prompt-builder-bar > .settings-card-icon { display: none; }
-}
-
+/* The editor's switch and Preview share one row; on the smallest phones
+   Preview's label gives up its place. */
 @media (max-width: 359px) {
     .prompt-rendered-btn .settings-action-label { display: none; }
 }

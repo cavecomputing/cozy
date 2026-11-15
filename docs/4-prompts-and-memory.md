@@ -35,9 +35,10 @@ Go to the part you need:
 The prompt is the set of instructions the AI gets with every message. You
 write two pieces of text. Cozy adds the other parts in the list above.
 
-Open **Settings → Prompt**. The editor has two tabs:
+Open **Settings → Prompt**. The **Instructions** section holds two texts, and
+the **System** / **Post-History** switch beside its title picks which one you see:
 
-| Tab | When it is sent | What to write in it |
+| Text | When it is sent | What to write in it |
 |---|---|---|
 | **System** | First, before everything else. | How the AI should tell the story. |
 | **Post-History** | Last, after the chat, just before each reply. | A short reminder. It is the last thing the AI reads before it writes. |
@@ -82,7 +83,7 @@ editor. Then, while you chat with a character whose card has its own text:
 
 - The card's system prompt replaces your **System** text.
 - The card's post-history instructions replace your **Post-History** text.
-- The tab shows the card's text, so you can see what is being sent. You cannot
+- The editor shows the card's text, so you can see what is being sent. You cannot
   edit it there.
 
 Your own text is not changed, and it is still used for every other character.
