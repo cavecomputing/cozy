@@ -97,7 +97,7 @@ gray background turns dark blue and the yellow accent turns light blue.
 
 Some colors stay as they were, because the example does not set them: speech
 in quotes stays green, the character's name stays pink, and the icons on
-settings cards stay green. Each of those has its own variable. Find it in the
+settings section titles stay green. Each of those has its own variable. Find it in the
 [Variable reference](#variable-reference) and add it to your file.
 
 If **My Theme** is not in the list, see
@@ -220,7 +220,7 @@ example with comments.
 | `--bg-color` | The main surface: the page, the chat and the Settings pages. |
 | `--app-bg` | The darkest ground: the loading screen, and quote blocks in your own messages. |
 | `--sidebar-bg` | The sidebar. |
-| `--char-msg-bg` | Raised surfaces: settings cards and your own message bubble. |
+| `--char-msg-bg` | Raised surfaces, such as your own message bubble. |
 | `--input-bg` | Text fields and other sunken areas. |
 | `--hover-bg` | The fill under the pointer on buttons and rows. |
 | `--active-bg` | The selected row, such as the open character. |
@@ -263,7 +263,7 @@ imported value until it sets its own.
 |---|---|---|
 | `--radius-md` | How round the corners of cards are. Buttons and fields take 0.6 of it. `0px` makes cards, buttons and fields square. | `8px` |
 | `--accent-text` | The accent where it is used as text: labels, active rows, focus rings. Set a darker or lighter step of the accent when the accent itself is hard to read on your surfaces. | `--accent-color` |
-| `--accent-alt` | A second accent, for the icons beside settings card titles. | `--success-color` |
+| `--accent-alt` | A second accent, for the icons beside settings section titles. | `--success-color` |
 | `--cool-color` | Links, references and previews. | A mix of `--rp-action-color` and `--text-color` |
 | `--char-name-color` | The character's name above its messages. | The accent text color |
 | `--btn-primary-color` | Text and icons on accent-filled buttons, such as Send. | `white` |
