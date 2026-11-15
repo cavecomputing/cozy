@@ -4645,7 +4645,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .settings-card-header h4 {
     flex: 1 1 0;
-    min-width: fit-content;
+    min-width: min-content;
     font-size: 1.125rem;
     line-height: 1.25;
 }
