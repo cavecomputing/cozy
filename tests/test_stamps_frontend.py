@@ -61,9 +61,8 @@ def test_an_unrenamed_chat_reads_as_a_date():
         assert.doesNotMatch(recent, /59/, 'seconds are left out');
         assert.match(displayChatName({ name: '2025-03-22:20-06-42' }), /2025/);
 
-        // A name someone chose, and the retired stamp with no year to read, stay as they are.
+        // A name someone chose stays as it is.
         assert.equal(displayChatName({ name: 'Road trip' }), 'Road trip');
-        assert.equal(displayChatName({ name: 'May 18 16:54:17' }), 'May 18 16:54:17');
     """)
 
 

@@ -283,13 +283,6 @@ export function applySummaryState(st, expectedChatId = st?.id ?? state.activeCha
     if (!st || expectedChatId == null) return;
     if (st.id != null && st.id !== expectedChatId) return;
 
-    // Older server versions could leave progress text behind after a restart
-    // reset a dead worker to idle. It is not a warning and should not be shown
-    // as one in the memory card.
-    if (st.summary_status === 'idle'
-        && /^(Starting|Summarizing)/i.test(st.summary_status_detail || '')) {
-        st = { ...st, summary_status_detail: '' };
-    }
     if (st.summary_status === 'error') {
         failedRuns.set(expectedChatId, st.summary_status_detail || 'Summary update failed.');
     } else if (st.summary_status === 'idle') {

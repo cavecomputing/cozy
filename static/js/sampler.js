@@ -95,11 +95,7 @@ function getActiveSamplers(settings) {
     const raw = settings.active_samplers;
     if (raw === undefined || raw === null) return new Set(DEFAULT_ACTIVE_GROUPS);
     if (raw === '') return new Set();
-    let keys = raw.split(',').filter(k => k in SAMPLER_GROUPS);
-    // Migration: old format used sampler_* field keys
-    if (keys.length === 0) {
-        keys = raw.split(',').map(k => k.replace('sampler_', '')).filter(k => k in SAMPLER_GROUPS);
-    }
+    const keys = raw.split(',').filter(k => k in SAMPLER_GROUPS);
     return keys.length ? new Set(keys) : new Set(DEFAULT_ACTIVE_GROUPS);
 }
 

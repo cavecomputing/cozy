@@ -48,20 +48,15 @@ export function sanitizeFilename(name) {
     return (name || '').replace(/[\\/:*?"<>|]/g, '_');
 }
 
-/**
- * Matches the chatStamp() default name given to new chats. The second branch is
- * the retired syslog-style stamp ("May 18 16:54:17"), still worn by chats made
- * before the switch.
- */
-export const DEFAULT_CHAT_NAME_RE =
-    /^(?:\d{4}-\d{2}-\d{2}:\d{2}-\d{2}-\d{2}|[A-Z][a-z]{2} {1,2}\d{1,2} \d{2}:\d{2}:\d{2})$/;
+/** Matches the chatStamp() default name given to new chats. */
+export const DEFAULT_CHAT_NAME_RE = /^\d{4}-\d{2}-\d{2}:\d{2}-\d{2}-\d{2}$/;
 
 /** User-facing chat name: the stored name, with a fallback for unnamed chats. */
 export function displayChatName(chat) {
     const name = (chat?.name || '').trim();
-    if (!name || name === 'New Chat') return 'New chat';
+    if (!name) return 'New chat';
     // An unrenamed chat keeps chatStamp()'s name on disk and shows it as a date.
-    if (/^\d/.test(name) && DEFAULT_CHAT_NAME_RE.test(name)) {
+    if (DEFAULT_CHAT_NAME_RE.test(name)) {
         const [year, month, day, hour, minute] = name.split(/[-:]/).map(Number);
         const format = year === new Date().getFullYear() ? STAMP_FORMATS.dayTime : STAMP_FORMATS.full;
         return format.format(new Date(year, month - 1, day, hour, minute));

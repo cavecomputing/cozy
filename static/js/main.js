@@ -84,11 +84,7 @@ function loadPrefs() {
         state._savedActiveId   = p.activeCharId     || null;
         state._savedChatId     = p.activeChatId     || null;
         state._savedPersonaId  = p.activePersonaId  || null;
-        // Migrate section keys retained in preferences from earlier settings layouts.
-        const savedSection     = p.settingsSection  || 'general';
-        state.settingsSection  = savedSection === 'sampler' ? 'api'
-            : savedSection === 'appearance' || savedSection === 'regex' ? 'general'
-            : savedSection;
+        state.settingsSection  = p.settingsSection  || 'general';
     } catch { /* ignore */ }
 }
 

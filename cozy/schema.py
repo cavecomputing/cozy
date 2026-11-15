@@ -305,7 +305,7 @@ def _fold_retired_samplers(values):
     JSON object were already ignored by the request, and are left alone.
     """
     raw_active = values.get('active_samplers')
-    # The page also reads an older format that listed sampler_* field keys.
+    # An older format listed sampler_* field keys.
     active = [key.removeprefix('sampler_') for key in raw_active.split(',')] if raw_active else []
     moved = {}
     for group, (off, fields) in _RETIRED_SAMPLERS.items():
