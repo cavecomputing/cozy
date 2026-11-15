@@ -694,20 +694,23 @@ def download_backup():
 
 
 def _usable_database(path):
-    """True when SQLite can open *path* and read its schema.
+    """True when *path* is a database this build opens.
 
     Checked while the archive is still staged, because the alternative is
-    finding out after the data directory has already been emptied.
+    finding out after the data directory has already been emptied. SQLite has
+    to read it, and its own ledger has to put it where the manifest did: an
+    empty file opens as a database with nothing in it, and init_db() refuses
+    one below the baseline, which it used to do after the old data was gone.
     """
     try:
         connection = sqlite3.connect(path)
         try:
-            connection.execute('SELECT count(*) FROM sqlite_master')
+            version = connection.execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0]
         finally:
             connection.close()
     except sqlite3.Error:
         return False
-    return True
+    return version is not None and BASELINE_VERSION <= version <= database_version()
 
 
 def _stage_backup(archive, staged):
@@ -809,7 +812,7 @@ def restore_backup():
                         'backup. Nothing was changed.'}), 507
                 _stage_backup(archive, staged)
             if not _usable_database(os.path.join(staged, os.path.basename(shared.DATABASE))):
-                raise ValueError('the database in it is unreadable')
+                raise ValueError('the database in it is not one this Cozy can open')
         except (zipfile.BadZipFile, KeyError, ValueError, UnicodeDecodeError) as e:
             return jsonify({'error': f'That file is not a Cozy backup ({e}).'}), 400
         # A backup carries no sign-in secret (_database_snapshot()). Put this

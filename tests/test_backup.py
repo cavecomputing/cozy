@@ -2,6 +2,7 @@ import io
 import json
 import os
 import shutil
+import sqlite3
 import tempfile
 import zipfile
 
@@ -188,6 +189,28 @@ class TestBackupRestore:
         assert r.status_code == 400
         names = [c['name'] for c in client.get('/api/characters').get_json()]
         assert names == ['Still Here']
+
+    def test_a_database_cozy_cannot_open_is_refused_before_anything_is_deleted(self, client):
+        """An empty file opens in SQLite as a database with nothing in it, and
+        so does any other app's. Either got past the check, the old data was
+        deleted, and then init_db() refused what had replaced it."""
+        create_character(client, 'Still Here')
+        with tempfile.TemporaryDirectory() as folder:
+            other = os.path.join(folder, 'other.db')
+            connection = sqlite3.connect(other)
+            connection.execute('CREATE TABLE notes (body TEXT)')
+            connection.commit()
+            connection.close()
+            with open(other, 'rb') as f:
+                another_apps = f.read()
+        for database in (b'', another_apps):
+            body = make_backup_bytes(
+                {os.path.basename(shared.DATABASE): database},
+                manifest={'app': 'cozy', 'schema_version': BASELINE_VERSION},
+            )
+            assert restore(client, body).status_code == 400
+            names = [c['name'] for c in client.get('/api/characters').get_json()]
+            assert names == ['Still Here']
 
     def test_a_backup_too_big_for_the_disk_is_refused_before_anything_is_moved(
             self, client, monkeypatch):
