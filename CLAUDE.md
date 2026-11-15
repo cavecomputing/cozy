@@ -1,7 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
+This file provides guidance to Claude Code (claude.ai/code) and any other agent harness when working with code in this repository.
 ## Git workflow
 
 The repository is **public and has users**, and `main` is what they run, so **`main` always
