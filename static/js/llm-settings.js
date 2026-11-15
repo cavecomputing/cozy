@@ -221,10 +221,13 @@ async function loadModels(profile) {
     return true;
 }
 
+// The menu for a name being typed. With nothing to offer it stays shut: a menu
+// that only said so sat over whatever is under the box, which in the first-run
+// setup is the Connect button the typed name was for.
 function openModelSearchResults(profile, query) {
-    const trimmed = query.trim();
     const matches = filterModels(profile, query);
-    renderModelMenu(profile, matches, trimmed ? 'No matching models' : 'No models found');
+    if (!matches.length) return closePicker(profile);
+    renderModelMenu(profile, matches);
     setModelMenuOpen(profile, true);
 }
 
@@ -247,6 +250,9 @@ async function fetchPickerModels(profile, { force = false, filter = '' } = {}) {
             setModelMenuOpen(profile, true);
         }
     } catch (e) {
+        // Browse asked for the list, so it is told why there is none. A name
+        // being typed did not: it only goes without suggestions.
+        if (filter) return closePicker(profile);
         renderModelMenu(profile, [], 'Failed to fetch: ' + e.message);
         setModelMenuOpen(profile, true);
     } finally {
@@ -275,8 +281,6 @@ function searchPickerModels(profile) {
             return;
         }
 
-        renderModelMenu(profile, [], 'Loading models...');
-        setModelMenuOpen(profile, true);
         await fetchPickerModels(profile, { filter: query });
     }, MODEL_SEARCH_DEBOUNCE_MS);
 }
