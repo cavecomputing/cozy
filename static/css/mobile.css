@@ -803,7 +803,7 @@ body:not(.mobile-drawer-open) #main-content > header {
     gap: 0;
 }
 
-.settings-nav-foot { display: none; }
+#settings-close-btn { display: none; }
 
 /* The list is one group: each page's icon, name and current value. */
 .settings-nav-item {
