@@ -58,15 +58,16 @@ const STREAM_FADE_MS = 400;
 const STREAM_DRAW_MS = 45;
 
 /**
- * Fade in the text each streaming draw adds. A draw rebuilds the whole bubble,
- * so the fade can't live on the nodes themselves: the fader remembers how far
- * the text reached at each draw and when, and wraps the stretches still fading
- * on every draw, each with its animation started that long ago so it carries on
- * from where the last draw left it.
+ * Fade in the text each streaming draw adds. A draw rebuilds the blocks that
+ * changed, so the fade can't live on the nodes themselves: the fader remembers
+ * how far the text reached at each draw and when, and wraps the stretches still
+ * fading in the rebuilt blocks, from `rebuilt` on, each with its animation
+ * started that long ago so it carries on from where the last draw left it. A
+ * block kept from an earlier draw still has its own.
  */
 function createTextFader() {
     const reveals = [{ end: 0, at: 0 }];
-    return contentEl => {
+    return (contentEl, rebuilt) => {
         const now = performance.now();
         const texts = [];
         let length = 0;
@@ -81,6 +82,7 @@ function createTextFader() {
         // Back to front, so splitting a node leaves the offsets before it intact.
         for (let i = texts.length - 1; i >= 0; i--) {
             const [node, start] = texts[i];
+            if (!rebuilt || !(node === rebuilt || rebuilt.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) break;
             for (let k = reveals.length - 1; k >= 1; k--) {
                 const from = Math.max(reveals[k - 1].end, start);
                 const to = Math.min(reveals[k].end, start + node.length);
@@ -117,6 +119,10 @@ export function streamInto(msgBody, contentEl) {
     // steady while tokens trickle and quicker when they burst.
     let shown = 0;
     const fadeIn = createTextFader();
+    // The reply's top-level nodes as last drawn, each with the markup it was
+    // drawn from. A draw replaces them from the first whose markup changed, so
+    // a long reply restyles and lays out its growing end, not all of it again.
+    let drawn = [];
     const draw = () => {
         if (performance.now() - drawnAt < STREAM_DRAW_MS) {
             frame = requestAnimationFrame(draw);
@@ -127,8 +133,21 @@ export function streamInto(msgBody, contentEl) {
         shown += Math.max(1, Math.ceil((text.length - shown) / 3));
         const parsed = parseThinkingContent(text.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
-        renderMarkdown(contentEl, parsed.response);
-        fadeIn(contentEl);
+        const fresh = document.createElement('div');
+        renderMarkdown(fresh, parsed.response);
+        const nodes = [...fresh.childNodes].map(node => ({ node, markup: node.outerHTML ?? node.data }));
+        let kept = 0;
+        while (kept < drawn.length && kept < nodes.length && drawn[kept].markup === nodes[kept].markup) kept++;
+        if (!drawn.length) contentEl.replaceChildren();
+        // A text node the fader split leaves its pieces after it, so clear to the end.
+        for (let node = drawn[kept]?.node; node;) {
+            const next = node.nextSibling;
+            node.remove();
+            node = next;
+        }
+        drawn = [...drawn.slice(0, kept), ...nodes.slice(kept)];
+        contentEl.append(...nodes.slice(kept).map(n => n.node));
+        fadeIn(contentEl, nodes[kept]?.node);
         maybeScrollToBottom();
         if (shown < text.length) frame = requestAnimationFrame(draw);
     };

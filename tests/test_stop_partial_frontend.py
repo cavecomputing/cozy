@@ -229,7 +229,7 @@ SWIPE_SETUP = r"""
     // them, so createElement has to hand back something navigable.
     function stubEl() {
         return {
-            className: '', textContent: '', innerHTML: '', type: '', hidden: false,
+            className: '', textContent: '', innerHTML: '', type: '', hidden: false, childNodes: [],
             remove() {}, setAttribute() {}, appendChild() {}, insertBefore() {},
             addEventListener() {},
             querySelector() { return stubEl(); },
@@ -280,7 +280,7 @@ SWIPE_SETUP = r"""
     const stops = [];
     API.stopReply = async chatId => { stops.push(chatId); return {}; };
 
-    const contentEl = { innerHTML: '' };
+    const contentEl = { innerHTML: '', replaceChildren() {}, append() {} };
     const msgBody = { querySelector() { return null; }, insertBefore() {} };
     const msgEl = {
         dataset: { msgId: '2' },
