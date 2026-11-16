@@ -943,8 +943,17 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 :is(.sampler-toolbar, #settings-lorebook-add-entry, #about-backup-dropdown) { grid-column: 3; }
 
-/* The entry search runs the width under the title line. */
-.lorebook-entry-search { grid-row: 2; margin-bottom: var(--space-4); }
+/* The entry search runs the width under the title line: a bar on the cells'
+   colour that, like a value in a cell, looks the same while it is typed in. */
+.settings-card-header > .lorebook-entry-search {
+    grid-row: 2;
+    margin-bottom: var(--space-4);
+    padding-inline: var(--space-4);
+    background-color: var(--surface-card);
+    border: 0;
+    border-radius: var(--radius-md);
+    box-shadow: none;
+}
 
 /* Under the label, a line of its own; in a cell, a 44px tap target. */
 #settings-lorebook-add-entry,
