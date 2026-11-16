@@ -4483,7 +4483,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .settings-page-title {
-    flex: 1 1 20rem;
+    flex: 1 1 16rem;
     min-width: 0;
 }
 
