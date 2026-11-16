@@ -582,29 +582,40 @@ function bindSwipeToClose() {
 }
 
 /**
- * A drag that starts on a pop-up, or on the dimmed page around one, never
- * moves the page behind it: it scrolls a list inside the pop-up that has
- * somewhere to go, or nothing. On an iPhone such a drag otherwise scrolled
- * the chat or the settings page under the open sheet. Refusing the touch
- * itself holds wherever the browser would have sent it, which a style on
- * the page behind can't promise.
+ * A drag on the phone moves a list that has somewhere to go, or nothing:
+ * never the page itself, which is pinned to the screen. A drag that starts
+ * on a pop-up, or on the dimmed page around one, looks no further than the
+ * pop-up, so it never moves the chat or the settings page behind it either.
+ * On an iPhone a drag nothing took went to the page: under an open sheet it
+ * scrolled what was behind, and with the keyboard up it slid the whole
+ * screen around and held the gestures after it until it settled, so the
+ * chat would not scroll. Refusing the touch itself holds wherever the
+ * browser would have sent it, which a style can't promise.
  */
-function bindPopupScrollLock() {
+function bindPageScrollLock() {
     const POPUPS = '#sheet-backdrop, #mobile-backdrop, .chat-flyout, .dropup-content, .confirm-overlay,'
         + ' .cozy-select-menu, .export-menu, .sampler-popover, .slash-command-menu';
-    let startY = 0;
-    document.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+    let startX = 0, startY = 0;
+    document.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    }, { passive: true });
     document.addEventListener('touchmove', e => {
-        const popup = e.target.closest(POPUPS);
         // A text field keeps its own drags: the caret, and its own scrolling.
-        if (!popup || !e.cancelable || e.touches.length > 1
-            || e.target.matches('textarea, input:not([type="checkbox"])')) return;
-        const down = e.touches[0].clientY > startY;
-        for (let box = e.target; box !== popup.parentElement; box = box.parentElement) {
+        // Sideways drags are the drawer's or a wide code block's, and a page
+        // zoomed in is the browser's to pan.
+        const popup = e.target.closest(POPUPS);
+        if ((!popup && !isMobileSettings()) || !e.cancelable || e.touches.length > 1
+            || e.target.matches('textarea, input:not([type="checkbox"])')
+            || window.visualViewport?.scale > 1) return;
+        const dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
+        if (Math.abs(dx) > Math.abs(dy)) return;
+        const end = popup ? popup.parentElement : document.documentElement;
+        for (let box = e.target; box && box !== end; box = box.parentElement) {
             const room = box.scrollHeight - box.clientHeight;
             // Safari's positions come in fractions, hence the pixel of slack.
             if (room > 1 && /auto|scroll/.test(getComputedStyle(box).overflowY)
-                && (down ? box.scrollTop > 1 : box.scrollTop < room - 1)) return;
+                && (dy > 0 ? box.scrollTop > 1 : box.scrollTop < room - 1)) return;
         }
         e.preventDefault();
     }, { passive: false });
@@ -1825,7 +1836,7 @@ async function init() {
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
     bindSwipeToClose();
-    bindPopupScrollLock();
+    bindPageScrollLock();
     bindSwipeToOpen();
     bindBackButton();
     bindSettingsHandlers();
