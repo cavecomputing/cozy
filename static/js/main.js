@@ -6,7 +6,7 @@ import { API, prefetchSelection, dropPrefetched, serverBuild } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
-    withBusy, flashSettingsSavedTick, dismissApiNotice, updateTabTitle,
+    withBusy, flashSettingsSavedTick, dismissApiNotice, updateTabTitle, keepChatBottom,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
@@ -776,11 +776,14 @@ function bindSettingsHandlers() {
 
     // Safari's keyboard shrinks the visual viewport without changing 100dvh.
     // Leave pinch zoom to the browser; only follow the keyboard-sized viewport.
+    // The phone's page is sized by it too, so the chat keeps its newest lines.
     const fitSettingsViewport = () => {
         const viewport = window.visualViewport;
         const fit = isMobileSettings() && viewport?.scale === 1;
-        document.documentElement.style.setProperty('--settings-viewport-height', fit ? `${viewport.height}px` : '100dvh');
-        document.documentElement.style.setProperty('--settings-viewport-top', fit ? `${viewport.offsetTop}px` : '0px');
+        keepChatBottom(() => {
+            document.documentElement.style.setProperty('--settings-viewport-height', fit ? `${viewport.height}px` : '100dvh');
+            document.documentElement.style.setProperty('--settings-viewport-top', fit ? `${viewport.offsetTop}px` : '0px');
+        });
     };
     window.visualViewport?.addEventListener('resize', () => {
         fitSettingsViewport();

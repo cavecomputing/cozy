@@ -13,14 +13,22 @@ import { API } from './api.js';
  */
 export const MOBILE_SHELL_QUERY = '(max-width: 768px), (max-height: 500px) and (hover: none)';
 export function autoResize(textarea) {
-    // The composer shares the column with the chat, so growing it shortens the
-    // chat from below, and the 'auto' pass briefly lengthens it, clamping
-    // scrollTop. Measured first and put back after, the gap to the chat's
-    // bottom holds, so the newest messages ride up with the composer.
+    // The 'auto' pass briefly lengthens the chat, clamping scrollTop.
+    keepChatBottom(() => {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+    });
+}
+
+/**
+ * Run a change that shortens or lengthens the chat from below, such as the
+ * composer growing or the keyboard coming up, keeping the gap to the chat's
+ * bottom, so the newest messages ride up with the composer.
+ */
+export function keepChatBottom(change) {
     const chat = el.chatHistory;
     const fromBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight;
-    textarea.style.height = 'auto';
-    textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+    change();
     const scrollTop = chat.scrollHeight - chat.clientHeight - fromBottom;
     if (Math.abs(chat.scrollTop - scrollTop) >= 1) chat.scrollTop = scrollTop;
 }

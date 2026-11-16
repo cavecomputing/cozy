@@ -19,16 +19,24 @@
     --frame-left:   env(safe-area-inset-left, 0px);
 }
 
+/* The page is pinned to the view the keyboard leaves, as Settings is. iOS
+   shrinks the visual viewport for the keyboard but not the layout viewport,
+   and scrolls only far enough to show the caret, so a 100dvh page left the
+   foot of the composer under the keyboard. main.js measures the view
+   (fitSettingsViewport); the fallbacks are the whole screen. The home
+   indicator's inset lies under the keyboard while it is up, so only what
+   the keyboard leaves of it is padded. */
 body {
+    position: fixed;
+    top: var(--settings-viewport-top, 0px);
+    left: 0;
     width: 100%;
-    padding: var(--frame-top) var(--frame-right) var(--frame-bottom) var(--frame-left);
+    height: var(--settings-viewport-height, 100dvh);
+    padding: var(--frame-top) var(--frame-right)
+        max(0px, var(--frame-bottom) - (100dvh - var(--settings-viewport-height, 100dvh)))
+        var(--frame-left);
     overscroll-behavior: auto;
     touch-action: manipulation;
-}
-
-body.mobile-drawer-open {
-    position: fixed;
-    inset: 0;
 }
 
 /* ── Controls ────────────────────────────────────────────────────────── */
