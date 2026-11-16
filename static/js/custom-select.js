@@ -58,6 +58,9 @@ export function enhanceSelect(select) {
     trigger.setAttribute('aria-controls', menuId);
     if (label) trigger.setAttribute('aria-labelledby', `${label.id} ${trigger.id}`);
     else if (ariaLabel) trigger.setAttribute('aria-label', ariaLabel);
+    // A tap on the label opens this picker, not the hidden native select,
+    // which a phone would open as its own list.
+    if (label) label.htmlFor = trigger.id;
     const valueSpan = document.createElement('span');
     valueSpan.className = 'cozy-select-value';
     trigger.appendChild(valueSpan);
