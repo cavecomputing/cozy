@@ -572,9 +572,11 @@ body:not(.mobile-drawer-open) #main-content > header {
     gap: 0.1rem;
 }
 
+/* A third of the view, measured above the keyboard while it is up, so the
+   chat keeps the rest of what the keyboard leaves. */
 #user-input {
     min-height: 34px;
-    max-height: 34dvh;
+    max-height: calc(var(--settings-viewport-height, 100dvh) * 0.34);
     padding: 0.35rem 0.2rem;
     font-size: 16px;
     line-height: 1.4;
@@ -615,10 +617,12 @@ body:not(.mobile-drawer-open) #main-content > header {
     gap: 0.4rem;
 }
 
+/* Measured above the keyboard as the composer is, or the list runs up
+   under the top bar. */
 .slash-command-menu {
     left: 0;
     right: 0;
-    max-height: 42dvh;
+    max-height: calc(var(--settings-viewport-height, 100dvh) * 0.42);
     overflow-y: auto;
 }
 
