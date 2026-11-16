@@ -799,6 +799,15 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .settings-nav-item > span:first-of-type { flex: 1; }
 
+.settings-nav-value {
+    display: block;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--fg-quiet);
+}
+
 .settings-nav-item::after {
     content: '›';
     margin-left: var(--space-2);

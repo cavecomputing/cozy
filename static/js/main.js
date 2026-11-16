@@ -225,12 +225,28 @@ function updateSettingsHeader() {
     }
 }
 
+/** The phone's settings list names each page's current choice beside it. */
+function showSettingsListValues() {
+    const chosen = select => select?.selectedOptions[0];
+    const books = el.lorebookList ? [...el.lorebookList.options].filter(o => o.value).length : 0;
+    const values = {
+        general: chosen(el.settingsThemeSelect)?.textContent,
+        api: el.apiModel?.value || 'No model',
+        prompt: chosen(el.syspromptSelect)?.dataset.label,
+        lorebooks: books === 1 ? '1 book' : `${books || 'No'} books`,
+    };
+    for (const span of el.settingsNav.querySelectorAll('.settings-nav-value')) {
+        span.textContent = values[span.closest('.settings-nav-item').dataset.section] || '';
+    }
+}
+
 function exitSettingsDetail() {
     const wasDetail = el.settingsShell?.classList.contains('in-detail');
     el.settingsShell?.classList.remove('in-detail');
     // Back from a page slides the list in; opening Settings on it does not.
     el.settingsShell?.classList.toggle('popped', wasDetail && !el.settingsFlyout.hidden);
     updateSettingsHeader();
+    showSettingsListValues();
     if (wasDetail && !el.settingsFlyout.hidden) {
         el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
     }
@@ -688,6 +704,7 @@ function bindSettingsHandlers() {
         renderThemePicker();
         const s = await loadLLMSettings();
         await loadSystemPrompts(s);
+        showSettingsListValues();
     };
     el.settingsBtn?.addEventListener('click', openSettings);
     el.settingsCloseBtn?.addEventListener('click', () => {

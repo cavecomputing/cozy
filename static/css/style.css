@@ -4359,6 +4359,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     min-height: 36px;
 }
 
+/* Each page's current choice, beside its name in the phone's list. */
+.settings-nav-value { display: none; }
+
 .settings-nav-item svg {
     flex-shrink: 0;
     color: var(--fg-quiet);
