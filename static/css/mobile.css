@@ -1042,6 +1042,10 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .settings-pane .settings-row :is(.form-input[type="number"], .prompt-version-input) { text-align: right; }
 
+/* The label beside it names the field, so an empty version shows nothing
+   where the desktop's placeholder would read as a value of "Version". */
+.prompt-version-input::placeholder { color: transparent; }
+
 /* A cell whose value cannot be saved shows it on its leading edge, in the
    danger colour, with the hint that says what it takes. */
 .settings-row:has(:is(.form-input, .form-textarea)[aria-invalid="true"]) {
