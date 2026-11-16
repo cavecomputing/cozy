@@ -4609,7 +4609,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     position: relative;
     isolation: isolate;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-3) 0.625rem;
     padding: 0 0.5rem 0 0.875rem;
@@ -5048,18 +5047,18 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .sampler-done-btn { display: none; }
 
 /* ── Picker rows (a preset picker and its buttons) ───────────────────────── */
-/* A picker in the title bar keeps a usable width and leaves the title the
-   rest; below the width where both fit it drops under the bar and its
-   buttons stay on it. */
-.settings-card-header > .preset-select-row {
-    flex: 0 1 auto;
+/* A picker stays in its title bar at every desktop width: it starts at a
+   comfortable width and gives it up as the window narrows, down to a floor,
+   while the title and the buttons keep theirs. */
+.settings-card-header > :is(.preset-select-row, .prompt-select-row) {
+    flex: 1 1 auto;
+    min-width: 0;
     justify-content: flex-end;
 }
 
-.settings-card-header > .preset-select-row > .cozy-select {
-    flex: 0 1 auto;
-    width: 17rem;
-    min-width: 12rem;
+.settings-card-header > :is(.preset-select-row, .prompt-select-row) > .cozy-select {
+    flex: 0 1 17rem;
+    min-width: 8rem;
 }
 
 .prompt-select-row,
@@ -5104,17 +5103,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
-
-/* Once the picker and its buttons no longer fit beside the title, the picker
-   drops under the title bar and its buttons stay on the bar, in one line. The
-   container is the settings modal, which is the whole window on a desktop, so
-   1000px is a window width: the Prompt row stops fitting below about 990. */
-@container (max-width: 1000px) {
-    :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
-    :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
-    .settings-card-header > .preset-select-row { display: contents; }
-    .settings-card-header > .preset-select-row > .cozy-select { order: 1; }
-}
 
 /* ── Prompt page ─────────────────────────────────────────────────────────── */
 /* Prompt section: the preset's controls, then the editor. */
@@ -5389,15 +5377,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     border-top: 1px solid var(--line-soft);
 }
 
-/* Import/export makes this picker row one button wider than the others, too
-   wide for its card just above the width where the shared rule wraps them.
-   The picker gives up width down to its 12rem floor first, then the row wraps
-   rather than running off the card. (On a phone the row is a grid.) */
-@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
-    .prompt-select-row { flex-wrap: wrap; }
-    .settings-card-header > .prompt-select-row > .cozy-select { flex: 1 1 12rem; max-width: 17rem; }
-}
-
 /* ── Lorebooks page ──────────────────────────────────────────────────────── */
 /* Settings panel — lorebook editor */
 .lorebook-entries-count {
@@ -5535,19 +5514,25 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 /* Lorebook picker: the shared preset row lays it out; these rules only style
    the character and entry-count detail carried on each option. The source
-   wears the prompt picker's badge. */
+   wears the prompt picker's badge. The closed picker keeps to one line, its
+   name giving way first, so it fits its title bar; an open option wraps. */
 .lorebook-picker :is(.cozy-select-value:has(> *), .cozy-select-option) {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: var(--space-1) var(--space-3);
+}
+
+.lorebook-picker .cozy-select-option {
+    flex-wrap: wrap;
     white-space: normal;
 }
 
 .lorebook-picker .cozy-select-label {
     flex: 1 1 140px;
     min-width: 0;
+    overflow: hidden;
     overflow-wrap: anywhere;
+    text-overflow: ellipsis;
     font-weight: 600;
 }
 
@@ -5573,22 +5558,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .lorebook-picker .cozy-select-option { padding: var(--space-2) var(--space-3); }
 
-/* The picker sits in the title row as the API preset picker does, only
-   wider: each option also carries its source and entry count. */
-.settings-card-header > .lorebook-picker {
-    flex: 0 1 auto;
-    justify-content: flex-end;
-}
-
-.settings-card-header > .lorebook-picker > .cozy-select { flex: 0 1 auto; width: 26rem; min-width: 12rem; max-width: none; }
-
-/* The select needs about 20rem to keep its source and count beside the name,
-   so it drops under the bar at a wider window than the API picker does: the
-   row with a book open stops fitting below about 1110. */
-@container (max-width: 1120px) {
-    .settings-card-header > .lorebook-picker { display: contents; }
-    .settings-card-header > .lorebook-picker > .cozy-select { order: 1; flex-basis: 100%; width: auto; }
-}
+/* The book picker starts wider than the other pickers: each option also
+   carries its source and entry count. */
+.settings-card-header > .lorebook-picker > .cozy-select { flex-basis: 26rem; }
 
 /* Phone-narrow: Add entry stays in the title row and the search takes the
    line under it; labels go over controls, except a number's, which stays
