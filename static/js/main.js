@@ -961,16 +961,17 @@ function bindSettingsHandlers() {
         e.stopPropagation();
         setSamplerPopoverOpen(el.samplerPopover.hidden);
     });
-    // On a phone the list covers most of the screen, leaving little outside it to tap,
-    // so it has a Done button there (style.css hides it elsewhere).
+    // On a phone the menu is a sheet of switches, so it has a Done button
+    // there (style.css hides it elsewhere).
     el.samplerPopover?.addEventListener('click', e => {
         if (!e.target.closest('.sampler-done-btn')) return;
         setSamplerPopoverOpen(false);
         el.samplerConfigureBtn.focus();
     });
     document.addEventListener('click', (e) => {
+        // On the phone the menu is a sheet whose own box is the dimmed page.
         if (el.samplerPopover && !el.samplerPopover.hidden
-            && !el.samplerPopover.contains(e.target)
+            && (!el.samplerPopover.contains(e.target) || e.target === el.samplerPopover)
             && !el.samplerConfigureBtn.contains(e.target)) {
             setSamplerPopoverOpen(false);
         }

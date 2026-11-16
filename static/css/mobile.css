@@ -1378,8 +1378,6 @@ body:not(.mobile-drawer-open) #main-content > header {
    the phone's 16px ("-1.25", "4096") and the slider has the rest. */
 .sampler-value-wrap > .form-input[type="number"] { flex-basis: 3.5rem; }
 
-.sampler-popover-row { min-height: 44px; }
-
 .sampler-subsection-header { align-items: center; }
 
 /* Settings covers the chat, which is hidden under it so nothing of it can
@@ -1420,35 +1418,80 @@ body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
 
 .settings-submodal .modal-body { padding-bottom: var(--space-5); }
 
-.sampler-reset-btn { min-height: 44px; }
-
-/* As tall as its rows, and no taller than the room between the page
-   header and the bottom edge. */
+/* The Samplers menu opens as a sheet, as the pickers do: its own box is
+   the dimmed page, which closes it when tapped, and its switches are a group
+   of cells at the foot of the screen, the last one holding Reset and Done.
+   Twelve switches need more of the screen than a picker's third leaves, so
+   only a strip of the page, tall enough to tap, is kept above them, and on a
+   phone too short for that the sheet scrolls. */
 .sampler-popover {
     position: fixed;
-    top: calc(80px + env(safe-area-inset-top, 0px));
-    left: calc(16px + env(safe-area-inset-left, 0px));
-    right: calc(16px + env(safe-area-inset-right, 0px));
+    inset: 0;
+    z-index: 700;
+    display: flex;
+    flex-direction: column;
     width: auto;
     min-width: 0;
     max-width: none;
-    max-height: calc(100dvh - 156px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-height: none;
+    padding: calc(var(--frame-top) + 44px) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    overscroll-behavior: contain;
+    background-color: rgb(0 0 0 / 0.45);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
 }
 
-/* Done lines up with the ADV badges above it. */
+.sampler-popover[hidden] { transform: none; }
+
+.sampler-popover > :first-child { margin-top: auto; }
+
+.sampler-popover:not([hidden]) > * { animation: sheetUp var(--motion-base) ease-out; }
+
+/* A cell: the sampler's name, its ADV badge, and the switch at the end. */
+.sampler-popover-row,
+.sampler-popover-footer {
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    background-color: var(--surface-card);
+    border-top: 1px solid var(--line-soft);
+    border-radius: 0;
+}
+
+.sampler-popover-row {
+    gap: var(--space-3);
+    font-family: var(--font-sans);
+    font-size: var(--text-3xl);
+}
+
+.sampler-popover-row:first-child {
+    border-top: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.sampler-popover-row > span:first-of-type { flex: 1; }
+
+.sampler-popover-row input[type="checkbox"] { order: 1; margin-block: 0; }
+
 .sampler-popover-footer {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding: 0.35rem 0.6rem 0.6rem 0;
+    margin-top: 0;
+    padding-block: var(--space-2);
+    padding-left: 0;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.sampler-reset-btn {
+    min-height: 44px;
+    padding-left: var(--space-4);
 }
 
 .sampler-done-btn {
     display: inline-flex;
     min-height: 44px;
 }
-
-.sampler-popover input[type="checkbox"] { margin-block: 0; }
 
 .settings-submodal.modal-overlay { z-index: 600; }
 
