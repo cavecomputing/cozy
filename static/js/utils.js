@@ -291,6 +291,45 @@ export function maybeScrollToBottom() {
     if (state.autoScroll) scrollToBottom();
 }
 
+// A streaming reply's follow eases the view down to the new bottom instead of
+// jumping there on every draw: each frame covers a share of the way left, so
+// the chat glides at the pace the text arrives. The positions it writes are
+// kept, since a scroll event can arrive after the reader has taken over and
+// report one of them; the scroll listener must not count those as the reader's.
+const GLIDE_MS = 60;   // time constant: about two thirds of the way in this long
+const glideWrites = [];
+let glideFrame = 0;
+let glideAt = 0;
+
+export function glideToBottom() {
+    if (!state.autoScroll) return;
+    if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        scrollToBottom();
+        return;
+    }
+    if (glideFrame) return;
+    glideAt = performance.now();
+    glideFrame = requestAnimationFrame(glide);
+}
+
+function glide(now) {
+    glideFrame = 0;
+    const chat = el.chatHistory;
+    const gap = chat.scrollHeight - chat.clientHeight - chat.scrollTop;
+    if (!state.autoScroll || !(gap >= 1)) return;
+    const step = gap * (1 - Math.exp(-Math.max(0, now - glideAt) / GLIDE_MS));
+    glideAt = now;
+    chat.scrollTop += gap - step < 1 ? gap : Math.max(1, step);
+    glideWrites.push(chat.scrollTop);
+    if (glideWrites.length > 8) glideWrites.shift();
+    glideFrame = requestAnimationFrame(glide);
+}
+
+/** Whether the chat sits where the glide last put it, rather than where the reader did. */
+export function atGlidePosition(scrollTop) {
+    return glideWrites.some(top => Math.abs(top - scrollTop) < 1);
+}
+
 /**
  * End the generation in flight at the user's request. A reply the server has
  * been asked for is the server's to stop: it keeps what has arrived, and the

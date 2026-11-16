@@ -2,7 +2,7 @@ import { state, el, icons, llm } from './state.js';
 import { API } from './api.js';
 import {
     applyAvatar, AVATAR, resolveTemplateVariables, showToast, showApiNotice,
-    scrollToBottom, maybeScrollToBottom, showEmptyState, hideEmptyState,
+    scrollToBottom, maybeScrollToBottom, glideToBottom, showEmptyState, hideEmptyState,
     updateComposerState, setSendButtonMode, beginGeneration, endGeneration, whenGenerationEnds,
     branchesAt, displayChatName, parseDbStamp, fullStamp, shortStamp,
 } from './utils.js';
@@ -148,7 +148,7 @@ export function streamInto(msgBody, contentEl) {
         drawn = [...drawn.slice(0, kept), ...nodes.slice(kept)];
         contentEl.append(...nodes.slice(kept).map(n => n.node));
         fadeIn(contentEl, nodes[kept]?.node);
-        maybeScrollToBottom();
+        glideToBottom();
         if (shown < text.length) frame = requestAnimationFrame(draw);
     };
     return {

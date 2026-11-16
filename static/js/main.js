@@ -5,7 +5,7 @@ import { state, el, llm, icons, initElements } from './state.js';
 import { API, prefetchSelection, dropPrefetched, serverBuild } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
-    debounce, updateComposerState, copyText, stopGeneration, MOBILE_SHELL_QUERY,
+    debounce, updateComposerState, atGlidePosition, copyText, stopGeneration, MOBILE_SHELL_QUERY,
     withBusy, flashSettingsSavedTick, dismissApiNotice, updateTabTitle, keepChatBottom,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
@@ -1775,9 +1775,10 @@ function bindScrollHandlers() {
         const atBottom = fromBottom < 60;
         if (mouseHeld && scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
         else if (fromBottom < 1 && leftBottom) state.autoScroll = true;
-        if (fromBottom >= 1) leftBottom = true;
+        if (fromBottom >= 1 && !atGlidePosition(scrollTop)) leftBottom = true;
         lastScrollTop = scrollTop;
-        el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
+        // A reply being followed trails its newest lines by a little as it glides.
+        el.scrollToBottomBtn?.classList.toggle('visible', !atBottom && !state.autoScroll);
         drawOlderSoon();
     });
 }
