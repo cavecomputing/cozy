@@ -5095,10 +5095,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
 
-/* Against the settings pane's container, which is the viewport minus the
-   sidebar and the settings nav: the picker drops under the title bar and its
-   buttons stay on the bar, in one line. */
-@container (max-width: 800px) {
+/* Once the picker and its buttons no longer fit beside the title, the picker
+   drops under the title bar and its buttons stay on the bar, in one line. The
+   container is the settings modal, which is the whole window on a desktop, so
+   1000px is a window width: the Prompt row stops fitting below about 990. */
+@container (max-width: 1000px) {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
     .settings-card-header > .preset-select-row { display: contents; }
@@ -5572,8 +5573,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .settings-card-header > .lorebook-picker > .cozy-select { flex: 0 1 auto; width: 26rem; min-width: 12rem; max-width: none; }
 
 /* The select needs about 20rem to keep its source and count beside the name,
-   so it drops under the bar at a wider pane than the API picker does. */
-@container (max-width: 960px) {
+   so it drops under the bar at a wider window than the API picker does: the
+   row with a book open stops fitting below about 1110. */
+@container (max-width: 1120px) {
     .settings-card-header > .lorebook-picker { display: contents; }
     .settings-card-header > .lorebook-picker > .cozy-select { order: 1; flex-basis: 100%; width: auto; }
 }
