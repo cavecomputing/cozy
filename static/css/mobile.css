@@ -1384,9 +1384,75 @@ body:not(.mobile-drawer-open) #main-content > header {
 /* With no books, the empty state stands apart from New and Import under it. */
 .lorebook-empty-panel { margin-bottom: var(--space-5); }
 
+/* An entry is a group of cells: its keys with its move and delete buttons,
+   its text, a cell for each switch with the switch at the right end, then
+   its fields, as a settings section's rows are. */
+.lorebook-entry {
+    gap: 0;
+    padding: 0;
+    background-color: var(--surface-card);
+    border: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.lorebook-entry-meta { display: contents; }
+
+.lorebook-entry > :not(.lorebook-entry-meta, .lorebook-entry-row),
+.lorebook-entry-toggle,
+.lorebook-entry-field {
+    min-height: 48px;
+    padding: var(--space-2) var(--space-4);
+    border-top: 1px solid var(--line-soft);
+}
+
+.lorebook-entry > .lorebook-entry-header {
+    flex-wrap: nowrap;
+    gap: 0;
+    padding-right: var(--space-2);
+    border-top: 0;
+}
+
+.lorebook-entry-keys-wrap { flex: 1 1 0; }
+
+.lorebook-entry-header .icon-btn { color: var(--fg-quiet); }
+
+.lorebook-entry .form-input {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding-inline: 0;
+    color: var(--fg-quiet);
+}
+
+.lorebook-entry .lorebook-entry-keys { color: var(--fg); }
+
+.lorebook-entry > .lorebook-entry-content {
+    padding-block: var(--space-3);
+    color: var(--fg);
+    background-color: transparent;
+    border-inline: 0;
+    border-bottom: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.lorebook-entry-field-narrow > .form-input { text-align: right; }
+
 .lorebook-entry-toggle {
-    min-height: 44px;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    font-size: var(--text-3xl);
+    color: var(--fg);
     white-space: normal;
+}
+
+.lorebook-entry-field { font-size: var(--text-3xl); }
+
+.lorebook-entry-field span { color: var(--fg); }
+
+.lorebook-entry :is(.lorebook-entry-header, .lorebook-entry-field):has(:focus) {
+    box-shadow: inset 3px 0 0 var(--fg-accent);
 }
 
 /* ── About page ──────────────────────────────────────────────────────── */
