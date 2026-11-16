@@ -996,6 +996,23 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .settings-row-label { font-size: var(--text-3xl); }
 
+/* A warning is the foot of the cell it is about, on the cell's colour, so
+   it does not cut its group in two. Its action is a few words of small
+   type, so the tap target reaches past them. */
+.settings-warning {
+    padding: 0 var(--space-4) var(--space-3);
+    background-color: var(--surface-card);
+    font-size: var(--text-md);
+}
+
+.settings-warning button { position: relative; }
+
+.settings-warning button::after {
+    content: '';
+    position: absolute;
+    inset: -0.9rem -0.5rem;
+}
+
 /* Values sit in their cell without a box of their own: text under its label,
    a number or a picker at the right end of the label's line. */
 .settings-pane .settings-row :is(.form-input, .form-textarea, .cozy-select-trigger) {
