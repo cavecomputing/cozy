@@ -761,10 +761,15 @@ body:not(.mobile-drawer-open) #main-content > header {
     align-items: stretch;
 }
 
+/* Toasts come up just under the top bar, which is in the same place on every
+   screen: the chat's title, a panel's, a settings page's. Over the bar they
+   hid the way back and the page's name; at the foot they would hide the box
+   being typed in. The top follows Safari's view as Settings does while the
+   keyboard is up. */
 #toast-container {
-    top: calc(env(safe-area-inset-top, 0px) + 0.6rem);
-    left: var(--mobile-inline-padding);
-    right: var(--mobile-inline-padding);
+    top: calc(var(--settings-viewport-top, 0px) + var(--frame-top) + var(--mobile-header-height) + var(--space-4));
+    left: calc(var(--frame-left) + var(--mobile-inline-padding));
+    right: calc(var(--frame-right) + var(--mobile-inline-padding));
     align-items: stretch;
 }
 
