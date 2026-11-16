@@ -958,16 +958,35 @@ body:not(.mobile-drawer-open) #main-content > header {
     border-top: 1px solid var(--line-soft);
 }
 
-.settings-pane .settings-row:nth-child(1 of .settings-row:not([hidden])) {
+/* A sampler with several settings (Dynamic temperature, DRY…) is a subhead
+   cell over its rows, inside its section's group, so it counts as one cell of
+   that group when the group's ends are found. */
+.settings-pane .settings-row:not(.sampler-group > *):nth-child(1 of :is(.settings-row, .sampler-group):not([hidden])),
+.sampler-group:nth-child(1 of :is(.settings-row, .sampler-group):not([hidden])) > .sampler-group-header {
     border-top: 0;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
-.settings-pane .settings-row:nth-last-child(1 of .settings-row:not([hidden])) {
+.settings-pane .settings-row:not(.sampler-group > *):nth-last-child(1 of :is(.settings-row, .sampler-group):not([hidden])),
+.sampler-group:nth-last-child(1 of :is(.settings-row, .sampler-group):not([hidden])) {
     margin-bottom: var(--space-5);
+}
+
+.settings-pane .settings-row:not(.sampler-group > *):nth-last-child(1 of :is(.settings-row, .sampler-group):not([hidden])),
+.sampler-group:nth-last-child(1 of :is(.settings-row, .sampler-group):not([hidden])) > .settings-row:last-child {
     border-bottom-left-radius: var(--radius-md);
     border-bottom-right-radius: var(--radius-md);
 }
+
+.sampler-group-header {
+    padding: var(--space-3) var(--space-4) 0;
+    background-color: var(--surface-card);
+    border-top: 1px solid var(--line-soft);
+    font-size: var(--text-md);
+    color: var(--fg-quiet);
+}
+
+.settings-pane .sampler-group-header + .settings-row { border-top: 0; }
 
 .settings-row-label { font-size: var(--text-3xl); }
 
