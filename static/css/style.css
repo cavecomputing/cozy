@@ -3314,8 +3314,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     transition: border-color var(--motion-base) ease;
 }
 
-/* A text field shows focus in its border, never a ring as well. */
-#input-wrapper:focus-within {
+/* A text field shows focus in its border, never a ring as well. Only the
+   text box counts: a button in the bar that a closing sheet hands focus back
+   to is not somewhere to type. */
+#input-wrapper:has(#user-input:focus) {
     border-color: var(--fg-accent);
 }
 
