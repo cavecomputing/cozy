@@ -4599,33 +4599,20 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* The section title: a bar in the card colour holding the section's icon,
-   the title in mono and the section's own controls at its right end. The bar
-   is one line tall and drawn behind the header's first line only, so when the
-   pane is too narrow for everything, what wraps (a picker, a search) drops
-   under the bar onto the page instead of making the bar taller. Its ends are
-   the content's edges, where the page title, the labels and the controls
-   below start and end, and its contents are inset from them. */
+   the title in mono and the section's own controls at its right end, all on
+   one line. Its ends are the content's edges, where the page title, the
+   labels and the controls below start and end, and its contents are inset
+   from them. It is not positioned, so a menu opened from it (the samplers'
+   gear, a picker, Import/export) stacks above the next section's bar. */
 .settings-card-header {
-    position: relative;
-    isolation: isolate;
     display: flex;
     align-items: center;
     gap: var(--space-3) 0.625rem;
     padding: 0 0.5rem 0 0.875rem;
-    /* Buttons on the bar sit on the page colour, so they stand off its fill. */
-    --control-fill: var(--bg-color);
-}
-
-.settings-card-header::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3rem;
     background-color: var(--surface-card);
     border-radius: var(--radius-md);
+    /* Buttons on the bar sit on the page colour, so they stand off its fill. */
+    --control-fill: var(--bg-color);
 }
 
 /* The header keeps its distance only from something showing under it: the

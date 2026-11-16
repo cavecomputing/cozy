@@ -921,8 +921,6 @@ body:not(.mobile-drawer-open) #main-content > header {
     grid-column: 1 / -1;
 }
 
-.settings-card-header::before { content: none; }
-
 .settings-card-icon {
     grid-column: 1;
     width: 18px;
