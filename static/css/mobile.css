@@ -1258,7 +1258,7 @@ body:not(.mobile-drawer-open) #main-content > header {
     mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 
-.prompt-section-right:has(> .form-textarea:focus) { position: static; }
+.prompt-section-right:has(> .form-textarea:focus, > .prompt-rendered-flyout:not([hidden])) { position: static; }
 
 :is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus {
     position: absolute;
@@ -1282,11 +1282,32 @@ body:not(.mobile-drawer-open) #main-content > header {
     color: var(--fg-accent);
 }
 
-.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus) #settings-editor-done { display: inline-flex; }
+.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus, .prompt-rendered-flyout:not([hidden])) #settings-editor-done { display: inline-flex; }
 
-.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus) #settings-page-help { display: none; }
+.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus, .prompt-rendered-flyout:not([hidden])) #settings-page-help { display: none; }
 
-.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus) #settings-back-btn { visibility: hidden; }
+.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus, .prompt-rendered-flyout:not([hidden])) #settings-back-btn { visibility: hidden; }
+
+/* The filled-in preview opens the same way, full screen under the top bar
+   with Done to close it, since a tap outside it is what closes it. */
+.prompt-rendered-flyout {
+    z-index: 650;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.prompt-rendered-header {
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-5);
+}
+
+.prompt-rendered-sub { font-size: var(--text-md); }
+
+#prompt-rendered-close { display: none; }
+
+.prompt-rendered-body { padding: var(--space-4) var(--space-5) var(--space-5); }
 
 .sampler-slider { min-height: 44px; }
 
@@ -1303,9 +1324,9 @@ body:not(.mobile-drawer-open) #main-content > header {
    settles the view, or where a drag pulls the page past its end. */
 body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
 
-/* While a sheet or the samplers menu is open, the page under it holds
-   still, so a drag on the sheet does not scroll the page behind. */
-.settings-pane:has(:is(.cozy-select-menu, .export-menu, .sampler-popover):not([hidden])) { overflow: hidden; }
+/* While a sheet, the samplers menu or the filled-in preview is open, the
+   page under it holds still, so a drag on it does not scroll the page behind. */
+.settings-pane:has(:is(.cozy-select-menu, .export-menu, .sampler-popover, .prompt-rendered-flyout):not([hidden])) { overflow: hidden; }
 
 /* Over the .modal-overlay inset, which otherwise pins the top to the
    layout viewport while Safari scrolls the keyboard's view down, leaving
