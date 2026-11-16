@@ -996,9 +996,12 @@ body:not(.mobile-drawer-open) #main-content > header {
     background-color: transparent;
     border-color: transparent;
     box-shadow: none;
-    padding-inline: 0;
+    padding-left: 0;
     color: var(--fg-quiet);
 }
+
+/* A picker keeps its right padding, which is where its chevron is drawn. */
+.settings-pane .settings-row :is(.form-input, .form-textarea) { padding-right: 0; }
 
 .settings-pane .settings-row :is(.form-input[type="number"], .prompt-version-input) { text-align: right; }
 
@@ -1069,9 +1072,11 @@ body:not(.mobile-drawer-open) #main-content > header {
     color: var(--fg);
 }
 
+/* A plain choice (an API preset) ends in an ellipsis at the right; one with
+   parts (a prompt's version, a book's source) is a flex row of them. */
 :is(.preset-select-row, .prompt-select-row) .cozy-select-value {
-    display: flex;
     justify-content: flex-end;
+    text-align: right;
     color: var(--fg-quiet);
 }
 
@@ -1143,6 +1148,7 @@ body:not(.mobile-drawer-open) #main-content > header {
 .prompt-header-actions {
     display: flex;
     flex-direction: column;
+    gap: 0;
     width: 100%;
 }
 
@@ -1373,7 +1379,11 @@ body:not(.mobile-drawer-open) #main-content > header {
 /* The description keeps its desktop floor over the phone field height. */
 .lorebook-description {
     min-height: 0;
+    resize: none;
 }
+
+/* With no books, the empty state stands apart from New and Import under it. */
+.lorebook-empty-panel { margin-bottom: var(--space-5); }
 
 .lorebook-entry-toggle {
     min-height: 44px;
