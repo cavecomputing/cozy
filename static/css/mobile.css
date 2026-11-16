@@ -85,6 +85,14 @@ body.mobile-drawer-open {
     outline: none;
 }
 
+/* A picker's button is drawn as a field, and its sheet hands focus back to
+   it on closing. It keeps the field's resting edge then: the accent edge
+   and glow of a field being typed in would be a focus ring by another name. */
+.cozy-select-trigger:focus {
+    border-color: var(--line);
+    box-shadow: var(--input-shadow, none);
+}
+
 /* 26 + 9 + 9 = the 44px tap target, so this margin is not spacing. */
 input[type="checkbox"] {
     width: 44px;
