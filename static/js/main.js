@@ -112,9 +112,6 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     }
     el.settingsPane.scrollTop = 0;
     updateSettingsHeader();
-    if (drillIntoOnMobile && isMobileSettings()) {
-        document.getElementById('settings-title').focus();
-    }
     if (key === 'about' && !el.settingsFlyout.hidden) {
         void loadStorageStats();
     }
@@ -261,14 +258,12 @@ function exitSettingsDetail() {
 }
 
 /**
- * Put focus where Settings' list starts: the chosen page on the desktop, for
- * the keyboard; the title on the phone, where a page's row would show its
- * focus ring as if it had been tapped.
+ * Put the keyboard on the chosen page in Settings' list. Only on the desktop:
+ * a phone has no keyboard to move, and its row would show the focus ring as
+ * if it had been tapped.
  */
 function focusSettingsList() {
-    (isMobileSettings()
-        ? document.getElementById('settings-title')
-        : el.settingsNav.querySelector('.settings-nav-item.active'))?.focus();
+    if (!isMobileSettings()) el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
 }
 
 function setSamplerPopoverOpen(open) {
