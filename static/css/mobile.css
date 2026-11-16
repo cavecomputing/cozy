@@ -1268,14 +1268,19 @@ body:not(.mobile-drawer-open) #main-content > header {
 #settings-extra-params {
     height: 7.5rem;
     min-height: 0;
-    margin-bottom: var(--space-5);
-    padding: var(--space-4);
-    background-color: var(--surface-card);
     border: 0;
-    border-radius: var(--radius-md);
     resize: none;
     overflow: hidden;
     mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+/* A prompt box is its own cell. The extra parameters sit inside one, which
+   has the colour and the padding already. */
+.prompt-section-right > .form-textarea {
+    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+    background-color: var(--surface-card);
+    border-radius: var(--radius-md);
 }
 
 .lorebook-entry-content {
