@@ -1302,7 +1302,13 @@ body:not(.mobile-drawer-open) #main-content > header {
 .settings-submodal.modal-overlay {
     top: calc(var(--settings-viewport-top, 0px) + var(--frame-top));
     bottom: auto;
-    height: calc(var(--settings-viewport-height, 100dvh) - var(--frame-top) - var(--frame-bottom));
+    /* The home indicator's inset is only at the screen's foot: with the
+       keyboard up the view ends at the keyboard, so nothing is taken off it
+       there, or the chat shows in a strip above the keyboard. */
+    height: min(
+        calc(var(--settings-viewport-height, 100dvh) - var(--frame-top)),
+        calc(100dvh - var(--frame-top) - var(--frame-bottom))
+    );
 }
 
 .settings-submodal > .modal { height: 100%; }
