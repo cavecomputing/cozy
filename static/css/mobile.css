@@ -1300,6 +1300,10 @@ body:not(.mobile-drawer-open) #main-content > header {
    settles the view, or where a drag pulls the page past its end. */
 body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
 
+/* While a sheet or the samplers menu is open, the page under it holds
+   still, so a drag on the sheet does not scroll the page behind. */
+.settings-pane:has(:is(.cozy-select-menu, .export-menu, .sampler-popover):not([hidden])) { overflow: hidden; }
+
 /* Over the .modal-overlay inset, which otherwise pins the top to the
    layout viewport while Safari scrolls the keyboard's view down, leaving
    the chat showing under a settings page cut off above. */
