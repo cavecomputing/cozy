@@ -811,7 +811,11 @@ function bindSettingsHandlers() {
         renderMemorySummaryCard();
     });
     el.summaryModel?.addEventListener('blur', flushLLMSettingsSave);
-    el.summaryRefreshModels?.addEventListener('click', browseSummaryModels);
+    // Browse toggles its list: a second tap closes it rather than reloading it.
+    el.summaryRefreshModels?.addEventListener('click', () => {
+        if (el.summaryModelPickerMenu?.hidden === false) closeSummaryModelMenu();
+        else browseSummaryModels();
+    });
     el.summaryModelPickerMenu?.addEventListener('click', e => {
         const btn = e.target.closest('.model-picker-item');
         if (btn) selectSummaryModelFromMenu(btn.dataset.model);
@@ -836,7 +840,10 @@ function bindSettingsHandlers() {
         queueMainApiKeySave(el.apiKey.value);
     });
     el.apiKey?.addEventListener('blur', flushLLMSettingsSave);
-    el.refreshModels?.addEventListener('click', browseModels);
+    el.refreshModels?.addEventListener('click', () => {
+        if (el.modelPickerMenu?.hidden === false) closeModelMenu();
+        else browseModels();
+    });
     el.modelPickerMenu?.addEventListener('click', e => {
         const btn = e.target.closest('.model-picker-item');
         if (btn) selectModelFromMenu(btn.dataset.model);
