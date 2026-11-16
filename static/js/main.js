@@ -257,9 +257,18 @@ function exitSettingsDetail() {
     el.settingsShell?.classList.toggle('popped', wasDetail && !el.settingsFlyout.hidden);
     updateSettingsHeader();
     showSettingsListValues();
-    if (wasDetail && !el.settingsFlyout.hidden) {
-        el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
-    }
+    if (wasDetail && !el.settingsFlyout.hidden) focusSettingsList();
+}
+
+/**
+ * Put focus where Settings' list starts: the chosen page on the desktop, for
+ * the keyboard; the title on the phone, where a page's row would show its
+ * focus ring as if it had been tapped.
+ */
+function focusSettingsList() {
+    (isMobileSettings()
+        ? document.getElementById('settings-title')
+        : el.settingsNav.querySelector('.settings-nav-item.active'))?.focus();
 }
 
 function setSamplerPopoverOpen(open) {
@@ -710,7 +719,7 @@ function bindSettingsHandlers() {
         // (saved section stays "active" in the nav so reopening from the list is one tap away).
         applySettingsSection(state.settingsSection);
         exitSettingsDetail();
-        el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
+        focusSettingsList();
         renderThemePicker();
         const s = await loadLLMSettings();
         await loadSystemPrompts(s);
