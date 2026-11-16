@@ -33,7 +33,7 @@ import {
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, canLeaveLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
-import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, updateContextSizeWarning } from './sampler.js';
+import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, resetActiveSamplers, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
 import { clearAllDrafts, saveDraft } from './drafts.js';
@@ -1020,17 +1020,19 @@ function bindSettingsHandlers() {
         }
     });
 
-    // Put every sampler's value back to its default, through the same input
+    // Put the samplers back as a fresh install has them: the default ones
+    // shown, and every value at its default, written through the same input
     // events typing sends, so sliders follow and the preset saves with them.
     // Max response tokens lives in Context & generation, so it stays.
-    el.samplerResetValuesBtn?.addEventListener('click', async () => {
+    el.samplerDefaultsBtn?.addEventListener('click', async () => {
         const ok = await confirmDialog({
-            title: 'Reset sampler values?',
-            message: 'Every sampler goes back to its default value. Which samplers are shown stays as it is.',
+            title: 'Reset samplers to defaults?',
+            message: 'Only Temperature and Min-P stay on, and every sampler goes back to its default value.',
             confirmLabel: 'Reset',
             danger: false,
         });
         if (!ok) return;
+        resetActiveSamplers();
         for (const [key, elName] of Object.entries(SAMPLER_FIELDS)) {
             if (key === 'sampler_max_tokens' || !el[elName]) continue;
             el[elName].value = SAMPLER_DEFAULTS[key];
