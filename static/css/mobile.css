@@ -1295,6 +1295,11 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .sampler-subsection-header { align-items: center; }
 
+/* Settings covers the chat, which is hidden under it so nothing of it can
+   show at an edge Settings does not reach: above the keyboard while Safari
+   settles the view, or where a drag pulls the page past its end. */
+body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
+
 /* Over the .modal-overlay inset, which otherwise pins the top to the
    layout viewport while Safari scrolls the keyboard's view down, leaving
    the chat showing under a settings page cut off above. */
