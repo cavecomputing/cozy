@@ -544,8 +544,8 @@ function bindSwipeToOpen() {
     // 10px up or down from where it began, however far sideways it has gone,
     // and a thumb swings in an arc: the drag was cancelled part-way and the
     // drawer sprang back shut. touch-action can't say this, since it is read
-    // when the touch starts, so it takes the one touchmove listener in Cozy
-    // that isn't passive.
+    // when the touch starts, so it takes a touchmove listener that isn't
+    // passive.
     main.addEventListener('touchmove', e => {
         if (drag?.live && e.cancelable) e.preventDefault();
     }, { passive: false });
@@ -579,6 +579,35 @@ function bindSwipeToClose() {
             backdrop: sheetBackdrop,
         });
     }
+}
+
+/**
+ * A drag that starts on a pop-up, or on the dimmed page around one, never
+ * moves the page behind it: it scrolls a list inside the pop-up that has
+ * somewhere to go, or nothing. On an iPhone such a drag otherwise scrolled
+ * the chat or the settings page under the open sheet. Refusing the touch
+ * itself holds wherever the browser would have sent it, which a style on
+ * the page behind can't promise.
+ */
+function bindPopupScrollLock() {
+    const POPUPS = '#sheet-backdrop, #mobile-backdrop, .chat-flyout, .dropup-content, .confirm-overlay,'
+        + ' .cozy-select-menu, .export-menu, .sampler-popover, .slash-command-menu';
+    let startY = 0;
+    document.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        const popup = e.target.closest(POPUPS);
+        // A text field keeps its own drags: the caret, and its own scrolling.
+        if (!popup || !e.cancelable || e.touches.length > 1
+            || e.target.matches('textarea, input:not([type="checkbox"])')) return;
+        const down = e.touches[0].clientY > startY;
+        for (let box = e.target; box !== popup.parentElement; box = box.parentElement) {
+            const room = box.scrollHeight - box.clientHeight;
+            // Safari's positions come in fractions, hence the pixel of slack.
+            if (room > 1 && /auto|scroll/.test(getComputedStyle(box).overflowY)
+                && (down ? box.scrollTop > 1 : box.scrollTop < room - 1)) return;
+        }
+        e.preventDefault();
+    }, { passive: false });
 }
 
 function bindFlyoutHandlers() {
@@ -1793,6 +1822,7 @@ async function init() {
     bindSheetBackdropHandlers();
     bindSidebarHandlers();
     bindSwipeToClose();
+    bindPopupScrollLock();
     bindSwipeToOpen();
     bindBackButton();
     bindSettingsHandlers();
