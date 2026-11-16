@@ -153,7 +153,8 @@ function bindExportMenu(button, menu) {
         button.setAttribute('aria-expanded', 'true');
     });
     document.addEventListener('click', e => {
-        if (!dropdown.contains(e.target)) closeExportMenu(menu);
+        // On the phone the menu is a sheet whose own box is the dimmed page.
+        if (!dropdown.contains(e.target) || e.target === menu) closeExportMenu(menu);
     });
     return () => closeExportMenu(menu);
 }
