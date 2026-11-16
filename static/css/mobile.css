@@ -1276,7 +1276,6 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 #settings-editor-done {
-    display: none;
     padding-inline: var(--space-3);
     font-weight: 600;
     color: var(--fg-accent);

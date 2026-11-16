@@ -4287,10 +4287,15 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     padding: 0.75rem 1rem 1rem;
 }
 
+/* The phone's Done for its full-screen editor. mobile.css shows it only while
+   a long text is open, so it is hidden here at every width, with no gap
+   between the two layers' media queries for it to show in. */
+#settings-editor-done { display: none; }
+
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
-    /* The phone's drill-down back arrow, top-bar help and editor Done — never
-       on desktop, where each page's header carries its own help. */
-    :is(#settings-back-btn, #settings-page-help, #settings-editor-done) { display: none; }
+    /* The phone's drill-down back arrow and top-bar help — never on desktop,
+       where each page's header carries its own help. */
+    :is(#settings-back-btn, #settings-page-help) { display: none; }
 
     /* Settings covers the character rail rather than opening beside it, so
        its own menu stands where the characters were and the window has two
