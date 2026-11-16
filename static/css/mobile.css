@@ -77,6 +77,14 @@ body.mobile-drawer-open {
     min-width: 44px;
 }
 
+/* A phone has no keyboard to steer, so nothing draws a focus ring: Safari
+   would otherwise ring a control that a closing menu hands focus back to,
+   as if it had been tabbed to. */
+:focus-visible,
+.context-meter-segment:focus-visible {
+    outline: none;
+}
+
 /* 26 + 9 + 9 = the 44px tap target, so this margin is not spacing. */
 input[type="checkbox"] {
     width: 44px;
@@ -1003,13 +1011,8 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .settings-pane .settings-row :is(.form-input[type="number"], .prompt-version-input) { text-align: right; }
 
-/* A cell shows its field's state on its leading edge: the accent while
-   the field has focus, the danger colour while its value cannot be saved,
-   with the hint that says what it takes. */
-.settings-row:has(:is(.form-input, .form-textarea):focus) {
-    box-shadow: inset 3px 0 0 var(--fg-accent);
-}
-
+/* A cell whose value cannot be saved shows it on its leading edge, in the
+   danger colour, with the hint that says what it takes. */
 .settings-row:has(:is(.form-input, .form-textarea)[aria-invalid="true"]) {
     box-shadow: inset 3px 0 0 var(--status-danger);
 }
@@ -1463,10 +1466,6 @@ body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
 .lorebook-entry-field { font-size: var(--text-3xl); }
 
 .lorebook-entry-field span { color: var(--fg); }
-
-.lorebook-entry :is(.lorebook-entry-header, .lorebook-entry-field):has(:focus) {
-    box-shadow: inset 3px 0 0 var(--fg-accent);
-}
 
 /* ── About page ──────────────────────────────────────────────────────── */
 /* About is cells too: the app's name as one, its storage as a group (the
