@@ -1456,17 +1456,111 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 /* ── About page ──────────────────────────────────────────────────────── */
-.about-identity { align-items: flex-start; }
+/* About is cells too: the app's name as one, its storage as a group (the
+   total and its bar, then a cell for each kind of data with its size at the
+   right end), and its links as a group of rows that open with a chevron,
+   the repository apart from the guides. */
+.about-identity {
+    align-items: flex-start;
+    padding: var(--space-4);
+    background-color: var(--surface-card);
+    border-radius: var(--radius-md);
+}
 
 .about-logo { width: 48px; height: 48px; }
 
-:is(.about-storage-grid, .about-link-grid) { grid-template-columns: minmax(0, 1fr); }
+.about-build { overflow-wrap: anywhere; }
 
-:is(.about-storage-summary-note, .about-storage-tile-desc) {
-    white-space: normal;
+#about-backup-btn {
+    background: none;
+    border: 0;
+    box-shadow: none;
 }
 
-.about-build { overflow-wrap: anywhere; }
+#about-storage-content {
+    overflow: hidden;
+    background-color: var(--surface-card);
+    border-radius: var(--radius-md);
+}
+
+.about-storage-summary { padding: var(--space-4) var(--space-4) 0; }
+
+.about-storage-bar { width: auto; margin: 0 var(--space-4) var(--space-4); }
+
+:is(.about-storage-summary-note, .about-storage-tile-desc, .about-link-desc) { display: none; }
+
+.about-storage-grid {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 0;
+}
+
+.about-storage-tile {
+    min-height: 48px;
+    padding: var(--space-2) var(--space-4);
+    border-top: 1px solid var(--line-soft);
+}
+
+.about-storage-dot { height: 20px; }
+
+.about-storage-tile-title {
+    font-size: var(--text-3xl);
+    font-weight: 400;
+}
+
+.about-storage-tile-value strong {
+    font-size: var(--text-lg);
+    font-weight: 400;
+    color: var(--fg-quiet);
+}
+
+.about-link-grid {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: hidden;
+    border-radius: var(--radius-md);
+}
+
+.settings-section[data-section="about"] a.about-link {
+    gap: var(--space-3);
+    min-height: 48px;
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--surface-card);
+}
+
+.about-link-grid > .about-link + .about-link { border-top: 1px solid var(--line-soft); }
+
+.about-link--primary {
+    margin-bottom: var(--space-5);
+    border-radius: var(--radius-md);
+}
+
+.about-link::after {
+    content: '›';
+    margin-left: auto;
+    opacity: 0.5;
+    font-size: var(--text-3xl);
+}
+
+.about-link-icon {
+    width: 20px;
+    height: 20px;
+    background: none;
+    color: var(--accent-alt, var(--status-success));
+}
+
+.about-link--primary .about-link-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.about-link-title {
+    font-family: inherit;
+    font-size: var(--text-3xl);
+    font-weight: 400;
+    color: var(--fg);
+    text-decoration: none;
+}
+
+.about-link--primary .about-link-title { font-size: var(--text-3xl); }
 
 /* ── Help panels ─────────────────────────────────────────────────────── */
 .sampler-help-row { grid-template-columns: 1fr; }
