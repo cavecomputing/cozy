@@ -1036,9 +1036,15 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .settings-row:has([aria-invalid="true"]) .settings-row-hint { display: block; }
 
-.settings-pane .settings-row.settings-row--field:has(> .cozy-select) {
+/* A picker or a number is at the end of its label's line at every phone
+   width, a phone on its side included, which is wider than the card width
+   the desktop rule goes by. The number is as wide as its longest value,
+   which leaves "Max response tokens" one line on the narrowest phone. */
+.settings-pane .settings-row.settings-row--field:has(> :is(.cozy-select, .form-input[type="number"], .prompt-version-input)) {
     grid-template-columns: minmax(0, 1fr) auto;
 }
+
+.settings-pane .settings-row--field > :is(.form-input[type="number"], .prompt-version-input) { width: 5rem; }
 
 .settings-row > .cozy-select { flex-basis: 150px; }
 
