@@ -33,7 +33,7 @@ import {
     toggleRenderedPrompts, closeRenderedPrompts,
 } from './system-prompts.js';
 import { loadLorebooks, renderLorebookList, selectLorebook, canLeaveLorebook, newLorebook, saveLorebook, deleteLorebook, addEntry, handleEntriesClick, filterEntries, renderLorebookFlyout, onLorebookSelectChange, importLorebook, handleImportFile, exportLorebook, loadAuthorNote, scheduleAuthorNoteSave, flushAuthorNote, updateAuthorNoteCounter } from './lorebooks.js';
-import { SAMPLER_FIELDS, updateContextSizeWarning } from './sampler.js';
+import { SAMPLER_FIELDS, SAMPLER_DEFAULTS, updateContextSizeWarning } from './sampler.js';
 import { exportChat } from './export.js';
 import { initTooltips } from './tooltips.js';
 import { clearAllDrafts, saveDraft } from './drafts.js';
@@ -1018,6 +1018,25 @@ function bindSettingsHandlers() {
             && !el.samplerConfigureBtn.contains(e.target)) {
             setSamplerPopoverOpen(false);
         }
+    });
+
+    // Put every sampler's value back to its default, through the same input
+    // events typing sends, so sliders follow and the preset saves with them.
+    // Max response tokens lives in Context & generation, so it stays.
+    el.samplerResetValuesBtn?.addEventListener('click', async () => {
+        const ok = await confirmDialog({
+            title: 'Reset sampler values?',
+            message: 'Every sampler goes back to its default value. Which samplers are shown stays as it is.',
+            confirmLabel: 'Reset',
+            danger: false,
+        });
+        if (!ok) return;
+        for (const [key, elName] of Object.entries(SAMPLER_FIELDS)) {
+            if (key === 'sampler_max_tokens' || !el[elName]) continue;
+            el[elName].value = SAMPLER_DEFAULTS[key];
+            el[elName].dispatchEvent(new Event('input'));
+        }
+        flushLLMSettingsSave();
     });
 
     // Sampler settings — autosave while editing, then flush on blur.

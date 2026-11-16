@@ -164,6 +164,7 @@ export function initElements() {
         samplerXtcThresh:      document.getElementById('settings-sampler-xtc-threshold'),
         samplerMaxTokens:      document.getElementById('settings-sampler-max-tokens'),
         samplerSeed:           document.getElementById('settings-sampler-seed'),
+        samplerResetValuesBtn: document.getElementById('sampler-reset-values-btn'),
         samplerConfigureBtn:   document.getElementById('sampler-configure-btn'),
         samplerPopover:        document.getElementById('sampler-popover'),
         samplerCoreEmpty:      document.getElementById('sampler-core-empty'),
