@@ -876,7 +876,12 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 :is(.settings-page-header h3, .settings-page-header p, .settings-page-header [data-help]) { display: none; }
 
-:is(.settings-row-hint, .settings-hint:not(#prompt-card-none), .settings-card-desc, .sampler-unsent-note, .lorebook-empty-panel span) {
+/* What says how the page stands stays: the endpoint's detected format, a
+   card's prompt, why the samplers are dimmed. */
+.settings-row-hint:not([id="api-endpoint-hint"]),
+.settings-hint:not([id="prompt-card-none"]),
+.settings-card-desc,
+.lorebook-empty-panel span {
     display: none;
 }
 
@@ -977,6 +982,19 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 .settings-pane .settings-row :is(.form-input[type="number"], .prompt-version-input) { text-align: right; }
+
+/* A cell shows its field's state on its leading edge: the accent while
+   the field has focus, the danger colour while its value cannot be saved,
+   with the hint that says what it takes. */
+.settings-row:has(:is(.form-input, .form-textarea):focus) {
+    box-shadow: inset 3px 0 0 var(--fg-accent);
+}
+
+.settings-row:has(:is(.form-input, .form-textarea)[aria-invalid="true"]) {
+    box-shadow: inset 3px 0 0 var(--status-danger);
+}
+
+.settings-row:has([aria-invalid="true"]) .settings-row-hint { display: block; }
 
 .settings-pane .settings-row.settings-row--field:has(> .cozy-select) {
     grid-template-columns: minmax(0, 1fr) auto;
