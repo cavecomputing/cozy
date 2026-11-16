@@ -109,6 +109,9 @@ or Typical-P. You can send them as JSON.
 Cozy adds this JSON to every request. Use the setting names from your AI
 server's documentation.
 
+The JSON has to be one object, written inside `{` and `}`. If the box is marked
+in red, Cozy cannot read what is in it as a JSON object and sends none of it.
+
 ---
 
 **Next:** [Running Cozy](6-running-cozy.md) explains Docker, other devices,

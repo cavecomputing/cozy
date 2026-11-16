@@ -22,7 +22,7 @@ import {
     selectModelFromMenu, selectSummaryModelFromMenu, testLLMConnection,
     activatePreset, createNewPreset, renamePreset, deletePreset, searchModelsFromInput,
     searchSummaryModelsFromInput, clearModelListCache, clearSummaryModelListCache, showSummaryFallbacks,
-    showEndpointFormat,
+    showEndpointFormat, markExtraParams,
 } from './llm-settings.js';
 import {
     loadSystemPrompts, selectSystemPrompt, createSystemPrompt, renameSystemPrompt,
@@ -992,6 +992,7 @@ function bindSettingsHandlers() {
     // the sampler field, so the reserved-response slice has to follow it.
     el.extraParams?.addEventListener('input', () => {
         state.extraRequestParams = el.extraParams.value;
+        markExtraParams();
         queueLLMSettingsSave({ extra_request_params: el.extraParams.value });
         updateContextViewsSoon();
     });

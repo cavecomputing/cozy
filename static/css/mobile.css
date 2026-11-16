@@ -1054,8 +1054,8 @@ body:not(.mobile-drawer-open) #main-content > header {
    where the desktop's placeholder would read as a value of "Version". */
 .prompt-version-input::placeholder { color: transparent; }
 
-/* A cell whose value cannot be saved shows it on its leading edge, in the
-   danger colour, with the hint that says what it takes. */
+/* A cell whose value cannot be saved or sent shows it on its leading edge, in
+   the danger colour, with the hint that says what it takes if it has one. */
 .settings-row:has(:is(.form-input, .form-textarea)[aria-invalid="true"]) {
     box-shadow: inset 3px 0 0 var(--status-danger);
 }

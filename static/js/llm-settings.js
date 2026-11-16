@@ -389,7 +389,10 @@ function applySettingsToUI(s) {
     state.useCharacterPrompts = s.use_character_prompts === '1';
     if (el.useCharacterPrompts) el.useCharacterPrompts.checked = state.useCharacterPrompts;
     state.extraRequestParams = s.extra_request_params || '';
-    if (el.extraParams) el.extraParams.value = state.extraRequestParams;
+    if (el.extraParams) {
+        el.extraParams.value = state.extraRequestParams;
+        markExtraParams();
+    }
     // Auto Summaries config
     state.summaryApiEndpoint = s.summary_api_endpoint || '';
     state.summaryApiKeySet   = s.summary_api_key_set || false;
@@ -403,6 +406,21 @@ function applySettingsToUI(s) {
     if (el.summaryModel) el.summaryModel.value = state.summaryApiModel;
     if (el.summaryCapInput) el.summaryCapInput.value = state.summaryCapPct;
     state.modelContextLength = state.modelDetails[state.apiModel] ?? null;
+}
+
+/**
+ * Marks the Extra request parameters box when what it holds will not be sent:
+ * buildChatPayload() merges a JSON object and leaves anything else out.
+ */
+export function markExtraParams() {
+    let sendable;
+    try {
+        const extra = JSON.parse(el.extraParams.value);
+        sendable = !!extra && typeof extra === 'object' && !Array.isArray(extra);
+    } catch {
+        sendable = !el.extraParams.value.trim();
+    }
+    el.extraParams.setAttribute('aria-invalid', String(!sendable));
 }
 
 /** Say on the API page when the endpoint gets Claude's format, which sends no samplers. */
