@@ -16,6 +16,13 @@
 let idCounter = 0;
 let closeOpenSelect = null;  // close() of the currently-open custom select, if any
 
+/** Close whichever custom select is open. Returns true when one was. */
+export function closeOpenSelectMenu() {
+    if (!closeOpenSelect) return false;
+    closeOpenSelect({ focusTrigger: true });
+    return true;
+}
+
 /** Enhance every native `.settings-select` on the page (idempotent). */
 export function enhanceSettingsSelects() {
     document.querySelectorAll('select.settings-select').forEach(enhanceSelect);

@@ -1221,7 +1221,8 @@ body:not(.mobile-drawer-open) #main-content > header {
 /* Long text has a cell to itself, a few lines of it fading out at the
    foot. Tapped, it opens full screen under the top bar: while it has focus
    it fills the settings shell, the nearest positioned box that the page
-   does not scroll, and the top bar trades its arrow and help for Done. */
+   does not scroll, and the top bar trades its arrow and help for Done.
+   FULL_SCREEN_TEXT in main.js names the same fields, for Back and Esc. */
 .prompt-section-right > .form-textarea,
 #settings-extra-params {
     height: 7.5rem;

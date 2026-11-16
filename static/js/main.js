@@ -39,7 +39,7 @@ import { initTooltips } from './tooltips.js';
 import { clearAllDrafts, saveDraft } from './drafts.js';
 import { initSlashCommands, updateSlashCommands, handleSlashKeydown, closeSlashCommands } from './slash-commands.js';
 import { updateContextMeter, updateContextViews, initContextMeter, setContextMeterVisible } from './context-meter.js';
-import { enhanceSettingsSelects } from './custom-select.js';
+import { enhanceSettingsSelects, closeOpenSelectMenu } from './custom-select.js';
 import { openSetup } from './setup.js';
 import { dialogueStart, matchDialogue } from './rp-dialogue.js';
 import { confirmDialog } from './confirm.js';
@@ -92,6 +92,10 @@ function loadPrefs() {
 // SETTINGS NAV (macOS-style two-pane)
 // ═══════════════════════════════════════════════════════════════════════════
 const isMobileSettings = () => window.matchMedia(MOBILE_SHELL_QUERY).matches;
+
+// The long texts the phone opens full screen while they have focus; the same
+// list as in mobile.css.
+const FULL_SCREEN_TEXT = '.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content';
 
 function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     state.settingsSection = key;
@@ -159,6 +163,11 @@ function bindExportMenu(button, menu) {
  * true when one was closed, which is how Escape knows to stop.
  */
 function closeOpenSettingsMenu() {
+    if (closeOpenSelectMenu()) return true;
+    if (isMobileSettings() && document.activeElement?.matches(FULL_SCREEN_TEXT)) {
+        document.activeElement.blur();
+        return true;
+    }
     if (el.modelPickerMenu?.hidden === false) { closeModelMenu(); return true; }
     if (el.summaryModelPickerMenu?.hidden === false) { closeSummaryModelMenu(); return true; }
     const menu = document.querySelector('.export-menu:not([hidden])');
@@ -721,6 +730,10 @@ function bindSettingsHandlers() {
     // while it has focus.
     document.getElementById('settings-editor-done')?.addEventListener('click', () => {
         document.activeElement?.blur();
+    });
+    // Closed, it is a preview of its first lines again.
+    el.settingsPane?.addEventListener('focusout', e => {
+        if (isMobileSettings() && e.target.matches(FULL_SCREEN_TEXT)) e.target.scrollTop = 0;
     });
     el.settingsBackBtn?.addEventListener('click', () => {
         if (el.settingsShell.classList.contains('in-detail')) exitSettingsDetail();
