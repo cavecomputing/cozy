@@ -1117,6 +1117,61 @@ body:not(.mobile-drawer-open) #main-content > header {
     color: var(--danger-color);
 }
 
+/* A picker opens as a sheet: its choices rise from the bottom of the screen
+   as a group of cells over the dimmed page, which closes it when tapped. */
+.settings-pane .cozy-select-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 700;
+    display: flex;
+    flex-direction: column;
+    max-height: none;
+    padding: var(--space-5) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    background-color: rgb(0 0 0 / 0.45);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.settings-pane .cozy-select-menu[hidden] { transform: none; }
+
+.settings-pane .cozy-select-option {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 52px;
+    padding: 0 var(--space-4);
+    font-size: var(--text-3xl);
+    background-color: var(--surface-card);
+    border-top: 1px solid var(--line-soft);
+    border-radius: 0;
+}
+
+.settings-pane .cozy-select-option:first-child {
+    margin-top: auto;
+    border-top: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.settings-pane .cozy-select-option:last-child {
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+}
+
+.settings-pane .cozy-select-option > .cozy-select-label { flex: 1; }
+
+/* The current choice is ticked at the right end. */
+.settings-pane .cozy-select-option.selected::after {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    background-color: var(--fg-accent);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
 /* Long text has a cell to itself. */
 :is(.settings-card, .prompt-section-right) > .form-textarea,
 #settings-extra-params {

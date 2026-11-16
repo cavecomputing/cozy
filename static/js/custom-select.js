@@ -220,6 +220,11 @@ export function enhanceSelect(select) {
         e.preventDefault();
         commit(li.dataset.value);
     });
+    // On the phone the menu is a sheet over a dimmed page, and the dimmed part
+    // is the menu itself: a tap there closes it.
+    menu.addEventListener('click', e => {
+        if (e.target === menu) close();
+    });
     menu.addEventListener('mousemove', e => {
         const li = e.target.closest('.cozy-select-option');
         if (!li || li.classList.contains('disabled')) return;
