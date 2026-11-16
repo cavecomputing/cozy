@@ -265,18 +265,13 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
     right: 0;
     bottom: calc(100% + 0.55rem);
     max-height: min(46dvh, 360px);
-    overflow-y: auto;
+    overflow-y: auto;   /* only when the open form and heading alone outgrow it */
     border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
     z-index: 240;
     padding-top: 0;   /* the 44px header band already clears the eyebrow */
 }
 
-#persona-dropup.dropup-content.show {
-    display: block;
-}
-
-/* The desktop header's side padding, so the eyebrow starts on its hairline. */
+/* The desktop header's side padding, so the eyebrow starts where it does there. */
 #persona-dropup > .panel-header {
     padding: 0 0.75rem;
 }

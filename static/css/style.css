@@ -1669,10 +1669,11 @@ input[type="checkbox"]:checked::after {
     bottom: calc(100% + 10px);
     left: 0;
     right: 0;
-    background-color: var(--bg-color);
+    background-color: var(--sidebar-bg);
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
     z-index: 100;
+    flex-direction: column;
     padding: 0.5rem;
     /* Closing plays the opening backwards (see .chat-flyout). */
     opacity: 0;
@@ -1685,7 +1686,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .dropup-content.show {
-    display: block;
+    display: flex;
     animation: slideUp 0.2s ease-out;
     opacity: 1;
     transform: none;
@@ -1723,24 +1724,14 @@ input[type="checkbox"]:checked::after {
         max-height: min(70vh, 520px);
         padding: 0;
         border-radius: var(--radius);
-        box-shadow: var(--shadow-md);
         z-index: 500;
         overflow: hidden;
-        flex-direction: column;
         transform: translateX(-8px);
     }
 
     #persona-dropup.dropup-content.show {
-        display: flex;
         animation: fadeIn 0.15s ease-out;
         transform: none;
-    }
-
-    #persona-dropup > .panel-header,
-    #persona-dropup > .panel-divider,
-    #persona-dropup > #persona-create-btn,
-    #persona-dropup > #persona-inline-form {
-        flex-shrink: 0;
     }
 
     #persona-dropup > .panel-header {
@@ -1748,10 +1739,7 @@ input[type="checkbox"]:checked::after {
     }
 
     #persona-dropup #persona-list {
-        overflow-y: auto;
-        flex: 1;
-        min-height: 0;
-        padding: 0.35rem 0.5rem 0;
+        padding-inline: 0.5rem;
     }
 
     #persona-dropup > #persona-create-btn {
@@ -1764,17 +1752,35 @@ input[type="checkbox"]:checked::after {
     }
 }
 
-/* The "Switch Persona" eyebrow reads from the left, over its hairline. */
+/* The "Switch Persona" eyebrow reads from the left. */
 #persona-dropup .panel-title {
     text-align: left;
     padding-left: 0.25rem;
 }
 
+/* The menu is a column: the heading, New Persona and the form keep their
+   height, and the list between them takes what is left. */
+#persona-dropup > :not(#persona-list) {
+    flex-shrink: 0;
+}
+
+/* The list scrolls and fades out at both ends as the character list does
+   (--list-fade comes from #sidebar), so rows dissolve under the heading and
+   above New Persona instead of being cut off. No hairline under the heading:
+   the fade does that job. The scroll padding keeps an edit form brought into
+   view clear of the fades. */
 #persona-list {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding-top: 0.35rem;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-block: var(--list-fade);
+    scroll-padding-block: var(--list-fade);
+    scrollbar-width: none;
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--list-fade),
+                                #000 calc(100% - var(--list-fade)), transparent);
 }
 
 .persona-option {
