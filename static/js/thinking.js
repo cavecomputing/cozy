@@ -54,6 +54,12 @@ export function parseThinkingContent(text) {
     };
 }
 
+// The reasoning each thinking block was last drawn from. A streaming reply is
+// redrawn many times a second, and once its reasoning has closed only the
+// answer below it is still growing: parsing and rebuilding unchanged
+// reasoning on every draw cost as much again as the answer itself.
+const drawnThinking = new WeakMap();
+
 /** Render or update the thinking block above message content. */
 export function renderThinkingBlock(msgBody, parsed, { collapse = false } = {}) {
     let block = msgBody.querySelector('.thinking-block');
@@ -80,7 +86,11 @@ export function renderThinkingBlock(msgBody, parsed, { collapse = false } = {}) 
     const label = block.querySelector('.thinking-label');
     label.textContent = parsed.incomplete ? 'Thinking\u2026' : 'Thinking';
     const thinkContent = block.querySelector('.thinking-content');
-    thinkContent.innerHTML = DOMPurify.sanitize(marked.parse(parsed.thinking || ''));
+    const thinking = parsed.thinking || '';
+    if (drawnThinking.get(thinkContent) !== thinking) {
+        thinkContent.innerHTML = DOMPurify.sanitize(marked.parse(thinking));
+        drawnThinking.set(thinkContent, thinking);
+    }
     if (collapse) {
         block.querySelector('.thinking-toggle').classList.remove('open');
         thinkContent.classList.remove('open');
