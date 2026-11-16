@@ -4301,7 +4301,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
     /* Settings covers the character rail rather than opening beside it, so
        its own menu stands where the characters were and the window has two
-       columns, not three. The header's X brings the rail back. On a phone
+       columns, not three. "Back to chat" brings the rail back. On a phone
        every panel is full screen already, so this is for the desktop only. */
     #settings-flyout {
         left: 0;
@@ -4419,28 +4419,54 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     .settings-modal {
         display: grid;
         grid-template-columns: var(--settings-nav-width) minmax(0, 1fr);
-        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
     }
     .settings-modal > .panel-divider { display: none; }
     :is(.settings-body, .settings-shell) { display: contents; }
-    /* The eyebrow and its X, on a hairline. The eyebrow starts on the nav
-       icons' edge, and the X's glyph ends where the hairline's inset does. */
     .settings-modal > .modal-header {
         grid-area: 1 / 1;
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-4);
         height: auto;
         min-height: 0;
-        margin: 1.25rem 0.875rem var(--space-2);
+        padding: 1.25rem 0.875rem var(--space-2);
+    }
+    .settings-nav { grid-area: 2 / 1; }
+    /* The way back is a plain text link at the foot of the menu, where the
+       sidebar's Settings button is, so it is under the pointer that opened
+       Settings. Its chevron's ink starts on the nav icons' edge. */
+    #settings-close-btn {
+        grid-area: 3 / 1;
+        justify-self: start;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0 0 1rem calc(0.875rem + var(--space-4) - 4px);
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: var(--text-sm);
+        color: var(--fg-quiet);
+        text-underline-offset: 3px;
+    }
+    /* The page draws the column's edge, the full height beside header, menu
+       and link. */
+    .settings-pane {
+        grid-area: 1 / 2 / 4;
+        border-left: 1px solid var(--line);
+    }
+    /* The eyebrow starts on the nav icons' edge. */
+    #settings-title {
         padding: 0 var(--space-4) var(--space-2);
         border-bottom: 1px solid var(--line);
     }
-    #settings-close-btn { margin: -5px -12px -5px 0; }
-    .settings-nav { grid-area: 2 / 1; }
-    /* The page draws the column's edge, the full height beside header and
-       menu. */
-    .settings-pane {
-        grid-area: 1 / 2 / 3;
-        border-left: 1px solid var(--line);
-    }
+}
+
+@media (hover: hover) {
+    #settings-close-btn:hover { color: var(--fg-accent); }
+    #settings-close-btn:hover span { text-decoration: underline; }
 }
 
 .settings-page-header {
