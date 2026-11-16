@@ -39,6 +39,7 @@
     </script>
     {%- endif %}
     <link rel="stylesheet" href="{{ url_for('build_asset', build=build_info.display, filename='css/style.css') }}">
+    <link rel="stylesheet" media="(max-width: 768px), (max-height: 500px) and (hover: none)" href="{{ url_for('build_asset', build=build_info.display, filename='css/mobile.css') }}">
     {%- for module in js_modules %}
     <link rel="modulepreload" href="{{ url_for('build_asset', build=build_info.display, filename='js/' + module) }}">
     {%- endfor %}

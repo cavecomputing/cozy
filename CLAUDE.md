@@ -66,7 +66,8 @@ single-process app, and it stays approachable only while changes stay small.
 - Leave out what nothing needs yet: config knobs, feature flags, an abstraction with one caller,
   `try`/`except` around code that doesn't raise, re-validation of data the route already validated.
 - **Change the style itself, never pile an override on top.** When a look changes, edit the rule
-  that owns it in [static/css/style.css](static/css/style.css), or give two elements one shared
+  that owns it in [static/css/style.css](static/css/style.css) (or, for the phone, in
+  [static/css/mobile.css](static/css/mobile.css)), or give two elements one shared
   class. Don't add a later rule, a longer selector or an `!important` to beat the old one, or set
   styles from JS. A design mocked with injected override CSS gets rewritten into the real rules
   before it ships.
@@ -145,6 +146,7 @@ follows is the map, plus the rules the code cannot tell you on its own.
 | [cozy/thumbs.py](cozy/thumbs.py) | `/thumbs/...` WebP avatars, keyed by image content. Pure cache, safe to delete wholesale. |
 | [cozy/summarizer.py](cozy/summarizer.py) | Auto Summaries logic. **Keep it free of Flask, DB and network** so `cozy/routes/chats.py` and `cozy/routes/summaries.py` can both import it. |
 | [templates/index.html](templates/index.html) | The entire SPA. JS modules in [static/js/](static/js/), entry [main.js](static/js/main.js). |
+| [static/css/](static/css/) | [style.css](static/css/style.css) is every width; [mobile.css](static/css/mobile.css) is the phone layer on top of it, loaded only by the media query on its `<link>` (the same query as `MOBILE_SHELL_QUERY` in [utils.js](static/js/utils.js)). A phone-only change goes in mobile.css and leaves desktop rules alone. |
 
 ### Data lives in two places
 

@@ -8,8 +8,8 @@ import { API } from './api.js';
 /**
  * The shell breakpoint: a phone-narrow window, or a touch screen too short for
  * the desktop shell, as a phone on its side is. There the sidebar, the modals
- * and the composer flyouts all switch to their mobile arrangement. Every phone
- * block in style.css repeats it.
+ * and the composer flyouts all switch to their mobile arrangement. The media
+ * attribute that loads mobile.css in index.html and login.html repeats it.
  */
 export const MOBILE_SHELL_QUERY = '(max-width: 768px), (max-height: 500px) and (hover: none)';
 export function autoResize(textarea) {

@@ -1438,7 +1438,7 @@ function bindMessageHandlers() {
 }
 
 // On a touch phone a message's buttons stay hidden until it is pressed and
-// held (the CSS in style.css's phone block decides which rows hide). The bar
+// held (mobile.css decides which rows hide). The bar
 // opens just above the finger, or below it when the finger is too near the top
 // of the transcript for the bar to fit above.
 const HOLD_MS = 450;
