@@ -75,7 +75,7 @@ change something later, these are the same steps in Settings:
 1. Connect to Cozy.
 2. Open `Settings` in the bottom left.
 3. Navigate to `API`.
-4. Optionally, click `Save as preset` and type a name to keep these settings as a preset.
+4. Optionally, click `Save as preset` (the `+` on the Connection bar) and type a name to keep these settings as a preset.
 5. Under `Connection` enter the base `Endpoint` URL for your LLM server.
    Some common ones:
 

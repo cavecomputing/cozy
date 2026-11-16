@@ -308,7 +308,8 @@ The quickest backup is the one inside Cozy. You do not need to stop Cozy.
 ### Download a backup
 
 1. Open **Settings → About**.
-2. In the **Storage** card, click **Backup**, then **Download backup…**.
+2. In the **Storage** card, click **Backup** (the download icon at the right
+   of its title), then **Download backup…**.
 
 Your browser downloads one file named `cozy-backup-<date>.zip`. It contains
 the whole data folder except the thumbnail cache.
@@ -325,7 +326,8 @@ contents of the backup: chats, characters, personas, themes, settings and API
 keys. This cannot be undone.
 
 1. Open **Settings → About**.
-2. In the **Storage** card, click **Backup**, then **Restore from backup…**.
+2. In the **Storage** card, click **Backup** (the download icon at the right
+   of its title), then **Restore from backup…**.
 3. Choose the `.zip` file.
 4. Cozy asks you to confirm. Click **Replace everything**.
 

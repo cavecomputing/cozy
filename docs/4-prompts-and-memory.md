@@ -49,7 +49,8 @@ A fresh install uses **NanoBear**.
 ### See what will be sent
 
 - The **?** button at the top of the Prompt page shows the whole layout.
-- **Preview**, on the editor, shows both of your texts in their tags.
+- **Preview**, the page icon on the editor's bar, shows both of your texts in
+  their tags.
 - The eye button at the top of **Settings → API** shows exactly what will be
   sent for the open chat.
 
@@ -58,12 +59,15 @@ A fresh install uses **NanoBear**.
 A preset is one saved pair of System and Post-History text. The picker at the
 top of the Prompt page switches between them.
 
-| Button | What it does |
-|---|---|
-| **New** | Makes a copy of the selected preset, for you to edit. |
-| **Rename** | Renames the selected preset. |
-| **Delete** | Deletes the selected preset. |
-| **Import/export** | Loads a preset from a file, or saves the selected one to a file. |
+The buttons beside the picker show only an icon on a computer. Point at one to
+see its name.
+
+| Button | Icon | What it does |
+|---|---|---|
+| **New** | + | Makes a copy of the selected preset, for you to edit. |
+| **Rename** | Pencil | Renames the selected preset. |
+| **Delete** | Bin | Deletes the selected preset. |
+| **Import/export** | Two arrows | Loads a preset from a file, or saves the selected one to a file. |
 
 The pill next to a preset's name, such as **v3.0**, is its version. An update
 to Cozy can add a newer version of a bundled preset. The older version stays,
@@ -138,10 +142,12 @@ Each chat uses one lorebook at a time, or none.
 ### Make a lorebook
 
 1. Open **Settings → Lorebooks**.
-2. Click **New**. To load a SillyTavern lorebook file instead, click
-   **Import** and choose a `.json` file.
+2. Click **New**, the **+** beside the lorebook picker. To load a SillyTavern
+   lorebook file instead, click **Import**, the arrow out of a tray, and
+   choose a `.json` file.
 3. Type a **Name**.
-4. Click **Add entry**. A new entry appears at the top of the list.
+4. Click **Add entry**, the **+** on the Entries bar. A new entry appears at
+   the top of the list.
 5. In the entry's first box, the one that reads `key1, key2`, type the
    keywords with commas between them. For example: `tavern, barkeep, ale`.
 6. In the large box under it, type the fact. This is the only part of an
