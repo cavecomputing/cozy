@@ -4297,6 +4297,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
        where each page's header carries its own help. */
     :is(#settings-back-btn, #settings-page-help) { display: none; }
 
+    /* A section's buttons on its title bar are icons alone, named by their
+       tooltip, so the bar keeps room for its pickers. The phone shows them
+       as labelled cells instead. */
+    .settings-card-header :is(.icon-btn, .btn) > :is(span, .export-trigger-chevron) { display: none; }
+
     /* Settings covers the character rail rather than opening beside it, so
        its own menu stands where the characters were and the window has two
        columns, not three. "Back to chat" brings the rail back. On a phone

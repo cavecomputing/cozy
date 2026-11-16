@@ -228,7 +228,7 @@ function renderEntries(entries) {
     if (entries.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'lorebook-entry-empty';
-        empty.textContent = 'No entries yet. Use Add entry to create the first trigger and lore text.';
+        empty.textContent = 'No entries yet. Add one with + to create the first trigger and lore text.';
         el.lorebookEntries.appendChild(empty);
     }
     if (el.lorebookEntrySearch) el.lorebookEntrySearch.value = '';  // a new book starts unfiltered
