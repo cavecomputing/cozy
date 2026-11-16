@@ -1392,6 +1392,15 @@ body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
 
 .settings-submodal > .modal { height: 100%; }
 
+/* A dialog is centred in what the keyboard leaves of the screen, by the
+   same measure: one that asks for a name would otherwise sit at the middle
+   of the whole screen, its buttons at or under the keyboard's edge. The
+   dimming still covers the screen. */
+.confirm-overlay {
+    padding-top: calc(1rem + var(--settings-viewport-top, 0px));
+    padding-bottom: calc(1rem + 100dvh - var(--settings-viewport-top, 0px) - var(--settings-viewport-height, 100dvh));
+}
+
 .settings-submodal .modal-body { padding-bottom: var(--space-5); }
 
 .sampler-reset-btn { min-height: 44px; }
