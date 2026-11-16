@@ -217,10 +217,14 @@ Cozy works the same on a phone, with these differences:
   now: the theme, the model, the prompt and how many lorebooks you have. Tap a
   page to open it, and tap the back arrow at the top left to return to the
   list. On the list, the same arrow goes back to the chat.
-- **A Settings page leaves out the explanations** that the computer shows
-  under each setting. Tap **?** at the top right of the page to read them.
-- **A picker in Settings opens from the bottom of the screen.** Tap a choice
-  to pick it, or tap the dimmed part above the choices to keep the one you had.
+- **Settings leaves out the explanations** that the computer shows under
+  each setting and section. A setting whose value can't be saved still shows
+  what it needs. The API, Prompt, Lorebooks and Summaries pages have a **?** at
+  the top right that opens a guide to the page. Every explanation is on the
+  computer's Settings.
+- **A picker in Settings opens from the bottom of the screen**, and so do the
+  **Import/export** and **Backup** menus. Tap a choice to pick it, or tap the
+  dimmed part above the choices to close it without changing anything.
 - **Long text in Settings opens full screen** when you tap it: a prompt, the
   extra request parameters and a lorebook entry's text. Tap **Done** at the
   top right to close it. **Done** only closes it: a prompt and the extra
