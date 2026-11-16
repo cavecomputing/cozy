@@ -1032,8 +1032,10 @@ body:not(.mobile-drawer-open) #main-content > header {
     color: var(--fg-quiet);
 }
 
-/* A picker keeps its right padding, which is where its chevron is drawn. */
-.settings-pane .settings-row :is(.form-input, .form-textarea) { padding-right: 0; }
+/* A picker keeps its right padding, which is where its chevron is drawn.
+   A value too long for its line ends in an ellipsis, as a picker's does,
+   so it does not look like the whole of it. */
+.settings-pane .settings-row :is(.form-input, .form-textarea) { padding-right: 0; text-overflow: ellipsis; }
 
 .settings-pane .settings-row :is(.form-input[type="number"], .prompt-version-input) { text-align: right; }
 
@@ -1519,6 +1521,7 @@ body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
     box-shadow: none;
     padding-inline: 0;
     color: var(--fg-quiet);
+    text-overflow: ellipsis;
 }
 
 .lorebook-entry .lorebook-entry-keys { color: var(--fg); }
