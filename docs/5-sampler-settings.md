@@ -19,9 +19,9 @@ The samplers are in **Settings → API**, in the **Samplers** card. To turn a
 sampler on or off, click the gear icon at the top right of that card. The
 steps are in [Check the samplers](1-getting-started.md#2-check-the-samplers).
 
-To put every sampler's value back to its default, click the round arrow
-beside the gear and then **Reset**. The samplers that are on stay on, and
-**Max response tokens** keeps its value.
+To go back to the defaults, click the round arrow beside the gear and then
+**Reset**. Only Temperature and Min-P are left on, every sampler's value goes
+back to its default, and **Max response tokens** keeps its value.
 
 The rest of this guide:
 
