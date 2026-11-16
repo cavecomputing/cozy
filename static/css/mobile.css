@@ -1108,6 +1108,10 @@ body:not(.mobile-drawer-open) #main-content > header {
     display: none;
 }
 
+/* A prompt's name sits against its version at the row's end, as a book's
+   does against its source, not out at the label. */
+.prompt-picker .cozy-select-label { margin-right: 0; }
+
 /* An action: its name at the left, its icon at the right end in the section
    icons' colour. */
 :is(.preset-select-row, .prompt-select-row) > :is(.icon-btn, .export-dropdown),
