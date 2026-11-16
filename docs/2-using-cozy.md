@@ -213,8 +213,18 @@ Cozy works the same on a phone, with these differences:
 - **A message's buttons are under the message**, and are always shown.
 - **The chats panel and the memory panel open from the bottom.** Pull one down
   by the handle at its top to close it.
-- **Settings opens as a list.** Tap a section to open its page. Tap the back
-  arrow to return to the list. **Back to chat** is at the bottom of the list.
+- **Settings opens as a list.** Beside each page's name is what it is set to
+  now: the theme, the model, the prompt and how many lorebooks you have. Tap a
+  page to open it, and tap the back arrow at the top left to return to the
+  list. On the list, the same arrow goes back to the chat.
+- **A Settings page leaves out the explanations** that the computer shows
+  under each setting. Tap **?** at the top right of the page to read them.
+- **A picker in Settings opens from the bottom of the screen.** Tap a choice
+  to pick it, or tap the dimmed part above the choices to keep the one you had.
+- **Long text in Settings opens full screen** when you tap it: a prompt, the
+  extra request parameters and a lorebook entry's text. Tap **Done** at the
+  top right to close it. **Done** only closes it: a prompt and the extra
+  parameters save as you type, and a lorebook still needs its **Save**.
 - **The system's Back closes what is open.** That is the swipe from the screen
   edge on an iPhone, and the back gesture or button on Android. It closes the
   sidebar, Settings, a panel or a question Cozy is asking. It does not leave
