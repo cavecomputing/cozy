@@ -893,6 +893,9 @@ body:not(.mobile-drawer-open) #main-content > header {
     display: none;
 }
 
+/* The note on dimmed samplers stands clear of the cells under it. */
+.sampler-unsent-note { margin-bottom: var(--space-3); }
+
 .settings-pane { scroll-padding-block: var(--space-5); }
 
 .settings-section-body { padding-inline: var(--space-5); }
