@@ -481,7 +481,7 @@ body.signin {
 }
 
 .btn-secondary {
-    background-color: var(--surface-quiet);
+    background-color: var(--control-fill, var(--surface-quiet));
     color: var(--text-color);
     border-color: var(--border-color);
 }
@@ -4571,8 +4571,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    list of which sections opted out. Capping the text directly needs none of
    that bookkeeping, and a card is free to use the width its controls want. */
 
-/* A section of a settings page. It draws no box: its title row, ruled to the
-   right of the title, is all that sets it apart from the next one. */
+/* A section of a settings page. It draws no box: its title bar is all that
+   sets it apart from the next one. */
 .settings-card {
     min-width: 0;
 }
@@ -4585,22 +4585,41 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: 3rem;
 }
 
-/* The section title: the section's icon in the success green, the title in
-   mono with a hairline running on from it, and the section's own controls at
-   the right end of that line. A description, where a card has one, wraps
-   onto a line of its own under the title. */
+/* The section title: a bar in the card colour holding the section's icon,
+   the title in mono and the section's own controls at its right end. The bar
+   is one line tall and drawn behind the header's first line only, so when the
+   pane is too narrow for everything, what wraps (a picker, a search) drops
+   under the bar onto the page instead of making the bar taller. It reaches a
+   little past the content edge, so the icon lines up with the labels below. */
 .settings-card-header {
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2) 0.625rem;
+    gap: var(--space-3) 0.625rem;
+    /* Buttons on the bar sit on the page colour, so they stand off its fill. */
+    --control-fill: var(--bg-color);
+}
+
+.settings-card-header::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    left: -0.875rem;
+    right: -0.5rem;
+    height: 3rem;
+    background-color: var(--surface-card);
+    border-radius: var(--radius-md);
 }
 
 /* The header keeps its distance only from something showing under it: the
    Lorebooks card with no book open is its picker alone. */
 .settings-card-header:has(~ :not([hidden])) {
-    margin: 0 0 var(--space-2);
+    margin: 0 0 var(--space-4);
 }
+
 
 /* Section icons take a theme's second accent (the design system's green),
    falling back to its success colour. */
@@ -4609,13 +4628,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     width: 22px;
     height: 22px;
     color: var(--accent-alt, var(--status-success));
-}
-
-/* The gear may not set the title row's height, or the Samplers title would
-   sit lower than its neighbour's. On the toolbar, not the button, so the
-   popover still opens below the gear. */
-.settings-card-header > .sampler-toolbar {
-    margin-block: calc(-1 * var(--space-2));
 }
 
 /* A label above a sub-group of rows inside a card. */
@@ -4647,31 +4659,20 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .settings-card-header h4 {
     flex: 1 1 0;
     min-width: min-content;
+    min-height: 3rem;
     font-size: 1.125rem;
     line-height: 1.25;
 }
 
-/* The hairline that runs on from a title to the section's controls, or to the
-   edge when it has none. */
-.settings-card-header > h4::after {
-    content: "";
-    flex: 1 1 auto;
-    height: 1px;
-    margin-left: var(--space-3);
-    background-color: var(--line);
-}
-
-/* A full line under the title: capping its measure here would let it fit
-   beside the title instead of wrapping under it. */
-.settings-card-header p {
-    flex-basis: 100%;
-    margin: 0;
+/* A section's description, on the page under its title bar. */
+.settings-card-desc {
+    margin: calc(-1 * var(--space-1)) 0 var(--space-3);
     font-size: var(--text-sm);
     line-height: 1.4;
     color: var(--text-secondary);
 }
 
-.settings-card-header code {
+.settings-card-desc code {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     background: var(--code-bg);
@@ -5034,9 +5035,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .sampler-done-btn { display: none; }
 
 /* ── Picker rows (a preset picker and its buttons) ───────────────────────── */
-/* A picker in the title row keeps a usable width and leaves the title's
-   hairline the rest; below the width where both fit it drops to a full line
-   of its own. */
+/* A picker in the title bar keeps a usable width and leaves the title the
+   rest; below the width where both fit it drops under the bar and its
+   buttons stay on it. */
 .settings-card-header > .preset-select-row {
     flex: 0 1 auto;
     justify-content: flex-end;
@@ -5076,7 +5077,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     min-height: 34px;
     gap: var(--space-2);
     padding-inline: var(--space-3);
-    background: var(--surface-quiet);
+    background: var(--control-fill, var(--surface-quiet));
     border: 1px solid var(--line);
     border-radius: var(--radius-control);
     color: var(--fg);
@@ -5092,12 +5093,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
 
 /* Against the settings pane's container, which is the viewport minus the
-   sidebar and the settings nav: the preset picker's row of actions wraps. */
+   sidebar and the settings nav: the picker drops under the title bar and its
+   buttons stay on the bar, in one line. */
 @container (max-width: 800px) {
     :is(.preset-select-row, .prompt-select-row) { flex-wrap: wrap; }
     :is(.preset-select-row, .prompt-select-row) > .cozy-select { flex: 1 1 100%; }
-    .settings-card-header > .preset-select-row { flex-basis: 100%; }
-    .settings-card-header > .preset-select-row > .cozy-select { flex: 1 1 100%; }
+    .settings-card-header > .preset-select-row { display: contents; }
+    .settings-card-header > .preset-select-row > .cozy-select { order: 1; }
 }
 
 /* ── Prompt page ─────────────────────────────────────────────────────────── */
@@ -5177,15 +5179,15 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-left: auto;
 }
 
-/* The editor's System / Post-History switch sits among the title row's
-   controls: two segments in an inset like the ghost buttons beside it, as
-   tall as Preview, the open one raised on the page colour. */
+/* The editor's System / Post-History switch sits among the title bar's
+   controls: two segments in an inset on the page colour like the buttons
+   beside it, as tall as Preview, the open one raised in the bar's colour. */
 .prompt-builder-tabs {
     display: flex;
     flex: none;
     gap: 2px;
     padding: 2px;
-    background: var(--surface-quiet);
+    background: var(--bg-color);
     border: 1px solid var(--line);
     border-radius: var(--radius-control);
 }
@@ -5200,7 +5202,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .prompt-builder-tabs .tab-btn.active {
-    background: var(--bg-color);
+    background: var(--surface-card);
     color: var(--fg-heading);
     box-shadow: 0 0 0 1px var(--line);
 }
@@ -5566,14 +5568,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .settings-card-header > .lorebook-picker > .cozy-select { flex: 0 1 auto; width: 26rem; min-width: 12rem; max-width: none; }
 
-/* Add entry as tall as the search beside it. */
-#settings-lorebook-add-entry { align-self: stretch; }
-
 /* The select needs about 20rem to keep its source and count beside the name,
-   so the actions drop under it at a wider pane than the API picker's do. */
+   so it drops under the bar at a wider pane than the API picker does. */
 @container (max-width: 960px) {
-    .settings-card-header > .lorebook-picker { flex-basis: 100%; flex-wrap: wrap; }
-    .settings-card-header > .lorebook-picker > .cozy-select { flex-basis: 100%; width: auto; }
+    .settings-card-header > .lorebook-picker { display: contents; }
+    .settings-card-header > .lorebook-picker > .cozy-select { order: 1; flex-basis: 100%; width: auto; }
 }
 
 /* Phone-narrow: Add entry stays in the title row and the search takes the
