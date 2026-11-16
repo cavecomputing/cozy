@@ -1328,9 +1328,14 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .sampler-slider { min-height: 44px; }
 
-/* Phone inputs are set at 16px, so the value needs the wider box to show
-   "0.05" whole. */
-.sampler-value-wrap > .form-input[type="number"] { flex-basis: 5.25rem; }
+/* A sampler's name stays on one line: the label column fits the longest,
+   "Frequency penalty", and gives way only on the narrowest phones, where
+   the slider needs the room more. */
+.sampler-card .settings-row { grid-template-columns: minmax(0, 9rem) minmax(7.5rem, 1fr); }
+
+/* A value in a cell has no box or padding, so its width is five figures at
+   the phone's 16px ("-1.25", "4096") and the slider has the rest. */
+.sampler-value-wrap > .form-input[type="number"] { flex-basis: 3.5rem; }
 
 .sampler-popover-row { min-height: 44px; }
 
