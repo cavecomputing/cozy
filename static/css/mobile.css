@@ -1172,15 +1172,61 @@ body:not(.mobile-drawer-open) #main-content > header {
     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-/* Long text has a cell to itself. */
-:is(.settings-card, .prompt-section-right) > .form-textarea,
+/* Long text has a cell to itself, a few lines of it fading out at the
+   foot. Tapped, it opens full screen under the top bar: while it has focus
+   it fills the settings shell, the nearest positioned box that the page
+   does not scroll, and the top bar trades its arrow and help for Done. */
+.prompt-section-right > .form-textarea,
 #settings-extra-params {
+    height: 7.5rem;
+    min-height: 0;
     margin-bottom: var(--space-5);
     padding: var(--space-4);
     background-color: var(--surface-card);
     border: 0;
     border-radius: var(--radius-md);
+    resize: none;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
+
+.lorebook-entry-content {
+    height: 7.5rem;
+    resize: none;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.prompt-section-right:has(> .form-textarea:focus) { position: static; }
+
+:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus {
+    position: absolute;
+    inset: 0;
+    z-index: 650;
+    height: auto;
+    margin: 0;
+    padding: var(--space-5);
+    background-color: var(--bg-color);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    overflow-y: auto;
+    mask-image: none;
+}
+
+#settings-editor-done {
+    display: none;
+    padding-inline: var(--space-3);
+    font-weight: 600;
+    color: var(--fg-accent);
+}
+
+.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus) #settings-editor-done { display: inline-flex; }
+
+.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus) #settings-page-help { display: none; }
+
+.settings-modal:has(:is(.prompt-section-right > .form-textarea, #settings-extra-params, .lorebook-entry-content):focus) #settings-back-btn { visibility: hidden; }
 
 .sampler-slider { min-height: 44px; }
 
@@ -1268,21 +1314,6 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 .prompt-card-switch { order: 2; }
-
-.prompt-section-right .form-textarea {
-    min-height: 180px;
-    height: clamp(180px, calc(var(--settings-viewport-height, 100dvh) * 0.45), 360px);
-}
-
-/* On focus an outline takes the place of the ring. */
-.prompt-section-right .form-textarea:focus {
-    box-shadow: none;
-}
-
-.prompt-section-right .form-textarea:focus-visible {
-    outline: 2px solid var(--fg-accent);
-    outline-offset: 2px;
-}
 
 /* ── Lorebooks page ──────────────────────────────────────────────────── */
 /* The description keeps its desktop floor over the phone field height. */

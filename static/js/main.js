@@ -700,6 +700,11 @@ function bindSettingsHandlers() {
         if (!btn) return;
         applySettingsSection(btn.dataset.section, { drillIntoOnMobile: true });
     });
+    // Done closes the phone's full-screen editor, which is a long text field
+    // while it has focus.
+    document.getElementById('settings-editor-done')?.addEventListener('click', () => {
+        document.activeElement?.blur();
+    });
     el.settingsBackBtn?.addEventListener('click', () => {
         if (el.settingsShell.classList.contains('in-detail')) exitSettingsDetail();
         else closeSettingsFlyout();

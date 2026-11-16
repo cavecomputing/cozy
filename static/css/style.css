@@ -4288,9 +4288,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
-    /* The phone's drill-down back arrow and top-bar help — never on desktop,
-       where each page's header carries its own help. */
-    :is(#settings-back-btn, #settings-page-help) { display: none; }
+    /* The phone's drill-down back arrow, top-bar help and editor Done — never
+       on desktop, where each page's header carries its own help. */
+    :is(#settings-back-btn, #settings-page-help, #settings-editor-done) { display: none; }
 
     /* Settings covers the character rail rather than opening beside it, so
        its own menu stands where the characters were and the window has two
