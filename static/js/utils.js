@@ -183,6 +183,9 @@ export function showToast(message, type = 'error', duration = 5000, action = nul
         e.stopPropagation();
         toast.remove();
     };
+    // The press leaves focus where it is. Taking it from a field being typed
+    // in would drop a phone's keyboard, and close the full-screen editor.
+    toast.onmousedown = e => e.preventDefault();
     container.appendChild(toast);
     // Its time is time on screen. Counted from now, a failure raised while the
     // tab was hidden was gone before anyone came back to read it.
