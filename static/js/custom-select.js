@@ -152,6 +152,9 @@ export function enhanceSelect(select) {
         closeOpenSelect = close;
         const selIdx = items.findIndex(it => it.value === select.value);
         setActive(items.length ? Math.max(selIdx, 0) : -1);
+        // A list that opens past the foot of what scrolls it, as in the
+        // phone's Memory sheet, is brought into view whole.
+        menu.scrollIntoView({ block: 'nearest' });
     }
 
     function close({ focusTrigger = false } = {}) {
