@@ -4863,6 +4863,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     z-index: 30;
     max-height: 240px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     background-color: var(--surface-raised);
     border: 1px solid var(--line);
     border-radius: var(--radius);
