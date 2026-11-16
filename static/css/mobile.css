@@ -1164,7 +1164,9 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 /* A picker opens as a sheet: its choices rise from the bottom of the screen
-   as a group of cells over the dimmed page, which closes it when tapped. */
+   as a group of cells over the dimmed page, which closes it when tapped. A
+   long list scrolls inside the sheet and starts below a third of dimmed page,
+   so there is always somewhere to tap. */
 .settings-pane .cozy-select-menu {
     position: fixed;
     inset: 0;
@@ -1172,7 +1174,8 @@ body:not(.mobile-drawer-open) #main-content > header {
     display: flex;
     flex-direction: column;
     max-height: none;
-    padding: var(--space-5) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    padding: 33dvh var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    overscroll-behavior: contain;
     background-color: rgb(0 0 0 / 0.45);
     border: 0;
     border-radius: 0;
@@ -1180,6 +1183,10 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 .settings-pane .cozy-select-menu[hidden] { transform: none; }
+
+.settings-pane .cozy-select-menu:not([hidden]) > .cozy-select-option {
+    animation: sheetUp var(--motion-base) ease-out;
+}
 
 .settings-pane .cozy-select-option {
     display: flex;
