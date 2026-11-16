@@ -758,54 +758,50 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 /* ── Settings: a drill-down list ─────────────────────────────────────── */
+/* The phone's settings look like any mobile app's: a list of pages, and on
+   each page its sections as a title over groups of cells, the values at the
+   right, the actions as cells of their own with their icon at the right end,
+   and no hints. The back arrow leaves a page for the list and the list for
+   the chat, so the list has no way back at its foot. */
 .settings-shell { position: relative; overflow: hidden; }
 
 .settings-nav {
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-5);
+    gap: 0;
 }
 
-.settings-nav-foot {
-    margin: 0 0.6rem 0.6rem;   /* as #user-profile-container's on the phone */
-}
+.settings-nav-foot { display: none; }
 
+/* The list is one group: each page's icon, name and current value. */
 .settings-nav-item {
-    padding: var(--space-3) 0.8rem;
-    font-size: var(--text-2xl);
-    min-height: 44px;
+    min-height: 48px;
+    padding: 0 var(--space-4);
+    font-size: var(--text-3xl);
+    border-radius: 0;
+    background-color: var(--surface-card);
+    border-top: 1px solid var(--line-soft);
 }
 
-.settings-page-header--with-action {
-    flex-direction: column;
-    gap: 0.55rem;
+.settings-nav-item:nth-child(1 of :not([hidden])) {
+    border-top: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
-/* A header's icon buttons stay inline, top-right, with the tagline wrapping
-   beside them; the API page's Test connection is too wide for that, so
-   there the actions drop under the tagline. */
-.settings-page-header--icons {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.5rem;
+.settings-nav-item:nth-last-child(1 of :not([hidden])) {
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
 }
 
-.settings-page-header--icons .settings-page-title {
-    flex: 1 1 12rem;
+.settings-nav-item svg {
+    width: 20px;
+    height: 20px;
 }
 
-.settings-page-header--icons .settings-page-title p {
-    font-size: var(--text-sm);
-}
-
-.settings-section-body,
-.settings-section-stack,
-.prompt-section-body {
-    padding-block: 0.65rem;
-}
+.settings-nav-item > span:first-of-type { flex: 1; }
 
 .settings-nav-item::after {
     content: '›';
-    margin-left: auto;
+    margin-left: var(--space-2);
     opacity: 0.5;
     font-size: var(--text-3xl);
 }
@@ -813,37 +809,30 @@ body:not(.mobile-drawer-open) #main-content > header {
 /* List view (default on mobile open) — hide pane */
 .settings-shell:not(.in-detail) .settings-pane { display: none; }
 
-/* Detail view — hide nav and the way back, show pane */
-.settings-shell.in-detail :is(.settings-nav, .settings-nav-foot) { display: none; }
+/* Detail view — hide the list, show the page */
+.settings-shell.in-detail .settings-nav { display: none; }
 
 /* A page pushes in from the right; Back brings the list in from the left. */
 .settings-shell.in-detail .settings-pane { animation: pushIn 0.2s ease-out; }
 
 .settings-shell.popped .settings-nav { animation: popIn 0.2s ease-out; }
 
-/* Don't highlight active in list view on mobile — back arrow chevron is enough */
+/* The list marks no page as current: the back arrow is enough. */
 .settings-shell:not(.in-detail) .settings-nav-item.active {
-    background-color: transparent;
+    background-color: var(--surface-card);
     color: var(--fg);
     font-weight: 400;
 }
 
+.settings-nav-item svg,
 .settings-shell:not(.in-detail) .settings-nav-item.active svg {
-    color: var(--fg-quiet);
+    color: var(--accent-alt, var(--status-success));
 }
 
 @media (hover: hover) {
     .settings-shell:not(.in-detail) .settings-nav-item.active:hover {
         background-color: var(--surface-quiet);
     }
-}
-
-.settings-model-row {
-    flex-wrap: wrap;
-}
-
-.settings-model-row .form-input {
-    flex: 1 1 12rem;
 }
 
 /* iOS shrinks the visual viewport for the keyboard without resizing the
@@ -856,9 +845,9 @@ body:not(.mobile-drawer-open) #main-content > header {
     height: var(--settings-viewport-height, 100dvh);
 }
 
-/* In a page the title names it, as the desktop page header does; the list
-   keeps the plain eyebrow. */
-#settings-flyout:has(.in-detail) #settings-title {
+/* The top bar names the page, or Settings on the list, centred between the
+   back arrow and the page's help, or the room the help would take. */
+#settings-title {
     font-size: var(--text-4xl);
     font-weight: 700;
     line-height: 1.2;
@@ -868,24 +857,133 @@ body:not(.mobile-drawer-open) #main-content > header {
     text-align: center;
 }
 
-/* Centred between the back arrow and the page's help, or the room the
-   help would take on a page without one. */
-#settings-flyout:has(.in-detail) #settings-title:has(+ #settings-page-help[hidden]) {
+#settings-title:has(+ #settings-page-help[hidden]) {
     padding-right: 44px;
 }
 
-.settings-page-header { position: static; padding: var(--space-3) var(--page-gutter); }
+/* The top bar shows the page's title and its help button instead, and the
+   descriptions go, as every hint on the phone does. */
+.settings-page-header { position: static; display: block; padding: 0 var(--space-5); }
 
-/* The top bar shows the page's title and its help button instead. */
-:is(.settings-page-header h3, .settings-page-header [data-help]) { display: none; }
+:is(.settings-page-header h3, .settings-page-header p, .settings-page-header [data-help]) { display: none; }
 
-.settings-page-header p { margin: 0; font-size: var(--text-lg); }
+:is(.settings-row-hint, .settings-hint:not(#prompt-card-none), .settings-card-desc, .sampler-unsent-note, .lorebook-empty-panel span) {
+    display: none;
+}
 
 .settings-pane { scroll-padding-block: var(--space-5); }
 
 .settings-section-body { padding-inline: var(--space-5); }
 
-.settings-row { min-height: 52px; }
+.settings-section-body,
+.settings-section-stack,
+.prompt-section-body {
+    padding-block: var(--space-2) var(--space-5);
+}
+
+.settings-section-stack,
+.settings-card-grid { gap: var(--space-2); }
+
+/* ── Settings: sections and their cells ──────────────────────────────── */
+/* A section lays its parts out itself: the header and its picker row step
+   aside, so the icon, title and any button for the whole list (the samplers'
+   gear, Add entry) make the title line, the picker is a group under it, the
+   rows follow, and the actions come last, Delete apart from the rest. */
+:is(.settings-card, .sampler-subsection):has(> .settings-card-header) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-2);
+}
+
+.settings-card-header,
+.settings-card-header > :is(.preset-select-row, .prompt-select-row) {
+    display: contents;
+}
+
+:is(.settings-card, .sampler-subsection) > *,
+.settings-card-header > *,
+.settings-card-header > :is(.preset-select-row, .prompt-select-row) > * {
+    grid-column: 1 / -1;
+}
+
+.settings-card-header::before { content: none; }
+
+.settings-card-icon {
+    grid-column: 1;
+    width: 18px;
+    height: 18px;
+}
+
+.settings-card-header h4 {
+    grid-column: 2;
+    min-height: 2.75rem;
+    font-size: var(--text-3xl);
+}
+
+:is(.sampler-toolbar, #settings-lorebook-add-entry, #about-backup-dropdown) { grid-column: 3; }
+
+/* The entry search runs the width under the title line. */
+.lorebook-entry-search { grid-row: 2; margin-bottom: var(--space-4); }
+
+/* Under the label, a line of its own; in a cell, a 44px tap target. */
+#settings-lorebook-add-entry,
+.settings-card-header .sampler-toolbar .icon-btn {
+    background: none;
+    border: 0;
+    box-shadow: none;
+}
+
+/* A cell: a row, a picker or an action on the card colour, ruled from the one
+   above it, with a group's first and last cells rounding its corners and
+   the last one keeping the next group at a distance. */
+.settings-pane .settings-row {
+    min-height: 48px;
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--surface-card);
+    border-top: 1px solid var(--line-soft);
+}
+
+.settings-pane .settings-row:nth-child(1 of .settings-row:not([hidden])) {
+    border-top: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.settings-pane .settings-row:nth-last-child(1 of .settings-row:not([hidden])) {
+    margin-bottom: var(--space-5);
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+}
+
+.settings-row-label { font-size: var(--text-3xl); }
+
+/* Values sit in their cell without a box of their own: text under its label,
+   a number or a picker at the right end of the label's line. */
+.settings-pane .settings-row :is(.form-input, .form-textarea, .cozy-select-trigger) {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding-inline: 0;
+    color: var(--fg-quiet);
+}
+
+.settings-pane .settings-row :is(.form-input[type="number"], .prompt-version-input) { text-align: right; }
+
+.settings-pane .settings-row.settings-row--field:has(> .cozy-select) {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.settings-row > .cozy-select { flex-basis: 150px; }
+
+.settings-pane .settings-row .cozy-select-value { text-align: right; }
+
+.settings-model-row .icon-btn {
+    min-height: var(--mobile-tap-target);
+    background: none;
+    border: 0;
+}
+
+.settings-model-row .settings-action-label { display: none; }
 
 .settings-row:has(> input[type="checkbox"]) { position: relative; }
 
@@ -899,7 +997,135 @@ body:not(.mobile-drawer-open) #main-content > header {
     transform: translateY(-50%);
 }
 
-.settings-row > .cozy-select { flex-basis: 150px; }
+/* The picker is a group of its own: its name at the left, the choice at the
+   right. The name is the select's own accessible one. */
+.settings-card-header > :is(.preset-select-row, .prompt-select-row) > .cozy-select {
+    order: 0;
+    width: auto;
+    max-width: none;
+    margin-bottom: var(--space-5);
+    background-color: var(--surface-card);
+    border-radius: var(--radius-md);
+}
+
+:is(.preset-select-row, .prompt-select-row) > .cozy-select > .cozy-select-trigger {
+    gap: var(--space-4);
+    min-height: 48px;
+    padding-left: var(--space-4);
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+:is(.preset-select-row, .prompt-select-row) > .cozy-select > .cozy-select-trigger::before {
+    content: attr(aria-label);
+    flex: none;
+    color: var(--fg);
+}
+
+:is(.preset-select-row, .prompt-select-row) .cozy-select-value {
+    display: flex;
+    justify-content: flex-end;
+    color: var(--fg-quiet);
+}
+
+:is(.preset-select-row, .prompt-select-row) .cozy-select-value > :is(.cozy-select-detail, .cozy-select-count) {
+    display: none;
+}
+
+/* An action: its name at the left, its icon at the right end in the section
+   icons' colour. */
+:is(.preset-select-row, .prompt-select-row) > :is(.icon-btn, .export-dropdown),
+.prompt-header-actions > :not([data-help]) {
+    order: 1;
+    width: 100%;
+    margin: 0;
+    background-color: var(--surface-card);
+    border: 0;
+    border-top: 1px solid var(--line-soft);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+:is(.preset-select-row, .prompt-select-row) > .icon-btn,
+.prompt-select-row .export-dropdown > .icon-btn,
+.prompt-header-actions > :not([data-help]) {
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    gap: var(--space-4);
+    min-height: 48px;
+    padding: 0 var(--space-4);
+    color: var(--fg);
+}
+
+.prompt-select-row .export-dropdown > .icon-btn {
+    width: 100%;
+    background: none;
+    border: 0;
+}
+
+:is(.preset-select-row, .prompt-select-row, .prompt-header-actions) svg {
+    width: 18px;
+    height: 18px;
+    color: var(--accent-alt, var(--status-success));
+}
+
+/* The request preview has no label of its own on the desktop, where its eye
+   stands alone. */
+.prompt-header-actions > .icon-btn:not([data-help])::after { content: attr(aria-label); }
+
+.settings-action-label,
+.prompt-header-actions > .icon-btn:not([data-help])::after {
+    font-family: var(--font-sans);
+    font-size: var(--text-3xl);
+    font-weight: 400;
+}
+
+:is(.preset-select-row, .prompt-select-row) > :nth-child(1 of :is(.icon-btn, .export-dropdown):not([hidden], [id$="-delete"])),
+.prompt-header-actions > :nth-child(1 of :not([data-help])) {
+    border-top: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+:is(.preset-select-row, .prompt-select-row) > :nth-last-child(1 of :is(.icon-btn, .export-dropdown):not([hidden], [id$="-delete"])),
+.prompt-header-actions > :nth-last-child(1 of :not([data-help])) {
+    margin-bottom: var(--space-5);
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+}
+
+.prompt-header-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.prompt-header-actions:has(> :not([data-help])) { margin-top: var(--space-4); }
+
+#settings-test-api { min-width: 0; justify-content: space-between; }
+
+/* Delete is a group of its own, after the others, in the danger colour. */
+:is(.preset-select-row, .prompt-select-row) > [id$="-delete"] {
+    order: 2;
+    margin-bottom: var(--space-5);
+    border-top: 0;
+    border-radius: var(--radius-md);
+}
+
+:is(.preset-select-row, .prompt-select-row) > [id$="-delete"],
+:is(.preset-select-row, .prompt-select-row) > [id$="-delete"] svg {
+    color: var(--danger-color);
+}
+
+/* Long text has a cell to itself. */
+:is(.settings-card, .prompt-section-right) > .form-textarea,
+#settings-extra-params {
+    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+    background-color: var(--surface-card);
+    border: 0;
+    border-radius: var(--radius-md);
+}
 
 .sampler-slider { min-height: 44px; }
 
@@ -961,79 +1187,40 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .model-picker-item { min-height: 44px; }
 
-/* ── Picker rows ─────────────────────────────────────────────────────── */
-/* The picker takes a line to itself, and the buttons share the next one
-   however many of them show: three for a preset, four for a chosen
-   lorebook, two for none. Each grows from its label's width, so a longer
-   label like "Save as preset" stays on one line. */
-:is(.preset-select-row, .prompt-select-row) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-}
-
-:is(.preset-select-row, .prompt-select-row) > .cozy-select { flex-basis: 100%; }
-
-/* The desktop lets a picker row dissolve into the title bar when it runs
-   short of room; on the phone the row stays whole, on a line of its own under
-   the title, picker first. */
-.settings-card-header > :is(.preset-select-row, .lorebook-picker) { display: flex; flex-basis: 100%; }
-
-.settings-card-header > :is(.preset-select-row, .lorebook-picker) > .cozy-select { order: 0; }
-
-:is(.preset-select-row, .prompt-select-row) > .icon-btn { flex: 1 1 auto; }
-
-.prompt-select-row .export-dropdown > .icon-btn { width: 100%; }
-
-.settings-action-label { font-size: var(--text-xs); }
-
-:is(.preset-select-row, .prompt-select-row) .icon-btn {
-    min-height: var(--mobile-tap-target);
-    padding-inline: var(--space-1);
-    gap: var(--space-1);
-}
-
-.settings-model-row .icon-btn { min-height: var(--mobile-tap-target); }
-
-.prompt-select-row .export-dropdown { flex-basis: 100%; }
-
 /* ── Prompt page ─────────────────────────────────────────────────────── */
 .prompt-section-body {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-2);
 }
 
 .prompt-section-controls,
 .prompt-section-right {
     grid-column: auto;
     grid-row: auto;
+    flex: none;
+    min-height: 0;
 }
 
-/* The switch grows with Preview to fill its row, a tap target tall. */
-/* A section title is a plain line on the phone, not a bar. */
-.settings-card-header::before { content: none; }
-
-.prompt-builder-tabs { flex: 1 1 auto; }
+/* The System and Post-History switch runs the width under the title, the
+   editor under it, then Preview and the character prompts switch. */
+.prompt-builder-tabs { margin-bottom: var(--space-4); }
 
 .prompt-builder-tabs .tab-btn {
     flex: 1;
     min-height: calc(var(--mobile-tap-target) - 6px);
 }
 
-.prompt-section-right { flex: none; min-height: 0; }
+.prompt-card-switch { order: 2; }
 
 .prompt-section-right .form-textarea {
     min-height: 180px;
     height: clamp(180px, calc(var(--settings-viewport-height, 100dvh) * 0.45), 360px);
-    background: var(--input-bg);
-    border: 1px solid var(--line-soft);
-    padding: var(--space-4);
 }
 
-/* On focus an outline takes the place of the field's border and ring. */
+/* On focus an outline takes the place of the ring. */
 .prompt-section-right .form-textarea:focus {
-    border-color: transparent;
     box-shadow: none;
 }
 
@@ -1052,10 +1239,6 @@ body:not(.mobile-drawer-open) #main-content > header {
     min-height: 44px;
     white-space: normal;
 }
-
-.lorebook-picker .cozy-select-label { flex-basis: 100%; }
-
-.lorebook-picker .cozy-select-detail { max-width: 100%; flex: 1 1 110px; }
 
 /* ── About page ──────────────────────────────────────────────────────── */
 .about-identity { align-items: flex-start; }
@@ -1076,10 +1259,3 @@ body:not(.mobile-drawer-open) #main-content > header {
 .sampler-help-list--urls .sampler-help-row { grid-template-columns: 1fr; }
 
 .sampler-help-row dt { margin-bottom: 0.1rem; }
-
-/* ── Smaller phones ──────────────────────────────────────────────────────── */
-/* The editor's switch and Preview share one row; on the smallest phones
-   Preview's label gives up its place. */
-@media (max-width: 359px) {
-    .prompt-rendered-btn .settings-action-label { display: none; }
-}

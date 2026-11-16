@@ -105,7 +105,6 @@ function applySettingsSection(key, { drillIntoOnMobile = false } = {}) {
     }
     if (drillIntoOnMobile && isMobileSettings()) {
         el.settingsShell.classList.add('in-detail');
-        el.settingsBackBtn.hidden = false;
     }
     el.settingsPane.scrollTop = 0;
     updateSettingsHeader();
@@ -213,6 +212,8 @@ function updateSettingsHeader() {
     document.getElementById('settings-title').textContent = detail
         ? page.querySelector('h3').textContent
         : 'Settings';
+    // The phone's back arrow leaves a page for the list, and the list for the chat.
+    el.settingsBackBtn.setAttribute('aria-label', detail ? 'Back to settings list' : 'Back to chat');
     // The page's own help button, in the top bar beside its title.
     const pageHelp = detail && page.querySelector('.settings-page-header [data-help]');
     const topHelp = document.getElementById('settings-page-help');
@@ -229,7 +230,6 @@ function exitSettingsDetail() {
     el.settingsShell?.classList.remove('in-detail');
     // Back from a page slides the list in; opening Settings on it does not.
     el.settingsShell?.classList.toggle('popped', wasDetail && !el.settingsFlyout.hidden);
-    if (el.settingsBackBtn) el.settingsBackBtn.hidden = true;
     updateSettingsHeader();
     if (wasDetail && !el.settingsFlyout.hidden) {
         el.settingsNav.querySelector('.settings-nav-item.active')?.focus();
@@ -700,7 +700,10 @@ function bindSettingsHandlers() {
         if (!btn) return;
         applySettingsSection(btn.dataset.section, { drillIntoOnMobile: true });
     });
-    el.settingsBackBtn?.addEventListener('click', exitSettingsDetail);
+    el.settingsBackBtn?.addEventListener('click', () => {
+        if (el.settingsShell.classList.contains('in-detail')) exitSettingsDetail();
+        else closeSettingsFlyout();
+    });
 
     // Safari's keyboard shrinks the visual viewport without changing 100dvh.
     // Leave pinch zoom to the browser; only follow the keyboard-sized viewport.
