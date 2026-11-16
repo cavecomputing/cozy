@@ -1467,9 +1467,13 @@ body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
 .prompt-card-switch { order: 2; }
 
 /* ── Lorebooks page ──────────────────────────────────────────────────── */
-/* The description keeps its desktop floor over the phone field height. */
+/* The description is as tall as its text, from the desktop's two lines up:
+   a longer one used to scroll inside its cell and stay scrolled, its first
+   lines out of sight under the label. */
 .lorebook-description {
-    min-height: 0;
+    min-height: 3.6rem;
+    height: auto;
+    field-sizing: content;
     resize: none;
 }
 
