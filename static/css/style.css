@@ -568,7 +568,6 @@ body.signin {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    margin-bottom: 0;
     overflow: hidden;
 }
 
@@ -1971,11 +1970,8 @@ input[type="checkbox"]:checked::after {
 }
 
 #main-content > header {
-    height: auto;
     padding: 1rem 1.5rem 0.5rem;
     background-color: var(--bg-color);
-    border-bottom: none;
-    box-shadow: none;
     z-index: 5;
     display: none;
     justify-content: space-between;
@@ -2093,7 +2089,6 @@ input[type="checkbox"]:checked::after {
     display: flex;
     flex-direction: column;
     position: relative;         /* anchor for .msg-actions absolute positioning */
-    padding-top: 0;
     width: 100%;
 }
 
@@ -2112,11 +2107,7 @@ input[type="checkbox"]:checked::after {
 .message .avatar {
     width: 46px;
     height: 46px;
-    border-radius: var(--radius-control);
-    margin-bottom: 0;
-    font-family: var(--font-mono);
     font-size: var(--text-lg);
-    font-weight: 700;
     align-self: flex-start;
 }
 
@@ -2246,10 +2237,6 @@ input[type="checkbox"]:checked::after {
    coming after them. */
 .avatar[data-has-image="true"] {
     font-size: 0;
-    image-rendering: auto;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
 }
 
 /* Expandable message avatars, framed by a hairline like any picture */
