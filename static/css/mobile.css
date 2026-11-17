@@ -138,12 +138,16 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
 }
 
 /* ── Sidebar: an off-screen drawer ───────────────────────────────────── */
+/* Pinned inside the page rather than to the screen, so it shrinks with the
+   page to the view the keyboard leaves and the persona form at its foot
+   stays above the keyboard. It takes the page's own top and bottom padding
+   for the same reason: the home indicator's inset only while it shows. */
 #sidebar {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: var(--frame-left);
     bottom: 0;
-    padding-block: var(--frame-top) var(--frame-bottom);
+    padding-block: inherit;
     width: min(88vw, 360px);
     max-width: 100vw;
     margin: 0;
