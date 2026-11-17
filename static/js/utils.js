@@ -291,6 +291,18 @@ export function maybeScrollToBottom() {
     if (state.autoScroll) scrollToBottom();
 }
 
+/**
+ * Show the jump button while the chat sits well above its bottom. A reply
+ * being followed trails its newest lines by a little as it glides, so the
+ * button waits while one is under way and followed.
+ */
+export function updateScrollButton() {
+    const chat = el.chatHistory;
+    const fromBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight;
+    el.scrollToBottomBtn?.classList.toggle('visible',
+        fromBottom >= 60 && !(state.autoScroll && llm.abortController));
+}
+
 // A streaming reply's follow eases the view down to the new bottom instead of
 // jumping there on every draw: each frame covers a share of the way left, so
 // the chat glides at the pace the text arrives. The positions it writes are

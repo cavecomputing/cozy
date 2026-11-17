@@ -648,12 +648,6 @@ export function renderMessages() {
     drawnFrom = Math.max(0, state.messages.length - DRAW_PAGE);
     el.chatHistory.appendChild(buildMessageRange(drawnFrom, state.messages.length));
 
-    // Reset scroll-to-bottom button visibility — if there's no overflow,
-    // no scroll event will fire so the button could stay stale from a previous chat.
-    const atBottom =
-        el.chatHistory.scrollHeight - el.chatHistory.scrollTop - el.chatHistory.clientHeight < 60;
-    state.autoScroll = atBottom;
-    el.scrollToBottomBtn?.classList.toggle('visible', !atBottom);
     scrollToBottom();
     // Short messages can leave the newest page without enough height to scroll,
     // and a transcript that cannot scroll never asks for the older pages.

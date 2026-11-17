@@ -6,7 +6,7 @@ import { API, prefetchSelection, dropPrefetched, serverBuild } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, atGlidePosition, copyText, stopGeneration, MOBILE_SHELL_QUERY,
-    withBusy, flashSettingsSavedTick, dismissApiNotice, updateTabTitle, keepChatBottom,
+    withBusy, flashSettingsSavedTick, dismissApiNotice, updateTabTitle, keepChatBottom, updateScrollButton,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
@@ -1772,15 +1772,28 @@ function bindScrollHandlers() {
     el.chatHistory.addEventListener('scroll', () => {
         const { scrollTop, scrollHeight, clientHeight } = el.chatHistory;
         const fromBottom = scrollHeight - scrollTop - clientHeight;
-        const atBottom = fromBottom < 60;
         if (mouseHeld && scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
         else if (fromBottom < 1 && leftBottom) state.autoScroll = true;
         if (fromBottom >= 1 && !atGlidePosition(scrollTop)) leftBottom = true;
         lastScrollTop = scrollTop;
-        // A reply being followed trails its newest lines by a little as it glides.
-        el.scrollToBottomBtn?.classList.toggle('visible', !atBottom && !state.autoScroll);
+        updateScrollButton();
         drawOlderSoon();
     });
+
+    // The chat also moves away from its bottom with no scroll event: a longer
+    // swipe shown on the last reply, a block opened, the window made shorter.
+    // So the button is brought up to date whenever the chat changes size, a
+    // message in it does or one leaves it, as well as on scrolling.
+    const resizes = new ResizeObserver(updateScrollButton);
+    resizes.observe(el.chatHistory);
+    for (const child of el.chatHistory.children) resizes.observe(child);
+    new MutationObserver(changes => {
+        for (const { addedNodes, removedNodes } of changes) {
+            addedNodes.forEach(node => node.nodeType === 1 && resizes.observe(node));
+            removedNodes.forEach(node => node.nodeType === 1 && resizes.unobserve(node));
+        }
+        updateScrollButton();
+    }).observe(el.chatHistory, { childList: true });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
