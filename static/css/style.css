@@ -163,6 +163,8 @@
     scrollbar-color: var(--border-color) transparent;
 }
 
+/* !important, so that a rule giving an element its own display can never show
+   a hidden one. Nothing needs a [hidden] rule of its own to stay out of sight. */
 [hidden] {
     display: none !important;
 }
@@ -1107,10 +1109,6 @@ input[type="checkbox"]:checked::after {
 .lorebook-empty-panel strong {
     color: var(--fg);
     font-size: var(--text-lg);
-}
-
-.sampler-empty-state[hidden] {
-    display: none;
 }
 
 /* Both sampler empty states sit directly under a subsection header, whose
@@ -3352,10 +3350,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     grid-template-columns: fit-content(50%) minmax(0, 1fr);
 }
 
-.slash-command-menu[hidden] {
-    display: none;
-}
-
 .slash-command-item {
     width: 100%;
     border: 0;
@@ -3446,10 +3440,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-family: var(--font-mono);   /* the label is a token count */
     font-size: var(--text-xs);
     line-height: 1;
-}
-
-.context-token-meter[hidden] {
-    display: none;
 }
 
 .context-token-meter-track {
@@ -4040,10 +4030,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: 0;
 }
 
-.tab-panel[hidden] {
-    display: none;
-}
-
 #cf-description {
     min-height: 180px;
 }
@@ -4199,13 +4185,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--text-secondary);
 }
 
-.confirm-message[hidden] { display: none; }
-
-/* The prompt field. .form-input sets `display: block`, which would win over
-   the hidden attribute, so confirm mode has to hide it explicitly. */
+/* The prompt field. */
 .confirm-input { margin-top: 0.2rem; }
-
-.confirm-input[hidden] { display: none; }
 
 .confirm-actions {
     display: flex;
@@ -4579,10 +4560,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     padding: var(--space-2) var(--settings-gutter) var(--space-5);
 }
 
-.settings-section[hidden] { display: none; }
-
-.settings-nav-item[hidden] { display: none; }
-
 .settings-hint {
     font-size: var(--text-sm);
     color: var(--fg-quiet);
@@ -4783,8 +4760,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: var(--space-3);
 }
 
-.settings-row[hidden] { display: none; }
-
 .settings-row-hint {
     font-size: var(--text-sm);
     color: var(--fg-quiet);
@@ -4794,8 +4769,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .sampler-group {
     overflow: hidden;
 }
-
-.sampler-group[hidden] { display: none; }
 
 .sampler-group-header {
     padding: var(--space-4) 0 var(--space-1);
@@ -5265,10 +5238,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     animation: slideInRight 0.18s ease-out;
 }
 
-.prompt-rendered-flyout[hidden] {
-    display: none;
-}
-
 /* The editor's textarea overhangs its card slightly on narrow screens, so
    hiding it keeps a stray line of template from peeking under the preview. */
 .prompt-section-right:has(.prompt-rendered-flyout:not([hidden])) .form-textarea {
@@ -5435,10 +5404,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     height: 3.6rem;
 }
 
-.lorebook-empty-panel[hidden] {
-    display: none;
-}
-
 .lorebook-empty-panel span {
     max-width: 28rem;
 }
@@ -5460,9 +5425,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     /* Narrower than the shared 100% cap on fields. */
     max-width: 18rem;
 }
-
-/* .lorebook-entry sets `display: flex`, which would beat the UA [hidden] rule. */
-.lorebook-entry[hidden] { display: none; }
 
 /* Reordering a filtered list would swap rows with invisible neighbours. */
 .lorebook-entries.is-filtering :is(.lorebook-entry-up, .lorebook-entry-down) { display: none; }
