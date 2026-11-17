@@ -698,7 +698,7 @@ body:not(.mobile-drawer-open) #main-content > header {
     padding-left: 1.1rem;
 }
 
-/* A 24px box is under the touch minimum the phone block gives every other
+/* A 24px box is under the touch minimum this sheet gives every other
    .icon-btn, and growing the button would put the header's height straight
    back. Grow the hit area instead — the full row, which is free space the
    padding was wasting. Vertical only: the buttons sit 2.4px apart in the Auto

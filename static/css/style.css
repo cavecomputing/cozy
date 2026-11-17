@@ -1,9 +1,9 @@
 /* Theme variables are loaded from static/themes/*.css.
 
-   Desktop rules come first, grouped by part. Phone and touch rules come after
-   them, in the Phone part, so they beat a desktop rule of equal specificity
-   without help. A container query sits after the rules it rearranges, and reduced motion
-   comes last.
+   This sheet is every width, grouped by part. The phone layer is mobile.css,
+   which loads after this one on a phone, so a rule there beats a rule
+   here of equal specificity without help. A container query sits after the
+   rules it rearranges, and reduced motion comes last.
 
    Contents
     1. Tokens
@@ -13,21 +13,19 @@
     5. Controls: Icon buttons, focus, disabled and label trimming, buttons, panel
        header, section label, avatars, form fields, custom select, menus, tabs, help
        tips, badges, empty boxes
-    6. Sidebar: Rail and header, character list, character row menu, user profile,
+    6. Sidebar: Rail, character list, recent, character row menu, user profile,
        persona flyout, persona form and rows
     7. Chat: Main pane, transcript, messages, message text, editing a message,
        message actions, context boundary, swipes, waiting and arriving, thinking
-       block, empty state
+       block, empty state, first-run setup
     8. Composer: Composer stack, chat list, chat flyout, input row, context token
        meter, send button, memory flyout
     9. Panels: Overlay and panel, panel layout, character editor, confirm dialog,
        toasts
    10. Settings: Shell and navigation, cards and rows, API and samplers, picker
        rows, prompt page, lorebooks page, about page, help panels, narrow panes
-   11. Phone: phone-only, backdrops, sheet and page motion, touch
-       screens; the phone block: base, controls, sidebar, chat, composer, panels,
-       settings, picker rows, prompt page, lorebooks page, about page, help
-       panels; smallest phones
+   11. Phone: what stays here of the phone layer: phone-only, backdrops, sheet
+       and page motion, touch screens
    12. Reduced motion */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -541,7 +539,6 @@ body.signin {
 }
 
 /* ── Section label ───────────────────────────────────────────────────────── */
-/* Sidebar Sections (Chats) */
 /* Shared typography for small uppercase section labels: the eyebrow, in mono
    and the accent, naming the app chrome above a group. */
 .section-label {
@@ -1654,7 +1651,6 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── Persona flyout ──────────────────────────────────────────────────────── */
-/* Dropup Menu */
 .dropup-content {
     display: none;
     position: absolute;
@@ -1881,7 +1877,6 @@ input[type="checkbox"]:checked::after {
     gap: 0.35rem;
 }
 
-/* Persona option delete button */
 .persona-info {
     flex: 1;
     min-width: 0;
@@ -3006,7 +3001,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Composer stack ──────────────────────────────────────────────────────── */
-/* Floating Input */
 #input-container {
     flex-shrink: 0;
     position: relative;
@@ -5346,7 +5340,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* ── Lorebooks page ──────────────────────────────────────────────────────── */
-/* Settings panel — lorebook editor */
 .lorebook-entries-count {
     color: var(--fg-quiet);
     font-weight: 400;
@@ -6115,7 +6108,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 /* Backdrop behind mobile bottom sheets. Toggled by JS whenever a composer
-   flyout is open, but only ever rendered at mobile widths (see media block). */
+   flyout is open, but only ever rendered at mobile widths (see mobile.css). */
 #sheet-backdrop {
     display: none;
     position: fixed;
