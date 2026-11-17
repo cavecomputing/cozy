@@ -30,19 +30,17 @@
     <meta name="theme-color" content="#0a141f">
 </head>
 <body class="signin">
-    <form class="settings-card signin-card" method="post">
-        <span class="signin-brand">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M8 10h.01M12 10h.01M16 10h.01"></path></svg>
-            <span class="signin-wordmark">cozy</span>
-        </span>
-        <p>Enter the password to open your chats.</p>
+    <form class="signin-card" method="post">
+        <img class="signin-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="96" height="96">
+        <h1 class="signin-wordmark">cozy</h1>
         {% if error %}<p class="signin-error" role="alert">{{ error }}</p>{% endif %}
         <div class="signin-field">
-            <label class="form-label" for="password">Password</label>
-            <input class="form-input" id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" required autofocus>
+            <button class="signin-submit" type="submit" title="Sign in" aria-label="Sign in">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
         </div>
         <label class="signin-remember"><input type="checkbox" name="remember" checked> Keep this device signed in</label>
-        <button class="btn btn-primary" type="submit"><span>Sign in</span></button>
     </form>
     <script>
         // The browser bar and an installed app's status bar match the page, as

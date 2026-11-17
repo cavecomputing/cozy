@@ -41,7 +41,8 @@ body {
 
 /* ── Controls ────────────────────────────────────────────────────────── */
 .icon-btn,
-#send-btn {
+#send-btn,
+.signin-submit {
     min-width: var(--mobile-tap-target);
     min-height: var(--mobile-tap-target);
     padding: 0.6rem;
@@ -555,7 +556,8 @@ body:not(.mobile-drawer-open) #main-content > header {
     background-color: var(--bg-color);
 }
 
-#input-wrapper {
+#input-wrapper,
+.signin-field {
     min-height: 52px;
     padding: 0.25rem 0.35rem;
     gap: 0.2rem;
@@ -569,7 +571,8 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 /* A third of the view, measured above the keyboard while it is up, so the
    chat keeps the rest of what the keyboard leaves. */
-#user-input {
+#user-input,
+.signin-field input {
     min-height: 34px;
     max-height: calc(var(--settings-viewport-height, 100dvh) * 0.34);
     padding: 0.35rem 0.2rem;

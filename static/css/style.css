@@ -264,11 +264,11 @@ body {
 /* ═══════════════════════════════════════════════════════════════════════════
    SIGN-IN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
-/* templates/login.html, served only when COZY_PASSWORD is set: the design
-   system's SignIn, one raised card in the middle of the page with the brand as
-   its title. Auto margins rather than grid centring, so a
-   card taller than the window (a phone on its side, keyboard up) scrolls
-   instead of losing its top. */
+/* templates/login.html, served only when COZY_PASSWORD is set: the logo, the
+   wordmark and one field on the bare surface. The field and its button are the
+   composer's (see #input-wrapper and #send-btn), so they change with it. Auto
+   margins rather than grid centring, so a column taller than the window (a
+   phone on its side, keyboard up) scrolls instead of losing its top. */
 body.signin {
     padding: var(--space-5);
     overflow-y: auto;
@@ -280,59 +280,43 @@ body.signin {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
+    text-align: center;
 }
 
-.signin-card p {
-    font-size: var(--text-lg);
-    line-height: 1.4;
-    color: var(--fg-quiet);
-}
-
-.signin-card .signin-error {
-    color: var(--status-danger);
-}
-
-.signin-brand {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    color: var(--accent-alt, var(--status-success));
-}
-
-.signin-brand svg {
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
+.signin-logo {
+    align-self: center;
+    width: 96px;
+    height: 96px;
 }
 
 .signin-wordmark {
+    margin-bottom: var(--space-4);
     font-family: var(--font-mono);
     font-size: var(--text-4xl);
     font-weight: 700;
     line-height: 1.1;
-    letter-spacing: -0.01em;
     color: var(--fg-heading);
 }
 
-.signin-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+.signin-error {
+    margin-top: calc(var(--space-3) * -1);
+    font-size: var(--text-xl);
+    color: var(--status-danger);
 }
 
-.signin-field .form-label {
-    margin: 0;
+/* The composer's text starts after its buttons; this field has none before
+   it, so its text steps in from the edge. */
+.signin-field input {
+    text-indent: var(--space-2);
 }
 
 .signin-remember {
+    align-self: center;
     display: flex;
     align-items: center;
     gap: var(--space-3);
     font-size: var(--text-lg);
-}
-
-.signin-card .btn {
-    justify-content: center;
+    color: var(--fg-quiet);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -368,13 +352,15 @@ body.signin {
 .swipe-btn:active,
 .branch-pill:active,
 .scroll-to-bottom-btn:active,
-#send-btn:active {
+#send-btn:active,
+.signin-submit:active {
     transform: scale(0.95);
 }
 
 .icon-btn:disabled,
 .swipe-btn:disabled,
-#send-btn:disabled {
+#send-btn:disabled,
+.signin-submit:disabled {
     transform: none;   /* cancel the :active press */
 }
 
@@ -3290,13 +3276,10 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     }
 }
 
-#input-wrapper {
-    order: 2;
-    width: 100%;
-    max-width: var(--chat-max-width);
-    margin-left: auto;
-    margin-right: auto;
-    position: relative;
+/* The composer's well, which the sign-in page's password field wears too so
+   the first thing typed into Cozy looks like every message after it. */
+#input-wrapper,
+.signin-field {
     /* A sunken well, like every other text field. */
     background-color: var(--surface-sunken);
     border: 1px solid var(--line);
@@ -3305,6 +3288,16 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    transition: border-color var(--motion-base) ease;
+}
+
+#input-wrapper {
+    order: 2;
+    width: 100%;
+    max-width: var(--chat-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
     pointer-events: auto;
     /* Must beat .context-meter-segment's z-index: 1. The meter is not a stacking
        context, so its segments compete here directly, and the meter follows the
@@ -3312,13 +3305,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
        composer's popovers (slash menu, chat flyout), which are trapped in this
        wrapper's stacking context and cannot outrank it from the inside. */
     z-index: 2;
-    transition: border-color var(--motion-base) ease;
 }
 
 /* A text field shows focus in its border, never a ring as well. Only the
    text box counts: a button in the bar that a closing sheet hands focus back
    to is not somewhere to type. */
-#input-wrapper:has(#user-input:focus) {
+#input-wrapper:has(#user-input:focus),
+.signin-field:focus-within {
     border-color: var(--fg-accent);
 }
 
@@ -3387,7 +3380,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     white-space: nowrap;
 }
 
-#user-input {
+#user-input,
+.signin-field input {
     flex: 1;
     background: none;
     border: none;
@@ -3402,7 +3396,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     line-height: 1.6;
 }
 
-#user-input::placeholder {
+#user-input::placeholder,
+.signin-field input::placeholder {
     color: var(--fg-quiet);
     opacity: 1;   /* Firefox dims placeholders by default; --fg-quiet is already the quiet tier. */
     /* The textarea starts one row tall, so a placeholder that wraps has its
@@ -3413,7 +3408,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     text-overflow: ellipsis;
 }
 
-#user-input:focus-visible {
+#user-input:focus-visible,
+.signin-field input:focus-visible {
     outline: none;
 }
 
@@ -3522,7 +3518,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 /* ── Send button ─────────────────────────────────────────────────────────── */
 /* The primary button as an icon: accent fill on the card shadow, brightening
    and lifting under the pointer like .btn-primary. */
-#send-btn {
+#send-btn,
+.signin-submit {
     background-color: var(--accent-color);
     border: 1px solid var(--accent-color);
     color: var(--btn-primary-color, white);
@@ -3540,7 +3537,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 @media (hover: hover) {
-    #send-btn:hover:not(:disabled) {
+    #send-btn:hover:not(:disabled),
+    .signin-submit:hover {
         filter: brightness(1.08);
         box-shadow: var(--shadow-lift);
         transform: translateY(-1px);
