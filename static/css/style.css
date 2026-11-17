@@ -719,6 +719,16 @@ input[type="checkbox"]:checked::after {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 18%, transparent);
 }
 
+/* A number field's native stepper shows on hover as a light box the themes
+   can't colour, and nothing here is worth stepping through one at a time. */
+.form-input[type="number"] {
+    appearance: textfield;
+}
+
+.form-input[type="number"]::-webkit-inner-spin-button {
+    appearance: none;
+}
+
 /* Firefox dims placeholders by default; --fg-quiet is already the quiet tier. */
 .form-input::placeholder,
 .form-textarea::placeholder {
