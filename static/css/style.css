@@ -298,10 +298,15 @@ body.signin {
     color: var(--fg-heading);
 }
 
+/* Always there and a line tall, empty until a password is wrong, so the
+   reason fades in under the field without moving anything below it. */
 .signin-error {
-    margin-top: calc(var(--space-3) * -1);
+    min-height: 1lh;
+    margin-block: calc(var(--space-2) * -1);
     font-size: var(--text-xl);
+    line-height: 1.4;
     color: var(--status-danger);
+    animation: backdropIn var(--motion-slow) ease;
 }
 
 /* The composer's text starts after its buttons; this field has none before

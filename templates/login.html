@@ -33,13 +33,13 @@
     <form class="signin-card" method="post">
         <img class="signin-logo" src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="96" height="96">
         <h1 class="signin-wordmark">cozy</h1>
-        {% if error %}<p class="signin-error" role="alert">{{ error }}</p>{% endif %}
         <div class="signin-field">
             <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" required autofocus>
             <button class="signin-submit" type="submit" title="Sign in" aria-label="Sign in">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
         </div>
+        <p class="signin-error" role="alert">{{ error or '' }}</p>
         <label class="signin-remember"><input type="checkbox" name="remember" checked> Keep this device signed in</label>
     </form>
     <script>
