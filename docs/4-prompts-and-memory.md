@@ -49,8 +49,8 @@ A fresh install uses **NanoBear**.
 ### See what will be sent
 
 - The **?** button at the top of the Prompt page shows the whole layout.
-- **Preview**, the page icon on the editor's bar, shows both of your texts in
-  their tags.
+- **Preview**, the page icon beside the editor's title, shows both of your
+  texts in their tags.
 - The eye button at the top of **Settings → API** shows exactly what will be
   sent for the open chat.
 
@@ -146,7 +146,7 @@ Each chat uses one lorebook at a time, or none.
    lorebook file instead, click **Import**, the arrow out of a tray, and
    choose a `.json` file.
 3. Type a **Name**.
-4. Click **Add entry**, the **+** on the Entries bar. A new entry appears at
+4. Click **Add entry**, the **+** beside the Entries title. A new entry appears at
    the top of the list.
 5. In the entry's first box, the one that reads `key1, key2`, type the
    keywords with commas between them. For example: `tavern, barkeep, ale`.

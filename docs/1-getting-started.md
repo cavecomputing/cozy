@@ -92,11 +92,11 @@ You are done with this step when **Test connection** succeeds.
 A preset is a saved copy of everything on the API page. Use presets if you
 switch between servers.
 
-On a computer, the buttons on a section's title bar show only an icon. Point
+On a computer, the buttons beside a section's title show only an icon. Point
 at one to see its name.
 
-- **Save as preset**, the **+** on the Connection bar, saves what is on the
-  page now under a name you type.
+- **Save as preset**, the **+** beside the Connection title, saves what is on
+  the page now under a name you type.
 - Once you have a preset, a picker appears next to that button. Pick a preset
   to switch to it.
 - **Rename** (the pencil) and **Delete** (the bin) act on the selected

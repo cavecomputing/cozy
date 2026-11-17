@@ -4316,8 +4316,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
        where each page's header carries its own help. */
     :is(#settings-back-btn, #settings-page-help) { display: none; }
 
-    /* A section's buttons on its title bar are icons alone, named by their
-       tooltip, so the bar keeps room for its pickers. The phone shows them
+    /* A section's buttons on its title line are icons alone, named by their
+       tooltip, so the line keeps room for its pickers. The phone shows them
        as labelled cells instead. */
     .settings-card-header :is(.icon-btn, .btn) > :is(span, .export-trigger-chevron) { display: none; }
 
@@ -4620,8 +4620,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    list of which sections opted out. Capping the text directly needs none of
    that bookkeeping, and a card is free to use the width its controls want. */
 
-/* A section of a settings page. It draws no box: its title bar is all that
-   sets it apart from the next one. */
+/* A section of a settings page. It draws no box: the rule over its title is
+   all that sets it apart from the next one. */
 .settings-card {
     min-width: 0;
 }
@@ -4634,21 +4634,19 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     gap: 3rem;
 }
 
-/* The section title: a bar in the card colour holding the section's icon,
-   the title in mono and the section's own controls at its right end, all on
-   one line. Its ends are the content's edges, where the page title, the
-   labels and the controls below start and end, and its contents are inset
-   from them. It is not positioned, so a menu opened from it (the samplers'
-   gear, a picker, Import/export) stacks above the next section's bar. */
+/* The section title: a hairline across the content width with the
+   section's icon, the title in mono and the section's own controls at its
+   right end hanging under it, all on one line. The line divides the section
+   from the one before, so the title reads as belonging to what follows. The
+   icon and the controls sit on the content's edges, level with the labels and
+   fields below. It is not positioned, so a menu opened from it (the samplers'
+   gear, a picker, Import/export) stacks above the next section's title. */
 .settings-card-header {
     display: flex;
     align-items: center;
     gap: var(--space-3) 0.625rem;
-    padding: 0 0.5rem 0 0.875rem;
-    background-color: var(--surface-card);
-    border-radius: var(--radius-md);
-    /* Buttons on the bar sit on the page colour, so they stand off its fill. */
-    --control-fill: var(--bg-color);
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--line);
 }
 
 /* The header keeps its distance only from something showing under it: the
@@ -4662,8 +4660,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
    falling back to its success colour. */
 .settings-card-icon {
     flex-shrink: 0;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     color: var(--accent-alt, var(--status-success));
 }
 
@@ -4696,12 +4694,12 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .settings-card-header h4 {
     flex: 1 1 0;
     min-width: min-content;
-    min-height: 3rem;
+    min-height: 2.5rem;
     font-size: 1.125rem;
     line-height: 1.25;
 }
 
-/* A section's description, on the page under its title bar. */
+/* A section's description, under its title. */
 .settings-card-desc {
     margin: calc(-1 * var(--space-1)) 0 var(--space-3);
     font-size: var(--text-sm);
@@ -5071,7 +5069,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .sampler-done-btn { display: none; }
 
 /* ── Picker rows (a preset picker and its buttons) ───────────────────────── */
-/* A picker stays in its title bar at every desktop width: it starts at a
+/* A picker stays on its title line at every desktop width: it starts at a
    comfortable width and gives it up as the window narrows, down to a floor,
    while the title and the buttons keep theirs. */
 .settings-card-header > :is(.preset-select-row, .prompt-select-row) {
@@ -5205,9 +5203,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-left: auto;
 }
 
-/* The editor's System / Post-History switch sits among the title bar's
-   controls: two segments in an inset on the page colour like the buttons
-   beside it, as tall as Preview, the open one raised in the bar's colour. */
+/* The editor's System / Post-History switch sits among the title line's
+   controls: two segments in an inset on the page colour, as tall as Preview
+   beside it, the open one raised in the card colour. */
 .prompt-builder-tabs {
     display: flex;
     flex: none;
@@ -5539,7 +5537,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 /* Lorebook picker: the shared preset row lays it out; these rules only style
    the character and entry-count detail carried on each option. The source
    wears the prompt picker's badge. The closed picker keeps to one line, its
-   name giving way first, so it fits its title bar; an open option wraps. */
+   name giving way first, so it fits its title line; an open option wraps. */
 .lorebook-picker :is(.cozy-select-value:has(> *), .cozy-select-option) {
     display: flex;
     align-items: center;
