@@ -94,13 +94,24 @@ body {
     outline: none;
 }
 
-/* A picker's button is drawn as a field, and its sheet hands focus back to
-   it on closing. It keeps the field's resting edge then: the accent edge
-   and glow of a field being typed in would be a focus ring by another name. */
-.cozy-select-trigger:focus {
+/* A field keeps its resting edge while it is typed in, as a value in a
+   settings cell does: the caret and the keyboard say where the typing goes,
+   and an accent edge and glow are a focus ring by another name. That takes
+   in a picker's button, which is drawn as a field and is handed focus back
+   by its closing sheet. The composer alone lights up (style.css). */
+:is(.form-input, .form-textarea, .settings-select):focus,
+.tags-input-wrap:focus-within {
     border-color: var(--line);
     box-shadow: var(--input-shadow, none);
 }
+
+.signin-field:focus-within,
+.chat-rename-input { border-color: var(--line); }
+
+/* A message being edited is marked by its tint and by Save and Cancel. */
+.message.editing { border-color: var(--user-msg-border, transparent); }
+
+.message.character.editing { outline: none; }
 
 /* 26 + 9 + 9 = the 44px tap target, so this margin is not spacing. */
 input[type="checkbox"] {
