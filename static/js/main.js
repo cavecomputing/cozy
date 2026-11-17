@@ -1437,6 +1437,12 @@ function flashCopied(btn) {
 
 function bindMessageHandlers() {
     bindHeldActions();
+    // A button in the chat, the jump to the bottom among them, leaves focus
+    // where it is, as a toast does: taking it from the composer dropped a
+    // phone's keyboard mid-message. Edit moves focus to its own field itself.
+    el.chatHistory.parentElement.addEventListener('mousedown', e => {
+        if (e.target.closest('button')) e.preventDefault();
+    });
     el.chatHistory.addEventListener('click', async e => {
         // A held bar's buttons put it away, bar the swipe arrows and Copy, whose
         // tick shows on the bar; Edit's own Save and Cancel then show in the

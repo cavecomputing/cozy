@@ -652,6 +652,9 @@ export async function copyText(text) {
             // Fall through to the legacy path below.
         }
     }
+    // Selecting the stand-in takes focus, so it goes back where it was after:
+    // the composer, with its caret and a phone's keyboard.
+    const focused = document.activeElement;
     try {
         const ta = document.createElement('textarea');
         ta.value = text;
@@ -662,6 +665,7 @@ export async function copyText(text) {
         ta.select();
         const ok = document.execCommand('copy');
         document.body.removeChild(ta);
+        focused?.focus({ preventScroll: true });
         return ok;
     } catch {
         return false;
