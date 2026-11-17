@@ -310,8 +310,11 @@ body.signin {
 }
 
 /* The composer's text starts after its buttons; this field has none before
-   it, so its text steps in from the edge. */
+   it, so its text steps in from the edge. An input is as wide as twenty
+   characters until told it may shrink, which on a 320px phone pushed the
+   send button out of the field. */
 .signin-field input {
+    min-width: 0;
     text-indent: var(--space-2);
 }
 
