@@ -1106,6 +1106,7 @@ body:not(.mobile-drawer-open) #main-content > header {
     min-height: var(--mobile-tap-target);
     background: none;
     border: 0;
+    color: var(--fg);
 }
 
 .settings-model-row .settings-action-label { display: none; }

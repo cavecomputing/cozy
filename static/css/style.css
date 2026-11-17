@@ -4321,6 +4321,33 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
        as labelled cells instead. */
     .settings-card-header :is(.icon-btn, .btn) > :is(span, .export-trigger-chevron) { display: none; }
 
+    /* Every button on a page's or a section's title line (a picker's actions,
+       the samplers' reset and gear, Add entry, Backup, Help, Test connection)
+       and a model field's Browse is a small ghost button, as tall as a
+       picker and at least as wide, set 8px from the next: an inset fill and a
+       hairline edge that firms up under the pointer. The phone shows them as
+       cells instead. */
+    :is(.settings-page-header, .settings-card-header, .settings-model-row) :is(.icon-btn, .btn) {
+        width: auto;
+        min-width: 34px;
+        min-height: 34px;
+        gap: var(--space-2);
+        padding-inline: var(--space-3);
+        background: var(--control-fill, var(--surface-quiet));
+        border: 1px solid var(--line);
+        border-radius: var(--radius-control);
+        color: var(--fg);
+    }
+
+    .sampler-toolbar { gap: var(--space-3); }
+
+    @media (hover: hover) {
+        :is(.settings-page-header, .settings-card-header, .settings-model-row) :is(.icon-btn, .btn):hover:not(:disabled) {
+            border-color: var(--fg-quiet);
+            transform: translateY(-1px);
+        }
+    }
+
     /* Settings covers the character rail rather than opening beside it, so
        its own menu stands where the characters were and the window has two
        columns, not three. "Back to chat" brings the rail back. On a phone
@@ -4528,7 +4555,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-family: var(--font-mono);
     font-size: var(--text-4xl);
     font-weight: 700;
-    line-height: 1.2;
+    /* As tall as the buttons beside it, so the two share a middle. */
+    line-height: 34px;
     color: var(--fg-heading);
 }
 
@@ -4644,7 +4672,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .settings-card-header {
     display: flex;
     align-items: center;
-    gap: var(--space-3) 0.625rem;
+    gap: var(--space-3);
     padding-top: 0.625rem;
     border-top: 1px solid var(--line);
 }
@@ -5087,7 +5115,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .preset-select-row {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: var(--space-3);
 }
 
 .prompt-select-row .cozy-select,
@@ -5102,28 +5130,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     flex: none;
 }
 
-/* The actions beside a picker, and a model field's Browse, are small ghost
-   buttons, as tall as the field beside them: an inset fill, a hairline edge
-   that firms up under the pointer, and Delete's icon in the danger hue. Only
-   the icon: as text on the fill the hue drops below 4.5:1 in most themes. */
-:is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn {
-    width: auto;
-    min-height: 34px;
-    gap: var(--space-2);
-    padding-inline: var(--space-3);
-    background: var(--control-fill, var(--surface-quiet));
-    border: 1px solid var(--line);
-    border-radius: var(--radius-control);
-    color: var(--fg);
-}
-
-@media (hover: hover) {
-    :is(.preset-select-row, .prompt-select-row, .settings-model-row) .icon-btn:hover:not(:disabled) {
-        border-color: var(--fg-quiet);
-        transform: translateY(-1px);
-    }
-}
-
+/* Delete's icon in the danger hue. Only the icon: as text on a button's fill
+   the hue drops below 4.5:1 in most themes. */
 :is(.preset-select-row, .prompt-select-row) [id$="-delete"] svg { color: var(--status-danger); }
 
 /* ── Prompt page ─────────────────────────────────────────────────────────── */
@@ -5197,7 +5205,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .prompt-header-actions {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
     flex: none;
     /* Right-hand even when it wraps under the title, as on the phone's API page. */
     margin-left: auto;
