@@ -1,5 +1,5 @@
 import { state, el } from './state.js';
-import { scrollToBottom } from './utils.js';
+import { scrollToBottom, keepChatBottom } from './utils.js';
 import { activeSummaryText } from './summaries.js';
 import { cardPrompt, getContextTokenBudget, getRawHistoryMessages } from './context-budget.js';
 import { analyzeContext } from './context-analysis.js';
@@ -185,6 +185,17 @@ export function placeContextBoundary() {
 }
 
 export function updateContextBoundary(analysis = null) {
+    // Drawn above the view, the separator pushes the chat down, and one read
+    // at its bottom (a chat just opened, above all) would be left short of it.
+    const chat = el.chatHistory;
+    if (chat && chat.scrollHeight - chat.scrollTop - chat.clientHeight < 1) {
+        keepChatBottom(() => drawContextBoundary(analysis));
+    } else {
+        drawContextBoundary(analysis);
+    }
+}
+
+function drawContextBoundary(analysis) {
     const existing = el.chatHistory?.querySelector('.context-boundary');
     if (existing) existing.remove();
     boundaryTargetId = null;
