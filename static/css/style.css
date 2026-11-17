@@ -1139,11 +1139,6 @@ input[type="checkbox"]:checked::after {
     transition: width var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#main-content > header .icon-btn svg {
-    width: 20px;
-    height: 20px;
-}
-
 /* No header: the rail is the list, then the persona. Focused only so the
    phone drawer has somewhere to put the keyboard when it opens. */
 #sidebar:focus {
@@ -1977,6 +1972,11 @@ input[type="checkbox"]:checked::after {
     justify-content: space-between;
     align-items: center;
     position: relative;
+}
+
+#main-content > header .icon-btn svg {
+    width: 20px;
+    height: 20px;
 }
 
 #current-char-name {
