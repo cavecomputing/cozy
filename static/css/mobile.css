@@ -228,9 +228,13 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .new-char-row,
 .chat-select-btn,
 .persona-option {
-    min-height: 48px;
     padding-top: 0.45rem;
     padding-bottom: 0.45rem;
+}
+
+.chat-select-btn,
+.persona-option {
+    min-height: 48px;
 }
 
 .char-select-btn,
@@ -343,10 +347,6 @@ body:not(.mobile-drawer-open) #main-content > header {
     touch-action: pan-y pinch-zoom;
 }
 
-.message-container.user {
-    justify-content: flex-end;
-}
-
 .message-container.character {
     justify-content: flex-start;
 }
@@ -383,13 +383,10 @@ body:not(.mobile-drawer-open) #main-content > header {
     /* Safari on a phone zooms into text under 16px when it takes focus,
        as a message does when Edit starts, and stays zoomed after. */
     font-size: 16px;
-    border-radius: var(--radius);
 }
 
 .message.user {
     grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-    max-width: 100%;
-    border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
 }
 
 .msg-body,
@@ -434,10 +431,6 @@ body:not(.mobile-drawer-open) #main-content > header {
        same grown hit area, wider as well, into the gap beside it. */
     position: relative;
     min-height: 28px;
-}
-
-.message.character {
-    max-width: 100%;
 }
 
 .message .avatar {
