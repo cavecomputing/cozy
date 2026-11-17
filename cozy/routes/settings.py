@@ -712,6 +712,28 @@ def _usable_database(path):
     return version is not None and BASELINE_VERSION <= version <= database_version()
 
 
+def _name_outside_its_folder(path):
+    """The first file the database at *path* names outside its own folder, or
+    None.
+
+    The routes join `characters.filename` and `personas.avatar_path` onto their
+    folders and read, write or delete whatever that names, and a restore is the
+    one way in for a name Cozy did not make itself. A row naming
+    '../../.ssh/id_ed25519' had the card export send that file back, an avatar
+    upload overwrite it and Delete remove it.
+    """
+    connection = sqlite3.connect(path)
+    try:
+        names = connection.execute(
+            'SELECT filename FROM characters UNION ALL '
+            "SELECT avatar_path FROM personas WHERE avatar_path IS NOT NULL AND avatar_path != ''"
+        ).fetchall()
+    finally:
+        connection.close()
+    return next((name for (name,) in names if not isinstance(name, str)
+                 or name in ('', '.', '..') or name != os.path.basename(name)), None)
+
+
 def _stage_backup(archive, staged):
     """Extract *archive* into *staged*, refusing any member that escapes it."""
     root = os.path.abspath(staged)
@@ -810,9 +832,13 @@ def restore_backup():
                         'There is not enough free disk space to unpack this '
                         'backup. Nothing was changed.'}), 507
                 _stage_backup(archive, staged)
-            if not _usable_database(os.path.join(staged, os.path.basename(shared.DATABASE))):
+            staged_database = os.path.join(staged, os.path.basename(shared.DATABASE))
+            if not _usable_database(staged_database):
                 raise ValueError('the database in it is not one this Cozy can open')
-        except (zipfile.BadZipFile, KeyError, ValueError, UnicodeDecodeError) as e:
+            outside = _name_outside_its_folder(staged_database)
+            if outside is not None:
+                raise ValueError(f'its database names a file outside the data folder, {outside!r}')
+        except (zipfile.BadZipFile, KeyError, ValueError, UnicodeDecodeError, sqlite3.Error) as e:
             return jsonify({'error': f'That file is not a Cozy backup ({e}).'}), 400
         # A backup carries no sign-in secret (_database_snapshot()). Put this
         # install's back, or the next start would make a new one and sign

@@ -245,7 +245,10 @@ not fit unpacked in the free space is refused before it is staged
 folder inside the data directory and deleted **after** the whole backup has
 landed, so a move that fails partway is undone and the route says the data was
 put back (`_replace_data_dir()`); and the route holds `_RESTORE_LOCK` so two
-restores can't interleave. The
+restores can't interleave. A restore is also the one way a file name Cozy did not make reaches the
+database, and the routes join `characters.filename` and `personas.avatar_path` onto their folders
+and read, write or delete what that names, so an archive whose database holds more than a bare name
+in either is refused while staged (`_name_outside_its_folder()`). The
 per-request `max_content_length` has to be a **number** — Flask falls back to
 the app-wide 20 MB cap when it is `None`, which would 413 any real backup.
 

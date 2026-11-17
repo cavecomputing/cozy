@@ -177,6 +177,51 @@ class TestBackupRestore:
         assert r.status_code == 400
         assert not os.path.exists(os.path.join(os.path.dirname(shared.DATA_DIR), 'escaped.txt'))
 
+    def test_restore_refuses_a_database_naming_files_outside_the_data_directory(self, client):
+        """Every route joins these names onto its folder and reads, writes or
+        deletes the result, so one that climbs out reached any file Cozy could:
+        the card export sent it back and Delete removed it."""
+        keeper = create_character(client, 'Still Here')
+        persona = client.post('/api/personas', json={'name': 'Mine'}).get_json()
+        outside = os.path.join(os.path.dirname(shared.DATA_DIR), 'outside.txt')
+        with open(outside, 'w', encoding='utf-8') as handle:
+            handle.write('not Cozy\'s to touch')
+        backup = download_backup(client)
+        climbing = os.path.relpath(outside, shared.CHARACTERS_DIR)
+        poisons = [
+            ("UPDATE characters SET filename = ? WHERE id = ?", (climbing, keeper['id'])),
+            ("UPDATE characters SET filename = ? WHERE id = ?", (outside, keeper['id'])),
+            ("UPDATE characters SET filename = ? WHERE id = ?", (os.path.join('sub', 'card.png'), keeper['id'])),
+            ("UPDATE characters SET filename = ? WHERE id = ?", ('..', keeper['id'])),
+            ("UPDATE characters SET filename = ? WHERE id = ?", (b'card.png', keeper['id'])),
+            ("UPDATE personas SET avatar_path = ? WHERE id = ?", (climbing, persona['id'])),
+            ("DROP TABLE personas", ()),
+        ]
+        for statement, values in poisons:
+            members = {name: backup.read(name) for name in backup.namelist() if name != BACKUP_MANIFEST}
+            with tempfile.TemporaryDirectory() as folder:
+                poisoned = os.path.join(folder, 'poisoned.db')
+                with open(poisoned, 'wb') as handle:
+                    handle.write(members[os.path.basename(shared.DATABASE)])
+                connection = sqlite3.connect(poisoned)
+                connection.execute(statement, values)
+                connection.commit()
+                connection.close()
+                with open(poisoned, 'rb') as handle:
+                    members[os.path.basename(shared.DATABASE)] = handle.read()
+            r = restore(client, make_backup_bytes(members, manifest=json.loads(backup.read(BACKUP_MANIFEST))))
+            assert r.status_code == 400, (statement, values)
+            # Nothing was swapped in, so the routes still act on Cozy's own files.
+            export = client.get(f'/api/characters/{keeper["id"]}/export?fmt=png')
+            assert export.data.startswith(b'\x89PNG'), (statement, values)
+        assert client.delete(f'/api/characters/{keeper["id"]}').status_code == 200
+        assert client.delete(f'/api/personas/{persona["id"]}').status_code == 200
+        with open(outside, encoding='utf-8') as handle:
+            assert handle.read() == 'not Cozy\'s to touch'
+        # The same archive untouched still restores, so the check isn't refusing everything.
+        members = {name: backup.read(name) for name in backup.namelist() if name != BACKUP_MANIFEST}
+        assert restore(client, make_backup_bytes(members, manifest=json.loads(backup.read(BACKUP_MANIFEST)))).status_code == 200
+
     def test_an_unreadable_database_is_refused_before_anything_is_deleted(self, client):
         """The check that matters: a broken archive must not cost the user the
         data they already have."""

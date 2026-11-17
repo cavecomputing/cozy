@@ -349,8 +349,8 @@ What Cozy checks, and what it does not:
   is stopped in the middle of a restore, the old data is in a folder whose
   name starts with `.restore-`, inside the data folder.
 - **Only restore backups you made yourself.** Cozy checks that the file is a
-  Cozy backup and that its database opens. It does not check the contents any
-  further.
+  Cozy backup, that its database opens, and that the database names no file
+  outside the data folder. It does not check the contents any further.
 
 ### Back up by hand
 
