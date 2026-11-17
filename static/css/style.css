@@ -832,16 +832,6 @@ input[type="checkbox"]:checked::after {
     border: 1px solid var(--line);
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
-}
-
-.cozy-select-menu[hidden] {
-    display: block;
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
 }
 
 .cozy-select-option {
@@ -4904,16 +4894,6 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     padding: 0.25rem;
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
-}
-
-.model-picker-menu[hidden] {
-    display: block;
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
 }
 
 .model-picker-item {
@@ -5002,20 +4982,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     padding: 0.25rem;
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity var(--motion-fast) ease-out, transform var(--motion-fast) ease-out;
     max-width: min(320px, calc(100vw - 66px));
     max-height: min(420px, 55dvh);
     overflow-y: auto;
-}
-
-.sampler-popover[hidden] {
-    /* Override default `display:none` so we can fade out smoothly */
-    display: block;
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
 }
 
 /* A menu row: mono like every menu item, on the small control corner. */

@@ -1269,8 +1269,6 @@ body:not(.mobile-drawer-open) #main-content > header {
     box-shadow: none;
 }
 
-.settings-pane .cozy-select-menu[hidden] { transform: none; }
-
 .settings-pane .cozy-select-menu:not([hidden]) > .cozy-select-option {
     animation: sheetUp var(--motion-base) ease-out;
 }
@@ -1468,8 +1466,6 @@ body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
     border-radius: 0;
     box-shadow: none;
 }
-
-.sampler-popover[hidden] { transform: none; }
 
 .sampler-popover > :first-child { margin-top: auto; }
 
