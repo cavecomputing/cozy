@@ -1775,7 +1775,22 @@ function bindScrollHandlers() {
     // event restarted a follow the finger had just ended, the next draw wrote
     // again, and the reader could not scroll out of a reply.
     let lastScrollTop = el.chatHistory.scrollTop;
+    // The chat's own box changes when a phone turns or the window is resized,
+    // and a chat read at its bottom stays there. A new width reflows every
+    // message, and the scrollTop that was the bottom then lands the view some
+    // messages above it. The browser can report that with a scroll event
+    // before the resize, so both run this first.
+    const chatBox = () => `${el.chatHistory.clientWidth}x${el.chatHistory.clientHeight}`;
+    let lastBox = chatBox();
+    let wasAtBottom = true;
+    const holdBottom = () => {
+        const chat = el.chatHistory;
+        if (chatBox() !== lastBox && wasAtBottom) chat.scrollTop = chat.scrollHeight;
+        lastBox = chatBox();
+        wasAtBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 1;
+    };
     el.chatHistory.addEventListener('scroll', () => {
+        holdBottom();
         const { scrollTop, scrollHeight, clientHeight } = el.chatHistory;
         const fromBottom = scrollHeight - scrollTop - clientHeight;
         if (mouseHeld && scrollTop < lastScrollTop && fromBottom > 1) state.autoScroll = false;
@@ -1787,10 +1802,14 @@ function bindScrollHandlers() {
     });
 
     // The chat also moves away from its bottom with no scroll event: a longer
-    // swipe shown on the last reply, a block opened, the window made shorter.
-    // So the button is brought up to date whenever the chat changes size, a
-    // message in it does or one leaves it, as well as on scrolling.
-    const resizes = new ResizeObserver(updateScrollButton);
+    // swipe shown on the last reply, a block opened, the window resized while
+    // reading further up. So the button is brought up to date whenever the
+    // chat changes size, a message in it does or one leaves it, as well as on
+    // scrolling.
+    const resizes = new ResizeObserver(() => {
+        holdBottom();
+        updateScrollButton();
+    });
     resizes.observe(el.chatHistory);
     for (const child of el.chatHistory.children) resizes.observe(child);
     new MutationObserver(changes => {
