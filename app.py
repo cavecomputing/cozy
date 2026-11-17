@@ -42,13 +42,6 @@ def handle_exception(e):
     return jsonify({'error': 'Internal server error'}), 500
 
 
-# ── Same-origin writes only ───────────────────────────────────────────────
-# Without COZY_PASSWORD Cozy has no login, so any other page open in the same
-# browser can send it requests; with it, a page served from another port on the
-# same host still gets the cookie. A file upload needs no CORS preflight, which
-# put every upload route in reach — /api/backup/restore among them, which
-# replaces the whole data directory. Browsers say where a request came from;
-# writes that did not come from Cozy's own page are refused.
 @app.after_request
 def name_the_build(response):
     # A page left open across an update reads this on its way back to the
@@ -57,6 +50,13 @@ def name_the_build(response):
     return response
 
 
+# ── Same-origin writes only ───────────────────────────────────────────────
+# Without COZY_PASSWORD Cozy has no login, so any other page open in the same
+# browser can send it requests; with it, a page served from another port on the
+# same host still gets the cookie. A file upload needs no CORS preflight, which
+# put every upload route in reach — /api/backup/restore among them, which
+# replaces the whole data directory. Browsers say where a request came from;
+# writes that did not come from Cozy's own page are refused.
 @app.before_request
 def refuse_cross_site_writes():
     if request.method in ('GET', 'HEAD', 'OPTIONS'):
