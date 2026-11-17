@@ -223,10 +223,11 @@ async function loadModels(profile) {
 
 // The menu for a name being typed. With nothing to offer it stays shut: a menu
 // that only said so sat over whatever is under the box, which in the first-run
-// setup is the Connect button the typed name was for.
+// setup is the Connect button the typed name was for. So does a menu whose one
+// entry is the whole name already typed.
 function openModelSearchResults(profile, query) {
     const matches = filterModels(profile, query);
-    if (!matches.length) return closePicker(profile);
+    if (!matches.length || (matches.length === 1 && matches[0] === query.trim())) return closePicker(profile);
     renderModelMenu(profile, matches);
     setModelMenuOpen(profile, true);
 }
