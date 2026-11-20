@@ -1097,8 +1097,9 @@ function bindCharacterHandlers() {
     el.newCharBtn?.addEventListener('click', () => openCharacterModal());
     el.emptyNewCharBtn?.addEventListener('click', () => openCharacterModal());
 
-    // Recent and the character list — select / row menu / Archived section
-    el.charList.parentElement.addEventListener('click', e => {
+    // Recent, above the list, and the character list — select / row menu /
+    // Archived section
+    for (const part of [el.recentBtn.parentElement, el.charList.parentElement]) part.addEventListener('click', e => {
         if (e.target.closest('#recent-btn')) {
             toggleRecentMenu(undefined, e.detail === 0);
             return;

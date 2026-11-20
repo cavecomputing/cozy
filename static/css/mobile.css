@@ -177,6 +177,11 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
 
 #mobile-backdrop.show { display: block; }
 
+/* Inset as far as the list below it. */
+.sidebar-top {
+    margin-inline: 0.6rem;
+}
+
 /* The drawer's own pan-y (above) stops at the nearest scroller, which is
    this list, so it needs the same to leave a leftward drag to Cozy. */
 .sidebar-scrollable {

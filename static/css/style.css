@@ -1122,8 +1122,10 @@ input[type="checkbox"]:checked::after {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Rail ────────────────────────────────────────────────────────────────── */
-/* Rows fade out at both ends as the chat does, and the persona card sits in
-   the bottom fade (its negative top margin, --card-overlap), so the list
+/* New character stays put at the top, the persona card at the foot, and
+   the list scrolls between them. Rows fade out at both ends as the chat
+   does: under the top's bottom edge, and into the persona card, which sits
+   in the bottom fade (its negative top margin, --card-overlap), so the list
    dissolves at the card's edge instead of being cut off above it. */
 #sidebar {
     --list-fade: var(--space-6);
@@ -1419,15 +1421,17 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── Recent ──────────────────────────────────────────────────────────────── */
-/* New character, with the clock for Recent beside it once the list is long.
-   Both scroll with the list, so a short window (a phone on its side) still
-   has room for it. */
+/* New character, with the clock for Recent beside it once the list is long,
+   above the list rather than in it, so neither scrolls away. Inset by margin
+   (the list's own padding, and its top fade below), so Recent, placed in
+   this box, spans the list's width. */
 .sidebar-top {
     position: relative;
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    margin-bottom: 0.25rem;
+    flex-shrink: 0;
+    margin: var(--list-fade) 0.5rem 0;
 }
 
 /* Sized and placed like a row's ⋯, 4px from the end, so its tile while open
