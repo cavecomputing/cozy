@@ -306,6 +306,8 @@ const panelOpen = () => !el.settingsFlyout.hidden || !el.chatFlyout.hidden
     || el.memoryFlyout?.hidden === false || el.personaDropup.classList.contains('show')
     || !document.getElementById('char-modal').hidden || document.body.classList.contains('mobile-drawer-open');
 
+const setupOpen = () => !document.getElementById('setup').hidden;
+
 function blurSettingsFlyoutFocus() {
     if (el.settingsFlyout.contains(document.activeElement)) {
         document.activeElement.blur();
@@ -1221,9 +1223,10 @@ function bindRowMenuKeys(container, menu, triggerSelector, closeMenu) {
 // The model, the prompt and the samplers are read at startup and sent from
 // this page's copy from then on. An installed app stays open for days, so one
 // changed on another device went on being sent as it was. Read again on every
-// return, unless Settings is open here, where they are being typed.
+// return, unless Settings or the first-run setup is open here, where they are
+// being typed.
 async function refreshSettings() {
-    if (!el.settingsFlyout.hidden) return;
+    if (!el.settingsFlyout.hidden || setupOpen()) return;
     await flushLLMSettingsSave();
     await loadSystemPrompts(await loadLLMSettings());
     updateContextViews();
@@ -1237,7 +1240,7 @@ async function refreshSettings() {
 function reloadAfterUpdate() {
     if (!serverBuild || serverBuild === document.documentElement.dataset.build
         || sessionStorage.getItem('cozy/reloaded-for') === serverBuild
-        || panelOpen() || confirmOpen() || state.currentEdit || llm.generationActive) return;
+        || panelOpen() || setupOpen() || confirmOpen() || state.currentEdit || llm.generationActive) return;
     sessionStorage.setItem('cozy/reloaded-for', serverBuild);
     saveDraft();
     location.reload();
@@ -1664,7 +1667,7 @@ function bindComposerHandlers() {
     document.addEventListener('keydown', e => {
         if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented
             || e.target.closest('input, textarea, select, [contenteditable]')
-            || el.userInput.disabled || panelOpen() || confirmOpen()) return;
+            || el.userInput.disabled || panelOpen() || setupOpen() || confirmOpen()) return;
         e.preventDefault();
         el.userInput.focus();
     });
