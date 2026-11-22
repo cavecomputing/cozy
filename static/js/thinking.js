@@ -54,6 +54,23 @@ export function parseThinkingContent(text) {
     };
 }
 
+/**
+ * Advance a streaming reveal cutoff past any thinking tag it landed inside,
+ * so a partial `<think>` or `</think>` does not briefly render as visible text.
+ */
+export function revealPastThinkingTag(text, cutoff) {
+    for (const pair of THINKING_TAG_PAIRS) {
+        for (const tag of [pair.open, pair.close]) {
+            const from = Math.max(0, cutoff - tag.length + 1);
+            const idx = text.indexOf(tag, from);
+            if (idx !== -1 && idx < cutoff && cutoff < idx + tag.length) {
+                return idx + tag.length;
+            }
+        }
+    }
+    return cutoff;
+}
+
 // The reasoning each thinking block was last drawn from. A streaming reply is
 // redrawn many times a second, and once its reasoning has closed only the
 // answer below it is still growing: parsing and rebuilding unchanged

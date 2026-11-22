@@ -55,3 +55,39 @@ def test_a_lone_close_tag_ends_reasoning_the_template_opened():
         const plain = parseThinkingContent('No reasoning here.');
         assert.equal(plain.hasThinking, false);
     """)
+
+
+def test_reveal_cutoff_skips_past_partial_thinking_tags():
+    """Incremental streaming reveal must not slice mid-tag and flash `<think` or `</think`."""
+    run_node_module(r"""
+        import assert from 'node:assert/strict';
+        import { parseThinkingContent, revealPastThinkingTag } from './static/js/thinking.js';
+
+        const opening = '<think>Hmm';
+        for (let cutoff = 1; cutoff < '<think>'.length; cutoff++) {
+            const snapped = revealPastThinkingTag(opening, cutoff);
+            assert.equal(snapped, '<think>'.length);
+            const parsed = parseThinkingContent(opening.slice(0, snapped));
+            assert.equal(parsed.hasThinking, true);
+            assert.equal(parsed.response, '');
+        }
+        // Outside a tag the cutoff stays where it was.
+        assert.equal(revealPastThinkingTag(opening, 7), 7);
+        assert.equal(revealPastThinkingTag(opening, 8), 8);
+
+        const closing = '<think>Hmm</think>Hello';
+        const closeStart = closing.indexOf('</think>');
+        const closeEnd = closeStart + '</think>'.length;
+        for (let cutoff = closeStart + 1; cutoff < closeEnd; cutoff++) {
+            const snapped = revealPastThinkingTag(closing, cutoff);
+            assert.equal(snapped, closeEnd);
+            const parsed = parseThinkingContent(closing.slice(0, snapped));
+            assert.equal(parsed.thinking, 'Hmm');
+            assert.equal(parsed.incomplete, undefined);
+        }
+
+        // Works for the alternate thinking tag pairs as well.
+        assert.equal(revealPastThinkingTag('<thinking>plan', 4), '<thinking>'.length);
+        assert.equal(revealPastThinkingTag('<|thinking|>plan', 4), '<|thinking|>'.length);
+        assert.equal(revealPastThinkingTag('Plain reply', 5), 5);
+    """)

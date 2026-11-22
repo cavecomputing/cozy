@@ -6,7 +6,7 @@ import {
     updateComposerState, setSendButtonMode, beginGeneration, endGeneration, whenGenerationEnds,
     branchesAt, displayChatName, parseDbStamp, fullStamp, shortStamp,
 } from './utils.js';
-import { parseThinkingContent, renderThinkingBlock } from './thinking.js';
+import { parseThinkingContent, renderThinkingBlock, revealPastThinkingTag } from './thinking.js';
 import { updateContextViews, updateContextBoundary, placeContextBoundary } from './context-meter.js';
 import { noteChatActivity } from './characters.js';
 import { refreshOpenChat } from './chats.js';
@@ -130,7 +130,7 @@ export function streamInto(msgBody, contentEl) {
         }
         drawnAt = performance.now();
         frame = 0;
-        shown += Math.max(1, Math.ceil((text.length - shown) / 3));
+        shown = revealPastThinkingTag(text, shown + Math.max(1, Math.ceil((text.length - shown) / 3)));
         const parsed = parseThinkingContent(text.slice(0, shown));
         renderThinkingBlock(msgBody, parsed);
         const fresh = document.createElement('div');

@@ -503,3 +503,27 @@ def test_rapid_second_regen_does_not_start_another_generation():
         assert.equal(generationCalls, 1);
         assert.equal(llm.generationActive, false);
     """)
+
+
+def test_streaming_reveal_does_not_flash_partial_thinking_tags():
+    """Revealing `<think>...</think>` a third at a time must skip over tag halves."""
+    run_node_module(SWIPE_SETUP + r"""
+        import { streamInto } from './static/js/messages.js';
+
+        const rendered = [];
+        globalThis.marked = { parse: value => { rendered.push(value); return value; } };
+        globalThis.performance = { now: (() => { let t = 100; return () => (t += 100); })() };
+
+        const stream = streamInto(msgBody, contentEl);
+        stream.onToken('<think>Hmm');
+        await new Promise(resolve => setTimeout(resolve, 25));
+        stream.onToken('<think>Hmm</think>Hello');
+        await new Promise(resolve => setTimeout(resolve, 25));
+        stream.stop();
+
+        assert.ok(rendered.length > 0);
+        for (const text of rendered) {
+            assert.doesNotMatch(text, /<\/?think/);
+        }
+        assert.ok(rendered.includes('Hello'));
+    """)
