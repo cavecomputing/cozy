@@ -103,7 +103,6 @@ def test_without_a_password_nothing_changes(client):
     page = client.get('/')
     assert page.status_code == 200
     assert b'Sign out' not in page.data and b'pageshow' not in page.data
-    assert 'Content-Security-Policy' not in page.headers
     assert client.get('/api/settings').status_code == 200
     assert client.get('/login').status_code == 404
     assert 'session' not in page.headers.get('Set-Cookie', '')
@@ -398,10 +397,14 @@ def test_back_after_sign_out_asks_the_server(signed_in):
     assert b"addEventListener('pageshow'" in signed_in.get('/').data
 
 
-def test_no_page_can_be_framed(anon, signed_in):
-    for client, path in ((anon, '/login'), (anon, '/'), (anon, '/api/chats'), (anon, '/static/css/style.css'),
+def test_no_page_can_be_framed_or_sniffed(client, anon, signed_in):
+    # With a password or without one: `client` is the app that has none.
+    for asking, path in ((client, '/'), (client, '/api/settings'), (client, '/static/css/style.css'),
+                         (anon, '/login'), (anon, '/'), (anon, '/api/chats'), (anon, '/static/css/style.css'),
                          (signed_in, '/'), (signed_in, '/api/settings')):
-        assert client.get(path).headers['Content-Security-Policy'] == "frame-ancestors 'none'", path
+        headers = asking.get(path).headers
+        assert headers['Content-Security-Policy'] == "frame-ancestors 'none'", path
+        assert headers['X-Content-Type-Options'] == 'nosniff', path
 
 
 def test_api_replies_stay_out_of_the_browser_cache(anon, signed_in):

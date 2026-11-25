@@ -110,12 +110,9 @@ def require_login():
     return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
 
 
-def refuse_framing_and_caching(response):
-    """after_request: no page may show Cozy in a frame, where a page on another
-    port of this host could get it clicked through, and API responses, chats
-    among them, stay out of the browser's cache, where they'd outlive signing
-    out."""
-    response.headers['Content-Security-Policy'] = "frame-ancestors 'none'"
+def keep_api_out_of_the_cache(response):
+    """after_request: API responses, chats among them, stay out of the
+    browser's cache, where they'd outlive signing out."""
     if request.path.startswith('/api/'):
         response.headers.setdefault('Cache-Control', 'no-store')
     return response

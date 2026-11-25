@@ -50,6 +50,16 @@ def name_the_build(response):
     return response
 
 
+@app.after_request
+def refuse_framing_and_sniffing(response):
+    # No page may show Cozy in a frame, where a page on another site could get
+    # it clicked through unseen. And the browser takes every response as the
+    # type it is served as, so nothing uploaded is run as a page or a script.
+    response.headers['Content-Security-Policy'] = "frame-ancestors 'none'"
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
 # ── Same-origin writes only ───────────────────────────────────────────────
 # Without COZY_PASSWORD Cozy has no login, so any other page open in the same
 # browser can send it requests; with it, a page served from another port on the
@@ -224,7 +234,7 @@ if auth.PASSWORD:
     )
     app.secret_key = auth.signing_key()
     app.before_request(auth.require_login)
-    app.after_request(auth.refuse_framing_and_caching)
+    app.after_request(auth.keep_api_out_of_the_cache)
     app.register_blueprint(auth.bp)
 
 # ── Entry point ─────────────────────────────────────────────────────────────
