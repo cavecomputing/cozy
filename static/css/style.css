@@ -167,31 +167,6 @@
     display: none !important;
 }
 
-*::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
-    border-radius: var(--radius-pill);
-    border: 2px solid transparent;
-    background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-    background-color: var(--text-secondary);
-    background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-corner {
-    background: transparent;
-}
-
 body {
     font-family: var(--font-sans);
     /* The sidebar and the chat fill the window edge to edge, flush with each
