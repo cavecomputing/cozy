@@ -116,3 +116,29 @@ class TestSeeding:
         assert _seeded_flag() == '1'
         assert not os.path.exists(os.path.join(shared.CHARACTERS_DIR, 'Sasha.png'))
         assert client.get('/api/characters').get_json() == []
+
+    def test_a_copy_cut_short_leaves_nothing_and_is_retried(self, monkeypatch):
+        """A partial copy used to stay under the card's name, and the next
+        start skipped it as already there, so the card never opened."""
+        real_open = open
+
+        def full_disk(path, mode='r', *args, **kwargs):
+            f = real_open(path, mode, *args, **kwargs)
+            if 'w' in mode:
+                def write_half(data, write=f.write):
+                    write(data[:len(data) // 2])
+                    raise OSError(28, 'No space left on device')
+                f.write = write_half
+            return f
+
+        monkeypatch.setattr(shared, 'open', full_disk, raising=False)
+        defaults.seed_default_characters()
+        assert os.listdir(shared.CHARACTERS_DIR) == []
+        assert _seeded_flag() == '0'
+
+        monkeypatch.setattr(shared, 'open', real_open, raising=False)
+        defaults.seed_default_characters()
+        assert _seeded_flag() == '1'
+        for filename in _bundled_filenames():
+            with open(os.path.join(shared.CHARACTERS_DIR, filename), 'rb') as f:
+                assert extract_png_chara(f.read()), filename

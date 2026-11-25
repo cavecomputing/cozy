@@ -8,7 +8,7 @@ from copy import deepcopy
 from PIL import Image
 
 from cozy import shared
-from cozy.shared import get_db
+from cozy.shared import get_db, write_file_atomic
 from cozy.png_utils import extract_png_chara, write_png_chara
 
 Image.MAX_IMAGE_PIXELS = shared.MAX_IMAGE_PIXELS
@@ -264,31 +264,6 @@ def ensure_png(image_bytes):
     except (OSError, Image.DecompressionBombError) as e:
         raise ValueError('not a readable image') from e
     return buf.getvalue()
-
-
-def write_file_atomic(path, data):
-    """Write *data* to *path* whole or not at all.
-
-    A card's PNG is the only copy of its character, and writing over it in
-    place truncates it first: a crash or a full disk partway through left a
-    card that no longer opened. The bytes go to a sibling file and are renamed
-    over the original only once they are all on disk. The sibling's name does
-    not end in .png, so the folder scan never mistakes it for a card, and a
-    write that fails takes its sibling with it.
-    """
-    tmp = path + '.tmp'
-    try:
-        with open(tmp, 'wb') as f:
-            f.write(data)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, path)
-    except OSError:
-        try:
-            os.remove(tmp)
-        except FileNotFoundError:
-            pass
-        raise
 
 
 def write_character_card(path, card):

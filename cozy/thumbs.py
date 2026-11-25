@@ -15,9 +15,9 @@ The directory is a pure cache — deleting it is always safe.
 """
 
 import hashlib
+import io
 import logging
 import os
-import tempfile
 import threading
 
 from flask import abort, send_from_directory
@@ -125,19 +125,12 @@ def _generate(src_path, size, dest_path):
             out = im.copy()
             out.thumbnail((size, size), Image.LANCZOS)   # never upscales
 
-        fd, tmp_path = tempfile.mkstemp(dir=shared.THUMBS_DIR, suffix='.tmp')
-        try:
-            with os.fdopen(fd, 'wb') as f:
-                out.save(f, format='WEBP', quality=WEBP_QUALITY, method=WEBP_METHOD)
-            # Same-directory replace is atomic on POSIX and Windows alike, so a
-            # concurrent reader never sees a half-written file.
-            os.replace(tmp_path, dest_path)
-        except BaseException:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
-            raise
+        # Encoded in memory and written through write_file_atomic, which syncs
+        # the bytes before the rename: without that a power cut could leave an
+        # empty file under the final name, served as immutable from then on.
+        buf = io.BytesIO()
+        out.save(buf, format='WEBP', quality=WEBP_QUALITY, method=WEBP_METHOD)
+        shared.write_file_atomic(dest_path, buf.getvalue())
 
 
 def ensure_thumb(src_path, size):

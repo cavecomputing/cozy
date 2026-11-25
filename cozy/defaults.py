@@ -11,7 +11,6 @@ import json
 import logging
 import os
 import re
-import shutil
 
 from cozy import shared
 from cozy.shared import get_db
@@ -101,7 +100,10 @@ def seed_default_characters():
                 if not os.path.isfile(source) or os.path.exists(target):
                     continue
                 try:
-                    shutil.copyfile(source, target)
+                    # Copied whole or not at all: a copy cut short used to stay
+                    # behind, and the exists() check above skipped it forever.
+                    with open(source, 'rb') as f:
+                        shared.write_file_atomic(target, f.read())
                 except OSError:
                     # A default character is a nicety, not a reason to refuse to
                     # start. Log it and leave the flag unset so a later run retries.

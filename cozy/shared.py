@@ -9,6 +9,7 @@ them keeps working.
 import json
 import os
 import sqlite3
+import tempfile
 from contextlib import contextmanager
 
 from flask import jsonify, request, Response
@@ -66,6 +67,43 @@ def persona_avatar_url(avatar_path, updated_at):
     if not avatar_path:
         return None
     return f'/personas/{avatar_path}?v={avatar_cache_key(updated_at)}'
+
+
+def write_file_atomic(path, data):
+    """Write *data* to *path* whole or not at all.
+
+    Writing over a file in place truncates it first, so a crash or a full disk
+    partway through left a card that no longer opened, or an avatar that was
+    gone. The bytes go to a sibling file that is renamed over the original only
+    once they are all on disk, and the folder is synced so the rename survives
+    a power cut too. Each write gets its own sibling, so two saves of one file
+    can't truncate each other's, and its name starts with a dot and ends in .tmp
+    so no folder scan mistakes it for a card or a theme.
+    """
+    folder = os.path.dirname(path)
+    fd, tmp = tempfile.mkstemp(dir=folder, prefix=f'.{os.path.basename(path)}.', suffix='.tmp')
+    os.close(fd)
+    try:
+        with open(tmp, 'wb') as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
+    if hasattr(os, 'O_DIRECTORY'):          # Windows can't open a folder to sync it
+        try:
+            dir_fd = os.open(folder, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+        except OSError:
+            pass                            # some filesystems refuse a folder fsync
 
 os.makedirs(CHARACTERS_DIR, exist_ok=True)
 os.makedirs(PERSONAS_DIR, exist_ok=True)

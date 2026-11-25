@@ -620,6 +620,7 @@ class TestInterruptedSave:
                 f.write = write_half
             return f
 
+        monkeypatch.setattr(shared, 'open', open_then_fail, raising=False)
         monkeypatch.setattr(card_store, 'open', open_then_fail, raising=False)
         monkeypatch.setattr(characters_module, 'open', open_then_fail, raising=False)
 
@@ -1044,3 +1045,31 @@ class TestLastUsedAt:
         with shared.get_db() as conn:
             conn.execute("UPDATE chats SET opened_at='2026-01-04 07:00:00' WHERE id=?", (sample_chat['id'],))
         assert self._last_used_at(client, char_id) == '2026-01-04 07:00:00'
+
+
+class TestAtomicWrite:
+    def test_concurrent_writes_to_one_file_never_collide(self, tmp_path):
+        """Every write used to share one sibling, path + '.tmp', so two saves of
+        the same card could truncate or rename away each other's bytes."""
+        import threading
+        folder = tmp_path / 'atomic'
+        folder.mkdir()
+        target = str(folder / 'card.png')
+        payloads = [bytes([i]) * 200_000 for i in range(8)]
+        errors = []
+
+        def write(data):
+            try:
+                shared.write_file_atomic(target, data)
+            except Exception as e:      # noqa: BLE001 - the test reports any failure
+                errors.append(e)
+
+        threads = [threading.Thread(target=write, args=(p,)) for p in payloads]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert errors == []
+        with open(target, 'rb') as f:
+            assert f.read() in payloads
+        assert os.listdir(folder) == ['card.png']
