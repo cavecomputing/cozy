@@ -84,9 +84,13 @@ const STAMP_FORMATS = {
     }),
 };
 
-/** A database timestamp (UTC, no zone marker) as a Date, or now when there is none. */
+/**
+ * A database timestamp (UTC, no zone marker) as a Date, or now when there is
+ * none. SQLite writes a space between the date and the time; the T makes it
+ * the one format every engine has to parse.
+ */
 export function parseDbStamp(utc) {
-    return utc ? new Date(utc + 'Z') : new Date();
+    return utc ? new Date(utc.replace(' ', 'T') + 'Z') : new Date();
 }
 
 /** The whole local date and time, for a tooltip behind a shortStamp(). */
