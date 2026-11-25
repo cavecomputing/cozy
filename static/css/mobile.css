@@ -37,6 +37,9 @@ body {
         var(--frame-left);
     overscroll-behavior: auto;
     touch-action: manipulation;
+    /* Turned sideways, an iPhone enlarges text it judges small for the wider
+       page. Every size here is already chosen for the phone. */
+    -webkit-text-size-adjust: 100%;
 }
 
 /* ── Controls ────────────────────────────────────────────────────────── */
