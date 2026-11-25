@@ -45,5 +45,8 @@ EXPOSE 5000
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
 # --timeout 0 disables the worker timeout so long-running SSE streams from slow
 # local backends aren't killed mid-response (gthread's default is 30s). See #6.
+# A reply being followed holds one thread until it ends, and each open page or
+# device following one is another, so four were all taken by four followers
+# and every other request, Stop among them, waited for a reply to finish.
 # docker/gunicorn.conf.py prints Cozy's banner once gunicorn is listening.
-CMD ["gunicorn", "--config", "docker/gunicorn.conf.py", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "4", "--timeout", "0", "app:app"]
+CMD ["gunicorn", "--config", "docker/gunicorn.conf.py", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "16", "--timeout", "0", "app:app"]
