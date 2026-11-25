@@ -268,9 +268,9 @@ While Auto Summary is on, the **Auto Summary** part of the memory panel shows:
   largest size it may have. The sign ≈ means the numbers are estimates.
 - **Story so far.** A list of entries, oldest first. Each entry is a few
   sentences about one stretch of the chat. The label at the end of an entry,
-  such as "messages 1–12", says which messages it covers.
-- **Bonds.** One entry for each relationship in the story, saying how that
-  relationship stands now.
+  such as "messages 1–12", says which messages it covers. An entry also
+  notes how the characters' feelings toward each other changed in that
+  stretch.
 
 You cannot edit the summary. To write something the AI must always know, use
 the [Author's Note](#authors-note).
@@ -359,16 +359,11 @@ entries that are already there are not rewritten. If the summarizer writes an
 entry that is too long, Cozy asks it once more. If the second answer is still
 too long, Cozy keeps the part that fits and says so in the status line.
 
-**Bonds.** A relationship is kept as one entry of at most about 200 tokens.
-When the relationship changes, that entry is rewritten. No second entry is
-added.
-
 **The size limit.** The summary may use at most 10% of **Max context
-tokens**. When it is full, the oldest **Story so far** entries are deleted to
-make room for new ones. An entry is never shortened to make it fit, with one
-exception: the last entry left in a section is cut short, and ends in "…". If
-the **Bonds** no longer fit, the relationship that was added most recently is
-deleted first.
+tokens**. When it is full, the oldest entries are deleted to make room for
+new ones. An entry is never shortened to make it fit, with one exception: when
+only one entry is left and it is still too long, it is cut short, and ends in
+"…".
 
 So the summary remembers the recent past, not the whole chat. For anything the
 AI must always know, use the [Author's Note](#authors-note). It is sent word
@@ -396,9 +391,7 @@ made from, and Auto Summary stays on in it.
 - If you branch at a reply that is newer than everything in the summary, the
   branch gets the whole summary.
 - If you branch at a reply that the summary already covers, the branch gets
-  only the **Story so far** entries for the messages before that reply. It
-  gets no **Bonds**, because a **Bonds** entry may describe things that
-  happened after that reply.
+  only the entries for the messages before that reply.
 
 ### Limits
 

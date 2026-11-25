@@ -7,6 +7,7 @@ next version and a new name — a shipped entry must never be renumbered,
 renamed or reordered.
 """
 
+import json
 import logging
 import os
 import sqlite3
@@ -22,8 +23,29 @@ log = logging.getLogger('cozy')
 BASELINE_VERSION = 21
 LAST_UPGRADING_COMMIT = 'fc337a2'
 
+
+def _drop_summary_bonds(conn):
+    """Keep only the story entries of each saved summary: Auto Summary no longer
+    keeps a Bonds section, so its lines no longer carry a section either."""
+    rows = conn.execute("SELECT id, summary_json FROM chats WHERE summary_json != ''")
+    for row in rows.fetchall():
+        try:
+            lines = json.loads(row['summary_json'])['lines']
+        except (ValueError, TypeError, KeyError):
+            continue  # parse_summary_json already reads it as empty.
+        story = [
+            {key: value for key, value in line.items() if key != 'section'}
+            for line in lines
+            if isinstance(line, dict) and line.get('section') != 'bonds'
+        ]
+        conn.execute('UPDATE chats SET summary_json=? WHERE id=?',
+                     (json.dumps({'lines': story}, ensure_ascii=False), row['id']))
+
+
 # (version, name, function taking the connection), numbered from the baseline up.
-MIGRATIONS = ()
+MIGRATIONS = (
+    (22, 'drop_summary_bonds', _drop_summary_bonds),
+)
 
 
 def database_version():

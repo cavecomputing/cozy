@@ -1159,7 +1159,7 @@ def test_summary_state_completion_and_reset_refresh_context_budget_hook():
             id: 7,
             summary_enabled: true,
             summary: {
-                lines: [{ section: 'story', text: 'A newly completed memory.', pinned: false }],
+                lines: [{ text: 'A newly completed memory.', pinned: false }],
             },
             summary_up_to_msg_id: 1,
             summary_status: 'idle',
@@ -1196,7 +1196,7 @@ def test_unlimited_context_summary_status_does_not_show_zero_cap():
         const { renderMemorySummaryCard } = await import('./static/js/summaries.js');
         el.settingsContextTokens.value = '0';
         state.activeChat.summary = {
-            lines: [{ section: 'story', text: 'A remembered event.', pinned: false }],
+            lines: [{ text: 'A remembered event.', pinned: false }],
         };
         state.activeChat.summary_up_to_msg_id = 1;
         el.summaryToggle = {};
@@ -1471,7 +1471,7 @@ def test_swipe_generation_waits_for_summary_at_regen_context_boundary():
             id: 7,
             summary_enabled: true,
             summary: {
-                lines: [{ section: 'story', text: 'The first turn is remembered.' }],
+                lines: [{ text: 'The first turn is remembered.' }],
             },
             summary_up_to_msg_id: 1,
             summary_status: 'idle',
@@ -1556,7 +1556,7 @@ def test_context_boundary_starts_before_first_post_watermark_message_when_all_fi
             id: 7,
             summary_enabled: true,
             summary_up_to_msg_id: 2,
-            summary: { lines: [{ section: 'story', text: 'Old turns retained.' }] },
+            summary: { lines: [{ text: 'Old turns retained.' }] },
         };
         state.messages = [
             { id: 1, role: 'user', text: 'old one' },
@@ -1604,7 +1604,7 @@ def test_context_boundary_follows_last_message_when_summary_covers_everything():
             id: 7,
             summary_enabled: true,
             summary_up_to_msg_id: 2,
-            summary: { lines: [{ section: 'story', text: 'Everything retained.' }] },
+            summary: { lines: [{ text: 'Everything retained.' }] },
         };
         state.messages = [
             { id: 1, role: 'user', text: 'old one' },
@@ -1645,14 +1645,11 @@ def test_summary_text_marks_the_story_as_chronological():
         import { summaryToText } from './static/js/summaries.js';
 
         const text = summaryToText({ lines: [
-            { section: 'story', text: 'first beat' },
-            { section: 'story', text: 'second beat' },
-            { section: 'bonds', text: 'A & B: allies' },
+            { text: 'first beat' },
+            { text: 'second beat' },
         ]});
         assert.match(text, /^STORY SO FAR \(in order, oldest first\)$/m);
         assert.ok(text.indexOf('first beat') < text.indexOf('second beat'));
-        // BONDS is current-state, so it gets no ordering claim.
-        assert.match(text, /^BONDS$/m);
         assert.equal(summaryToText({ lines: [] }), '');
     """
     run_node_module(code)
@@ -1755,7 +1752,7 @@ def test_reset_clears_then_summarizes_the_history_again():
             id: 7,
             summary_enabled: true,
             summary_up_to_msg_id: 10,
-            summary: { lines: [{ section: 'story', text: 'a stale beat' }] },
+            summary: { lines: [{ text: 'a stale beat' }] },
             summary_status: 'idle',
             summary_status_detail: '',
         };
@@ -1836,7 +1833,7 @@ def test_cancel_button_shows_only_while_a_run_is_in_flight():
             state.activeChat = {
                 id: 1,
                 summary_enabled: enabled,
-                summary: { lines: [{ section: 'story', text: 'a beat' }] },
+                summary: { lines: [{ text: 'a beat' }] },
                 summary_status: status,
                 summary_status_detail: '',
             };

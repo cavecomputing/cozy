@@ -28,21 +28,21 @@ from cozy.shared import get_db, not_found
 from cozy.summarizer import (
     BATCH_TARGET_TOKENS,
     append_entry_problems,
-    append_token_limits,
     append_summary,
     build_append_messages,
     collapse_story_lines,
     dump_summary_json,
     enforce_cap,
+    entry_token_limit,
     estimate_tokens,
     fit_append_entries,
     parse_summary_json,
     parse_summarizer_output,
     resolve_names,
     retry_note,
-    section_lines,
-    section_to_text,
     strip_thinking_content,
+    summary_lines,
+    summary_to_text,
     token_batches,
 )
 
@@ -359,16 +359,10 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
     stalled the chat, because every later run resends the same messages and sending
     waits on the summary. Only a second request or format failure raises.
     """
-    limits = append_token_limits(cap_tokens)
-    story_entry_tokens, _, bonds_update_tokens = limits
-    system, user = build_append_messages(
-        section_to_text(summary_obj, 'story'),
-        section_to_text(summary_obj, 'bonds'),
-        chunk,
-        *limits,
-    )
+    entry_tokens = entry_token_limit(cap_tokens)
+    system, user = build_append_messages(summary_to_text(summary_obj), chunk, entry_tokens)
     request = [system, user]
-    previous_story = [line['text'] for line in section_lines(summary_obj, 'story')]
+    previous_story = [line['text'] for line in summary_lines(summary_obj)]
     for attempt in range(1, BATCH_ATTEMPTS + 1):
         final = attempt == BATCH_ATTEMPTS
         if attempt > 1:
@@ -380,7 +374,7 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
             chat_id, require_running=require_running, job_token=job_token
         )
         try:
-            reply = call_summarizer(request, story_entry_tokens + bonds_update_tokens)
+            reply = call_summarizer(request, entry_tokens)
         except RuntimeError as e:
             if final:
                 raise
@@ -399,13 +393,13 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
                 raise
             problems = [str(e)]
         else:
-            problems = append_entry_problems(delta, *limits)
+            problems = append_entry_problems(delta, entry_tokens)
             if not problems:
                 return delta, ''
             if final:
                 # "Kept what fit" describes a trimmed line; a batch with no story line
                 # at all is retired without an entry, and the status has to say that.
-                if not section_lines(delta, 'story'):
+                if not summary_lines(delta):
                     warning = (
                         f'The summarizer wrote no story entry for {batch_label}, even '
                         'after a retry, so the story has none for those messages.'
@@ -415,7 +409,7 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
                         f'The summarizer still broke its limits on {batch_label} after a '
                         f'retry ({"; ".join(problems)}), so Cozy kept what fit.'
                     )
-                return fit_append_entries(delta, *limits), warning[:300]
+                return fit_append_entries(delta, entry_tokens), warning[:300]
         log.warning('Summarizer reply for chat %s rejected, retrying: %s',
                     chat_id, '; '.join(problems))
         request = [system, {**user, 'content': user['content'] + retry_note(problems)}]

@@ -19,7 +19,6 @@ import { showToast } from './utils.js';
 import { confirmDialog } from './confirm.js';
 
 const STORY_HEADING = 'STORY SO FAR';
-const BONDS_HEADING = 'BONDS';
 const POLL_MS = 2500;
 // While a send or backfill is waiting on a run, check far more often: every
 // tick of POLL_MS was up to 2.5s added to the wait, and a short job's progress never
@@ -42,7 +41,7 @@ function summariesActive(chat = state.activeChat) {
 }
 
 // ── Rendering the summary object to text (for injection into the chat prompt) ──
-// Deliberately NOT a byte-for-byte mirror of summarizer.section_to_text: this render is
+// Deliberately NOT a byte-for-byte mirror of summarizer.summary_to_text: this render is
 // read by the roleplay model, so the story heading spells out that the beats are a
 // timeline rather than an unordered pile of facts. The Python renderer stays bare
 // because it feeds the summary back to the summarizer and is matched by _norm_heading.
@@ -55,19 +54,8 @@ export function activeSummaryText() {
 
 export function summaryToText(obj) {
     const lines = (obj && Array.isArray(obj.lines)) ? obj.lines : [];
-    const story = lines.filter(l => (l.section || 'story') !== 'bonds');
-    const bonds = lines.filter(l => (l.section || 'story') === 'bonds');
-    const out = [];
-    if (story.length) {
-        out.push(STORY_HEADING + STORY_ORDER_NOTE);
-        story.forEach(l => out.push(`- ${l.text}`));
-    }
-    if (bonds.length) {
-        if (out.length) out.push('');
-        out.push(BONDS_HEADING);
-        bonds.forEach(l => out.push(`- ${l.text}`));
-    }
-    return out.join('\n');
+    if (!lines.length) return '';
+    return [STORY_HEADING + STORY_ORDER_NOTE, ...lines.map(l => `- ${l.text}`)].join('\n');
 }
 
 // ── Config helpers ──────────────────────────────────────────────────────────
@@ -805,34 +793,28 @@ function renderLines(enabled) {
     if (!lines.length) { box.hidden = true; return; }
     box.hidden = false;
 
-    for (const [section, label] of [['story', 'Story so far'], ['bonds', 'Bonds']]) {
-        const inSection = lines.filter(l => (l.section || 'story') === section);
-        if (!inSection.length) continue;
+    const heading = document.createElement('div');
+    heading.className = 'summary-group-label';
+    heading.textContent = 'Story so far';
+    box.appendChild(heading);
 
-        const heading = document.createElement('div');
-        heading.className = 'summary-group-label';
-        heading.textContent = label;
-        box.appendChild(heading);
+    for (const l of lines) {
+        const row = document.createElement('div');
+        row.className = 'summary-line';
 
-        for (const l of inSection) {
-            const row = document.createElement('div');
-            row.className = 'summary-line';
+        const text = document.createElement('span');
+        text.className = 'summary-line-text';
+        text.textContent = l.text;
+        row.appendChild(text);
 
-            const text = document.createElement('span');
-            text.className = 'summary-line-text';
-            text.textContent = l.text;
-            row.appendChild(text);
-
-            // Bonds span the whole chat, so only story entries can name a range.
-            const range = section === 'story' ? rangeLabel(l) : '';
-            if (range) {
-                const tag = document.createElement('span');
-                tag.className = 'summary-line-range';
-                tag.textContent = range;
-                row.appendChild(tag);
-            }
-            box.appendChild(row);
+        const range = rangeLabel(l);
+        if (range) {
+            const tag = document.createElement('span');
+            tag.className = 'summary-line-range';
+            tag.textContent = range;
+            row.appendChild(tag);
         }
+        box.appendChild(row);
     }
 }
 
