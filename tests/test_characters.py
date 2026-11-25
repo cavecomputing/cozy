@@ -34,6 +34,17 @@ def _solid_png(size, color):
 # ── Create endpoint validation ────────────────────────────────────────────
 
 class TestCreate:
+    def test_create_takes_as_much_text_as_an_edit_does(self, client):
+        """The card is a form field, which Flask capped at 500 kB, so a card
+        that could be saved as an edit was refused as a new character."""
+        r = client.post('/api/characters', data={
+            'data': json.dumps({'name': 'Long', 'description': 'x' * 600_000}),
+            'image': (BytesIO(make_minimal_png()), 'avatar.png', 'image/png'),
+        }, content_type='multipart/form-data')
+
+        assert r.status_code == 201
+        assert len(client.get(f"/api/characters/{r.get_json()['id']}").get_json()['description']) == 600_000
+
     def test_create_invalid_form_json_rejected(self, client):
         r = client.post('/api/characters', data={
             'data': '{not json',

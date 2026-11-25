@@ -31,6 +31,9 @@ log.setLevel(os.environ.get('COZY_LOG_LEVEL', 'INFO').upper())
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB
+# Flask stops a form field that is not a file at 500 kB unless told otherwise,
+# and a new character's card arrives as one.
+app.config['MAX_FORM_MEMORY_SIZE'] = app.config['MAX_CONTENT_LENGTH']
 
 
 # ── Global error handlers (always return JSON for API consumers) ──────────
