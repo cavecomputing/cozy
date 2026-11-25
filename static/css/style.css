@@ -1422,16 +1422,17 @@ input[type="checkbox"]:checked::after {
 
 /* ── Recent ──────────────────────────────────────────────────────────────── */
 /* New character, with the clock for Recent beside it once the list is long,
-   above the list rather than in it, so neither scrolls away. Inset by margin
-   (the list's own padding, and its top fade below), so Recent, placed in
-   this box, spans the list's width. */
+   above the list rather than in it, so neither scrolls away. It sits as far
+   from the top as the persona card does from the bottom, and as far in as
+   the list's own padding. That is margin rather than padding so Recent,
+   placed in this box, spans the list's width. */
 .sidebar-top {
     position: relative;
     display: flex;
     align-items: center;
     gap: 0.35rem;
     flex-shrink: 0;
-    margin: var(--list-fade) 0.5rem 0;
+    margin: 0.625rem 0.5rem 0;   /* top matches #user-profile-container's bottom */
 }
 
 /* Sized and placed like a row's ⋯, 4px from the end, so its tile while open

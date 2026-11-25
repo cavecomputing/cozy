@@ -177,9 +177,10 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
 
 #mobile-backdrop.show { display: block; }
 
-/* Inset as far as the list below it. */
+/* As far from the top as the persona card is from the bottom, and inset
+   as far as the list below it. */
 .sidebar-top {
-    margin-inline: 0.6rem;
+    margin: 0.6rem 0.6rem 0;
 }
 
 /* The drawer's own pan-y (above) stops at the nearest scroller, which is
