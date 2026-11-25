@@ -46,7 +46,9 @@ ALLOWED_IMG  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 # Cap on decoded image dimensions (~8000x8000). Character cards and persona
 # avatars are user-supplied, and a small crafted file can otherwise expand to
 # gigabytes once decoded. Applied to Pillow by every module that decodes.
-MAX_IMAGE_PIXELS = 64_000_000
+# Pillow only warns above its limit and refuses above twice it, so the limit
+# is half the 64 megapixels this allows.
+MAX_IMAGE_PIXELS = 32_000_000
 
 
 BUILD_INFO = get_build_info(BASE_DIR)

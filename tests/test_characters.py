@@ -99,6 +99,20 @@ class TestCreateWithoutImage:
         assert updated['avatar_url'].startswith(f'/characters/{char["filename"]}?v=')
         assert updated['description'] == 'No picture yet.'
 
+    def test_a_picture_over_the_pixel_cap_is_refused(self, client):
+        char = self._create(client).get_json()
+        # 8100 x 8100 is just over the 64 megapixels shared.MAX_IMAGE_PIXELS
+        # allows; one bit a pixel keeps the test's own copy small. A GIF,
+        # because a PNG is stored as it is and only decoded for its thumbnail.
+        huge = BytesIO()
+        Image.new('1', (8100, 8100)).save(huge, format='GIF')
+        huge.seek(0)
+        r = client.post(f'/api/characters/{char["id"]}/avatar', data={
+            'avatar': (huge, 'huge.gif', 'image/gif'),
+        }, content_type='multipart/form-data')
+        assert r.status_code == 400
+        assert r.get_json()['error'] == characters_module.UNREADABLE_IMAGE
+
     def test_a_card_created_with_a_picture_reports_it(self, client):
         r = self._create(client, image=(BytesIO(_solid_png((64, 64), (0, 128, 255))), 'a.png', 'image/png'))
         assert r.get_json()['avatar_url'].startswith('/characters/')
