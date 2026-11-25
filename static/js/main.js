@@ -790,9 +790,16 @@ function bindSettingsHandlers() {
     // Safari's keyboard shrinks the visual viewport without changing 100dvh.
     // Leave pinch zoom to the browser; only follow the keyboard-sized viewport.
     // The phone's page is sized by it too, so the chat keeps its newest lines.
+    // A view as tall as the screen has no keyboard, so nothing to follow: an
+    // installed iPhone app woken from the lock screen can go on reporting the
+    // view as scrolled down after the keyboard has gone, and the page pinned
+    // there sat that far down, its foot off the screen and dead to taps. The
+    // scroll back to the top undoes whatever of that the browser still holds.
     const fitSettingsViewport = () => {
         const viewport = window.visualViewport;
-        const fit = isMobileSettings() && viewport?.scale === 1;
+        const unzoomed = isMobileSettings() && viewport?.scale === 1;
+        const fit = unzoomed && viewport.height < document.documentElement.clientHeight - 1;
+        if (unzoomed && !fit) window.scrollTo(0, 0);
         keepChatBottom(() => {
             document.documentElement.style.setProperty('--settings-viewport-height', fit ? `${viewport.height}px` : '100dvh');
             document.documentElement.style.setProperty('--settings-viewport-top', fit ? `${viewport.offsetTop}px` : '0px');
@@ -807,6 +814,8 @@ function bindSettingsHandlers() {
         }
     });
     window.visualViewport?.addEventListener('scroll', fitSettingsViewport);
+    // A woken phone need not say the view changed while it slept.
+    document.addEventListener('visibilitychange', fitSettingsViewport);
     fitSettingsViewport();
 
     window.matchMedia(MOBILE_SHELL_QUERY).addEventListener('change', () => {
