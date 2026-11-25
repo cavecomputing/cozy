@@ -760,17 +760,20 @@ def _room_to_restore(archive, workspace):
                            shutil.disk_usage(shared.DATA_DIR).free)
 
 
-def _replace_data_dir(staged):
+def _replace_data_dir(staged, finish):
     """Put the staged backup where the data directory's contents were.
 
     The old contents are only set aside, in a folder inside the data directory
     so that each is one rename away, and deleted once the whole backup has
-    landed. A move that fails partway used to leave whatever had landed and
-    nothing of the old data. Now what landed is removed, the old contents are
-    renamed back, and the error is returned for the route to report.
+    landed and *finish* (the migration the backup needs) has run on it. A move
+    that fails partway used to leave whatever had landed and nothing of the old
+    data, and a migration that failed found the old data already deleted. Now
+    what landed is removed, the old contents are renamed back, and the error is
+    returned for the route to report.
     """
     aside = tempfile.mkdtemp(prefix='.restore-', dir=shared.DATA_DIR)
     landed = []
+    in_place = False
     try:
         for name in os.listdir(shared.DATA_DIR):
             if name != os.path.basename(aside):
@@ -778,7 +781,16 @@ def _replace_data_dir(staged):
         for name in os.listdir(staged):
             landed.append(os.path.join(shared.DATA_DIR, name))
             shutil.move(os.path.join(staged, name), landed[-1])
-    except OSError as error:
+        in_place = True
+        for directory in (shared.CHARACTERS_DIR, shared.PERSONAS_DIR,
+                          shared.THEMES_DIR, shared.THUMBS_DIR):
+            os.makedirs(directory, exist_ok=True)
+        finish()
+    except Exception as error:
+        if in_place:
+            # Everything here now came from the backup or from *finish*.
+            landed = [os.path.join(shared.DATA_DIR, name) for name in os.listdir(shared.DATA_DIR)
+                      if name != os.path.basename(aside)]
         for path in landed:
             if os.path.isdir(path):
                 shutil.rmtree(path, ignore_errors=True)
@@ -789,9 +801,6 @@ def _replace_data_dir(staged):
         os.rmdir(aside)
         return error
     shutil.rmtree(aside, ignore_errors=True)
-    for directory in (shared.CHARACTERS_DIR, shared.PERSONAS_DIR,
-                      shared.THEMES_DIR, shared.THUMBS_DIR):
-        os.makedirs(directory, exist_ok=True)
 
 
 @settings_bp.route('/api/backup/restore', methods=['POST'])
@@ -838,25 +847,33 @@ def restore_backup():
             outside = _name_outside_its_folder(staged_database)
             if outside is not None:
                 raise ValueError(f'its database names a file outside the data folder, {outside!r}')
+            # A backup carries no sign-in secret (_database_snapshot()). Put this
+            # install's in before it lands, or the next start would make a new
+            # one and sign every device out (cozy/auth.py).
+            with get_db() as conn:
+                secret = conn.execute("SELECT value FROM settings WHERE key='secret_key'").fetchone()
+            if secret:
+                staged_conn = sqlite3.connect(staged_database)
+                try:
+                    upsert_setting(staged_conn, 'secret_key', secret['value'])
+                    staged_conn.commit()
+                finally:
+                    staged_conn.close()
         except (zipfile.BadZipFile, KeyError, ValueError, UnicodeDecodeError, sqlite3.Error) as e:
             return jsonify({'error': f'That file is not a Cozy backup ({e}).'}), 400
-        # A backup carries no sign-in secret (_database_snapshot()). Put this
-        # install's back, or the next start would make a new one and sign
-        # every device out (cozy/auth.py).
-        with get_db() as conn:
-            secret = conn.execute("SELECT value FROM settings WHERE key='secret_key'").fetchone()
-        failure = _replace_data_dir(staged)
+
+        def finish():
+            # An older backup arrives at whatever schema it was taken at, so
+            # upgrade it and restore any bundled prompt it predates, the way a
+            # start would. Both run before the old data is deleted.
+            init_db()
+            seed_default_prompts()
+
+        failure = _replace_data_dir(staged, finish)
         if failure:
             log.error('Restore failed and was undone: %s', failure)
             return jsonify({'error':
                 f'The restore failed partway ({failure}). Your data was put '
                 'back as it was.'}), 500
-    # An older backup arrives at whatever schema it was taken at, so upgrade it
-    # and restore any bundled prompt it predates, the way a start would.
-    init_db()
-    if secret:
-        with get_db() as conn:
-            upsert_setting(conn, 'secret_key', secret['value'])
-    seed_default_prompts()
     log.info('Restored a backup made at database version %d', version)
     return jsonify({'success': True, 'schema_version': version})

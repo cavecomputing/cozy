@@ -315,6 +315,26 @@ class TestBackupRestore:
         assert names == ['In The Backup']
         assert not [name for name in os.listdir(shared.DATA_DIR) if name.startswith('.restore-')]
 
+    def test_a_restore_whose_migration_fails_puts_the_old_data_back(self, client, monkeypatch):
+        """init_db() upgrades an older backup after it lands. It used to run
+        after the old data had been deleted, so a migration that raised left
+        the user with neither."""
+        create_character(client, 'In The Backup')
+        backup = client.get('/api/backup').data
+        create_character(client, 'Added Later')
+        before = sorted(os.listdir(shared.DATA_DIR))
+
+        def broken_migration():
+            raise sqlite3.OperationalError('no such column: imaginary')
+
+        monkeypatch.setattr('cozy.routes.settings.init_db', broken_migration)
+        r = restore(client, backup)
+        assert r.status_code == 500
+        assert 'put back' in r.get_json()['error']
+        assert sorted(os.listdir(shared.DATA_DIR)) == before
+        names = sorted(c['name'] for c in client.get('/api/characters').get_json())
+        assert names == ['Added Later', 'In The Backup']
+
     def test_old_data_that_cannot_be_set_aside_is_put_back(self, client, monkeypatch):
         create_character(client, 'Still Here')
         backup = client.get('/api/backup').data
