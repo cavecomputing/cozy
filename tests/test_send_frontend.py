@@ -97,7 +97,7 @@ def test_active_generation_guard_does_not_replace_the_controller():
     """)
 
 
-def test_generation_holds_the_screen_awake_until_it_ends():
+def test_one_generation_at_a_time_and_one_ending_unseen_marks_the_tab():
     run_node_module(r"""
         import assert from 'node:assert/strict';
         import { state, el } from './static/js/state.js';
@@ -106,16 +106,10 @@ def test_generation_holds_the_screen_awake_until_it_ends():
         // Letting go of the slot puts the Send button back.
         el.sendBtn = { setAttribute() {}, classList: { toggle() {} } };
         globalThis.document = { hidden: false, title: 'Cozy' };
-        const events = [];
-        Object.defineProperty(globalThis.navigator, 'wakeLock', {
-            value: { request: async type => { events.push(type); return { release: async () => events.push('released') }; } },
-        });
 
         assert.equal(beginGeneration(), true);
         assert.equal(beginGeneration(), false);
         endGeneration();
-        await new Promise(resolve => setTimeout(resolve, 0));
-        assert.deepEqual(events, ['screen', 'released']);
         assert.equal(document.title, 'Cozy');
 
         // One that ends in a tab nobody is looking at marks the tab, until

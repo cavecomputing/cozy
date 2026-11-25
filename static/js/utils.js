@@ -362,17 +362,11 @@ export function stopGeneration() {
     }
 }
 
-// The screen wake lock held while a reply generates, as its pending request.
-let screenLock = null;
-
 /** Claim the single generation slot before an async preflight can yield. */
 export function beginGeneration() {
     if (llm.generationActive) return false;
     llm.generationActive = true;
     llm.failureShownFor = null;
-    // A slow reply can outlast a phone's auto-lock, and a locked phone stops
-    // the page mid-stream. Best effort: unsupported or refused is fine.
-    screenLock = navigator.wakeLock?.request('screen').catch(() => null);
     return true;
 }
 
@@ -402,8 +396,6 @@ export function endGeneration() {
     llm.generationActive = false;
     setSendButtonMode('send');
     updateComposerState();
-    screenLock?.then(lock => lock?.release());
-    screenLock = null;
     const after = afterGeneration;
     afterGeneration = null;
     after?.();
