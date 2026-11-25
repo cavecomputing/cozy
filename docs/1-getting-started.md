@@ -106,7 +106,7 @@ at one to see its name.
 
 There is no setting to switch on. Cozy recognizes an address on
 `anthropic.com`, and any address that ends in `/messages`, and talks to it in
-Claude's own format. Three things are different there:
+Claude's own format. Four things are different there:
 
 - **Samplers are not sent.** Current Claude models choose their own sampling.
   The **Samplers** card is faded while a Claude address is set, and says so.
@@ -114,6 +114,12 @@ Claude's own format. Three things are different there:
   reply repeats cost less after the first message.
 - **Max response tokens still applies.** Current Claude models think before
   they answer, and that thinking uses part of this number.
+- **Claude's thinking is hidden unless you ask for it.** Current Claude
+  models send their thinking empty by default, so a reply has no **Thinking**
+  block above it. To see a summary of the thinking, put
+  `{"thinking": {"type": "adaptive", "display": "summarized"}}` in the
+  **Extra request parameters** card in **Settings → API**. See
+  [Send a setting that is not in the list](5-sampler-settings.md#send-a-setting-that-is-not-in-the-list).
 
 ### Where your API key is kept
 
