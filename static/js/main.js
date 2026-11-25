@@ -1310,6 +1310,22 @@ function bindChatHandlers() {
         }
         Flyouts.closeAllExcept(null);
     });
+    // A panel that calls itself modal keeps Tab to itself, as the confirm
+    // dialog does: from its last control, Tab went on into the page behind
+    // it. Each press is taken rather than only the ones at the two ends,
+    // because Safari skips buttons unless told otherwise, so where its own
+    // Tab would leave the panel can't be known from here.
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Tab' || e.defaultPrevented) return;
+        const modal = document.querySelector('.modal-overlay[aria-modal="true"]:not([hidden])');
+        if (!modal) return;
+        e.preventDefault();
+        const stops = [...modal.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+            .filter(stop => stop.tabIndex >= 0 && !stop.disabled && stop.checkVisibility());
+        const at = stops.indexOf(document.activeElement);
+        const next = at < 0 ? (e.shiftKey ? -1 : 0) : (at + (e.shiftKey ? -1 : 1)) % stops.length;
+        stops.at(next)?.focus();
+    });
 
     // Chat list — select, or open a row's ⋯ menu (in flyout)
     el.flyoutChatList.addEventListener('click', e => {
