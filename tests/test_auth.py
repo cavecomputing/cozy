@@ -515,6 +515,17 @@ def test_the_secret_never_leaves(signed_in):
         assert secret.encode() not in backup.read(name), name
 
 
+def test_the_secret_is_not_in_a_page_the_settings_outgrew(signed_in):
+    secret = stored_secret().encode()
+    # Long values split the page the secret's row is on. SQLite moves the row
+    # and leaves its old bytes behind, in a page that deleting the row never
+    # touches.
+    for key, length in (('extra_request_params', 6000), ('api_endpoint', 2500)):
+        assert signed_in.put('/api/settings', json={key: 'y' * length}).status_code == 200
+    backup = zipfile.ZipFile(io.BytesIO(signed_in.get('/api/backup').data))
+    assert secret not in backup.read(os.path.basename(shared.DATABASE))
+
+
 def test_restore_keeps_devices_signed_in(monkeypatch, signed_in):
     secret = stored_secret()
     backup = signed_in.get('/api/backup').data  # carries no secret, as above

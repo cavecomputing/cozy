@@ -597,15 +597,17 @@ def _database_snapshot(path):
 
     That secret stays with this install (cozy/auth.py): a backup holding it,
     plus one sign-in cookie, would let the password be guessed offline.
-    secure_delete overwrites the row instead of leaving it in a free page.
+    Deleting the row is not enough. The backup API copies pages whole, so the
+    copy also holds every place the row used to sit before the table around it
+    grew, and VACUUM rebuilds the file from the rows that are left.
     """
     with get_db() as conn:
         destination = sqlite3.connect(path)
         try:
             conn.backup(destination)
-            destination.execute('PRAGMA secure_delete = ON')
             destination.execute("DELETE FROM settings WHERE key = 'secret_key'")
             destination.commit()
+            destination.execute('VACUUM')
         finally:
             destination.close()
 
