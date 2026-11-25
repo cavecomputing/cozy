@@ -981,6 +981,7 @@ input[type="checkbox"]:checked::after {
     font-size: var(--text-xs);
     font-weight: 700;
     cursor: help;
+    -webkit-user-select: none;
     user-select: none;
     line-height: 1;
     flex-shrink: 0;
@@ -2589,6 +2590,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-size: var(--text-2xs);
     font-weight: 700;
     text-transform: uppercase;
+    -webkit-user-select: none;
     user-select: none;
     letter-spacing: 0.18em;
 }
@@ -2668,6 +2670,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     color: var(--fg);
     min-width: 2em;
     text-align: center;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -4983,6 +4986,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     font-family: var(--font-mono);
     font-size: var(--text-md);
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 
