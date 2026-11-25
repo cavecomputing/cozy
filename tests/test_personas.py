@@ -112,9 +112,35 @@ class TestPersonaAvatar:
             content_type='multipart/form-data',
         )
         files_after_second = os.listdir(shared.PERSONAS_DIR)
-        # Old .png should have been deleted before the new file landed
+        # The old .png goes once the new file has landed
         assert len(files_after_second) == 1
         assert files_after_second != files_after_first
+
+    def test_a_failed_upload_keeps_the_old_avatar(self, client, sample_persona, monkeypatch):
+        """The old picture used to be deleted before the new one was saved, so
+        a full disk left the persona pointing at a file that was gone."""
+        url = f'/api/personas/{sample_persona["id"]}/avatar'
+        old = make_minimal_png()
+        client.post(url, data={'avatar': (BytesIO(old), 'first.png', 'image/png')},
+                    content_type='multipart/form-data')
+        real_open = open
+
+        def full_disk(path, mode='r', *args, **kwargs):
+            if 'w' in mode:
+                raise OSError(28, 'No space left on device')
+            return real_open(path, mode, *args, **kwargs)
+
+        monkeypatch.setattr(shared, 'open', full_disk, raising=False)
+        for name in ('second.jpg', 'second.png'):      # a new name, then the same one
+            r = client.post(url, data={'avatar': (BytesIO(b'new picture'), name, 'image/png')},
+                            content_type='multipart/form-data')
+            assert r.status_code == 500
+        assert os.listdir(shared.PERSONAS_DIR) == [f'{sample_persona["id"]}.png']
+        with real_open(os.path.join(shared.PERSONAS_DIR, f'{sample_persona["id"]}.png'), 'rb') as f:
+            assert f.read() == old
+        persona = next(p for p in client.get('/api/personas').get_json()
+                       if p['id'] == sample_persona['id'])
+        assert '.png' in persona['avatar_url']
 
     def test_upload_rejects_disallowed_format(self, client, sample_persona):
         r = client.post(

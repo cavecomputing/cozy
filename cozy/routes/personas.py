@@ -93,15 +93,27 @@ def upload_persona_avatar(persona_id):
         ext = shared.validate_image_extension(file)
         if not ext:
             return jsonify({'error': f'File type not allowed (use {", ".join(sorted(shared.ALLOWED_IMG))})'}), 400
-        if row['avatar_path']:
-            old = os.path.join(shared.PERSONAS_DIR, row['avatar_path'])
-            if os.path.exists(old):
-                os.remove(old)
+        # The new picture lands whole before the old one goes. The old one used
+        # to be deleted first, so a save that failed (a full disk) left the
+        # persona with no picture at all.
+        old_filename = row['avatar_path']
         filename = f"{persona_id}.{ext}"
-        file.save(os.path.join(shared.PERSONAS_DIR, filename))
-        conn.execute(
-            'UPDATE personas SET avatar_path=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
-            (filename, persona_id)
-        )
-        row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
-        return jsonify(persona_to_dict(row))
+        target = os.path.join(shared.PERSONAS_DIR, filename)
+        shared.write_file_atomic(target, file.read())
+        try:
+            conn.execute(
+                'UPDATE personas SET avatar_path=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+                (filename, persona_id)
+            )
+            row = conn.execute('SELECT * FROM personas WHERE id=?', (persona_id,)).fetchone()
+            conn.commit()
+        except Exception:
+            if filename != old_filename:
+                os.remove(target)
+            raise
+    if old_filename and old_filename != filename:
+        try:
+            os.remove(os.path.join(shared.PERSONAS_DIR, old_filename))
+        except FileNotFoundError:
+            pass
+    return jsonify(persona_to_dict(row))
