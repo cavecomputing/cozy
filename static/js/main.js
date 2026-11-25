@@ -1858,7 +1858,9 @@ async function init() {
     // in the way of every lookup that came after it in the page, so each one
     // is kept apart by a prefix. data- attributes are what Cozy's own controls
     // are found by (data-help opens a help page), so a message keeps none.
-    DOMPurify.setConfig({ FORBID_TAGS: ['style', 'form'], SANITIZE_NAMED_PROPS: true, ALLOW_DATA_ATTR: false });
+    // A picture from another site is how cards illustrate themselves; sound
+    // and video from one are not, and can play as soon as the message is drawn.
+    DOMPurify.setConfig({ FORBID_TAGS: ['style', 'form', 'audio', 'video'], SANITIZE_NAMED_PROPS: true, ALLOW_DATA_ATTR: false });
     // A link in a reply would take Cozy's own tab, and the chat with it, so
     // every rendered link opens in a new one.
     DOMPurify.addHook('afterSanitizeAttributes', node => {
