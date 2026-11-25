@@ -1457,6 +1457,10 @@ function bindMessageHandlers() {
         if (e.target.closest('button')) e.preventDefault();
     });
     el.chatHistory.addEventListener('click', async e => {
+        // A reply's markup keeps its class names, so a card could dress a word
+        // as any button below, and a click on it forked or deleted. Cozy's own
+        // buttons all sit outside the rendered text.
+        if (e.target.closest('.message-content, .thinking-content')) return;
         // A held bar's buttons put it away, bar the swipe arrows and Copy, whose
         // tick shows on the bar; Edit's own Save and Cancel then show in the
         // message's row (see bindHeldActions).
@@ -1852,8 +1856,9 @@ async function init() {
     // A form would send the tab away, or post to Cozy's own routes. And an id
     // or name of Cozy's own (user-input, chat-history) put the card's element
     // in the way of every lookup that came after it in the page, so each one
-    // is kept apart by a prefix.
-    DOMPurify.setConfig({ FORBID_TAGS: ['style', 'form'], SANITIZE_NAMED_PROPS: true });
+    // is kept apart by a prefix. data- attributes are what Cozy's own controls
+    // are found by (data-help opens a help page), so a message keeps none.
+    DOMPurify.setConfig({ FORBID_TAGS: ['style', 'form'], SANITIZE_NAMED_PROPS: true, ALLOW_DATA_ATTR: false });
     // A link in a reply would take Cozy's own tab, and the chat with it, so
     // every rendered link opens in a new one.
     DOMPurify.addHook('afterSanitizeAttributes', node => {
