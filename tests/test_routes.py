@@ -1733,16 +1733,15 @@ class TestFork:
             conn.execute(
                 'UPDATE chats SET summary_json=?, summary_up_to_msg_id=? WHERE id=?',
                 (json.dumps({'lines': [
-                    {'section': 'story', 'text': 'Early.', 'start_msg_id': ids[0], 'end_msg_id': ids[2]},
-                    {'section': 'story', 'text': 'Later.', 'start_msg_id': ids[3], 'end_msg_id': ids[5]},
-                    {'section': 'bonds', 'text': 'A and B: allies.'},
+                    {'text': 'Early.', 'start_msg_id': ids[0], 'end_msg_id': ids[2]},
+                    {'text': 'Later.', 'start_msg_id': ids[3], 'end_msg_id': ids[5]},
                 ]}), ids[5], chat_id),
             )
 
         whole = client.post(f'/api/chats/{chat_id}/fork?message_id={ids[7]}').get_json()
         copies = [m['id'] for m in client.get(f'/api/chats/{whole["id"]}/messages').get_json()]
         assert whole['summary_enabled'] is True
-        assert [l['text'] for l in whole['summary']['lines']] == ['Early.', 'Later.', 'A and B: allies.']
+        assert [l['text'] for l in whole['summary']['lines']] == ['Early.', 'Later.']
         assert whole['summary']['lines'][1]['end_msg_id'] == copies[5]
         assert whole['summary_up_to_msg_id'] == copies[5]
 

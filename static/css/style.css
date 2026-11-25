@@ -3712,7 +3712,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     margin-bottom: 0.6rem;
 }
 
-/* A muted mono label over its group, quieter than the header's eyebrow. */
+/* A muted mono label over the entries, quieter than the header's eyebrow. */
 .summary-group-label {
     font-family: var(--font-mono);
     font-size: var(--text-2xs);
@@ -3720,10 +3720,8 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     letter-spacing: 0.16em;
     color: var(--text-secondary);
     font-weight: 700;
-    margin: 0.4rem 0 0.15rem;
+    margin: 0 0 0.15rem;
 }
-
-.summary-group-label:first-child { margin-top: 0; }
 
 .summary-line {
     display: flex;

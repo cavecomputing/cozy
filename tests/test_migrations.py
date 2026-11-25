@@ -35,13 +35,15 @@ class TestSchemaMigrationLedger:
         assert columns == {'version', 'name', 'applied_at'}
         assert [(row['version'], row['name']) for row in _migration_rows()] == [
             (schema.BASELINE_VERSION, 'baseline'),
+            *[(version, name) for version, name, _ in schema.MIGRATIONS],
         ]
-        assert schema.database_version() == schema.BASELINE_VERSION
 
     @pytest.mark.parametrize('ledger', [
         'DROP TABLE schema_migrations',
         'DELETE FROM schema_migrations',
-        f'UPDATE schema_migrations SET version={schema.BASELINE_VERSION - 1}',
+        # Every row moved down so the newest sits just below the baseline.
+        'UPDATE schema_migrations SET version=version-'
+        f'{schema.database_version() - schema.BASELINE_VERSION + 1}',
     ])
     def test_a_database_from_before_the_baseline_is_refused_untouched(self, ledger):
         with shared.get_db() as conn:

@@ -202,10 +202,11 @@ A seeded prompt is a copy of a file that outranks it.
   that no longer matches. Migrations touching stock prompts check for user edits first and skip
   customized rows.
 
-Both lists are empty today. On 2026-11-14 the owner had the 21 migrations and every column upgrade
-removed, since theirs was the only install. `BASELINE_VERSION` (21) is what a new database is created
-at and the oldest one `init_db()` opens: on an older one it raises, before touching it, and names
-`LAST_UPGRADING_COMMIT`, the last build that can still upgrade it. The next migration is 22.
+On 2026-11-14 the owner had the 21 migrations and every column upgrade removed, since theirs was
+the only install. `BASELINE_VERSION` (21) is what a new database is created at and the oldest one
+`init_db()` opens: on an older one it raises, before touching it, and names `LAST_UPGRADING_COMMIT`,
+the last build that can still upgrade it. There are no column upgrades today; `MIGRATIONS` holds
+22, and the next migration is 23.
 
 ### The database version, and backups
 

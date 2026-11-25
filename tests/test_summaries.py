@@ -14,13 +14,12 @@ from cozy.routes.settings import get_settings
 import cozy.routes.summaries as summaries
 from cozy.summarizer import (
     append_entry_problems,
-    append_token_limits,
     append_summary,
-    bond_key,
     build_append_messages,
     collapse_story_lines,
     dump_summary_json,
     enforce_cap,
+    entry_token_limit,
     estimate_tokens,
     fit_append_entries,
     fork_summary,
@@ -28,9 +27,8 @@ from cozy.summarizer import (
     parse_summary_json,
     parse_summarizer_output,
     resolve_names,
-    section_cap,
-    section_to_text,
     strip_thinking_content,
+    summary_to_text,
     token_batches,
 )
 
@@ -48,71 +46,78 @@ def test_parse_summary_roundtrip():
         "STORY SO FAR\n"
         "- Nell pulled Luna from the sea during a storm.\n"
         "- They sailed the Widow's Teeth.\n"
-        "\n"
-        "BONDS\n"
-        "- Luna & Nell: deep trust, turning romantic."
     )
     obj = parse_summary(text)
-    sections = [l['section'] for l in obj['lines']]
-    assert sections == ['story', 'story', 'bonds']
-    # Rendering back produces both headings and all three bullets.
-    rendered = section_to_text(obj, 'story') + '\n\n' + section_to_text(obj, 'bonds')
-    assert 'STORY SO FAR' in rendered and 'BONDS' in rendered
-    assert rendered.count('\n- ') + rendered.count('- ', 0, 20) >= 1
-    assert len([l for l in rendered.splitlines() if l.startswith('- ')]) == 3
+    assert [l['text'] for l in obj['lines']] == [
+        'Nell pulled Luna from the sea during a storm.',
+        "They sailed the Widow's Teeth.",
+    ]
+    assert summary_to_text(obj) == text.strip()
 
 
 def test_parse_summary_strips_various_bullets_and_decorated_headings():
-    obj = parse_summary("**STORY SO FAR**\n* first\n• second\n[BONDS]\n- a & b: allies")
-    assert [l['text'] for l in obj['lines']] == ['first', 'second', 'a & b: allies']
-    assert obj['lines'][-1]['section'] == 'bonds'
+    obj = parse_summary("**STORY SO FAR**\n* first\n• second\n- third")
+    assert [l['text'] for l in obj['lines']] == ['first', 'second', 'third']
 
 
-def test_enforce_cap_drops_the_oldest_story_entry_and_keeps_bonds():
+def test_parse_summary_keeps_story_beats_on_separate_lines():
+    """The story is a timeline; joining unbulleted lines would merge distinct events."""
+    obj = parse_summary('STORY SO FAR\n- first beat\nsecond beat')
+    assert [l['text'] for l in obj['lines']] == ['first beat', 'second beat']
+
+
+def test_enforce_cap_drops_the_oldest_entry():
     obj = {'lines': [
-        {'section': 'story', 'text': 'x' * 400},
-        {'section': 'story', 'text': 'a later beat ' * 5},
-        {'section': 'bonds', 'text': 'A & B: allies ' * 5},
+        {'text': 'x' * 400},
+        {'text': 'a later beat ' * 5},
     ]}
-    # Cap 100 splits into a 60-token story budget and a 40-token bonds budget. The story
-    # section (~121 tokens) must shed its ~100-token oldest entry to fit; the later beat
-    # (~20) and the bond (~29, inside its own budget) both survive.
-    capped, warning = enforce_cap(obj, 100)
-    texts = [l['text'] for l in capped['lines']]
-    assert not any(t == 'x' * 400 for t in texts)
-    assert 'a later beat ' * 5 in texts
-    assert any(l['section'] == 'bonds' for l in capped['lines'])
+    # The oldest entry (~100 tokens) must go for the summary to fit 60; the later beat
+    # (~20) survives.
+    capped, warning = enforce_cap(obj, 60)
+    assert [l['text'] for l in capped['lines']] == ['a later beat ' * 5]
     # Rolling off the oldest entry is the window working, not something to warn about.
     assert not warning
 
 
-def test_enforce_cap_shortens_the_last_story_entry_instead_of_erasing_it():
-    obj = {'lines': [
-        {
-            'section': 'story',
-            'text': 'important recent context ' * 30,
-            'start_msg_id': 1,
-            'end_msg_id': 10,
-        },
-        {'section': 'bonds', 'text': 'A & B: allies'},
-    ]}
-    capped, warning = enforce_cap(obj, 100)
-    story = [line for line in capped['lines'] if line['section'] == 'story']
+def test_enforce_cap_shortens_the_last_entry_instead_of_erasing_it():
+    obj = {'lines': [{
+        'text': 'important recent context ' * 30,
+        'start_msg_id': 1,
+        'end_msg_id': 10,
+    }]}
+    capped, warning = enforce_cap(obj, 60)
 
-    assert len(story) == 1
-    assert story[0]['text'] != obj['lines'][0]['text']
-    assert story[0]['start_msg_id'] == 1 and story[0]['end_msg_id'] == 10
-    assert section_to_text(capped, 'bonds') == 'BONDS\n- A & B: allies'
-    assert estimate_tokens(section_to_text(capped, 'story')) <= section_cap(100, 'story')
-    assert warning
-
-
+    assert len(capped['lines']) == 1
+    line = capped['lines'][0]
+    assert line['text'] != obj['lines'][0]['text']
+    assert line['start_msg_id'] == 1 and line['end_msg_id'] == 10
+    assert estimate_tokens(summary_to_text(capped)) <= 60
+    assert warning and 'shortened' in warning
 
 
 def test_enforce_cap_noop_when_under():
-    obj = {'lines': [{'section': 'story', 'text': 'short'}]}
+    obj = {'lines': [{'text': 'short'}]}
     capped, warning = enforce_cap(obj, 1000)
     assert capped['lines'] == obj['lines'] and not warning
+
+
+def test_enforce_cap_keeps_the_range_on_a_surviving_entry():
+    obj = {'lines': [
+        {'text': 'x' * 400, 'start_msg_id': 1, 'end_msg_id': 2},
+        {'text': 'a later beat', 'start_msg_id': 3, 'end_msg_id': 4},
+    ]}
+    capped, _ = enforce_cap(obj, 100)
+    assert [l['text'] for l in capped['lines']] == ['a later beat']
+    assert capped['lines'][0]['start_msg_id'] == 3
+    assert capped['lines'][0]['end_msg_id'] == 4
+
+
+def test_enforce_cap_never_erases_a_nonempty_summary():
+    capped, warning = enforce_cap({
+        'lines': [{'text': 'important context ' * 20}],
+    }, 1)
+    assert capped['lines'][0]['text']
+    assert warning
 
 
 def test_estimate_tokens_matches_heuristic():
@@ -121,182 +126,32 @@ def test_estimate_tokens_matches_heuristic():
     assert estimate_tokens('') == 0
 
 
-
-
-
-
-
-
-@pytest.mark.parametrize('a, b', [
-    ('Cerina and Luna: sisters', 'Luna – Cerina: sisters'),   # order + separator differ
-    ('A & B: allies', 'B and A: allies'),
-    ('Kael/Lina: healer', 'Lina , Kael : healer'),
-    ('A & B: allies.', 'A & B: something else entirely'),     # identity is the head only
-    ('Анна and Мария: sisters', 'Мария – Анна: closer now'),   # not only ASCII names
-    ('花子 and 太郎: siblings', '太郎 and 花子: closer now'),
-])
-def test_bond_key_identifies_the_same_relationship(a, b):
-    assert bond_key(a) == bond_key(b)
-
-
-@pytest.mark.parametrize('a, b', [
-    ('Cerina and Luna: sisters', 'Cerina and Kael: allies'),
-    ('A & B: allies', 'A & C: allies'),
-    ('Preserve this exact shared moment.', 'Exact pinned bond.'),  # colon-less legacy
-    ('Анна and Bob: allies', 'Мария and Bob: rivals'),             # not only ASCII names
-])
-def test_bond_key_separates_different_relationships(a, b):
-    assert bond_key(a) != bond_key(b)
-
-
-def test_bond_key_keeps_hyphenated_names_intact():
-    """A dash only separates participants when it is surrounded by whitespace."""
-    assert bond_key('Jean-Luc and Mira: partners') == bond_key('Mira and Jean-Luc: x')
-    assert 'jeanluc' in bond_key('Jean-Luc and Mira: partners')
-
-
-def test_bond_key_falls_back_to_whole_text_without_a_colon():
-    """Legacy bonds predate the 'Names: dossier' shape and must still have an identity."""
-    assert bond_key('Exact pinned bond.') == bond_key('exact  pinned bond')
-
-
-def test_parse_summary_joins_a_wrapped_bond_dossier():
-    """A soft-wrapped dossier is one relationship, not one per physical line."""
-    obj = parse_summary(
-        'STORY SO FAR\n'
-        '- a beat\n'
-        '\n'
-        'BONDS\n'
-        '- Cerina and Luna: Sisters with an unbreakable bond.\n'
-        "Luna's arm was taken by Cerina's transformation.\n"
-        '- A & B: allies'
-    )
-    bonds = [l['text'] for l in obj['lines'] if l['section'] == 'bonds']
-    assert bonds == [
-        "Cerina and Luna: Sisters with an unbreakable bond. Luna's arm was taken by "
-        "Cerina's transformation.",
-        'A & B: allies',
-    ]
-
-
-def test_parse_summary_keeps_story_beats_on_separate_lines():
-    """STORY is a timeline; joining unbulleted lines would merge distinct events."""
-    obj = parse_summary('STORY SO FAR\n- first beat\nsecond beat')
-    assert [l['text'] for l in obj['lines']] == ['first beat', 'second beat']
-
-
-def test_append_summary_leaves_untouched_dossiers_byte_identical():
-    """The whole point of the keyed merge: an omitted relationship cannot erode."""
-    long_dossier = (
-        'Cerina and Luna: Sisters with an unbreakable bond. Since childhood they have '
-        "been at each other's side. Luna's missing arm was taken by Cerina's uncontrolled "
-        'transformation, and neither has spoken of it since.'
-    )
-    prev = {'lines': [
-        {'section': 'bonds', 'text': long_dossier},
-        {'section': 'bonds', 'text': 'A & B: wary'},
-    ]}
-    reply = parse_summary('STORY SO FAR\n- a beat\n\nBONDS\n- A & B: now firm allies')
-    out = append_summary(prev, reply)
-    bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
-    assert bonds == [long_dossier, 'A & B: now firm allies']
-
-
-def test_append_summary_updates_a_renamed_separator_in_place():
-    prev = {'lines': [{'section': 'bonds', 'text': 'Cerina – Luna: wary'}]}
-    reply = parse_summary('STORY SO FAR\n\nBONDS\n- Luna and Cerina: inseparable now')
-    out = append_summary(prev, reply)
-    bonds = [l for l in out['lines'] if l['section'] == 'bonds']
-    assert [l['text'] for l in bonds] == ['Luna and Cerina: inseparable now']
-
-
-def test_append_summary_appends_a_genuinely_new_relationship():
-    prev = {'lines': [{'section': 'bonds', 'text': 'A & B: allies'}]}
-    reply = parse_summary('STORY SO FAR\n\nBONDS\n- C and D: rivals')
-    out = append_summary(prev, reply)
-    assert [l['text'] for l in out['lines'] if l['section'] == 'bonds'] == [
-        'A & B: allies', 'C and D: rivals',
-    ]
-
-
-
-
-def test_enforce_cap_sections_do_not_evict_each_other():
-    """A bloated story must not consume the bonds budget, or vice versa."""
-    obj = {'lines': [
-        {'section': 'story', 'text': 'x' * 4000},
-        {'section': 'story', 'text': 'a short beat'},
-        {'section': 'bonds', 'text': 'A & B: a modest dossier about two people'},
-    ]}
-    capped, _ = enforce_cap(obj, 200)
-    texts = [l['text'] for l in capped['lines']]
-    assert 'x' * 4000 not in texts
-    assert 'a short beat' in texts
-    assert 'A & B: a modest dossier about two people' in texts
-
-
-def test_enforce_cap_drops_the_newest_bond_first():
-    """Cap pressure sheds a relationship opened last batch, not a founding one."""
-    obj = {'lines': [
-        {'section': 'bonds', 'text': 'A & B: ' + 'founding history ' * 20},
-        {'section': 'bonds', 'text': 'C & D: ' + 'newcomer history ' * 20},
-    ]}
-    capped, warning = enforce_cap(obj, 200)
-    remaining = [l['text'] for l in capped['lines']]
-    assert len(remaining) == 1
-    assert remaining[0].startswith('A & B:')
-    # Dropping C & D is routine; the warning is for A & B, still too long and shortened.
-    assert warning and 'shortened' in warning
-
-
-def test_section_cap_splits_sixty_forty_and_never_rounds_to_zero():
-    assert section_cap(1000, 'story') == 600
-    assert section_cap(1000, 'bonds') == 400
-    assert section_cap(0, 'story') == 0          # uncapped
-    assert section_cap(1, 'story') == 1          # a positive cap always leaves room
-    assert section_cap(1, 'bonds') == 1
-
-
-def test_section_to_text_renders_one_section_with_its_heading():
-    obj = {'lines': [
-        {'section': 'story', 'text': 'a beat'},
-        {'section': 'bonds', 'text': 'A & B: allies'},
-    ]}
-    assert section_to_text(obj, 'story') == 'STORY SO FAR\n- a beat'
-    assert section_to_text(obj, 'bonds') == 'BONDS\n- A & B: allies'
-    assert section_to_text({'lines': []}, 'bonds') == ''
-
-
-
-
-
-
-
-
+def test_summary_to_text_renders_the_heading_and_entries():
+    obj = {'lines': [{'text': 'a beat'}, {'text': 'a later beat'}]}
+    assert summary_to_text(obj) == 'STORY SO FAR\n- a beat\n- a later beat'
+    assert summary_to_text({'lines': []}) == ''
 
 
 def test_parse_summary_json_tolerates_junk():
     assert parse_summary_json('not json') == {'lines': []}
     assert parse_summary_json('')['lines'] == []
-    good = dump_summary_json({'lines': [{'section': 'bonds', 'text': 'a'}]})
+    good = dump_summary_json({'lines': [{'text': 'a'}]})
     assert parse_summary_json(good)['lines'][0]['text'] == 'a'
 
 
-def test_parse_summary_json_round_trips_story_message_ranges():
+def test_parse_summary_json_round_trips_message_ranges():
     stored = dump_summary_json({'lines': [
-        {'section': 'story', 'text': 'a beat', 'start_msg_id': 4, 'end_msg_id': 9},
-        {'section': 'bonds', 'text': 'A & B: allies'},
+        {'text': 'a beat', 'start_msg_id': 4, 'end_msg_id': 9},
     ]})
-    lines = parse_summary_json(stored)['lines']
-    assert lines[0]['start_msg_id'] == 4 and lines[0]['end_msg_id'] == 9
-    assert 'start_msg_id' not in lines[1]  # bonds span the whole chat
+    line = parse_summary_json(stored)['lines'][0]
+    assert line == {'text': 'a beat', 'start_msg_id': 4, 'end_msg_id': 9}
 
 
 @pytest.mark.parametrize('line', [
-    {'section': 'story', 'text': 'a beat'},                       # pre-range summary
-    {'section': 'story', 'text': 'a beat', 'start_msg_id': 4},    # half a range
-    {'section': 'story', 'text': 'a beat', 'start_msg_id': 4, 'end_msg_id': 'x'},
-    {'section': 'story', 'text': 'a beat', 'start_msg_id': None, 'end_msg_id': None},
+    {'text': 'a beat'},                                   # a fork dropped the range
+    {'text': 'a beat', 'start_msg_id': 4},                # half a range
+    {'text': 'a beat', 'start_msg_id': 4, 'end_msg_id': 'x'},
+    {'text': 'a beat', 'start_msg_id': None, 'end_msg_id': None},
 ])
 def test_parse_summary_json_drops_unusable_ranges(line):
     """Both ends or neither — half a range names nothing the UI can show."""
@@ -305,33 +160,16 @@ def test_parse_summary_json_drops_unusable_ranges(line):
     assert 'start_msg_id' not in out and 'end_msg_id' not in out
 
 
-def test_enforce_cap_keeps_the_range_on_a_surviving_entry():
-    obj = {'lines': [
-        {'section': 'story', 'text': 'x' * 400, 'start_msg_id': 1, 'end_msg_id': 2},
-        {'section': 'story', 'text': 'a later beat', 'start_msg_id': 3, 'end_msg_id': 4},
-    ]}
-    capped, _ = enforce_cap(obj, 100)
-    assert [l['text'] for l in capped['lines']] == ['a later beat']
-    assert capped['lines'][0]['start_msg_id'] == 3
-    assert capped['lines'][0]['end_msg_id'] == 4
-
-
 def test_collapse_story_lines_joins_a_split_reply():
     """The prompt asks for one entry; a model that splits it must not fail the run."""
-    obj = parse_summary('STORY SO FAR\n- first half\n- second half\n\nBONDS\n- A & B: allies')
-    out = collapse_story_lines(obj)
-    assert [l['text'] for l in out['lines'] if l['section'] == 'story'] == [
-        'first half second half',
-    ]
-    # Bonds are separate relationships, not a timeline — never joined.
-    assert [l['text'] for l in out['lines'] if l['section'] == 'bonds'] == ['A & B: allies']
+    obj = parse_summary('STORY SO FAR\n- first half\n- second half')
+    assert collapse_story_lines(obj) == {'lines': [{'text': 'first half second half'}]}
 
 
-def test_collapse_story_lines_leaves_one_entry_and_empty_story_alone():
+def test_collapse_story_lines_leaves_one_entry_and_an_empty_reply_alone():
     single = collapse_story_lines(parse_summary('STORY SO FAR\n- only beat'))
     assert [l['text'] for l in single['lines']] == ['only beat']
-    empty = collapse_story_lines(parse_summary('STORY SO FAR\n\nBONDS\n- A & B: allies'))
-    assert [l['section'] for l in empty['lines']] == ['bonds']
+    assert collapse_story_lines(parse_summary('STORY SO FAR')) == {'lines': []}
 
 
 def test_collapse_story_lines_drops_a_copied_back_current_story():
@@ -345,128 +183,58 @@ def test_collapse_story_lines_drops_a_copied_back_current_story():
     assert [l['text'] for l in quiet['lines']] == ['old one']
 
 
-
-
-
-
-
-
-
-
-
-
 # ── Append-mode pure logic ──────────────────────────────────────────────────
 
-def test_append_summary_accumulates_and_merges_bonds_by_relationship():
-    prev = {'lines': [
-        {'section': 'story', 'text': 'S1'},
-        {'section': 'bonds', 'text': 'A & B: wary allies'},
-    ]}
-    reply = {'lines': [
-        {'section': 'story', 'text': 'S1'},   # duplicate — dropped
-        {'section': 'story', 'text': 'S2'},   # new — appended
-        {'section': 'bonds', 'text': 'A & B: firm allies'},  # same pair
-    ]}
-    out = append_summary(prev, reply)
-    story = [l['text'] for l in out['lines'] if l['section'] == 'story']
-    bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
-    assert story == ['S1', 'S2']              # accumulates, no duplicate
-    assert bonds == ['A & B: firm allies']    # same relationship, updated in place
-    # Story block precedes bonds block, the order the prompt renders them in.
-    sections = [l['section'] for l in out['lines']]
-    assert sections == ['story', 'story', 'bonds']
+def test_append_summary_appends_the_entry_stamped_with_its_range():
+    prev = {'lines': [{'text': 'S1', 'start_msg_id': 1, 'end_msg_id': 2}]}
+    out = append_summary(prev, {'lines': [{'text': 'S2'}]}, (3, 4))
+    assert out['lines'] == [
+        {'text': 'S1', 'start_msg_id': 1, 'end_msg_id': 2},
+        {'text': 'S2', 'start_msg_id': 3, 'end_msg_id': 4},
+    ]
     # Inputs are not mutated.
-    assert [l['text'] for l in prev['lines']] == ['S1', 'A & B: wary allies']
+    assert prev['lines'] == [{'text': 'S1', 'start_msg_id': 1, 'end_msg_id': 2}]
 
 
 def test_append_summary_keeps_identical_text_from_distinct_message_ranges():
     prev = {'lines': [
-        {'section': 'story', 'text': 'They continue onward.',
-         'start_msg_id': 1, 'end_msg_id': 2},
+        {'text': 'They continue onward.', 'start_msg_id': 1, 'end_msg_id': 2},
     ]}
-    reply = {'lines': [{'section': 'story', 'text': 'They continue onward.'}]}
+    reply = {'lines': [{'text': 'They continue onward.'}]}
 
-    out = append_summary(prev, reply, msg_range=(3, 4))
+    out = append_summary(prev, reply, (3, 4))
     assert [(line['start_msg_id'], line['end_msg_id']) for line in out['lines']] == [
         (1, 2), (3, 4),
     ]
 
     # Retrying the same completed range remains idempotent.
-    retried = append_summary(out, reply, msg_range=(3, 4))
+    retried = append_summary(out, reply, (3, 4))
     assert retried == out
 
 
-@pytest.mark.parametrize('placeholder', [
-    'A & B: unchanged',
-    'A & B: No change from before.',
-    'A & B: N/A',
-    'No relationships changed.',
-    '(none)',
-])
-def test_append_summary_skips_placeholder_bond_lines(placeholder):
-    """Rule 4 forbids these, but one that slipped through used to overwrite the whole
-    dossier or open a junk bond that never went away."""
-    prev = {'lines': [{'section': 'bonds', 'text': 'A & B: allies since the flood'}]}
-    reply = {'lines': [
-        {'section': 'story', 'text': 'S2'},
-        {'section': 'bonds', 'text': placeholder},
-    ]}
-    out = append_summary(prev, reply)
-    assert [l['text'] for l in out['lines'] if l['section'] == 'bonds'] == [
-        'A & B: allies since the flood',
-    ]
-
-
 def test_append_summary_first_batch_from_empty():
-    out = append_summary({'lines': []}, parse_summary('STORY SO FAR\n- first\n\nBONDS\n- A & B: allies'))
-    assert [l['text'] for l in out['lines']] == ['first', 'A & B: allies']
-
-
-def test_append_summary_keeps_previous_bonds_when_reply_has_none():
-    """A reply with an empty BONDS section must not erase relationship state.
-
-    Under the keyed merge this holds by construction — a relationship the reply does not
-    mention is never touched — which is exactly what lets the prompt tell the model to
-    omit unchanged relationships instead of re-transcribing them.
-    """
-    prev = {'lines': [
-        {'section': 'story', 'text': 'S1'},
-        {'section': 'bonds', 'text': 'A & B: wary allies'},
-        {'section': 'bonds', 'text': 'A & C: owes a debt'},
-    ]}
-    # parse_summarizer_output accepts a bare BONDS heading with no bullets.
-    reply = parse_summarizer_output('STORY SO FAR\n- S2\n\nBONDS')
-    out = append_summary(prev, reply)
-    bonds = [l['text'] for l in out['lines'] if l['section'] == 'bonds']
-    assert bonds == ['A & B: wary allies', 'A & C: owes a debt']
-    assert [l['text'] for l in out['lines'] if l['section'] == 'story'] == ['S1', 'S2']
+    out = append_summary({'lines': []}, parse_summary('STORY SO FAR\n- first'), (1, 2))
+    assert [l['text'] for l in out['lines']] == ['first']
 
 
 def test_build_append_messages_asks_for_exactly_one_story_entry():
     from cozy.summarizer import APPEND_INSTRUCTIONS
     msgs = build_append_messages(
-        'PREV STORY', 'PREV BONDS', [{'role': 'user', 'content': 'hi there'}],
-        240, 120, 360)
+        'PREV STORY', [{'role': 'user', 'content': 'hi there'}], 240)
     assert msgs[0]['content'] == APPEND_INSTRUCTIONS
     user = msgs[1]['content']
-    # The two sections travel as separate blocks so the model can tell what it may extend
-    # from what it must leave alone.
     assert 'CURRENT STORY' in user and 'PREV STORY' in user
-    assert 'CURRENT BONDS' in user and 'PREV BONDS' in user
     assert 'hi there' in user
-    assert 'exactly ONE new story entry' in user and 'BONDS' in user
+    assert 'exactly ONE new story entry' in user
     assert '240 tokens' in user
-    assert '120 tokens' in user
-    assert '360 tokens' in user
     # The one-entry rule reaches the model through the system prompt too.
     assert 'EXACTLY ONE story line' in APPEND_INSTRUCTIONS
 
 
 def _ranged_summary():
     return dump_summary_json({'lines': [
-        {'section': 'story', 'text': 'First.', 'start_msg_id': 10, 'end_msg_id': 15},
-        {'section': 'story', 'text': 'Second.', 'start_msg_id': 16, 'end_msg_id': 21},
-        {'section': 'bonds', 'text': 'A and B: allies.'},
+        {'text': 'First.', 'start_msg_id': 10, 'end_msg_id': 15},
+        {'text': 'Second.', 'start_msg_id': 16, 'end_msg_id': 21},
     ]})
 
 
@@ -474,7 +242,7 @@ def test_fork_after_the_watermark_keeps_the_whole_summary_remapped():
     new_ids = {old: old + 100 for old in range(10, 30)}
     summary, watermark = fork_summary(_ranged_summary(), 21, 25, new_ids)
     lines = parse_summary_json(summary)['lines']
-    assert [l['text'] for l in lines] == ['First.', 'Second.', 'A and B: allies.']
+    assert [l['text'] for l in lines] == ['First.', 'Second.']
     assert (lines[0]['start_msg_id'], lines[0]['end_msg_id']) == (110, 115)
     assert (lines[1]['start_msg_id'], lines[1]['end_msg_id']) == (116, 121)
     assert watermark == 121
@@ -484,7 +252,7 @@ def test_fork_inside_the_summary_keeps_only_what_happened_before_it():
     new_ids = {old: old + 100 for old in range(10, 19)}
     summary, watermark = fork_summary(_ranged_summary(), 21, 18, new_ids)
     lines = parse_summary_json(summary)['lines']
-    # "Second." covers messages after the fork point, and a bond may too.
+    # "Second." covers messages after the fork point.
     assert [l['text'] for l in lines] == ['First.']
     assert watermark == 115
 
@@ -506,11 +274,11 @@ def test_fork_with_nothing_to_carry_over():
 
 
 def test_build_append_messages_labels_speakers_by_name():
-    msgs = build_append_messages('', '', [
+    msgs = build_append_messages('', [
         {'role': 'character', 'content': 'Halt.', 'name': 'Sasha'},
         {'role': 'user', 'content': 'Hello.', 'name': 'Morgan'},
         {'role': 'user', 'content': 'Unlabelled.'},
-    ], 240, 120, 360)
+    ], 240)
     user = msgs[1]['content']
     assert 'Sasha: Halt.' in user and 'Morgan: Hello.' in user
     # A caller with no names still gets the role labels.
@@ -524,77 +292,50 @@ def test_resolve_names_matches_the_frontend():
     assert resolve_names(None, 'a', 'b') == ''
 
 
-def test_append_token_limits_keep_room_for_multiple_entries():
-    # A 12k summary gives STORY 7.2k tokens, but one batch still tops out at 240.
-    assert append_token_limits(12000) == (240, 200, 600)
-    # A 64k context at the default 10% cap gives a bond the full 200.
-    assert append_token_limits(6553)[1] == 200
-    # Small summaries scale down so one entry does not occupy most of its section.
-    assert append_token_limits(800) == (60, 40, 106)
+def test_entry_token_limit_keeps_room_for_multiple_entries():
+    # A 12k summary still tops one batch out at 240.
+    assert entry_token_limit(12000) == 240
+    # Small summaries scale down so one entry does not occupy most of the summary.
+    assert entry_token_limit(800) == 100
+    assert entry_token_limit(100) == 48
+    assert entry_token_limit(30) == 30
+    assert entry_token_limit(0) == 240       # uncapped
 
 
-def test_append_entry_problems_names_each_line_over_its_limit():
-    problems = append_entry_problems({'lines': [
-        {'section': 'story', 'text': 'sprawling detail ' * 30},
-        {'section': 'bonds', 'text': 'Lina and Mark: ' + 'long history ' * 30},
-        {'section': 'bonds', 'text': 'Lina and Sol: brief'},
-    ]}, 60, 40, 100)
-    assert len(problems) == 3
+def test_append_entry_problems_names_a_line_over_its_limit():
+    problems = append_entry_problems({'lines': [{'text': 'sprawling detail ' * 30}]}, 60)
+    assert len(problems) == 1
     assert 'story line' in problems[0] and 'limit 60' in problems[0]
-    assert '"Lina and Mark"' in problems[1] and 'limit 40' in problems[1]
-    assert 'total' in problems[2] and 'limit 100' in problems[2]
-    assert append_entry_problems({'lines': [{'section': 'story', 'text': 'fine'}]},
-                                 60, 40, 100) == []
-    assert append_entry_problems({'lines': []}, 60, 40, 100) == ['no story line']
+    assert append_entry_problems({'lines': [{'text': 'fine'}]}, 60) == []
+    assert append_entry_problems({'lines': []}, 60) == ['no story line']
 
 
-def test_fit_append_entries_trims_every_line_into_its_limit():
-    fitted = fit_append_entries({'lines': [
-        {'section': 'story', 'text': 'sprawling detail ' * 30},
-        {'section': 'bonds', 'text': 'A & B: ' + 'history ' * 40},
-        {'section': 'bonds', 'text': 'A & C: ' + 'history ' * 40},
-        {'section': 'bonds', 'text': 'A & D: ' + 'history ' * 40},
-    ]}, 60, 40, 100)
-    assert append_entry_problems(fitted, 60, 40, 100) == []
+def test_fit_append_entries_trims_the_line_into_its_limit():
+    fitted = fit_append_entries({'lines': [{'text': 'sprawling detail ' * 30}]}, 60)
+    assert append_entry_problems(fitted, 60) == []
     assert fitted['lines'][0]['text'].startswith('sprawling detail')
     assert fitted['lines'][0]['text'].endswith('…')
-    # The batch total drops the last updates; the earlier ones keep their names.
-    bonds = [l['text'] for l in fitted['lines'] if l['section'] == 'bonds']
-    assert [b.split(':')[0] for b in bonds] == ['A & B', 'A & C']
 
 
 def test_parse_summarizer_output_rejects_empty_and_malformed_content():
-    for content in ('', 'just some prose', 'BONDS\n- A & B: allies'):
+    for content in ('', 'just some prose', '- a beat with no heading'):
         with pytest.raises(ValueError):
             parse_summarizer_output(content)
-    # Headings alone parse to nothing; the worker reports the missing story line.
-    assert parse_summarizer_output('STORY SO FAR\n\nBONDS') == {'lines': []}
+    # The heading alone parses to nothing; the worker reports the missing story line.
+    assert parse_summarizer_output('STORY SO FAR') == {'lines': []}
 
 
 def test_parse_summarizer_output_skips_a_preamble_before_the_story_heading():
-    obj = parse_summarizer_output(
-        'Here is the update:\n\nSTORY SO FAR\n- they reach the gate\n\nBONDS\n- A & B: allies'
-    )
-    assert [l['text'] for l in obj['lines']] == ['they reach the gate', 'A & B: allies']
-
-
-def test_parse_summarizer_output_accepts_an_omitted_bonds_section():
-    """Rule 4 tells the model to write a bond line only when one changed, so a batch
-    that moved no relationship legitimately drops the whole section. Failing that reply
-    stalled the run on the most ordinary batch there is."""
-    obj = parse_summarizer_output('STORY SO FAR\n- they walk east until dusk')
-    assert [l['text'] for l in obj['lines']] == ['they walk east until dusk']
-    assert not [l for l in obj['lines'] if l['section'] == 'bonds']
+    obj = parse_summarizer_output('Here is the update:\n\nSTORY SO FAR\n- they reach the gate')
+    assert [l['text'] for l in obj['lines']] == ['they reach the gate']
 
 
 def test_parse_summarizer_output_strips_reasoning_block():
     obj = parse_summarizer_output(
         '<think>private chain of thought</think>\n'
-        'STORY SO FAR\n- visible event\n\nBONDS\n- A & B: allies'
+        'STORY SO FAR\n- visible event'
     )
-    texts = [line['text'] for line in obj['lines']]
-    assert not any('private chain of thought' in text for text in texts)
-    assert 'visible event' in texts
+    assert [line['text'] for line in obj['lines']] == ['visible event']
 
 
 def test_strip_thinking_content_handles_multiple_and_incomplete_blocks():
@@ -607,14 +348,6 @@ def test_strip_thinking_content_handles_multiple_and_incomplete_blocks():
 def test_strip_thinking_content_drops_reasoning_before_a_lone_close_tag():
     assert strip_thinking_content('Let me weigh this.\n</think>\n\nThe answer.') == 'The answer.'
     assert strip_thinking_content('No reasoning here.') == 'No reasoning here.'
-
-
-def test_enforce_cap_never_erases_a_nonempty_summary():
-    capped, warning = enforce_cap({
-        'lines': [{'section': 'story', 'text': 'important context ' * 20}],
-    }, 1)
-    assert capped['lines'][0]['text']
-    assert warning
 
 
 # ── Helpers for endpoint/worker tests ───────────────────────────────────────
@@ -643,7 +376,7 @@ def _store_summary(chat_id, summary_obj, watermark=None):
         )
 
 
-CANNED = "STORY SO FAR\n- Something happened.\n\nBONDS\n- A & B: close allies."
+CANNED = "STORY SO FAR\n- Something happened."
 
 
 # ── The worker ──────────────────────────────────────────────────────────────
@@ -720,7 +453,7 @@ def test_call_summarizer_rejects_length_truncated_completion(client, monkeypatch
         def json(self):
             return {'choices': [{
                 'finish_reason': 'length',
-                'message': {'content': 'STORY SO FAR\n- Beat.\n\nBONDS\n- A & B: allies bound by the'},
+                'message': {'content': 'STORY SO FAR\n- Beat one, then the two of them'},
             }]}
 
     monkeypatch.setattr(summaries.http_requests, 'post', lambda *a, **k: FakeResponse())
@@ -779,7 +512,7 @@ def test_run_job_folds_and_advances_watermark(client, sample_chat, monkeypatch):
     assert row['summary_status'] == 'idle'
     assert row['summary_up_to_msg_id'] == ids[-1]
     obj = parse_summary_json(row['summary_json'])
-    assert any(l['section'] == 'bonds' for l in obj['lines'])
+    assert [l['text'] for l in obj['lines']] == ['Something happened.']
     assert len(calls) >= 1
 
 
@@ -967,12 +700,12 @@ def test_run_job_rejects_invalid_model_content_without_advancing(
 
 def test_run_job_asks_again_for_a_missing_story_line_then_moves_on(
         client, sample_chat, monkeypatch):
-    """Headings with nothing under them get one retry. A second empty reply retires the
+    """A heading with nothing under it gets one retry. A second empty reply retires the
     batch without an entry rather than stalling the chat on it forever."""
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',
                         lambda messages, cap_tokens=0: calls.append(messages)
-                        or 'STORY SO FAR\n\nBONDS')
+                        or 'STORY SO FAR')
     ids = _add_messages(client, sample_chat['id'], 2)
 
     summaries._run_summary_job(sample_chat['id'], ids[-1])
@@ -988,14 +721,14 @@ def test_run_job_asks_again_for_a_missing_story_line_then_moves_on(
     assert 'kept what fit' not in row['summary_status_detail']
 
 
-def test_overlong_bond_is_sent_back_with_a_note_and_the_corrected_reply_is_kept(
+def test_overlong_entry_is_sent_back_with_a_note_and_the_corrected_reply_is_kept(
         client, sample_chat, monkeypatch):
-    """The reported stall: one bond line over its limit failed the batch, and every
-    later run resent the same messages and got the same reply."""
-    long_bond = 'Lina and Mark: ' + 'a long shared history of debts and favours ' * 30
+    """A line over its limit once stalled the chat: the batch failed, and every later
+    run resent the same messages and got the same reply."""
+    long_entry = 'They cross the river, ' + 'recounting old debts and favours ' * 60
     replies = iter([
-        f'STORY SO FAR\n- They cross the river.\n\nBONDS\n- {long_bond}',
-        'STORY SO FAR\n- They cross the river.\n\nBONDS\n- Lina and Mark: wary allies.',
+        f'STORY SO FAR\n- {long_entry}',
+        'STORY SO FAR\n- They cross the river.',
     ])
     calls = []
 
@@ -1009,15 +742,15 @@ def test_overlong_bond_is_sent_back_with_a_note_and_the_corrected_reply_is_kept(
 
     assert len(calls) == 2
     note = calls[1][1]['content'].split('YOUR PREVIOUS REPLY WAS REJECTED')[1]
-    bond_entry_tokens = append_token_limits(summaries._cap_tokens(get_settings()))[1]
-    assert '"Lina and Mark"' in note and f'limit {bond_entry_tokens}' in note
+    entry_tokens = entry_token_limit(summaries._cap_tokens(get_settings()))
+    assert 'story line' in note and f'limit {entry_tokens}' in note
     row = _chat_row(sample_chat['id'])
     assert row['summary_status'] == 'idle'
     assert row['summary_status_detail'] == ''
     assert row['summary_up_to_msg_id'] == ids[-1]
-    bonds = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']
-             if l['section'] == 'bonds']
-    assert bonds == ['Lina and Mark: wary allies.']
+    assert [l['text'] for l in parse_summary_json(row['summary_json'])['lines']] == [
+        'They cross the river.',
+    ]
 
 
 def test_overlong_reply_twice_is_trimmed_and_the_run_moves_on(
@@ -1026,7 +759,7 @@ def test_overlong_reply_twice_is_trimmed_and_the_run_moves_on(
         'context_max_tokens': '500',
         'summary_cap_pct': '10',
     })
-    over_cap = f"STORY SO FAR\n- {'important context ' * 100}\n\nBONDS\n- A & B: trust"
+    over_cap = f"STORY SO FAR\n- {'important context ' * 100}"
     calls = []
 
     def complete(messages, cap_tokens=0):
@@ -1042,11 +775,10 @@ def test_overlong_reply_twice_is_trimmed_and_the_run_moves_on(
     assert row['summary_status'] == 'idle'
     assert row['summary_up_to_msg_id'] == ids[-1]
     assert 'after a retry' in row['summary_status_detail']
-    story_entry_tokens = append_token_limits(summaries._cap_tokens(get_settings()))[0]
-    story = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']
-             if l['section'] == 'story']
+    entry_tokens = entry_token_limit(summaries._cap_tokens(get_settings()))
+    story = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']]
     assert story and story[0].startswith('important context')
-    assert estimate_tokens(story[0]) <= story_entry_tokens
+    assert estimate_tokens(story[0]) <= entry_tokens
 
 
 def test_append_mode_accumulates_story_across_batches(client, sample_chat, monkeypatch):
@@ -1054,8 +786,8 @@ def test_append_mode_accumulates_story_across_batches(client, sample_chat, monke
     from cozy.summarizer import APPEND_INSTRUCTIONS
     _batch_every(monkeypatch, 1)
     replies = iter((
-        'STORY SO FAR\n- S1 happened\n\nBONDS\n- A & B: allies',
-        'STORY SO FAR\n- S2 happened\n\nBONDS\n- A & B: allies',
+        'STORY SO FAR\n- S1 happened',
+        'STORY SO FAR\n- S2 happened',
     ))
     calls = []
 
@@ -1070,7 +802,7 @@ def test_append_mode_accumulates_story_across_batches(client, sample_chat, monke
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()
-    story = section_to_text(parse_summary_json(row['summary_json']), 'story')
+    story = summary_to_text(parse_summary_json(row['summary_json']))
     assert 'S1 happened' in story and 'S2 happened' in story  # additive, both kept
     # Both batches used the additive builder while under cap.
     assert len(calls) == 2
@@ -1082,8 +814,8 @@ def test_each_batch_becomes_one_entry_stamped_with_its_message_range(
     """The whole contract: N messages in, one ranged entry out, per batch."""
     _batch_every(monkeypatch, 2)
     replies = iter((
-        'STORY SO FAR\n- First stretch.\n\nBONDS\n- A & B: allies',
-        'STORY SO FAR\n- Second stretch.\n\nBONDS\n- A & B: allies',
+        'STORY SO FAR\n- First stretch.',
+        'STORY SO FAR\n- Second stretch.',
     ))
     monkeypatch.setattr(
         summaries, 'call_summarizer', lambda messages, cap_tokens=0: next(replies))
@@ -1094,8 +826,7 @@ def test_each_batch_becomes_one_entry_stamped_with_its_message_range(
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()
-    story = [l for l in parse_summary_json(row['summary_json'])['lines']
-             if l['section'] == 'story']
+    story = parse_summary_json(row['summary_json'])['lines']
     assert [l['text'] for l in story] == ['First stretch.', 'Second stretch.']
     assert [(l['start_msg_id'], l['end_msg_id']) for l in story] == [
         (ids[0], ids[1]), (ids[2], ids[3]),
@@ -1131,7 +862,7 @@ def test_a_split_reply_still_produces_exactly_one_entry(
     monkeypatch.setattr(
         summaries, 'call_summarizer',
         lambda messages, cap_tokens=0: (
-            'STORY SO FAR\n- Beat one.\n- Beat two.\n- Beat three.\n\nBONDS\n- A & B: allies'
+            'STORY SO FAR\n- Beat one.\n- Beat two.\n- Beat three.'
         ),
     )
     ids = _add_messages(client, sample_chat['id'], 2)
@@ -1141,8 +872,7 @@ def test_a_split_reply_still_produces_exactly_one_entry(
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()
-    story = [l for l in parse_summary_json(row['summary_json'])['lines']
-             if l['section'] == 'story']
+    story = parse_summary_json(row['summary_json'])['lines']
     assert [l['text'] for l in story] == ['Beat one. Beat two. Beat three.']
     assert (story[0]['start_msg_id'], story[0]['end_msg_id']) == (ids[0], ids[-1])
 
@@ -1154,13 +884,13 @@ def test_full_summary_sheds_its_oldest_entry(client, sample_chat, monkeypatch):
         'summary_cap_pct': '10',
     })
     _batch_every(monkeypatch, 1)
-    # Each delta fits its 36-token per-entry budget, while two entries cannot both fit
-    # the 36-token STORY section, exercising ordinary oldest-first rolloff.
+    # Each delta fits its 48-token entry limit, while three entries cannot all fit the
+    # 60-token summary, exercising ordinary oldest-first rolloff.
     beat = 'a fairly wordy beat carrying real narrative weight ' * 2
     replies = iter((
-        f'STORY SO FAR\n- OLDEST {beat}\n\nBONDS',
-        f'STORY SO FAR\n- MIDDLE {beat}\n\nBONDS',
-        f'STORY SO FAR\n- NEWEST {beat}\n\nBONDS',
+        f'STORY SO FAR\n- OLDEST {beat}',
+        f'STORY SO FAR\n- MIDDLE {beat}',
+        f'STORY SO FAR\n- NEWEST {beat}',
     ))
     monkeypatch.setattr(
         summaries, 'call_summarizer', lambda messages, cap_tokens=0: next(replies))
@@ -1171,18 +901,18 @@ def test_full_summary_sheds_its_oldest_entry(client, sample_chat, monkeypatch):
     with shared.get_db() as conn:
         row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
                            (sample_chat['id'],)).fetchone()
-    stored = section_to_text(parse_summary_json(row['summary_json']), 'story')
+    stored = summary_to_text(parse_summary_json(row['summary_json']))
     assert 'OLDEST' not in stored      # rolled off
     assert 'NEWEST' in stored          # the recent past survives
 
 
 def test_append_overflow_cannot_evict_the_previous_entries(client, sample_chat, monkeypatch):
-    """An oversized delta is cut to its entry limit, not left to swamp the section and
+    """An oversized delta is cut to its entry limit, not left to swamp the summary and
     push older memory out through enforce_cap."""
     from cozy.summarizer import APPEND_INSTRUCTIONS
-    # An 800-token summary: STORY holds 480 tokens, one entry at most 60.
+    # An 800-token summary: one entry at most 100 tokens.
     client.put('/api/settings', json={'context_max_tokens': '8000', 'summary_cap_pct': '10'})
-    over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}\n\nBONDS\n- A & B: allies"
+    over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}"
     calls = []
 
     def complete(messages, cap_tokens=0):
@@ -1192,62 +922,18 @@ def test_append_overflow_cannot_evict_the_previous_entries(client, sample_chat, 
     monkeypatch.setattr(summaries, 'call_summarizer', complete)
     ids = _add_messages(client, sample_chat['id'], 2)
     _store_summary(sample_chat['id'], {
-        'lines': [{'section': 'story', 'text': 'previous useful memory'}],
+        'lines': [{'text': 'previous useful memory'}],
     }, watermark=ids[0])
     summaries._run_summary_job(sample_chat['id'], ids[-1])
 
     assert len(calls) == 2
     assert all(call[0]['content'] == APPEND_INSTRUCTIONS for call in calls)
     row = _chat_row(sample_chat['id'])
-    story = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']
-             if l['section'] == 'story']
+    story = [l['text'] for l in parse_summary_json(row['summary_json'])['lines']]
     assert story[0] == 'previous useful memory'
-    assert story[1].startswith('sprawling detail') and estimate_tokens(story[1]) <= 60
+    assert story[1].startswith('sprawling detail') and estimate_tokens(story[1]) <= 100
     assert row['summary_up_to_msg_id'] == ids[-1]
     assert row['summary_status'] == 'idle'
-
-
-def test_append_mode_merges_bonds_without_duplicating(client, sample_chat, monkeypatch):
-    """Append mode replaces the BONDS section, so a relationship stays a single line."""
-    monkeypatch.setattr(
-        summaries, 'call_summarizer',
-        lambda messages, cap_tokens=0: 'STORY SO FAR\n- new beat\n\nBONDS\n- A & B: close now')
-    ids = _add_messages(client, sample_chat['id'], 2)
-    _store_summary(sample_chat['id'], {'lines': [
-        {'section': 'story', 'text': 'earlier beat'},
-        {'section': 'bonds', 'text': 'A & B: uneasy'},
-    ]}, watermark=ids[0])
-    summaries._run_summary_job(sample_chat['id'], ids[-1])
-
-    with shared.get_db() as conn:
-        row = conn.execute('SELECT summary_json FROM chats WHERE id=?',
-                           (sample_chat['id'],)).fetchone()
-    obj = parse_summary_json(row['summary_json'])
-    bonds = [l['text'] for l in obj['lines'] if l['section'] == 'bonds']
-    story = [l['text'] for l in obj['lines'] if l['section'] == 'story']
-    assert bonds == ['A & B: close now']            # merged, not duplicated
-    assert story == ['earlier beat', 'new beat']    # story accumulated
-
-
-def test_append_mode_survives_reply_with_empty_bonds_section(client, sample_chat, monkeypatch):
-    """A batch whose reply omits BONDS bullets keeps the stored relationship state."""
-    monkeypatch.setattr(
-        summaries, 'call_summarizer',
-        lambda messages, cap_tokens=0: 'STORY SO FAR\n- new beat\n\nBONDS')
-    ids = _add_messages(client, sample_chat['id'], 2)
-    _store_summary(sample_chat['id'], {'lines': [
-        {'section': 'story', 'text': 'earlier beat'},
-        {'section': 'bonds', 'text': 'A & B: uneasy'},
-    ]}, watermark=ids[0])
-    summaries._run_summary_job(sample_chat['id'], ids[-1])
-
-    with shared.get_db() as conn:
-        row = conn.execute('SELECT summary_json, summary_status FROM chats WHERE id=?',
-                           (sample_chat['id'],)).fetchone()
-    obj = parse_summary_json(row['summary_json'])
-    assert row['summary_status'] == 'idle'
-    assert [l['text'] for l in obj['lines'] if l['section'] == 'bonds'] == ['A & B: uneasy']
-    assert [l['text'] for l in obj['lines'] if l['section'] == 'story'] == ['earlier beat', 'new beat']
 
 
 def test_run_job_strips_hidden_thinking(client, sample_chat, monkeypatch):
@@ -1277,7 +963,7 @@ def test_thinking_only_chunk_advances_without_model_call(
         client, sample_chat, monkeypatch):
     cid = sample_chat['id']
     original = {'lines': [
-        {'section': 'story', 'text': 'Existing visible memory.'},
+        {'text': 'Existing visible memory.'},
     ]}
     _store_summary(cid, original)
     response = client.post(f'/api/chats/{cid}/messages', json={
@@ -1544,7 +1230,7 @@ def test_reset_endpoint_clears_summary_and_watermark(client, sample_chat, monkey
     ids = _add_messages(client, sample_chat['id'], 3)
     summaries._run_summary_job(sample_chat['id'], ids[-1])
     _store_summary(sample_chat['id'], {
-        'lines': [{'section': 'bonds', 'text': 'keep?'}],
+        'lines': [{'text': 'keep?'}],
     }, ids[-1])
 
     r = client.post(f'/api/chats/{sample_chat["id"]}/summary/reset')
@@ -1648,7 +1334,7 @@ def test_cancel_endpoint_blocks_a_later_publish_from_the_stopped_worker(
     assert cid not in summaries._job_tokens
     with pytest.raises(summaries._SummaryPaused):
         summaries._persist_summary(
-            cid, {'lines': [{'section': 'story', 'text': 'late work'}]}, ids[-1], 0,
+            cid, {'lines': [{'text': 'late work'}]}, ids[-1], 0,
             require_running=True, job_token=token,
         )
     with shared.get_db() as conn:
@@ -1719,13 +1405,13 @@ def test_update_chat_can_toggle_summary_enablement(client, sample_chat):
 def test_update_chat_rejects_client_summary_content(client, sample_chat):
     cid = sample_chat['id']
     original = {'lines': [
-        {'section': 'story', 'text': 'Server-owned memory.'},
+        {'text': 'Server-owned memory.'},
     ]}
     _store_summary(cid, original)
 
     response = client.put(f'/api/chats/{cid}', json={
         'summary_json': {'lines': [
-            {'section': 'story', 'text': 'Stale client memory.'},
+            {'text': 'Stale client memory.'},
         ]},
     })
 
@@ -1775,7 +1461,7 @@ def test_generic_chat_patch_cannot_overwrite_interleaved_worker_publish(
         ).fetchone()
     assert row['name'] == 'Renamed safely'
     assert row['summary_up_to_msg_id'] == message_id
-    assert 'Something happened.' in section_to_text(parse_summary_json(row['summary_json']), 'story')
+    assert 'Something happened.' in summary_to_text(parse_summary_json(row['summary_json']))
 
 
 def test_update_chat_ignores_client_watermark(client, sample_chat):
@@ -1994,3 +1680,19 @@ def test_startup_recovery_resets_running(client, sample_chat):
         ).fetchone()
     assert row['summary_status'] == 'idle'
     assert row['summary_status_detail'] == ''
+
+
+def test_migration_22_keeps_only_the_story_entries(client, sample_chat):
+    cid = sample_chat['id']
+    with shared.get_db() as conn:
+        conn.execute('DELETE FROM schema_migrations WHERE version=22')
+        conn.execute('UPDATE chats SET summary_json=? WHERE id=?', (json.dumps({'lines': [
+            {'section': 'story', 'text': 'A beat.', 'start_msg_id': 1, 'end_msg_id': 2},
+            {'section': 'bonds', 'text': 'A and B: allies.'},
+        ]}), cid))
+    schema.init_db()
+    with shared.get_db() as conn:
+        stored = conn.execute('SELECT summary_json FROM chats WHERE id=?', (cid,)).fetchone()
+    assert json.loads(stored['summary_json']) == {'lines': [
+        {'text': 'A beat.', 'start_msg_id': 1, 'end_msg_id': 2},
+    ]}

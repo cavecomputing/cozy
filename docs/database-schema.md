@@ -12,7 +12,7 @@ and the database holds only an index of those files.
 |---|---|
 | Tables | 10 |
 | Indexes | 3 |
-| Database version | 21, the baseline |
+| Database version | 22 |
 | Journal mode | WAL |
 | `synchronous` | NORMAL |
 | `foreign_keys` | ON, set on every connection |
@@ -115,7 +115,7 @@ resume.
 | `active_lorebook_embedded` | INTEGER | `0` | `1` when the card's own embedded lorebook is the one in use. |
 | `author_note` | TEXT | `''` | Injected by the prompt builder for this chat only. |
 | `summary_enabled` | INTEGER | `0` | Auto Summaries on for this chat. |
-| `summary_json` | TEXT | `''` | `{"lines": [{"section": "story"\|"bonds", "text": …, "start_msg_id": …, "end_msg_id": …}]}`. One story entry per summarized batch. |
+| `summary_json` | TEXT | `''` | `{"lines": [{"text": …, "start_msg_id": …, "end_msg_id": …}]}`, oldest first. One entry per summarized batch. |
 | `summary_up_to_msg_id` | INTEGER | `NULL` | Highest message id already folded in. |
 | `summary_status` | TEXT | `'idle'` | `idle`, `running`, or `error`. |
 | `summary_status_detail` | TEXT | `''` | Progress or error text shown in the memory panel. |
@@ -374,8 +374,13 @@ character's chats and the transcript that opens from it.
 ## Migrations
 
 A new database is created at version 21, which is the baseline, and
-`schema_migrations` records it as one row named `baseline`. The registry in
-`cozy/schema.py` is empty today. The next migration is number 22.
+`schema_migrations` records it as one row named `baseline`. The migrations in
+the registry in `cozy/schema.py` then run on it like on any other database.
+The next migration is number 23.
+
+| Version | Name | What it does |
+|---|---|---|
+| 22 | `drop_summary_bonds` | Deletes the **Bonds** entries from every saved Auto Summary and the `section` key from its story entries, since Auto Summary keeps only the story. |
 
 Each migration runs once, in order, in its own transaction. An entry that has
 shipped is never renumbered, renamed or reordered. Cozy refuses to start when
@@ -395,7 +400,7 @@ database holds the one `baseline` row. Both are at version 21.
 There is no separate version number. The highest entry in the migration
 registry is the schema this build understands, or the baseline while the
 registry is empty. The highest row in a database's `schema_migrations` table
-is the schema that database is at. Both are currently 21.
+is the schema that database is at. Both are currently 22.
 
 Two other numbers are not the database version: the `version` in
 `pyproject.toml` is the release number, and the build string on the About
