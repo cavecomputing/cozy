@@ -1,6 +1,7 @@
 {
     "name": "Cozy",
     "short_name": "Cozy",
+    "id": "/",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
