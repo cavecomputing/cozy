@@ -10,7 +10,9 @@ import json
 import os
 import sqlite3
 import tempfile
+import unicodedata
 from contextlib import contextmanager
+from urllib.parse import quote
 
 from flask import jsonify, request, Response
 
@@ -140,12 +142,29 @@ def text_field(data, key):
 
 
 def safe_download_name(name, fallback='download'):
-    """Return a conservative display filename stem for download headers."""
+    """Return a conservative display filename stem for download headers: the
+    name's letters, their accents and its digits in any script, and nothing a
+    file system gives a meaning to."""
     safe = ''.join(
         c for c in str(name or '')
-        if (c.isascii() and c.isalnum()) or c in (' ', '-', '_')
+        if unicodedata.category(c)[0] in 'LMN' or c in (' ', '-', '_')
     ).strip()
     return safe or fallback
+
+
+def attachment(filename):
+    """The Content-Disposition value that saves a response as *filename*.
+
+    A header is ASCII. A name with other letters goes in the filename* form
+    (RFC 6266), percent-encoded, which every current browser reads ahead of the
+    plain one; that one is left what ASCII the name has, without a separator
+    dangling where the rest was.
+    """
+    if filename.isascii():
+        return f'attachment; filename="{filename}"'
+    stem, extension = os.path.splitext(filename)
+    plain = stem.encode('ascii', 'ignore').decode().strip(' -_') or 'download'
+    return f"""attachment; filename="{plain}{extension}"; filename*=UTF-8''{quote(filename, safe='')}"""
 
 
 def json_download(body, filename):
@@ -153,7 +172,7 @@ def json_download(body, filename):
     return Response(
         json.dumps(body, indent=2, ensure_ascii=False),
         mimetype='application/json; charset=utf-8',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+        headers={'Content-Disposition': attachment(filename)},
     )
 
 

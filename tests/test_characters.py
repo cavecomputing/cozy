@@ -402,6 +402,20 @@ class TestExport:
         cd = r.headers.get('Content-Disposition', '')
         assert 'TestChar' in cd
 
+    @pytest.mark.parametrize('name, plain, starred', [
+        ('Élodie', 'lodie', '%C3%89lodie'),
+        ('アスナ', 'download', '%E3%82%A2%E3%82%B9%E3%83%8A'),
+        ('Zoe\u0308: "x"/y', 'Zoe xy', 'Zoe%CC%88%20xy'),   # the accent as a mark of its own
+    ])
+    @pytest.mark.parametrize('fmt', ['json', 'png'])
+    def test_export_keeps_letters_ascii_lacks(self, client, sample_character, name, plain, starred, fmt):
+        """The name was cut down to ASCII, so Élodie came out as lodie.json
+        and a name in another script as character.json."""
+        client.put(f'/api/characters/{sample_character["id"]}', json={'name': name})
+        r = client.get(f'/api/characters/{sample_character["id"]}/export?fmt={fmt}')
+        assert r.headers['Content-Disposition'] == \
+            f'attachment; filename="{plain}.{fmt}"; filename*=UTF-8\'\'{starred}.{fmt}'
+
     def test_export_png_round_trips(self, client, sample_character):
         r = client.get(f'/api/characters/{sample_character["id"]}/export?fmt=png')
         assert r.status_code == 200

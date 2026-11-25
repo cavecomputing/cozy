@@ -387,7 +387,7 @@ def export_character(char_id):
             return Response(
                 f.read(),
                 mimetype='image/png',
-                headers={'Content-Disposition': f'attachment; filename="{safe}.png"'}
+                headers={'Content-Disposition': shared.attachment(f'{safe}.png')}
             )
 
     # Default: JSON

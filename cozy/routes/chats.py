@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, Response
 
 from cozy.card_store import get_character_card_data
-from cozy.shared import get_db, json_body, not_found, safe_download_name, text_field
+from cozy.shared import attachment, get_db, json_body, not_found, safe_download_name, text_field
 from cozy.summarizer import parse_summary_json
 
 log = logging.getLogger('cozy')
@@ -230,7 +230,7 @@ def export_chat(chat_id):
         return Response(
             body,
             mimetype='application/jsonl; charset=utf-8',
-            headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+            headers={'Content-Disposition': attachment(filename)},
         )
 
 

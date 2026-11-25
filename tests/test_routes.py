@@ -772,10 +772,12 @@ class TestChatJsonlImportExport:
         r = client.get(f'/api/chats/{stamped["id"]}/export')
         assert 'filename="TestChar - 2026-03-22 20-06-42.jsonl"' in r.headers['Content-Disposition']
 
-        # A name with nothing a header can carry leaves no dangling separator.
+        # A name with nothing a header can carry as it is leaves no dangling
+        # separator there, and goes whole into the encoded form beside it.
         unsafe = client.post(f'/api/characters/{char_id}/chats', json={'name': '夏の夜'}).get_json()
         r = client.get(f'/api/chats/{unsafe["id"]}/export')
         assert 'filename="TestChar.jsonl"' in r.headers['Content-Disposition']
+        assert "filename*=UTF-8''TestChar%20-%20%E5%A4%8F%E3%81%AE%E5%A4%9C.jsonl" in r.headers['Content-Disposition']
 
     def test_import_sillytavern_jsonl_with_swipes(self, client, sample_character):
         payload = '\n'.join(json.dumps(line) for line in [
