@@ -328,8 +328,10 @@ Resetting does not change your chat messages.
 A failed update never stops you from chatting.
 
 - Each batch is tried twice. The status line says "retrying" during the
-  second try. If the second try also fails, the run stops and the panel shows
-  the error. The batches that were already finished are kept.
+  second try. If the first answer was cut off, the second try allows it four
+  times as many tokens, and at least 16,384. If the second try also fails, the
+  run stops and the panel shows the error. The batches that were already
+  finished are kept.
 - Your message is still sent and you still get a reply. A warning says how
   many older messages that reply cannot see. Those messages are not lost. They
   are still in the chat, and the next update that succeeds summarizes them.
@@ -378,10 +380,11 @@ the reply can see the summary of the messages that no longer fit.
 
 **Models that think before they answer.** Each summary request may use as many
 tokens as **Max response tokens** in **Settings → API**. A thinking model
-spends part of that on thinking before it writes the summary. If **Max
-response tokens** is low, the summary is cut off and the run fails. Raise
-**Max response tokens**, or choose a model that does not think as the
-summarizer model.
+spends part of that on thinking before it writes the summary. If the summary
+is cut off, Cozy asks again at once and allows four times as many tokens, and
+at least 16,384. Only when that answer is cut off too does the run fail. Then
+choose a model that does not think as the summarizer model, or raise **Max
+response tokens**.
 
 ### Branches
 

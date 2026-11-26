@@ -462,6 +462,32 @@ def test_call_summarizer_rejects_length_truncated_completion(client, monkeypatch
         summaries.call_summarizer([{'role': 'user', 'content': 'summarize'}], 500)
 
 
+@pytest.mark.parametrize(('max_tokens', 'expected'), [(512, 16384), (8000, 32000)])
+def test_call_summarizer_after_a_cutoff_sends_the_larger_allowance(
+        client, monkeypatch, max_tokens, expected):
+    client.put('/api/settings', json={
+        'summary_api_endpoint': 'http://summarizer',
+        'summary_api_model': 'summary-model',
+        'sampler_max_tokens': str(max_tokens),
+    })
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {'choices': [{'message': {'content': CANNED}}]}
+
+    def fake_post(*args, **kwargs):
+        captured.update(kwargs['json'])
+        return FakeResponse()
+
+    monkeypatch.setattr(summaries.http_requests, 'post', fake_post)
+    summaries.call_summarizer([{'role': 'user', 'content': 'summarize'}], 200, after_cutoff=True)
+    assert captured['max_tokens'] == expected
+
+
 @pytest.mark.parametrize('stop_reason, outcome', [('end_turn', CANNED), ('max_tokens', 'cut off')])
 def test_call_summarizer_speaks_claudes_api(client, monkeypatch, stop_reason, outcome):
     """A Claude summarizer endpoint gets a Messages request and its reply is
@@ -502,7 +528,7 @@ def test_call_summarizer_speaks_claudes_api(client, monkeypatch, stop_reason, ou
 def test_run_job_folds_and_advances_watermark(client, sample_chat, monkeypatch):
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',
-                        lambda messages, cap_tokens=0: calls.append(messages) or CANNED)
+                        lambda messages, cap_tokens=0, **_: calls.append(messages) or CANNED)
     ids = _add_messages(client, sample_chat['id'], 5)
 
     summaries._run_summary_job(sample_chat['id'], ids[-1])
@@ -520,7 +546,7 @@ def test_run_job_batches_by_tokens(client, sample_chat, monkeypatch):
     _batch_every(monkeypatch, 2)
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',
-                        lambda messages, cap_tokens=0: calls.append(1) or CANNED)
+                        lambda messages, cap_tokens=0, **_: calls.append(1) or CANNED)
     ids = _add_messages(client, sample_chat['id'], 5)
     summaries._run_summary_job(sample_chat['id'], ids[-1])
     # Two full batches, and the last message is half a batch: enough to stand alone.
@@ -533,7 +559,7 @@ def test_run_job_folds_a_trailing_sliver_into_the_last_batch(
     _batch_every(monkeypatch, 4)
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',
-                        lambda messages, cap_tokens=0: calls.append(messages) or CANNED)
+                        lambda messages, cap_tokens=0, **_: calls.append(messages) or CANNED)
     ids = _add_messages(client, sample_chat['id'], 5)
 
     summaries._run_summary_job(sample_chat['id'], ids[-1])
@@ -552,7 +578,7 @@ def test_batches_are_sized_on_the_text_the_browser_measures(
         summaries, 'token_batches',
         lambda sizes, target: sizes_seen.append(sizes) or real_token_batches(sizes, target),
     )
-    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0, **_: CANNED)
     stored = '<think>' + 'private reasoning ' * 50 + '</think>' + '{{user}} ' * 40
     message = client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
         'role': 'user', 'content': stored,
@@ -572,7 +598,7 @@ def test_run_job_sends_names_not_placeholders(client, sample_chat, sample_person
     """The stored greeting keeps {{char}}/{{user}}; the summarizer must read names."""
     sent = []
     monkeypatch.setattr(summaries, 'call_summarizer',
-                        lambda messages, cap_tokens=0: sent.append(messages) or CANNED)
+                        lambda messages, cap_tokens=0, **_: sent.append(messages) or CANNED)
     chat_id = sample_chat['id']
     client.put(f'/api/chats/{chat_id}', json={'persona_id': sample_persona['id']})
     greeting = client.post(f'/api/chats/{chat_id}/messages', json={
@@ -592,7 +618,7 @@ def test_run_job_sends_names_not_placeholders(client, sample_chat, sample_person
 
 
 def test_run_job_incremental(client, sample_chat, monkeypatch):
-    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0, **_: CANNED)
     ids = _add_messages(client, sample_chat['id'], 3)
     summaries._run_summary_job(sample_chat['id'], ids[1])
     with shared.get_db() as conn:
@@ -602,7 +628,7 @@ def test_run_job_incremental(client, sample_chat, monkeypatch):
     # Second run only folds messages after the watermark.
     seen = []
     monkeypatch.setattr(summaries, 'call_summarizer',
-                        lambda messages, cap_tokens=0: seen.append(messages) or CANNED)
+                        lambda messages, cap_tokens=0, **_: seen.append(messages) or CANNED)
     summaries._run_summary_job(sample_chat['id'], ids[2])
     with shared.get_db() as conn:
         wm2 = conn.execute('SELECT summary_up_to_msg_id FROM chats WHERE id=?',
@@ -619,7 +645,7 @@ def _chat_row(chat_id):
 def test_run_job_error_sets_error_status(client, sample_chat, monkeypatch):
     calls = []
 
-    def boom(messages, cap_tokens=0):
+    def boom(messages, cap_tokens=0, **_):
         calls.append(messages)
         raise RuntimeError('summarizer exploded')
     monkeypatch.setattr(summaries, 'call_summarizer', boom)
@@ -636,7 +662,7 @@ def test_expected_job_failures_log_one_line_and_bugs_keep_their_traceback(
         client, sample_chat, monkeypatch, caplog):
     ids = _add_messages(client, sample_chat['id'], 2)
 
-    def provider_down(messages, cap_tokens=0):
+    def provider_down(messages, cap_tokens=0, **_):
         raise RuntimeError('503 Service Unavailable')
     monkeypatch.setattr(summaries, 'call_summarizer', provider_down)
     with caplog.at_level('INFO', logger='cozy'):
@@ -648,7 +674,7 @@ def test_expected_job_failures_log_one_line_and_bugs_keep_their_traceback(
 
     caplog.clear()
 
-    def bug(messages, cap_tokens=0):
+    def bug(messages, cap_tokens=0, **_):
         raise KeyError('lines')
     monkeypatch.setattr(summaries, 'call_summarizer', bug)
     with caplog.at_level('INFO', logger='cozy'):
@@ -661,7 +687,7 @@ def test_run_job_retries_a_failed_request_once(client, sample_chat, monkeypatch)
     """A dropped connection or a 502 from a restarting endpoint must not end the run."""
     outcomes = iter([RuntimeError('502 Bad Gateway'), CANNED])
 
-    def flaky(messages, cap_tokens=0):
+    def flaky(messages, cap_tokens=0, **_):
         outcome = next(outcomes)
         if isinstance(outcome, Exception):
             raise outcome
@@ -676,6 +702,29 @@ def test_run_job_retries_a_failed_request_once(client, sample_chat, monkeypatch)
     assert row['summary_up_to_msg_id'] == ids[-1]
 
 
+def test_run_job_retries_a_cut_off_reply_at_once_with_room_to_think(
+        client, sample_chat, monkeypatch):
+    """A thinking model that spends the allowance before it writes is cut off at the
+    same place again if the retry resends that allowance, every run after every reply."""
+    calls = []
+
+    def thinks_long(messages, cap_tokens=0, after_cutoff=False):
+        calls.append(after_cutoff)
+        if not after_cutoff:
+            raise summaries.SummaryCutOff('cut off')
+        return CANNED
+
+    monkeypatch.setattr(summaries, 'call_summarizer', thinks_long)
+    monkeypatch.setattr(summaries.time, 'sleep', lambda s: pytest.fail('paused'))
+    ids = _add_messages(client, sample_chat['id'], 2)
+    summaries._run_summary_job(sample_chat['id'], ids[-1])
+
+    row = _chat_row(sample_chat['id'])
+    assert calls == [False, True]
+    assert row['summary_status'] == 'idle'
+    assert row['summary_up_to_msg_id'] == ids[-1]
+
+
 @pytest.mark.parametrize('reply', [
     '',
     'not the requested format',
@@ -684,7 +733,7 @@ def test_run_job_rejects_invalid_model_content_without_advancing(
         client, sample_chat, monkeypatch, reply):
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',
-                        lambda messages, cap_tokens=0: calls.append(messages) or reply)
+                        lambda messages, cap_tokens=0, **_: calls.append(messages) or reply)
     ids = _add_messages(client, sample_chat['id'], 2)
 
     summaries._run_summary_job(sample_chat['id'], ids[-1])
@@ -704,7 +753,7 @@ def test_run_job_asks_again_for_a_missing_story_line_then_moves_on(
     batch without an entry rather than stalling the chat on it forever."""
     calls = []
     monkeypatch.setattr(summaries, 'call_summarizer',
-                        lambda messages, cap_tokens=0: calls.append(messages)
+                        lambda messages, cap_tokens=0, **_: calls.append(messages)
                         or 'STORY SO FAR')
     ids = _add_messages(client, sample_chat['id'], 2)
 
@@ -732,7 +781,7 @@ def test_overlong_entry_is_sent_back_with_a_note_and_the_corrected_reply_is_kept
     ])
     calls = []
 
-    def complete(messages, cap_tokens=0):
+    def complete(messages, cap_tokens=0, **_):
         calls.append(messages)
         return next(replies)
 
@@ -762,7 +811,7 @@ def test_overlong_reply_twice_is_trimmed_and_the_run_moves_on(
     over_cap = f"STORY SO FAR\n- {'important context ' * 100}"
     calls = []
 
-    def complete(messages, cap_tokens=0):
+    def complete(messages, cap_tokens=0, **_):
         calls.append(messages)
         return over_cap
 
@@ -791,7 +840,7 @@ def test_append_mode_accumulates_story_across_batches(client, sample_chat, monke
     ))
     calls = []
 
-    def complete(messages, cap_tokens=0):
+    def complete(messages, cap_tokens=0, **_):
         calls.append(messages)
         return next(replies)
 
@@ -818,7 +867,7 @@ def test_each_batch_becomes_one_entry_stamped_with_its_message_range(
         'STORY SO FAR\n- Second stretch.',
     ))
     monkeypatch.setattr(
-        summaries, 'call_summarizer', lambda messages, cap_tokens=0: next(replies))
+        summaries, 'call_summarizer', lambda messages, cap_tokens=0, **_: next(replies))
     ids = _add_messages(client, sample_chat['id'], 4)
 
     summaries._run_summary_job(sample_chat['id'], ids[-1])
@@ -836,7 +885,7 @@ def test_each_batch_becomes_one_entry_stamped_with_its_message_range(
 def test_multi_batch_job_reports_overall_progress(client, sample_chat, monkeypatch):
     _batch_every(monkeypatch, 2)
     monkeypatch.setattr(
-        summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+        summaries, 'call_summarizer', lambda messages, cap_tokens=0, **_: CANNED)
     details = []
     set_status = summaries._set_status
 
@@ -861,7 +910,7 @@ def test_a_split_reply_still_produces_exactly_one_entry(
     """A model that ignores the one-entry rule must not desync entries from batches."""
     monkeypatch.setattr(
         summaries, 'call_summarizer',
-        lambda messages, cap_tokens=0: (
+        lambda messages, cap_tokens=0, **_: (
             'STORY SO FAR\n- Beat one.\n- Beat two.\n- Beat three.'
         ),
     )
@@ -893,7 +942,7 @@ def test_full_summary_sheds_its_oldest_entry(client, sample_chat, monkeypatch):
         f'STORY SO FAR\n- NEWEST {beat}',
     ))
     monkeypatch.setattr(
-        summaries, 'call_summarizer', lambda messages, cap_tokens=0: next(replies))
+        summaries, 'call_summarizer', lambda messages, cap_tokens=0, **_: next(replies))
     ids = _add_messages(client, sample_chat['id'], 3)
 
     summaries._run_summary_job(sample_chat['id'], ids[-1])
@@ -915,7 +964,7 @@ def test_append_overflow_cannot_evict_the_previous_entries(client, sample_chat, 
     over_cap = f"STORY SO FAR\n- {'sprawling detail ' * 100}"
     calls = []
 
-    def complete(messages, cap_tokens=0):
+    def complete(messages, cap_tokens=0, **_):
         calls.append(messages)
         return over_cap
 
@@ -949,7 +998,7 @@ def test_run_job_strips_hidden_thinking(client, sample_chat, monkeypatch):
     monkeypatch.setattr(
         summaries,
         'call_summarizer',
-        lambda messages, cap_tokens=0: calls.append(messages) or CANNED,
+        lambda messages, cap_tokens=0, **_: calls.append(messages) or CANNED,
     )
 
     summaries._run_summary_job(sample_chat['id'], message_id)
@@ -1003,7 +1052,7 @@ def test_pause_discards_inflight_result_and_keeps_last_checkpoint(
         )
     calls = 0
 
-    def pause_on_second_call(messages, cap_tokens=0):
+    def pause_on_second_call(messages, cap_tokens=0, **_):
         nonlocal calls
         calls += 1
         if calls == 2:
@@ -1045,7 +1094,7 @@ def test_disable_reenable_new_run_cannot_revive_old_worker(
     assert first.status_code == 202
     old_token = spawned_tokens[0]
 
-    def replace_run_during_old_call(messages, cap_tokens=0):
+    def replace_run_during_old_call(messages, cap_tokens=0, **_):
         paused = client.put(f'/api/chats/{cid}', json={'summary_enabled': False})
         assert paused.get_json()['summary_status'] == 'idle'
         client.put(f'/api/chats/{cid}', json={'summary_enabled': True})
@@ -1132,7 +1181,7 @@ def test_run_keeps_batches_completed_before_a_failure(
     _batch_every(monkeypatch, 1)
     calls = 0
 
-    def fail_second_batch(messages, cap_tokens=0):
+    def fail_second_batch(messages, cap_tokens=0, **_):
         nonlocal calls
         calls += 1
         # Calls two and three are the second batch's attempt and its retry.
@@ -1226,7 +1275,7 @@ def test_run_endpoint_missing_chat(client):
 
 
 def test_reset_endpoint_clears_summary_and_watermark(client, sample_chat, monkeypatch):
-    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0, **_: CANNED)
     ids = _add_messages(client, sample_chat['id'], 3)
     summaries._run_summary_job(sample_chat['id'], ids[-1])
     _store_summary(sample_chat['id'], {
@@ -1260,7 +1309,7 @@ def test_cancel_endpoint_keeps_completed_batches_and_stops_the_rest(
         )
     calls = 0
 
-    def cancel_during_third_batch(messages, cap_tokens=0):
+    def cancel_during_third_batch(messages, cap_tokens=0, **_):
         nonlocal calls
         calls += 1
         if calls == 3:
@@ -1299,7 +1348,7 @@ def test_cancel_during_the_retry_pause_sends_no_second_request(
         )
     calls = []
 
-    def unreachable(messages, cap_tokens=0):
+    def unreachable(messages, cap_tokens=0, **_):
         calls.append(messages)
         raise RuntimeError('connection refused')
 
@@ -1425,7 +1474,7 @@ def test_generic_chat_patch_cannot_overwrite_interleaved_worker_publish(
         client, sample_chat, monkeypatch):
     cid = sample_chat['id']
     message_id = _add_messages(client, cid, 1)[0]
-    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0: CANNED)
+    monkeypatch.setattr(summaries, 'call_summarizer', lambda messages, cap_tokens=0, **_: CANNED)
     original_get_db = chat_routes.get_db
     interleaved = False
 

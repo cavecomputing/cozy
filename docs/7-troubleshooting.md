@@ -122,14 +122,15 @@ Cozy already tries every batch twice before a run stops. So an error that
 comes back each time is caused by a setting.
 
 If the memory panel shows **"cut off by its completion token limit"**, the
-summarizer's answer ran out of room. The usual cause is a model that thinks
-before it answers: its thinking uses the same token limit as the summary.
-Do one of these:
+summarizer's answer ran out of room twice, the second time with at least
+16,384 tokens. The usual cause is a model that thinks before it answers: its
+thinking uses the same token limit as the summary. Do one of these:
 
-- Raise **Max response tokens** in **Settings → API → Context & generation**.
-  The summarizer uses that limit too.
-- Or choose a model that does not think, in **Settings → Summaries →
+- Choose a model that does not think, in **Settings → Summaries →
   Summarizer model**. A small, fast model is enough.
+- Or raise **Max response tokens** in **Settings → API → Context &
+  generation**. The summarizer uses that limit too, and four times it on the
+  second try.
 
 The batches that were already finished are kept. The next run continues after
 them. See

@@ -59,12 +59,23 @@ _job_tokens_lock = threading.RLock()
 # moment before the same request goes out again.
 BATCH_ATTEMPTS = 2
 RETRY_DELAY_SECONDS = 5
+# The allowance for a retry after a cut-off reply, unless four times the first one is
+# more. A model that thinks spends the allowance on its thinking before it writes, and
+# resending the first allowance only had it run out at the same place again.
+CUTOFF_RETRY_TOKENS = 16384
+
+
+class SummaryCutOff(RuntimeError):
+    """The summarizer ran out of completion tokens before it finished its reply."""
 
 
 # ── Summarizer LLM call ─────────────────────────────────────────────────────
 
-def call_summarizer(messages, cap_tokens=0):
-    """One non-streaming summarizer completion. Mirrors ``test_llm`` in routes/llm.py."""
+def call_summarizer(messages, cap_tokens=0, after_cutoff=False):
+    """One non-streaming summarizer completion. Mirrors ``test_llm`` in routes/llm.py.
+
+    ``after_cutoff`` asks for the larger retry allowance (``CUTOFF_RETRY_TOKENS``).
+    """
     endpoint, api_key, model = _summary_llm_settings()
     if not endpoint:
         raise RuntimeError('No summarizer endpoint configured (Settings → Summaries)')
@@ -73,6 +84,8 @@ def call_summarizer(messages, cap_tokens=0):
     url, headers = _upstream(endpoint, api_key, 'chat/completions')
     payload = {'model': model, 'messages': messages, 'stream': False}
     budget = _completion_budget(get_settings(), cap_tokens)
+    if after_cutoff:
+        budget = max(budget * 4, CUTOFF_RETRY_TOKENS)
     if budget:
         payload['max_tokens'] = budget
     anthropic = is_anthropic(endpoint)
@@ -97,10 +110,11 @@ def call_summarizer(messages, cap_tokens=0):
     if choices[0].get('finish_reason') == 'length':
         # A truncated reply can still parse (the cut lands mid-bullet or right
         # after a heading) and would retire history against chopped memory.
-        raise RuntimeError(
-            'Summarizer response was cut off by its completion token limit; raise Max '
-            'response tokens (Settings → API → Context & generation) or use a summarizer '
-            'model that does not reason at length'
+        limit = f' of {budget:,} tokens' if budget else ''
+        raise SummaryCutOff(
+            f'Summarizer response was cut off by its completion token limit{limit}; use '
+            'a summarizer model that does not reason at length (Settings → Summaries) or '
+            'raise Max response tokens (Settings → API → Context & generation)'
         )
     message = choices[0].get('message')
     if not isinstance(message, dict):
@@ -352,8 +366,9 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
                      require_running=False, job_token=None):
     """Ask the summarizer for one batch's delta. Returns ``(delta, warning)``.
 
-    A batch gets ``BATCH_ATTEMPTS`` tries. A failed request is sent again after a pause;
-    a reply that broke the format or the length limits is sent again with a note saying
+    A batch gets ``BATCH_ATTEMPTS`` tries. A failed request is sent again after a pause,
+    and a cut-off one at once with a larger allowance (``CUTOFF_RETRY_TOKENS``); a
+    reply that broke the format or the length limits is sent again with a note saying
     what was wrong, since resending the same request invites the same reply. A second
     reply that still overshoots is trimmed to fit and accepted with a warning: failing it
     stalled the chat, because every later run resends the same messages and sending
@@ -363,6 +378,7 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
     system, user = build_append_messages(summary_to_text(summary_obj), chunk, entry_tokens)
     request = [system, user]
     previous_story = [line['text'] for line in summary_lines(summary_obj)]
+    cut_off = False
     for attempt in range(1, BATCH_ATTEMPTS + 1):
         final = attempt == BATCH_ATTEMPTS
         if attempt > 1:
@@ -374,12 +390,14 @@ def _summarize_batch(chat_id, summary_obj, chunk, cap_tokens, batch_label,
             chat_id, require_running=require_running, job_token=job_token
         )
         try:
-            reply = call_summarizer(request, entry_tokens)
+            reply = call_summarizer(request, entry_tokens, after_cutoff=cut_off)
         except RuntimeError as e:
             if final:
                 raise
             log.warning('Summarizer request for chat %s failed, retrying: %s', chat_id, e)
-            time.sleep(RETRY_DELAY_SECONDS)
+            cut_off = isinstance(e, SummaryCutOff)
+            if not cut_off:
+                time.sleep(RETRY_DELAY_SECONDS)
             continue
         # A disable may have committed while the HTTP request was in flight. Do not
         # parse or publish that now-stale result.
