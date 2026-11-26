@@ -78,8 +78,8 @@ A swipe is another version of the same reply. Each reply can have many swipes.
 You choose which one is shown, and the one shown is the one the AI sees as the
 story from then on.
 
-Point at a reply to see its buttons, at the top right of the message. On a
-phone the buttons are under the message.
+A reply's buttons are under its last line. The newest reply always shows them;
+point at an older one to see its own. On a phone, press and hold an older reply.
 
 - **To ask for a new version:** on the newest reply, click the right arrow
   (**→**). The new version is added as a new swipe, and the old ones are kept.
@@ -95,8 +95,8 @@ you cannot generate a new one.
 
 ## Edit, copy or delete a message
 
-Point at a message to see its buttons. On a phone they are under the message.
-They work on your own messages and on the character's.
+Point at a message to see its buttons, under its last line. On a phone, press
+and hold the message. They work on your own messages and on the character's.
 
 | Button | What it does |
 |---|---|
@@ -104,6 +104,7 @@ They work on your own messages and on the character's.
 | **Edit** | Lets you change the text in place. Press **Enter** or click the check mark to save. Press **Esc** or click the **✕** to cancel. On a phone, use the two buttons. |
 | **Fork** | Only on the character's replies. See [Branch a chat](#branch-a-chat). |
 | **Delete** | Deletes this one message, after asking. If the message has swipes, all of them are deleted. Messages before and after it stay. Hold **Shift** while you click to skip the question. |
+| **Back to start** (**↑**) | Only on a message taller than the screen. Scrolls up to where the message starts. On a reply it sits at the right end of the row, and on your own message at the left end. |
 
 Editing a reply changes what the AI sees from then on. Deleting cannot be
 undone.
@@ -210,7 +211,8 @@ Cozy works the same on a phone, with these differences:
   right on the chat. Start the swipe a finger's width in from the left edge,
   because the very edge of the screen belongs to the phone's own Back gesture.
   Swipe the sidebar left to close it.
-- **A message's buttons are under the message**, and are always shown.
+- **Press and hold a message to see its buttons.** The newest reply always
+  shows its own, under its last line.
 - **The chats panel and the memory panel open from the bottom.** Pull one down
   by the handle at its top to close it.
 - **Settings opens as a list.** Beside each page's name is what it is set to

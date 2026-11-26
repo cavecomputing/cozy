@@ -474,7 +474,7 @@ body:not(.mobile-drawer-open) #main-content > header {
    the card, so it wraps rather than spilling past the edge. */
 .msg-actions {
     order: 1;
-    margin-left: 0;
+    margin-top: 0;
     flex-wrap: wrap;
     gap: 0.15rem;
 }
@@ -524,8 +524,6 @@ body:not(.mobile-drawer-open) #main-content > header {
 /* The bubble's buttons keep to its right edge, the icons' own inset
    lining them up with the text above. */
 .message.user .msg-actions {
-    justify-content: flex-end;
-    margin-left: auto;
     margin-right: -6px;
 }
 

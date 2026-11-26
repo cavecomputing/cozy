@@ -413,12 +413,28 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
         nav.append(prev, counter, next);
         bar.append(nav);
     }
+    // Back to start keeps to the far end of the row from the others: a
+    // reply's row starts on the text's edge, a bubble's keeps to its right.
+    const top = iconButton('msg-action-btn top-msg-btn', 'Back to start', 'Back to the start of this message', icons.ARROWUP);
+    top.hidden = true;
+    if (role === 'user') bar.append(top);
     appendMessageActionButtons(bar);
     if (role === 'character') {
         bar.append(iconButton('msg-action-btn fork-msg-btn', 'Fork', 'Fork chat from here', icons.FORK));
     }
     bar.append(iconButton('msg-action-btn delete-msg-btn', 'Delete (Shift+click skips the confirm)', 'Delete message', icons.TRASH));
+    if (role === 'character') bar.append(top);
     return bar;
+}
+
+/**
+ * Show a message's Back to start button only while the message is taller than
+ * the chat, when its start is out of sight from its buttons at the end.
+ * Called whenever the message or the chat changes size (bindScrollHandlers).
+ */
+export function updateTopButton(container) {
+    const button = container.querySelector('.top-msg-btn');
+    if (button) button.hidden = container.offsetHeight <= el.chatHistory.clientHeight;
 }
 
 function buildEditActions() {
@@ -497,7 +513,7 @@ function buildMessageEl(msg, isGreeting = false) {
     msgEdited.className = 'msg-edited';
     msgEdited.textContent = '(edited)';
     const actions = buildMsgActions(role, msg.swipes.length, msg.activeSwipeIndex, isGreeting);
-    msgHeader.append(msgName, msgTime, msgEdited, actions);
+    msgHeader.append(msgName, msgTime, msgEdited);
 
     const content = document.createElement('div');
     content.className = 'message-content';
@@ -505,7 +521,9 @@ function buildMessageEl(msg, isGreeting = false) {
     const parsed = parseThinkingContent(text);
     renderMarkdown(content, parsed.hasThinking ? parsed.response : text);
 
-    msgBody.append(msgHeader, content);
+    // The buttons close the message off under its text, where a long one is
+    // finished reading.
+    msgBody.append(msgHeader, content, actions);
 
     if (parsed.hasThinking) renderThinkingBlock(msgBody, parsed);
     const branchPill = msg.id && buildBranchPill(msg.id);
@@ -844,6 +862,7 @@ export function finishEditing(save) {
     actionsBar.replaceChildren(
         ...buildMsgActions(role, msg.swipes.length, msg.activeSwipeIndex, isGreeting).childNodes,
     );
+    updateTopButton(messageEl.closest('.message-container'));
     setEditedLabel(messageEl, msg.swipes[msg.activeSwipeIndex].edited_at);
 
     state.currentEdit = null;

@@ -11,7 +11,7 @@ import {
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, refreshChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
-import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderMessages, drawOlderNearTop, shownText } from './messages.js';
+import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderMessages, drawOlderNearTop, shownText, updateTopButton } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -1588,6 +1588,13 @@ function bindMessageHandlers() {
             await handleSwipeAction(msgEl, isPrev);
         } else if (e.target.closest('.branch-pill')) {
             await withBusy(e.target.closest('.branch-pill'), null, () => switchBranch(msgEl));
+        } else if (e.target.closest('.top-msg-btn')) {
+            // Instant, as the other jumps are, to the message's top clear of
+            // the chat's fade; a reply streaming below no longer pulls it down.
+            const chat = el.chatHistory;
+            chat.scrollTop += msgEl.getBoundingClientRect().top - chat.getBoundingClientRect().top
+                - parseFloat(getComputedStyle(chat).scrollPaddingTop);
+            state.autoScroll = false;
         }
     });
 }
@@ -1838,10 +1845,14 @@ function bindScrollHandlers() {
     // swipe shown on the last reply, a block opened, the window resized while
     // reading further up. So the button is brought up to date whenever the
     // chat changes size, a message in it does or one leaves it, as well as on
-    // scrolling.
-    const resizes = new ResizeObserver(() => {
+    // scrolling. A message's Back to start button goes by the same sizes.
+    const resizes = new ResizeObserver(entries => {
         holdBottom();
         updateScrollButton();
+        const chatResized = entries.some(entry => entry.target === el.chatHistory);
+        for (const node of chatResized ? el.chatHistory.children : entries.map(entry => entry.target)) {
+            updateTopButton(node);
+        }
     });
     resizes.observe(el.chatHistory);
     for (const child of el.chatHistory.children) resizes.observe(child);
