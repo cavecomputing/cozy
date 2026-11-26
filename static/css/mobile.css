@@ -1097,10 +1097,18 @@ body:not(.mobile-drawer-open) #main-content > header {
     color: var(--fg-quiet);
 }
 
-/* A picker keeps its right padding, which is where its chevron is drawn.
-   A value too long for its line ends in an ellipsis, as a picker's does,
+/* A value too long for its line ends in an ellipsis, as a picker's does,
    so it does not look like the whole of it. */
 .settings-pane .settings-row :is(.form-input, .form-textarea) { padding-right: 0; text-overflow: ellipsis; }
+
+/* A picker keeps enough right padding for its chevron, which ends where the
+   other cells' values and icons end: at the cell's padding, so it is placed
+   from the picker's outer edge, unseen border included. */
+.settings-pane .settings-row .cozy-select-trigger {
+    padding-right: var(--space-5);
+    background-position: right center;
+    background-origin: border-box;
+}
 
 .settings-pane .settings-row :is(.form-input[type="number"], .prompt-version-input) { text-align: right; }
 
@@ -1130,8 +1138,11 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 .settings-pane .settings-row .cozy-select-value { text-align: right; }
 
+/* The arrow ends where the fields above and below it end. */
 .settings-model-row .icon-btn {
     min-height: var(--mobile-tap-target);
+    justify-content: flex-end;
+    padding-right: 0;
     background: none;
     border: 0;
     color: var(--fg);
@@ -1162,10 +1173,14 @@ body:not(.mobile-drawer-open) #main-content > header {
     border-radius: var(--radius-md);
 }
 
+/* The picker is the whole cell, so it brings the cell's side padding and
+   draws its chevron at the end of that, on the line the cells' icons end on. */
 :is(.preset-select-row, .prompt-select-row) > .cozy-select > .cozy-select-trigger {
     gap: var(--space-4);
     min-height: 48px;
     padding-left: var(--space-4);
+    padding-right: calc(var(--space-4) + var(--space-5));
+    background-position: right var(--space-4) center;
     background-color: transparent;
     border: 0;
     box-shadow: none;
