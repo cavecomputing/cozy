@@ -11,7 +11,7 @@ import {
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, refreshChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
-import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderMessages, drawOlderNearTop, shownText, updateTopButton } from './messages.js';
+import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderMessages, drawOlderNearTop, shownText, updateTopButtons } from './messages.js';
 import { Modal } from './modal.js';
 import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
 import { handleSend } from './send.js';
@@ -1855,9 +1855,7 @@ function bindScrollHandlers() {
         holdBottom();
         updateScrollButton();
         const chatResized = entries.some(entry => entry.target === el.chatHistory);
-        for (const node of chatResized ? el.chatHistory.children : entries.map(entry => entry.target)) {
-            updateTopButton(node);
-        }
+        updateTopButtons(chatResized ? [...el.chatHistory.children] : entries.map(entry => entry.target));
     });
     resizes.observe(el.chatHistory);
     for (const child of el.chatHistory.children) resizes.observe(child);

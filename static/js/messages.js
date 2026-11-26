@@ -437,13 +437,21 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
 }
 
 /**
- * Show a message's Back to start button only while the message is taller than
- * the chat, when its start is out of sight from its buttons at the end.
- * Called whenever the message or the chat changes size (bindScrollHandlers).
+ * Show each message's Back to start button only while the message is taller
+ * than the chat, when its start is out of sight from its buttons at the end.
+ * Called whenever messages or the chat change size (bindScrollHandlers).
+ * Every height is read before any button changes: a height read after a
+ * button was shown or hidden lays the whole chat out again, so a chat that
+ * changed size, as it does when the keyboard comes up, was laid out once per
+ * message drawn and held the phone for seconds in a long one.
  */
-export function updateTopButton(container) {
-    const button = container.querySelector('.top-msg-btn');
-    if (button) button.hidden = container.offsetHeight <= el.chatHistory.clientHeight;
+export function updateTopButtons(containers) {
+    const chatHeight = el.chatHistory.clientHeight;
+    const tall = containers.map(container => container.offsetHeight > chatHeight);
+    containers.forEach((container, i) => {
+        const button = container.querySelector('.top-msg-btn');
+        if (button) button.hidden = !tall[i];
+    });
 }
 
 function buildEditActions() {
@@ -884,7 +892,7 @@ export function finishEditing(save) {
     actionsBar.replaceChildren(
         ...buildMsgActions(role, msg.swipes.length, msg.activeSwipeIndex, isGreeting).childNodes,
     );
-    updateTopButton(messageEl.closest('.message-container'));
+    updateTopButtons([messageEl.closest('.message-container')]);
     setSwipeLabels(messageEl, msg.swipes[msg.activeSwipeIndex]);
 
     state.currentEdit = null;
