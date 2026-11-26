@@ -300,9 +300,9 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
     padding-top: 0;   /* the 44px header band already clears the eyebrow */
 }
 
-/* The desktop header's side padding, so the eyebrow starts where it does there. */
+/* The menu's own padding already insets the heading as far as the rows. */
 #persona-dropup > .panel-header {
-    padding: 0 0.75rem;
+    padding: 0;
 }
 
 /* ── Chat ────────────────────────────────────────────────────────────── */

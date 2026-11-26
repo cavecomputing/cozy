@@ -1697,8 +1697,9 @@ input[type="checkbox"]:checked::after {
         transform: none;
     }
 
+    /* The list's side padding, so the eyebrow starts with the rows. */
     #persona-dropup > .panel-header {
-        padding: 0.6rem 0.75rem;
+        padding: 0.6rem 0.5rem;
     }
 
     #persona-dropup #persona-list {
@@ -1715,10 +1716,11 @@ input[type="checkbox"]:checked::after {
     }
 }
 
-/* The "Switch Persona" eyebrow reads from the left. */
+/* The "Switch Persona" eyebrow reads from the left, stepped in by a row's
+   padding so it starts over the avatars. */
 #persona-dropup .panel-title {
     text-align: left;
-    padding-left: 0.25rem;
+    padding-left: 0.6rem;
 }
 
 /* The menu is a column: the heading, New Persona and the form keep their
