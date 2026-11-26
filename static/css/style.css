@@ -1627,15 +1627,17 @@ input[type="checkbox"]:checked::after {
 
 /* Hidden: the rail takes no room and the chat has the window. The same icon
    in the composer brings it back (#sidebar-show-btn), as does /sidebar.
-   Settings still opens over the window as it does over the rail, so its
-   flyout stays visible. The phone's drawer is untouched. */
+   Settings lives inside the rail and covers the whole window, so the rail
+   is only hidden while Settings is closed. Hiding the rail and showing the
+   flyout inside it with visibility: visible worked in Chromium, Firefox
+   and Playwright's WebKit, but Safari drew nothing. The phone's drawer is
+   untouched. */
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
-    :root.sidebar-hidden #sidebar {
+    :root.sidebar-hidden #sidebar:has(> #settings-flyout[hidden]) {
         width: 0;
         border-right-width: 0;
         visibility: hidden;
     }
-    :root.sidebar-hidden #settings-flyout { visibility: visible; }
 }
 
 .user-tagline {
