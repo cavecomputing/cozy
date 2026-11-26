@@ -2875,10 +2875,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 
 .setup-theme .cozy-select { width: 11rem; }
 
+/* The padding is room to tap, pulled back out of the bar's end so the word
+   ends on the page's edge as "Theme" starts on it. */
 .setup-skip {
     background: none;
     border: none;
     padding: var(--space-3);
+    margin-right: calc(-1 * var(--space-3));
     min-height: var(--mobile-tap-target);
     cursor: pointer;
     font-family: var(--font-mono);
