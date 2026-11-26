@@ -1707,7 +1707,7 @@ input[type="checkbox"]:checked::after {
     }
 
     #persona-dropup > #persona-create-btn {
-        margin: 0.25rem 0.5rem 0.35rem;
+        margin: 0.25rem 0.5rem 0.5rem;
         width: auto;
     }
 
@@ -1781,7 +1781,7 @@ input[type="checkbox"]:checked::after {
     padding: 0.5rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
-    margin: 0.35rem 0.25rem;
+    margin: 0.35rem 0;   /* as wide as the rows it opens among */
     background-color: var(--surface-raised);
 }
 
