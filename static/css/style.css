@@ -2131,8 +2131,9 @@ input[type="checkbox"]:checked::after {
 }
 
 /* Under a message that other chats branch at; it opens the next of them. It
-   sits under the text rather than in the header so a phone's line of name and
-   time keeps its room. */
+   sits at the far end of the reply's row of buttons, on a computer as on the
+   phone (mobile.css), so it stays on that line while the row waits for the
+   pointer rather than sitting alone beneath it. */
 .branch-pill {
     display: inline-flex;
     align-items: center;
@@ -2159,6 +2160,22 @@ input[type="checkbox"]:checked::after {
     .branch-pill:hover {
         color: var(--fg);
         border-color: var(--fg-quiet);
+    }
+}
+
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
+    .message.character .msg-body:has(> .branch-pill) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: var(--space-1);
+    }
+
+    .message.character .msg-body:has(> .branch-pill) > :not(.msg-actions, .branch-pill) {
+        grid-column: 1 / -1;
+    }
+
+    .message.character .branch-pill {
+        align-self: center;
     }
 }
 
