@@ -996,8 +996,8 @@ def test_after_a_failed_run_sends_stop_waiting_on_memory():
         assert.equal(runs, 1, 'no new run for a send while memory is failing');
         assert.equal(polls, 0, 'and no waiting on the retry either');
         assert.match(toasts.at(-1), new RegExp(
-            "^Memory is behind: its last update failed — this reply can't see \\d+ "
-            + 'older messages? until memory catches up\\.$',
+            "^Memory's last update failed, so this reply can't see \\d+ older "
+            + 'messages?\\. Cozy tries again after the reply\\.$',
         ));
 
         // A run that ends cleanly brings the wait back.

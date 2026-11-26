@@ -504,7 +504,9 @@ export async function ensureSummaryReadyForSend(signal, {
     // reply goes ahead with the gap named; the background retries carry on, and the
     // first one that succeeds brings the wait back.
     if (!backfill && failedRuns.has(chat.id)) {
-        showToast(memoryGapWarning('Memory is behind: its last update failed', excludeLastN));
+        const behind = agedOutUnsummarized(excludeLastN).length;
+        showToast(`Memory's last update failed, so this reply can't see ${behind} older `
+            + `message${behind === 1 ? '' : 's'}. Cozy tries again after the reply.`);
         return;
     }
     // A refused (self-contradictory) measurement must not stall the send:
