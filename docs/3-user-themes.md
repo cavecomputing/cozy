@@ -335,7 +335,7 @@ only the ones you want to be different.
 | `--user-pre-bg` | The background of a code block. | `--pre-bg` |
 | `--user-pre-border` | The border of a code block. | `--pre-border` |
 | `--user-editable-bg` | The tint behind the text while you edit it. | A faint tint of `--accent-color` |
-| `--user-action-color` | The small buttons on the bubble (copy, edit, delete). | `--text-secondary` |
+| `--user-action-color` | The small buttons on the bubble (copy, edit, delete), on a phone. On a computer they sit below the bubble, in the page's own colours. | `--text-secondary` |
 | `--user-action-hover-color` | Those buttons while the pointer is on one. | `--text-color` |
 | `--user-action-hover-bg` | The fill behind a button while the pointer is on it. | `--hover-bg` |
 

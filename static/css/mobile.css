@@ -522,9 +522,19 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 /* The bubble's buttons keep to its right edge, the icons' own inset
-   lining them up with the text above. */
+   lining them up with the text above. Only a phone draws them on the
+   bubble's fill, so only here do they take its colours. */
 .message.user .msg-actions {
     margin-right: -6px;
+}
+
+.message.user .msg-action-btn { color: var(--user-action-color, var(--text-secondary)); }
+
+@media (hover: hover) {
+    .message.user .msg-action-btn:hover {
+        background-color: var(--user-action-hover-bg, var(--hover-bg));
+        color: var(--user-action-hover-color, var(--text-color));
+    }
 }
 
 /* A touch phone keeps a message's buttons out of sight until it is

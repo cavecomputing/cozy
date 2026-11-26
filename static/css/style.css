@@ -2469,7 +2469,9 @@ input[type="checkbox"]:checked::after {
 /* ── Message actions (the row under the text) ────────────────────────────── */
 /* It stands off the last line as the name line does above it. A reply's row
    starts on the text's edge and a bubble's keeps to its right, each with
-   Back to start at the far end. */
+   Back to start at the far end. On a computer a bubble's row hangs below the
+   bubble, on the page, so a bubble not pointed at fits its words; its row
+   keeps the room beneath it. */
 .msg-actions {
     display: flex;
     align-items: center;
@@ -2488,6 +2490,18 @@ input[type="checkbox"]:checked::after {
 
 .message.user .top-msg-btn {
     margin-right: auto;
+}
+
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
+    .message.user .msg-actions {
+        position: absolute;
+        top: 100%;
+        inset-inline: 0;
+    }
+
+    .message-container.user {
+        padding-bottom: calc(28px + var(--space-2));
+    }
 }
 
 /* With a mouse, a message's buttons wait for it to be pointed at, except on
@@ -2548,18 +2562,9 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 .msg-action-btn.save-msg-btn:hover   { color: var(--success-color); }
 .msg-action-btn.fork-msg-btn:hover   { color: var(--accent-color); }
 
-.message.user .msg-action-btn { color: var(--user-action-color, var(--text-secondary)); }
-
-@media (hover: hover) {
-    .message.user .msg-action-btn:hover {
-        background-color: var(--user-action-hover-bg, var(--hover-bg));
-        color: var(--user-action-hover-color, var(--text-color));
-    }
-}
-
 /* The copied tick, in the same green Save uses. The pointer is still on the
    button when it appears, so it has to outrank both hover rules — hence the
-   user-bubble pair below the shared one. */
+   user-bubble pair, against the phone's bubble colours (mobile.css). */
 .msg-action-btn.copied,
 .message.user .msg-action-btn.copied,
 .message.user .msg-action-btn.copied:hover { color: var(--success-color); }
