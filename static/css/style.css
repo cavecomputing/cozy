@@ -2510,9 +2510,11 @@ input[type="checkbox"]:checked::after {
 }
 
 @media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
+    /* 100% is the bubble's padding box, so its border is added to stand the
+       row as far off the bubble as a reply's stands off its text. */
     .message.user .msg-actions {
         position: absolute;
-        top: 100%;
+        top: calc(100% + 1px);
         inset-inline: 0;
     }
 
