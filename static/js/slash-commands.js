@@ -1,5 +1,5 @@
 import { state, el } from './state.js';
-import { autoResize, showToast, Flyouts } from './utils.js';
+import { autoResize, showToast, Flyouts, toggleSidebar } from './utils.js';
 import { createNewChat, startChatRename } from './chats.js';
 import { exportChat } from './export.js';
 import { clearDraft } from './drafts.js';
@@ -19,6 +19,7 @@ const COMMANDS = [
     { name: '/export', description: 'Export the current chat', run: exportCurrentChat },
     { name: '/jump',   description: 'Jump to where the context window starts', run: jumpToContext },
     { name: '/meter',  description: 'Show or hide the context token meter', run: toggleMeter },
+    { name: '/sidebar', description: 'Hide or show the character sidebar', run: toggleSidebar },
     { name: '/context', description: 'Set max context tokens: /context <tokens>', run: setContextTokens },
     { name: '/auto-summary', description: 'Turn auto summaries on or off: /auto-summary [on|off]', run: setAutoSummary },
     { name: '/prompt', description: 'Switch prompt preset: /prompt <name> [version]', run: switchPromptPreset },

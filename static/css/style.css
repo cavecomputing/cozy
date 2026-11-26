@@ -1114,7 +1114,6 @@ input[type="checkbox"]:checked::after {
     overflow: visible;   /* allow the profile dropup to escape the card */
     display: flex;
     flex-direction: column;
-    transition: width var(--motion-slow) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* No header: the rail is the list, then the persona. Focused only so the
@@ -1576,7 +1575,10 @@ input[type="checkbox"]:checked::after {
     text-overflow: ellipsis;
 }
 
+/* Settings, and beside it the square that hides the rail on a wide screen. */
 .profile-settings-row {
+    display: flex;
+    gap: var(--space-2);
     margin-top: var(--space-1);
 }
 
@@ -1587,7 +1589,7 @@ input[type="checkbox"]:checked::after {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    width: 100%;
+    flex: 1;
     padding: var(--space-2) 0.7rem;   /* whole pixels, or the label rounds a pixel high */
     border: 1px solid var(--line);
     background-color: var(--surface-quiet);
@@ -1615,6 +1617,25 @@ input[type="checkbox"]:checked::after {
 
 .profile-settings-btn svg {
     flex-shrink: 0;
+}
+
+#sidebar-hide-btn {
+    flex: none;
+    width: 30px;   /* as tall as Settings beside it */
+    padding: 0;
+}
+
+/* Hidden: the rail takes no room and the chat has the window. The same icon
+   in the composer brings it back (#sidebar-show-btn), as does /sidebar.
+   Settings still opens over the window as it does over the rail, so its
+   flyout stays visible. The phone's drawer is untouched. */
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
+    :root.sidebar-hidden #sidebar {
+        width: 0;
+        border-right-width: 0;
+        visibility: hidden;
+    }
+    :root.sidebar-hidden #settings-flyout { visibility: visible; }
 }
 
 .user-tagline {
@@ -3268,6 +3289,13 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     border: 1px solid transparent;
     border-radius: var(--radius-control);
     color: var(--text-secondary);
+}
+
+/* Only while the rail is hidden on a wide screen (see #sidebar-hide-btn). */
+#sidebar-show-btn { display: none; }
+
+@media (min-width: 769px) and (min-height: 501px), (min-width: 769px) and (hover: hover) {
+    :root.sidebar-hidden #sidebar-show-btn { display: flex; }
 }
 
 /* Split from the hover rule below: an open flyout keeps its lit button on

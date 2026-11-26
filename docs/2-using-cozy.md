@@ -28,6 +28,7 @@ The other sections use these names for the parts of the screen.
 | Sidebar | The left column. On a phone it is hidden until you swipe right. | Your characters. Click one to open your latest chat with it. |
 | Persona card | The bottom of the sidebar, showing your persona's name. | Click it to switch persona or to edit one. |
 | **Settings** button | Under the persona card. | Opens Settings. |
+| Sidebar button | Beside **Settings**, a box with a bar down its left side. On a computer only. | Hides the sidebar, so the chat has the whole window. While the sidebar is hidden, the same button sits at the left end of the chat box, and clicking it brings the sidebar back. |
 | Chat | The large area. | The messages. Yours are in a box on the right. The character's are plain text on the left. |
 | Context meter | The thin colored bar above the chat box. | Shows how full the AI's memory is. See [The context meter](4-prompts-and-memory.md#the-context-meter). |
 | Chat box | The bottom of the screen. | Where you type. |
@@ -176,6 +177,7 @@ start of a name is enough when only one name fits. For example, `/pe` **Tab**
 | `/export` | Saves the open chat to a file. |
 | `/jump` | Scrolls to the **Context window** line, which marks the oldest message the AI still sees. See [The context meter](4-prompts-and-memory.md#the-context-meter). |
 | `/meter` | Hides or shows the context meter. |
+| `/sidebar` | Hides or shows the sidebar on a computer, as the sidebar button does. |
 | `/context <tokens>` | Sets **Max context tokens**. `/context 16k` means 16384. With no number, it shows the current value. |
 | `/auto-summary on` or `off` | Turns Auto Summary on or off for the open chat. With neither word, it switches it. |
 | `/prompt <name>` | Switches the prompt preset. If two versions have that name, it picks the newer one. `/prompt NanoBear 2.1` picks an exact version. |

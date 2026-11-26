@@ -605,7 +605,16 @@ export function savePrefs() {
         activeChatId:     state.activeChat?.id ?? null,
         activePersonaId:  state.activePersona?.id ?? null,
         settingsSection:  state.settingsSection,
+        sidebarHidden:    document.documentElement.classList.contains('sidebar-hidden'),
     }));
+}
+
+/** Put the desktop rail away, or bring it back, and remember which. The
+    class on <html> is the only copy; the head of index.html sets it from
+    these prefs before the first paint. */
+export function toggleSidebar() {
+    document.documentElement.classList.toggle('sidebar-hidden');
+    savePrefs();
 }
 
 export function closeMobileSidebar({ restoreFocus = true, immediate = false } = {}) {

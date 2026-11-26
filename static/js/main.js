@@ -6,7 +6,7 @@ import { API, prefetchSelection, dropPrefetched, serverBuild } from './api.js';
 import {
     autoResize, scrollToBottom, showToast, Flyouts, savePrefs, closeMobileSidebar,
     debounce, updateComposerState, atGlidePosition, copyText, stopGeneration, MOBILE_SHELL_QUERY,
-    withBusy, flashSettingsSavedTick, dismissApiNotice, updateTabTitle, keepChatBottom, updateScrollButton,
+    withBusy, flashSettingsSavedTick, toggleSidebar, dismissApiNotice, updateTabTitle, keepChatBottom, updateScrollButton,
 } from './utils.js';
 import { applyTheme, loadThemeList, renderThemePicker } from './themes.js';
 import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggleCharMenu, closeCharMenu, toggleArchived, toggleArchivedSection, refreshRecentTimes, toggleRecentMenu } from './characters.js';
@@ -763,6 +763,9 @@ function bindSettingsHandlers() {
         showSettingsListValues();
     };
     el.settingsBtn?.addEventListener('click', openSettings);
+    for (const id of ['sidebar-hide-btn', 'sidebar-show-btn']) {
+        document.getElementById(id).addEventListener('click', toggleSidebar);
+    }
     el.settingsCloseBtn?.addEventListener('click', () => {
         closeSettingsFlyout();
     });

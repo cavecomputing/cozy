@@ -297,6 +297,9 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
     margin: calc(-1 * var(--card-overlap)) 0.6rem 0.6rem;
 }
 
+/* The drawer puts itself away; hiding the rail is for a wide screen. */
+#sidebar-hide-btn { display: none; }
+
 #persona-dropup.dropup-content {
     position: absolute;
     left: 0;
