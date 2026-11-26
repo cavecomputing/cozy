@@ -1655,23 +1655,25 @@ function bindComposerHandlers() {
     el.userInput.addEventListener('keydown', e => {
         if (handleSlashKeydown(e)) return;
         // Discord's and SillyTavern's keys for an empty box: Up edits your last
-        // message, Left and Right swipe the latest reply. Each clicks the
-        // message's own button, so its guards and states still apply.
-        const button = { ArrowUp: '.edit-msg-btn', ArrowLeft: '.swipe-prev', ArrowRight: '.swipe-next' }[e.key];
+        // message, Down the last reply, Left and Right swipe the latest reply.
+        // Each clicks the message's own button, so its guards and states still
+        // apply.
+        const button = { ArrowUp: '.edit-msg-btn', ArrowDown: '.edit-msg-btn',
+            ArrowLeft: '.swipe-prev', ArrowRight: '.swipe-next' }[e.key];
         if (button && !el.userInput.value && !llm.generationActive
             && !(e.shiftKey || e.altKey || e.ctrlKey || e.metaKey)) {
-            const rows = el.chatHistory.querySelectorAll(
-                e.key === 'ArrowUp' ? '.message-container.user' : '.message-container');
+            const rows = el.chatHistory.querySelectorAll({ ArrowUp: '.message-container.user',
+                ArrowDown: '.message-container.character' }[e.key] ?? '.message-container');
             const row = rows[rows.length - 1];
             const target = row?.querySelector(button);
             if (target && !target.disabled) {
                 e.preventDefault();
                 target.click();
-                // A long reply can push the message Up opens out of sight. One
-                // already in full view stays put; one cut off by either fade
-                // lands with its top just under the top fade. Left and Right
-                // change the newest reply, so they show the bottom of the chat.
-                if (e.key === 'ArrowUp') {
+                // A long reply can push the message Up or Down opens out of
+                // sight. One already in full view stays put; one cut off by
+                // either fade lands with its top just under the top fade. Left
+                // and Right change the newest reply, so they show the bottom.
+                if (target.matches('.edit-msg-btn')) {
                     const scroller = el.chatHistory;
                     const { paddingTop, paddingBottom } = getComputedStyle(scroller);
                     const band = scroller.clientHeight - parseFloat(paddingTop) - parseFloat(paddingBottom);
