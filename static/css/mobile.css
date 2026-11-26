@@ -652,7 +652,7 @@ body:not(.mobile-drawer-open) #main-content > header {
     text-overflow: ellipsis;
 }
 
-#main-content:has(#empty-state:not([hidden]) #empty-new-char-btn:not([hidden])) #input-container {
+#main-content.library-empty #input-container {
     display: none;
 }
 
@@ -1456,8 +1456,11 @@ body:not(.mobile-drawer-open) #main-content > header {
 
 /* Settings covers the chat, which is hidden under it so nothing of it can
    show at an edge Settings does not reach: above the keyboard while Safari
-   settles the view, or where a drag pulls the page past its end. */
-body:has(#settings-flyout:not([hidden])) #main-content { visibility: hidden; }
+   settles the view, or where a drag pulls the page past its end. The two >
+   keep it to body's own children: Safari answers a :has() looking anywhere
+   below with a search of the whole page each time anything there is shown or
+   hidden, which grows with every message drawn. */
+body:has(> #settings-flyout:not([hidden])) > #main-content { visibility: hidden; }
 
 /* While a sheet, the samplers menu or the filled-in preview is open, the
    page under it holds still, so a drag on it does not scroll the page behind. */

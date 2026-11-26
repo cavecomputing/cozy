@@ -485,12 +485,17 @@ export function showEmptyState(title, text, showCreate = false) {
     if (!el.emptyState) return;
     if (el.emptyStateTitle) el.emptyStateTitle.textContent = title;
     if (el.emptyStateText) el.emptyStateText.textContent = text;
-    if (el.emptyNewCharBtn) el.emptyNewCharBtn.hidden = !showCreate;
+    // A class rather than the button's hidden: on the phone the composer
+    // goes too, and a rule asking whether the button somewhere inside the
+    // chat is hidden had Safari search the whole chat at every hidden change.
+    el.mainContent.classList.toggle('library-empty', showCreate);
     el.emptyState.hidden = false;
 }
 
 export function hideEmptyState() {
-    if (el.emptyState) el.emptyState.hidden = true;
+    if (!el.emptyState) return;
+    el.emptyState.hidden = true;
+    el.mainContent.classList.remove('library-empty');
 }
 
 const nameCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });

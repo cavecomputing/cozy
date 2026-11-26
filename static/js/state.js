@@ -83,6 +83,7 @@ export function initElements() {
         flyoutImportChatFile: document.getElementById('flyout-import-chat-file'),
         newCharBtn:      document.getElementById('new-char-btn'),
         emptyNewCharBtn: document.getElementById('empty-new-char-btn'),
+        mainContent:     document.getElementById('main-content'),
         currentCharName: document.getElementById('current-char-name'),
         chatHistory:     document.getElementById('chat-scroll'),
         emptyState:      document.getElementById('empty-state'),

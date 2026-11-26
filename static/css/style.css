@@ -2857,6 +2857,11 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
     pointer-events: auto;
 }
 
+/* Create Character, for a library with no characters in it. */
+#main-content:not(.library-empty) #empty-new-char-btn {
+    display: none;
+}
+
 .empty-state-icon {
     font-size: 2.5rem;
     opacity: 0.5;
