@@ -196,6 +196,7 @@ These work on a computer.
 | **Enter** | Chat box | Sends the message. |
 | **Shift+Enter** | Chat box | Starts a new line. |
 | **↑** | Chat box, empty | Opens your last message for editing. |
+| **↓** | Chat box, empty | Opens the last reply for editing. |
 | **←** and **→** | Chat box, empty | Move through the swipes of the newest reply. **→** on the last swipe asks for a new one. If your own message is the newest, **→** asks for a reply. |
 | **/** | Anywhere outside a text box | Puts the cursor in the chat box. The slash is not typed. |
 | **Enter** | While editing a message | Saves the edit. |
