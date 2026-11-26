@@ -16,7 +16,7 @@ export function autoResize(textarea) {
     // The 'auto' pass briefly lengthens the chat, clamping scrollTop.
     keepChatBottom(() => {
         textarea.style.height = 'auto';
-        textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+        textarea.style.height = `${textarea.scrollHeight}px`;
     });
 }
 
