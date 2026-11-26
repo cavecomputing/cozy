@@ -2143,16 +2143,18 @@ input[type="checkbox"]:checked::after {
 
 /* Faded rather than --fg-quiet so it stays legible on a theme's filled user
    bubble too. A character's card is never filled, so it takes the muted tone,
-   which a faded body colour falls short of on several themes' cards. */
+   which a faded body colour falls short of on several themes' cards. The
+   token count in the buttons' row reads the same way. */
 .msg-time,
-.msg-edited {
+.msg-edited,
+.msg-tokens {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     white-space: nowrap;
     opacity: 0.75;
 }
 
-.message.character :is(.msg-time, .msg-edited) {
+.message.character :is(.msg-time, .msg-edited, .msg-tokens) {
     color: var(--fg-quiet);
     opacity: 1;
 }
@@ -2526,6 +2528,13 @@ input[type="checkbox"]:checked::after {
 
 .message.user .msg-actions {
     justify-content: flex-end;
+}
+
+/* Stands a little off the icons, and is left out of a selection of the text. */
+.msg-tokens {
+    margin-inline: var(--space-2);
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .message.character .top-msg-btn {

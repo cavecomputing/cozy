@@ -977,6 +977,7 @@ class TestLLMProxy:
         assert captured['headers']['Authorization'] == 'Bearer sk-test-key'
         assert captured['stream'] is True
         assert captured['json']['stream'] is True
+        assert captured['json']['stream_options'] == {'include_usage': True}
         assert captured['json']['messages'][0] == {
             'role': 'system',
             'content': custom_system,
@@ -1432,15 +1433,19 @@ class TestClaudeEndpoint:
         assert captured['headers']['x-api-key'] == 'sk-ant-test'
         assert captured['json']['stream'] is True
         assert 'temperature' not in captured['json']
+        assert 'stream_options' not in captured['json']
         assert captured['json']['system'][0]['text'] == 'S'
         assert [json.loads(c) for c in chunks[:-2]] == [
             {'choices': [{'delta': {'reasoning_content': 'Hmm.'}}]},
             {'choices': [{'delta': {'content': 'Hel'}}]},
             {'choices': [{'delta': {'content': 'lo'}}]},
-            {'choices': [{'delta': {}, 'finish_reason': 'length'}]},
+            {'choices': [{'delta': {}, 'finish_reason': 'length'}], 'usage': {'completion_tokens': 3}},
         ]
         assert chunks[-2] == '[DONE]'
-        assert json.loads(chunks[-1])['saved']['content'] == '<think>Hmm.</think>Hello'
+        saved = json.loads(chunks[-1])['saved']
+        assert saved['content'] == '<think>Hmm.</think>Hello'
+        # Claude's count of what it wrote, its thinking included.
+        assert saved['output_tokens'] == 3
 
     @pytest.mark.parametrize('event, shown', [
         ({'type': 'error', 'error': {'type': 'overloaded_error', 'message': 'Overloaded'}},

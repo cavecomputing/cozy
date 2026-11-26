@@ -482,7 +482,8 @@ body:not(.mobile-drawer-open) #main-content > header {
 }
 
 .msg-time,
-.msg-edited {
+.msg-edited,
+.msg-tokens {
     font-size: var(--text-xs);
 }
 
@@ -573,8 +574,11 @@ body:not(.mobile-drawer-open) #main-content > header {
     .message.editing .msg-actions {
         display: flex;
     }
+    /* As wide as its buttons and count: the bubble it is placed in can be
+       narrower than they are. */
     .message-container.actions-open .msg-actions {
         display: flex;
+        width: max-content;
         position: absolute;
         z-index: 20;
         left: 0;

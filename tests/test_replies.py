@@ -277,6 +277,39 @@ def test_a_new_swipe_is_saved_to_its_message_and_put_on_show(client, sample_chat
     assert row['swipe_index'] == 1
 
 
+def test_a_reply_keeps_the_token_count_its_api_reported(client, sample_chat, model):
+    """The last chunk of a stream asked for usage has no choices, only the
+    count, and that count includes the reasoning."""
+    chat_id = sample_chat['id']
+    usage = {'choices': [], 'usage': {'prompt_tokens': 40, 'completion_tokens': 57,
+                                      'completion_tokens_details': {'reasoning_tokens': 50}}}
+    model(thought('Hmm.'), said('Hello'), usage, '[DONE]')
+    saved = events(client.post(f'/api/llm/chat?chat_id={chat_id}', json=PAYLOAD))[-1]['saved']
+    assert saved['output_tokens'] == 57
+    [row] = client.get(f'/api/chats/{chat_id}/messages').get_json()
+    # One swipe the page stands the content in for, so the count rides on the message.
+    assert 'swipes' not in row and row['output_tokens'] == 57
+
+    model(said('Again'), usage | {'usage': {'completion_tokens': 9}}, '[DONE]')
+    swipe = events(client.post(f'/api/llm/chat?chat_id={chat_id}&message_id={row["id"]}',
+                               json=PAYLOAD))[-1]['saved']
+    assert swipe['output_tokens'] == 9
+    [row] = client.get(f'/api/chats/{chat_id}/messages').get_json()
+    assert [s['output_tokens'] for s in row['swipes']] == [57, 9]
+
+    # Rewritten, the text is no longer the model's, so neither is the count.
+    client.put(f'/api/messages/{row["id"]}', json={'swipe_index': 1, 'content': 'Mine now'})
+    [row] = client.get(f'/api/chats/{chat_id}/messages').get_json()
+    assert [s['output_tokens'] for s in row['swipes']] == [57, None]
+
+
+def test_a_reply_without_a_reported_count_has_none(client, sample_chat, model):
+    model(said('Hello'), '[DONE]')
+    saved = events(client.post(f'/api/llm/chat?chat_id={sample_chat["id"]}', json=PAYLOAD))[-1]['saved']
+    [row] = client.get(f'/api/chats/{sample_chat["id"]}/messages').get_json()
+    assert 'output_tokens' not in saved and 'output_tokens' not in row
+
+
 def test_the_reply_has_to_name_a_chat_and_a_message_in_it(client, sample_chat, sample_character, model):
     model(said('Hello'), '[DONE]')
     assert client.post('/api/llm/chat', json=PAYLOAD).status_code == 400

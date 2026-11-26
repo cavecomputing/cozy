@@ -192,6 +192,7 @@ its swipes with it.
 | `content` | TEXT | none | The variant's text. |
 | `created_at` | DATETIME | `CURRENT_TIMESTAMP` | Creation; also the swipe order. |
 | `edited_at` | DATETIME | `NULL` | When an edit last changed this variant's text, `NULL` if none has. Saving the same text or picking a swipe leaves it alone. Shown as the message's (edited) label, and a fork copies it. |
+| `output_tokens` | INTEGER | `NULL` | How many tokens the model wrote for this variant, its thinking included, as its API reported them. `NULL` for your own messages, greetings, imports, a reply stopped before the end, a provider that reports no count, and a variant an edit has rewritten. A fork copies it. |
 
 ```sql
 CREATE TABLE message_swipes (
@@ -200,6 +201,7 @@ CREATE TABLE message_swipes (
     content    TEXT    NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     edited_at  DATETIME DEFAULT NULL,
+    output_tokens INTEGER DEFAULT NULL,
     FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
 )
 ```

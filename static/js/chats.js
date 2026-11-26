@@ -355,7 +355,7 @@ export async function selectChat(chat) {
 function messagesFromRows(rows) {
     return rows.map(r => {
         // A message nobody has swiped or edited comes without its one swipe.
-        const swipes = r.swipes || [{ content: r.content }];
+        const swipes = r.swipes || [{ content: r.content, output_tokens: r.output_tokens }];
         // Build persona snapshot from DB join data
         const persona = r.persona_id ? { name: r.persona_name || 'You' } : null;
         return {

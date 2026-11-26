@@ -110,6 +110,13 @@ and hold the message. They work on your own messages and on the character's.
 Editing a reply changes what the AI sees from then on. Deleting cannot be
 undone.
 
+The row also shows the message's size in tokens. On a reply this is the count
+the model's API reported, thinking included, so it is the number that **Max
+response tokens** in **Settings → API** has to leave room for. Your own
+messages, greetings, imported chats, replies stopped early, edited replies, and
+replies from providers that report no count show Cozy's estimate instead,
+marked **≈**, such as **≈ 21 tokens**.
+
 ## Branch a chat
 
 A branch is a copy of a chat up to one reply, which you can then continue in a

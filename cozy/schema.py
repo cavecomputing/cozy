@@ -193,6 +193,7 @@ def init_db():
                 content    TEXT    NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 edited_at  DATETIME DEFAULT NULL,
+                output_tokens INTEGER DEFAULT NULL,
                 FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
             );
 
@@ -262,6 +263,9 @@ def init_db():
 
         # A column added since the baseline goes here, behind a check that the
         # database lacks it: a new database already has it from the script above.
+        swipe_columns = {row[1] for row in conn.execute('PRAGMA table_info(message_swipes)')}
+        if 'output_tokens' not in swipe_columns:
+            conn.execute('ALTER TABLE message_swipes ADD COLUMN output_tokens INTEGER DEFAULT NULL')
 
         # A server restart kills any in-flight summary thread; clear stale state so
         # a chat isn't stuck showing "running" forever. Partial progress is safe:

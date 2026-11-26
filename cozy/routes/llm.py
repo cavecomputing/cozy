@@ -202,7 +202,12 @@ def from_anthropic_event(event):
         if stop_reason == 'refusal':
             return {'error': 'Claude declined to continue this reply.'}
         if stop_reason:
-            return {'choices': [{'delta': {}, 'finish_reason': _finish_reason(stop_reason)}]}
+            chunk = {'choices': [{'delta': {}, 'finish_reason': _finish_reason(stop_reason)}]}
+            # Every token Claude wrote, its thinking among them.
+            output_tokens = (event.get('usage') or {}).get('output_tokens')
+            if output_tokens is not None:
+                chunk['usage'] = {'completion_tokens': output_tokens}
+            return chunk
     elif kind == 'message_stop':
         return '[DONE]'
     elif kind == 'error':
@@ -342,6 +347,8 @@ class Reply:
         self.events = []
         self.reasoning = []
         self.content = []
+        # The tokens the model wrote, thinking included, if its API said.
+        self.output_tokens = None
         self.done = False
         # What ended it early, if a failure did, and whether part of it was kept.
         self.error = None
@@ -369,8 +376,9 @@ def _relay(reply, payload, reasoning='', content=''):
 def _save_reply(reply, text):
     with get_db() as conn:
         if reply.message_id:
-            return insert_swipe(conn, reply.message_id, text)
-        return insert_message(conn, reply.chat_id, 'character', text)
+            return insert_swipe(conn, reply.message_id, text, reply.output_tokens)
+        return insert_message(conn, reply.chat_id, 'character', text,
+                              output_tokens=reply.output_tokens)
 
 
 def _finish(reply, whole=False, error=None):
@@ -494,6 +502,11 @@ def _write_reply(reply, url, headers, body, anthropic, logged_url):
                         # is: what was kept has to reach the page first.
                         error = shown_error = _provider_message(payload)
                         return
+                    # The last chunk of a Chat Completions stream asked for
+                    # usage carries it and no choices.
+                    usage = chunk.get('usage') or {}
+                    if isinstance(usage.get('completion_tokens'), int):
+                        reply.output_tokens = usage['completion_tokens']
                     choice = chunk.get('choices', [{}])[0]
                     delta = choice.get('delta') or {}
                     reasoning = delta.get('reasoning_content') or delta.get('reasoning') or ''
@@ -595,8 +608,12 @@ def llm_chat():
         return not_found('Message' if message_id else 'Chat')
 
     data['stream'] = True
-    url, headers = _upstream(endpoint, api_key, 'chat/completions')
     anthropic = is_anthropic(endpoint)
+    if not anthropic:
+        # The count of tokens the reply took, reasoning included, comes only
+        # when asked for.
+        data.setdefault('stream_options', {'include_usage': True})
+    url, headers = _upstream(endpoint, api_key, 'chat/completions')
 
     reply = Reply(chat_id, message_id)
     with _replies_lock:

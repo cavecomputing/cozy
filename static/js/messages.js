@@ -7,6 +7,7 @@ import {
     branchesAt, displayChatName, parseDbStamp, fullStamp, shortStamp,
 } from './utils.js';
 import { parseThinkingContent, renderThinkingBlock, revealPastThinkingTag } from './thinking.js';
+import { estimateTextTokens } from './tokenizer.js';
 import { updateContextViews, updateContextBoundary, placeContextBoundary } from './context-meter.js';
 import { noteChatActivity } from './characters.js';
 import { refreshOpenChat } from './chats.js';
@@ -297,7 +298,7 @@ export async function receiveSwipe(msgEl, followed = null) {
     renderThinkingBlock(msgBody, parsed);
     renderMarkdown(contentEl, parsed.response);
     updateSwipeNav(msgEl, msg);
-    setEditedLabel(msgEl, saved.edited_at);
+    setSwipeLabels(msgEl, saved);
     updateContextViews();
     return true;
 }
@@ -330,7 +331,7 @@ export async function handleSwipeAction(msgEl, isPrev) {
     }
 
     updateSwipeNav(msgEl, msg);
-    setEditedLabel(msgEl, msg.swipes[msg.activeSwipeIndex].edited_at);
+    setSwipeLabels(msgEl, msg.swipes[msg.activeSwipeIndex]);
 }
 
 export async function regenerateLastAssistantMessage() {
@@ -417,13 +418,17 @@ export function buildMsgActions(role, swipeCount = 1, activeSwipeIndex = 0, isGr
     // reply's row starts on the text's edge, a bubble's keeps to its right.
     const top = iconButton('msg-action-btn top-msg-btn', 'Back to start', 'Back to the start of this message', icons.ARROWUP);
     top.hidden = true;
-    if (role === 'user') bar.append(top);
+    // The swipe's token count, on the buttons' side nearest the text; filled
+    // in by setSwipeLabels.
+    const tokens = document.createElement('span');
+    tokens.className = 'msg-tokens';
+    if (role === 'user') bar.append(top, tokens);
     appendMessageActionButtons(bar);
     if (role === 'character') {
         bar.append(iconButton('msg-action-btn fork-msg-btn', 'Fork', 'Fork chat from here', icons.FORK));
     }
     bar.append(iconButton('msg-action-btn delete-msg-btn', 'Delete (Shift+click skips the confirm)', 'Delete message', icons.TRASH));
-    if (role === 'character') bar.append(top);
+    if (role === 'character') bar.append(tokens, top);
     return bar;
 }
 
@@ -446,11 +451,24 @@ function buildEditActions() {
     return bar;
 }
 
-/** Show "(edited)" while the swipe on screen is one the reader has rewritten. */
-function setEditedLabel(msgEl, editedAt) {
+/**
+ * Label the swipe on screen: "(edited)" while it is one the reader has
+ * rewritten, and its token count. A reply's count is the one its API reported,
+ * thinking included; anything without one, your own messages among them, gets
+ * the context meter's estimate, marked ≈.
+ */
+function setSwipeLabels(msgEl, swipe) {
+    const editedAt = swipe.edited_at;
     const label = msgEl.querySelector('.msg-edited');
     label.hidden = !editedAt;
     label.title = editedAt ? `Edited ${fullStamp(parseDbStamp(editedAt))}` : '';
+    // Not there while an edit has Save and Cancel in the row.
+    const tokens = msgEl.querySelector('.msg-tokens');
+    if (!tokens) return;
+    const exact = swipe.output_tokens != null;
+    const count = (exact ? swipe.output_tokens : estimateTextTokens(swipe.content)).toLocaleString();
+    tokens.textContent = exact ? `${count} tokens` : `≈ ${count} tokens`;
+    tokens.title = exact ? 'Tokens the model wrote, thinking included' : 'Estimated by Cozy';
 }
 
 /** The button under a message that other chats branch at, or null: it opens the next of them. */
@@ -536,7 +554,7 @@ function buildMessageEl(msg, isGreeting = false) {
     }
     message.append(msgBody);
     wrapper.append(message);
-    setEditedLabel(message, msg.swipes[msg.activeSwipeIndex].edited_at);
+    setSwipeLabels(message, msg.swipes[msg.activeSwipeIndex]);
 
     if (isGreeting) {
         message.dataset.isGreeting = 'true';
@@ -683,7 +701,7 @@ export async function appendMessage(role, text, persist = true, saved = null) {
     hideEmptyState();
     const persona = role === 'user' ? state.activePersona : null;
     const msg = {
-        role, text, swipes: [{ content: text }], activeSwipeIndex: 0,
+        role, text, swipes: [{ content: text, output_tokens: saved?.output_tokens }], activeSwipeIndex: 0,
         persona: persona ? { name: persona.name } : null,
     };
     const { container, message } = buildMessageEl(msg);
@@ -806,7 +824,7 @@ export function finishEditing(save) {
         // Saving the text unchanged is not an edit, as the server agrees.
         if (rawText !== msg.text) {
             const editedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            msg.swipes[idx] = { ...unedited, content: rawText, edited_at: editedAt };
+            msg.swipes[idx] = { ...unedited, content: rawText, edited_at: editedAt, output_tokens: null };
             setActiveSwipe(msg, idx);
         }
         if (msg.id) {
@@ -821,7 +839,7 @@ export function finishEditing(save) {
                 if (msg.activeSwipeIndex !== idx || !messageEl.isConnected) return;
                 setActiveSwipe(msg, idx);
                 renderSwipeBody(messageEl.querySelector('.msg-body'), contentDiv, msg.text);
-                setEditedLabel(messageEl, unedited.edited_at);
+                setSwipeLabels(messageEl, unedited);
                 updateContextViews();
                 // Not over another edit: opening this one would save that one.
                 if (!state.currentEdit) startEditing(messageEl, editedResponse);
@@ -863,7 +881,7 @@ export function finishEditing(save) {
         ...buildMsgActions(role, msg.swipes.length, msg.activeSwipeIndex, isGreeting).childNodes,
     );
     updateTopButton(messageEl.closest('.message-container'));
-    setEditedLabel(messageEl, msg.swipes[msg.activeSwipeIndex].edited_at);
+    setSwipeLabels(messageEl, msg.swipes[msg.activeSwipeIndex]);
 
     state.currentEdit = null;
     updateContextBoundary();

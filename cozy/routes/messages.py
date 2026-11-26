@@ -25,6 +25,7 @@ def _swipe_to_dict(row):
         'content': row['content'],
         'created_at': row['created_at'],
         'edited_at': row['edited_at'],
+        'output_tokens': row['output_tokens'],
     }
 
 
@@ -41,6 +42,8 @@ def _message_to_dict(row, swipes=()):
         message['swipe_index'] = next(
             (index for index, swipe in enumerate(swipes) if swipe['id'] == selected), 0
         )
+    elif swipes and swipes[0]['output_tokens'] is not None:
+        message['output_tokens'] = swipes[0]['output_tokens']
     return message
 
 
@@ -112,8 +115,10 @@ def fork_chat(chat_id):
             ).fetchall()
             for s in swipes:
                 cur = conn.execute(
-                    'INSERT INTO message_swipes (message_id, content, created_at, edited_at) VALUES (?,?,?,?)',
-                    (old_to_new[s['message_id']], s['content'], s['created_at'], s['edited_at'])
+                    'INSERT INTO message_swipes (message_id, content, created_at, edited_at, output_tokens) '
+                    'VALUES (?,?,?,?,?)',
+                    (old_to_new[s['message_id']], s['content'], s['created_at'], s['edited_at'],
+                     s['output_tokens'])
                 )
                 # The copy shows the swipe its original was showing.
                 if s['id'] in selected_swipes:
@@ -152,7 +157,7 @@ def list_messages(chat_id):
         if rows:
             swipes = conn.execute(
                 '''
-                SELECT s.id, s.message_id, s.content, s.created_at, s.edited_at
+                SELECT s.id, s.message_id, s.content, s.created_at, s.edited_at, s.output_tokens
                 FROM message_swipes s
                 JOIN messages m ON m.id = s.message_id
                 WHERE m.chat_id=?
@@ -169,8 +174,12 @@ def list_messages(chat_id):
         ])
 
 
-def insert_message(conn, chat_id, role, content, persona_id=None):
-    """Add a message to a chat, with the first swipe every message has."""
+def insert_message(conn, chat_id, role, content, persona_id=None, output_tokens=None):
+    """Add a message to a chat, with the first swipe every message has.
+
+    ``output_tokens`` is how many tokens the model wrote for a reply, thinking
+    included, where its API said.
+    """
     cur = conn.execute(
         'INSERT INTO messages (chat_id, role, content, persona_id) VALUES (?,?,?,?)',
         (chat_id, role, content, persona_id)
@@ -178,7 +187,8 @@ def insert_message(conn, chat_id, role, content, persona_id=None):
     msg_id = cur.lastrowid
     # Seed first swipe with the original content
     conn.execute(
-        'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
+        'INSERT INTO message_swipes (message_id, content, output_tokens) VALUES (?,?,?)',
+        (msg_id, content, output_tokens),
     )
     # Bump the chat's updated_at so most-recent ordering works. A user message
     # also records its persona on the chat, so reopening it on another machine
@@ -194,13 +204,14 @@ def insert_message(conn, chat_id, role, content, persona_id=None):
     row = conn.execute(MESSAGE_WITH_PERSONA_SQL + '''
         WHERE m.id=?
     ''', (msg_id,)).fetchone()
-    return _message_to_dict(row)
+    return _message_to_dict(row, [{'content': content, 'edited_at': None, 'output_tokens': output_tokens}])
 
 
-def insert_swipe(conn, msg_id, content):
+def insert_swipe(conn, msg_id, content, output_tokens=None):
     """Add a swipe to a message and put it on show."""
     cur = conn.execute(
-        'INSERT INTO message_swipes (message_id, content) VALUES (?,?)', (msg_id, content)
+        'INSERT INTO message_swipes (message_id, content, output_tokens) VALUES (?,?,?)',
+        (msg_id, content, output_tokens),
     )
     conn.execute(
         'UPDATE messages SET content=?, selected_swipe_id=? WHERE id=?',
@@ -270,10 +281,12 @@ def update_message(msg_id):
         if not swipe:
             return not_found('Swipe')
         # Saved unchanged, an edit is not an edit: the swipe is only marked
-        # when its text actually differs from what it held.
+        # when its text actually differs from what it held. Its token count
+        # was the model's, so the rewritten text goes back to an estimate.
         if content and content != swipe['content']:
             conn.execute(
-                'UPDATE message_swipes SET content=?, edited_at=CURRENT_TIMESTAMP WHERE id=?',
+                'UPDATE message_swipes SET content=?, edited_at=CURRENT_TIMESTAMP, '
+                'output_tokens=NULL WHERE id=?',
                 (content, swipe['id']),
             )
         # The message carries a copy of the text on show, for everything that
