@@ -1981,10 +1981,14 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ── Transcript ──────────────────────────────────────────────────────────── */
+/* The jump button keeps to the window's edge, and a window narrow enough
+   brings Send under it. Its inset is Send's there, which is the composer's
+   side padding, border and inner padding, so the two share a right edge.
+   The phone's composer adds up to the same 17px. */
 .scroll-to-bottom-btn {
     position: absolute;
     bottom: 0.5rem;
-    right: 1.25rem;
+    right: calc(0.625rem + 1px + var(--space-2));
     width: 34px;
     height: 34px;
     border-radius: var(--radius-control);
