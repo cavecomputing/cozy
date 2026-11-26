@@ -259,26 +259,35 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
     min-height: var(--mobile-tap-target);
 }
 
-.chat-item-actions .icon-btn,
-.persona-actions .icon-btn {
-    width: var(--mobile-tap-target);
-    height: var(--mobile-tap-target);
-}
-
-/* A character row's ⋯ draws a 28px tile 4px from the row's end, so its dots
-   sit as far in as the avatar does from the start, and its hit area reaches
-   back to the full 44px over the free space beside it. */
+/* A row's end buttons draw a 28px tile 4px from the row's end, so their ink
+   sits as far in as the avatar or the "#" does from the start, and each hit
+   area reaches back to the full 44px over the free space beside it. */
 .char-item-actions {
     margin-right: var(--space-1);
 }
 
-.char-item-actions .icon-btn {
-    position: relative;
-    width: 28px;
-    height: var(--mobile-tap-target);
+.persona-option {
+    padding-right: var(--space-1);
 }
 
-.char-item-actions .icon-btn::after {
+/* Room for the pencil's hit area between it and the bin. */
+.persona-actions {
+    gap: 16px;
+}
+
+.char-item-actions .icon-btn,
+.chat-item-actions .icon-btn,
+.persona-actions .icon-btn {
+    position: relative;
+    width: 28px;
+    min-width: 0;
+    height: var(--mobile-tap-target);
+    padding: 0;
+}
+
+.char-item-actions .icon-btn::after,
+.chat-item-actions .icon-btn::after,
+.persona-actions .icon-btn::after {
     content: '';
     position: absolute;
     inset: 0 0 0 -16px;
