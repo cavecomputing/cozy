@@ -12,7 +12,7 @@ import { updateContextViews, updateContextBoundary, placeContextBoundary } from 
 import { noteChatActivity } from './characters.js';
 import { refreshOpenChat } from './chats.js';
 import { generateResponse } from './request-builder.js';
-import { ensureSummaryReadyForSend } from './summaries.js';
+import { ensureSummaryReadyForSend, maybeTriggerSummary } from './summaries.js';
 import { flushLLMSettingsSave } from './llm-settings.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -300,6 +300,10 @@ export async function receiveSwipe(msgEl, followed = null) {
     updateSwipeNav(msgEl, msg);
     setSwipeLabels(msgEl, saved);
     updateContextViews();
+    // As after a new reply: fold in what this take displaced, and retry a memory
+    // update that failed. A take on a chat whose last update failed skips the
+    // wait above, so without this nothing tried again until the next message.
+    maybeTriggerSummary();
     return true;
 }
 
