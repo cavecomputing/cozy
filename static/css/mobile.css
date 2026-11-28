@@ -486,6 +486,13 @@ body:not(.mobile-drawer-open) #main-content > header {
     font-size: var(--text-xs);
 }
 
+/* The row's count is the number alone: with the word, a reply's row ran
+   a few pixels past a 390px phone and pushed Back to start onto a line of
+   its own. The tooltip still says what it counts. */
+.msg-tokens-unit {
+    display: none;
+}
+
 /* Under the text, on the text's edge; last in the grid's order. On the
    narrowest phones a character's full row of tap targets is wider than
    the card, so it wraps rather than spilling past the edge. */

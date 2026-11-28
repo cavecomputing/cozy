@@ -115,7 +115,8 @@ the model's API reported, thinking included, so it is the number that **Max
 response tokens** in **Settings → API** has to leave room for. Your own
 messages, greetings, imported chats, replies stopped early, edited replies, and
 replies from providers that report no count show Cozy's estimate instead,
-marked **≈**, such as **≈ 21 tokens**.
+marked **≈**, such as **≈ 21 tokens**. On a phone the row shows the number
+alone, such as **≈ 21**, to keep the row on one line.
 
 ## Branch a chat
 

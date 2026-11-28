@@ -479,7 +479,12 @@ function setSwipeLabels(msgEl, swipe) {
     if (!tokens) return;
     const exact = swipe.output_tokens != null;
     const count = (exact ? swipe.output_tokens : estimateTextTokens(swipe.content)).toLocaleString();
-    tokens.textContent = exact ? `${count} tokens` : `≈ ${count} tokens`;
+    // The phone's row has no room for the word, so it hides the unit (mobile.css).
+    const unit = document.createElement('span');
+    unit.className = 'msg-tokens-unit';
+    unit.textContent = ' tokens';
+    tokens.textContent = exact ? count : `≈ ${count}`;
+    tokens.append(unit);
     tokens.title = exact ? 'Tokens the model wrote, thinking included' : 'Estimated by Cozy';
 }
 
