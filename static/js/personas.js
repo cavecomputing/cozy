@@ -15,6 +15,7 @@ export function renderPersonaList() {
     // it before the wipe and seat it again once the rows it belongs to exist.
     parkPersonaForm();
     el.personaList.innerHTML = '';
+    const sceneIds = state.activeChat?.scene_persona_ids || [];
 
     state.personas.forEach(p => {
         const opt = document.createElement('div');
@@ -64,6 +65,25 @@ export function renderPersonaList() {
             togglePersonaMenu(more, p, e.detail === 0);
         });
         actions.appendChild(more);
+
+        // The tick brings a persona into the open chat beside the one
+        // speaking, who is always in it.
+        if (state.activeChat) {
+            const speaking = state.activePersona?.id === p.id;
+            const inScene = speaking || sceneIds.includes(p.id);
+            const tick = document.createElement('button');
+            tick.className = 'persona-scene-tick';
+            tick.innerHTML = icons.SAVE;
+            tick.title = speaking ? 'Speaking now' : inScene ? 'In this chat: click to take out' : 'Bring into this chat';
+            tick.setAttribute('aria-label', `${p.name} in this chat`);
+            tick.setAttribute('aria-pressed', String(inScene));
+            tick.disabled = speaking;
+            tick.addEventListener('click', e => {
+                e.stopPropagation();
+                toggleScenePersona(p);
+            });
+            actions.appendChild(tick);
+        }
         opt.appendChild(actions);
 
         opt.addEventListener('click', () => selectPersona(p));
@@ -81,11 +101,13 @@ export async function deletePersona(p) {
         state.personas = state.personas.filter(x => x.id !== p.id);
         if (state.activePersona?.id === p.id) {
             state.activePersona = state.personas.find(x => x.is_default) || state.personas[0];
-            updateUserProfile();
             rerenderMessageText();
             savePrefs();
         }
+        // The card names the others in the chat, who may have included them.
+        updateUserProfile();
         renderPersonaList();
+        updateContextViews();
     } catch (err) {
         console.error(err);
         showToast('Failed to delete persona: ' + err.message);
@@ -145,27 +167,60 @@ function togglePersonaMenu(trigger, p, fromKeyboard) {
 }
 
 export function selectPersona(p) {
+    const previous = state.activePersona;
     state.activePersona = p;
+    // Record the choice on the open chat, not just in this browser, so the
+    // next machine to open it speaks as the same person. Sending a message
+    // stores this too; here it covers switching and then walking away.
+    // The speaker is never listed among the others in the chat. When there
+    // are others, the one who was speaking stays with them; on their own,
+    // switching swaps who you are, as it always has.
+    const chat = state.activeChat;
+    if (chat) {
+        const others = scenePersonas().map(x => x.id);
+        if (others.length && previous && previous.id !== p.id && !others.includes(previous.id)) others.push(previous.id);
+        chat.persona_id = p.id;
+        chat.scene_persona_ids = others;
+        API.updateChat(chat.id, { persona_id: p.id, scene_persona_ids: others })
+            .catch(err => console.error('Could not save chat persona:', err));
+    }
     updateUserProfile();
     rerenderMessageText();
     renderPersonaList();
     savePrefs();
     updateContextViews();
-    // Record the choice on the open chat, not just in this browser, so the
-    // next machine to open it speaks as the same person. Sending a message
-    // stores this too; here it covers switching and then walking away.
-    if (state.activeChat) {
-        state.activeChat.persona_id = p.id;
-        API.updateChat(state.activeChat.id, { persona_id: p.id })
-            .catch(err => console.error('Could not save chat persona:', err));
-    }
+}
+
+/** The personas in the open chat beside the one speaking, in the menu's order. */
+function scenePersonas() {
+    const ids = state.activeChat?.scene_persona_ids || [];
+    return state.personas.filter(p => ids.includes(p.id) && p.id !== state.activePersona?.id);
+}
+
+/** Bring persona `p` into the open chat beside the speaker, or take them out. */
+export function toggleScenePersona(p) {
+    const chat = state.activeChat;
+    if (!chat || p.id === state.activePersona?.id) return;
+    const ids = scenePersonas().map(x => x.id);
+    chat.scene_persona_ids = ids.includes(p.id) ? ids.filter(id => id !== p.id) : [...ids, p.id];
+    API.updateChat(chat.id, { scene_persona_ids: chat.scene_persona_ids })
+        .catch(err => console.error('Could not save who is in the chat:', err));
+    updateUserProfile();
+    renderPersonaList();
+    updateContextViews();
 }
 
 export function updateUserProfile() {
     const p = state.activePersona;
     if (!p) return;
     if (el.userName) el.userName.textContent = p.name;
-    if (el.userTagline) el.userTagline.textContent = p.tagline || p.description || '';
+    // With others in the chat, the card says who they are in place of the tagline.
+    const others = scenePersonas().map(x => x.name);
+    if (el.userTagline) {
+        el.userTagline.textContent = others.length
+            ? `with ${new Intl.ListFormat('en').format(others)}`
+            : p.tagline || p.description || '';
+    }
     if (el.userAvatar) {
         applyAvatar(el.userAvatar, p, '?', AVATAR.SM);
     }

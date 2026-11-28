@@ -1933,6 +1933,7 @@ input[type="checkbox"]:checked::after {
 .persona-actions {
     margin-left: auto;
     display: flex;
+    align-items: center;
     gap: 0.15rem;
 }
 
@@ -1946,6 +1947,47 @@ input[type="checkbox"]:checked::after {
 .persona-option:focus-within .persona-menu-btn,
 .persona-menu-btn[aria-expanded="true"] {
     opacity: 1;
+}
+
+/* The tick that brings a persona into the open chat: an empty ring, filled in
+   the primary button's colours while they are in it. The speaker's is filled
+   and dimmed, since the one speaking can't leave. */
+.persona-scene-tick {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-inline: 0.35rem 0.2rem;
+    padding: 0;
+    border: 1.5px solid var(--line);
+    border-radius: 50%;
+    background: none;
+    color: transparent;
+    cursor: pointer;
+}
+
+.persona-scene-tick svg {
+    width: 13px;
+    height: 13px;
+    stroke-width: 3;
+}
+
+.persona-scene-tick[aria-pressed="true"] {
+    border-color: var(--accent-color);
+    background-color: var(--accent-color);
+    color: var(--btn-primary-color, white);
+}
+
+.persona-scene-tick:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+@media (hover: hover) {
+    .persona-scene-tick:not(:disabled):hover {
+        border-color: var(--accent-color);
+    }
 }
 
 /* Selected as the active chat row is: the selected fill and a bold accent name. */

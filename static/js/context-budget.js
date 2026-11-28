@@ -94,15 +94,17 @@ export function contextInputs({ excludeLastN = 0, draftText = '', summaryText = 
             role: message.role,
             text: message.text,
             id: message.id,
+            personaName: message.persona?.name,
             _contextSource: message._contextSource || 'message_history',
         }));
-    const draft = String(draftText || '').trim();
-    if (draft) {
-        candidates.push({ role: 'user', text: draft, _contextSource: 'current_draft', _isDraft: true });
-    }
-
     const character = state.activeCharacter || {};
     const persona = state.activePersona || {};
+    const draft = String(draftText || '').trim();
+    if (draft) {
+        candidates.push({ role: 'user', text: draft, personaName: persona.name, _contextSource: 'current_draft', _isDraft: true });
+    }
+
+    const scenePersonaIds = state.activeChat?.scene_persona_ids || [];
     const prompt = state.systemPrompts.find(item => item.id === state.activeSystemPromptId);
     return {
         candidates,
@@ -118,6 +120,10 @@ export function contextInputs({ excludeLastN = 0, draftText = '', summaryText = 
             mes_example: character.mes_example,
         },
         persona: { name: persona.name, description: persona.description },
+        // Everyone in the scene, the speaker among them, in the persona menu's order.
+        scene: state.personas
+            .filter(p => p.id === persona.id || scenePersonaIds.includes(p.id))
+            .map(p => ({ name: p.name, description: p.description })),
         systemText: cardPrompt('system_prompt') || prompt?.content || '',
         postHistoryText: cardPrompt('post_history_instructions') || prompt?.post_history_content || '',
         lorebook: resolveActiveLorebook(state.activeChat, character, state.lorebooks),

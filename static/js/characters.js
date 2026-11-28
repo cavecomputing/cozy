@@ -3,6 +3,7 @@ import { API } from './api.js';
 import { confirmDialog } from './confirm.js';
 import { applyAvatar, AVATAR, compareCharacters, recentCharacters, parseDbStamp, timeAgo, showToast, updateComposerState, showEmptyState, savePrefs, closeMobileSidebar, MOBILE_SHELL_QUERY, updateTabTitle } from './utils.js';
 import { loadChats, renderChats } from './chats.js';
+import { renderPersonaList, updateUserProfile } from './personas.js';
 import { renderMessages, flushEdit } from './messages.js';
 import { forgetCharacterLorebook } from './lorebooks.js';
 import { renderSetupCharacters } from './setup.js';
@@ -222,6 +223,8 @@ function clearActiveCharacterState() {
     updateComposerState();
     renderChats();
     renderMessages();
+    updateUserProfile();
+    renderPersonaList();
 }
 
 export async function loadCharacters() {

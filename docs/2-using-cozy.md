@@ -190,7 +190,7 @@ start of a name is enough when only one name fits. For example, `/pe` **Tab**
 | `/auto-summary on` or `off` | Turns Auto Summary on or off for the open chat. With neither word, it switches it. |
 | `/prompt <name>` | Switches the prompt preset. If two versions have that name, it picks the newer one. `/prompt NanoBear 2.1` picks an exact version. |
 | `/api <name>` | Switches the API preset. |
-| `/persona <name>` | Switches your persona. |
+| `/persona <name>` | Switches your persona. `/persona +<name>` brings another persona into the chat beside you, and `/persona -<name>` takes them out. See [Set up your persona](1-getting-started.md#4-set-up-your-persona). |
 | `/char <name>` | Opens your latest chat with that character. |
 | `/settings` | Opens Settings. `/settings api` opens one page of it. |
 

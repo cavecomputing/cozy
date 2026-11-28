@@ -1239,10 +1239,10 @@
                 <ol class="prompt-help-tips">
                     <li><code>&lt;system_instructions&gt;</code> holds your System box.</li>
                     <li><code>&lt;character&gt;</code> holds the card's description and personality, then its example messages in <code>&lt;example_dialogue&gt;</code>.</li>
-                    <li><code>&lt;user&gt;</code> holds your persona's description.</li>
+                    <li><code>&lt;user&gt;</code> holds your persona's description. With more than one persona in the chat, it holds each of them in a <code>&lt;persona&gt;</code> tag with its name.</li>
                     <li><code>&lt;world_info&gt;</code> holds the lorebook entries the chat brought up, then the card's scenario.</li>
                     <li><code>&lt;memory&gt;</code> holds the chat's Author's Note in <code>&lt;author_note&gt;</code> and its Auto Summary in <code>&lt;story_so_far&gt;</code>.</li>
-                    <li>The chat itself, oldest message first.</li>
+                    <li>The chat itself, oldest message first. With more than one persona in the chat, each of your messages starts with the name of the one who sent it.</li>
                     <li><code>&lt;post_history_instructions&gt;</code> holds your Post-History box.</li>
                 </ol>
                 <ul class="prompt-help-tips">

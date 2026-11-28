@@ -293,6 +293,42 @@ class TestChatPersona:
         assert forked['persona_id'] == sample_persona['id']
 
 
+class TestChatScene:
+    """`chats.scene_persona_ids`: the personas in a chat beside the one speaking."""
+
+    def _put(self, client, chat_id, scene):
+        return client.put(f'/api/chats/{chat_id}', json={'scene_persona_ids': scene})
+
+    def _listed(self, client, character_id, chat_id):
+        rows = client.get(f'/api/characters/{character_id}/chats').get_json()
+        return next(c for c in rows if c['id'] == chat_id)['scene_persona_ids']
+
+    def test_a_new_chat_has_nobody_else_in_it(self, client, sample_character, sample_chat):
+        assert sample_chat['scene_persona_ids'] == []
+        assert self._listed(client, sample_character['id'], sample_chat['id']) == []
+
+    def test_update_stores_the_list_without_repeats_or_strangers(
+        self, client, sample_character, sample_chat, sample_persona
+    ):
+        other = client.post('/api/personas', json={'name': 'Sam'}).get_json()
+        r = self._put(client, sample_chat['id'], [other['id'], sample_persona['id'], other['id'], 99999])
+        assert r.status_code == 200
+        assert r.get_json()['scene_persona_ids'] == [other['id'], sample_persona['id']]
+        assert self._listed(client, sample_character['id'], sample_chat['id']) == [other['id'], sample_persona['id']]
+
+    def test_update_rejects_anything_but_a_list_of_ids(self, client, sample_chat):
+        for bad in ['1,2', [1, 'Sam'], [True], {'id': 1}]:
+            assert self._put(client, sample_chat['id'], bad).status_code == 400, bad
+
+    def test_fork_carries_the_scene_to_the_new_chat(self, client, sample_chat, sample_persona):
+        self._put(client, sample_chat['id'], [sample_persona['id']])
+        msg = client.post(f'/api/chats/{sample_chat["id"]}/messages', json={
+            'role': 'user', 'content': 'Hello',
+        }).get_json()
+        forked = client.post(f'/api/chats/{sample_chat["id"]}/fork?message_id={msg["id"]}').get_json()
+        assert forked['scene_persona_ids'] == [sample_persona['id']]
+
+
 class TestDeletedPersonaName:
     """A message holds its persona's id, so the name has to outlive the row."""
 

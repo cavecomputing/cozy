@@ -52,7 +52,7 @@ SQLite does not know about these, so it does not clean them up.
 | Column | Points at | When the target is deleted |
 |---|---|---|
 | `chats.active_lorebook_id` | `lorebooks.id` | Application code sets the column back to `NULL`. |
-| `chats.persona_id`, `messages.persona_id` | `personas.id` | The id is left as it is. The persona's name is copied to `messages.persona_name` first, so old messages keep the name they were written under. |
+| `chats.persona_id`, `chats.scene_persona_ids`, `messages.persona_id` | `personas.id` | The id is left as it is. The persona's name is copied to `messages.persona_name` first, so old messages keep the name they were written under. |
 | `chats.parent_chat_id` | `chats.id` | Never cleared. With the parent chat gone, the fork is an ordinary chat with no branch pill. |
 | `chats.parent_msg_id`, `chats.fork_msg_id` | `messages.id` | Never cleared. With the message gone, the branch pill has no place to land, so switching branches opens that chat at its newest message. |
 
@@ -120,6 +120,7 @@ resume.
 | `summary_status` | TEXT | `'idle'` | `idle`, `running`, or `error`. |
 | `summary_status_detail` | TEXT | `''` | Progress or error text shown in the memory panel. |
 | `persona_id` | INTEGER | `NULL` | Persona speaking this chat. No declared FK. |
+| `scene_persona_ids` | TEXT | `'[]'` | JSON list of the other personas in this chat beside the one speaking, ticked in the persona list. Ids of personas since deleted are ignored. A fork copies it. |
 | `parent_chat_id` | INTEGER | `NULL` | For a fork, the chat it was cut from; `NULL` for any other chat. No declared FK. A fork made at the message this chat was itself cut at names that chat's parent instead, so branches that meet at one message share a parent and a `parent_msg_id`. |
 | `parent_msg_id` | INTEGER | `NULL` | The message in the parent the fork was cut at. No declared FK. |
 | `fork_msg_id` | INTEGER | `NULL` | This chat's own copy of that message: where its branch pill sits, and where the other branches land when switching to it. No declared FK. |
@@ -141,6 +142,7 @@ CREATE TABLE chats (
     summary_status TEXT NOT NULL DEFAULT 'idle',
     summary_status_detail TEXT NOT NULL DEFAULT '',
     persona_id INTEGER DEFAULT NULL,
+    scene_persona_ids TEXT NOT NULL DEFAULT '[]',
     parent_chat_id INTEGER DEFAULT NULL,
     parent_msg_id INTEGER DEFAULT NULL,
     fork_msg_id INTEGER DEFAULT NULL,

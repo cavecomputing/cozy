@@ -262,6 +262,15 @@ instead of **User**.
 To keep more than one persona, click **New Persona** in the same list. To
 switch, click your name at the bottom of the sidebar and pick another one.
 
+To play more than one persona in a chat, click the circle at the end of each
+extra persona's row. A filled circle means that persona is in the chat, and
+the AI gets every one of their descriptions. The persona you picked is the
+one speaking, and its circle is always filled. Each of your messages tells
+the AI which persona sent it, so switch to whoever speaks next before you
+write. The others stay in the chat until you click their circle again. The
+bottom of the sidebar names them under your name, and a new chat starts with
+only you.
+
 ## Start chatting
 
 1. Click a character in the sidebar.

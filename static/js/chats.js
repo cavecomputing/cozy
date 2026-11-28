@@ -275,11 +275,10 @@ export async function selectChat(chat) {
     const chatPersona = chat.persona_id
         ? state.personas.find(p => p.id === chat.persona_id)
         : null;
-    if (chatPersona && chatPersona.id !== state.activePersona?.id) {
-        state.activePersona = chatPersona;
-        updateUserProfile();
-        renderPersonaList();
-    }
+    if (chatPersona) state.activePersona = chatPersona;
+    // Whoever else is in this chat, on the card and in the ticks.
+    updateUserProfile();
+    renderPersonaList();
 
     // Highlight active item
     document.querySelectorAll('.chat-item').forEach(i => {

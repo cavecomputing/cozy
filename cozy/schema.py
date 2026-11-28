@@ -168,6 +168,7 @@ def init_db():
                 summary_status TEXT NOT NULL DEFAULT 'idle',
                 summary_status_detail TEXT NOT NULL DEFAULT '',
                 persona_id INTEGER DEFAULT NULL,
+                scene_persona_ids TEXT NOT NULL DEFAULT '[]',
                 parent_chat_id INTEGER DEFAULT NULL,
                 parent_msg_id INTEGER DEFAULT NULL,
                 fork_msg_id INTEGER DEFAULT NULL,
@@ -266,6 +267,9 @@ def init_db():
         swipe_columns = {row[1] for row in conn.execute('PRAGMA table_info(message_swipes)')}
         if 'output_tokens' not in swipe_columns:
             conn.execute('ALTER TABLE message_swipes ADD COLUMN output_tokens INTEGER DEFAULT NULL')
+        chat_columns = {row[1] for row in conn.execute('PRAGMA table_info(chats)')}
+        if 'scene_persona_ids' not in chat_columns:
+            conn.execute("ALTER TABLE chats ADD COLUMN scene_persona_ids TEXT NOT NULL DEFAULT '[]'")
 
         # A server restart kills any in-flight summary thread; clear stale state so
         # a chat isn't stuck showing "running" forever. Partial progress is safe:

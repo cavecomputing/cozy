@@ -205,7 +205,7 @@ A seeded prompt is a copy of a file that outranks it.
 On 2026-11-14 the owner had the 21 migrations and every column upgrade removed, since theirs was
 the only install. `BASELINE_VERSION` (21) is what a new database is created at and the oldest one
 `init_db()` opens: on an older one it raises, before touching it, and names `LAST_UPGRADING_COMMIT`,
-the last build that can still upgrade it. The one column upgrade is `message_swipes.output_tokens`; `MIGRATIONS` holds
+the last build that can still upgrade it. The column upgrades are `message_swipes.output_tokens` and `chats.scene_persona_ids`; `MIGRATIONS` holds
 22, and the next migration is 23.
 
 ### The database version, and backups

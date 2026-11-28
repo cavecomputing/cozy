@@ -35,7 +35,8 @@ Cozy is an AI roleplay app that tries to stay out of your way. Talking to charac
 - **A context meter.** A bar above the chat box shows what fills the model's
   context: prompt, character, lorebook, summary and messages.
 - **Personas and prompt presets.** Keep several of each, and switch between
-  them with a [slash command](docs/2-using-cozy.md#slash-commands).
+  them with a [slash command](docs/2-using-cozy.md#slash-commands). Bring more
+  than one persona into a chat when you play several characters at once.
 - **Themes.** Eight are built in, and [one CSS file](docs/3-user-themes.md) adds
   your own.
 - **Phone friendly.** The same app works on a phone and can be added to the

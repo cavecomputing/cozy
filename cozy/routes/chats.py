@@ -24,6 +24,7 @@ def chat_to_dict(row):
     # Expose a structured companion to the stored JSON. The summary is written by
     # the background worker alone; generic chat updates never accept this field.
     d['summary'] = parse_summary_json(d.get('summary_json'))
+    d['scene_persona_ids'] = json.loads(d.get('scene_persona_ids') or '[]')
     return d
 
 
@@ -396,6 +397,16 @@ def update_chat(chat_id):
                     return not_found('Persona')
             updates.append('persona_id=?')
             params.append(new_persona)
+
+        # `scene_persona_ids`: the personas in the scene beside the one
+        # speaking, which the page sends to the model with it.
+        if 'scene_persona_ids' in data:
+            scene = data['scene_persona_ids']
+            if not isinstance(scene, list) or not all(type(i) is int for i in scene):
+                return jsonify({'error': 'scene_persona_ids must be a list of persona ids'}), 400
+            known = {row[0] for row in conn.execute('SELECT id FROM personas')}
+            updates.append('scene_persona_ids=?')
+            params.append(json.dumps([i for i in dict.fromkeys(scene) if i in known]))
 
         # The generic chat patch may toggle enablement, but generated content,
         # watermark, and job status remain server-managed.

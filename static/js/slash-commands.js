@@ -8,7 +8,7 @@ import { jumpToContextBoundary, setContextMeterVisible } from './context-meter.j
 import { matchPresetByName, labelPresets } from './preset-match.js';
 import { activatePreset, flushLLMSettingsSave } from './llm-settings.js';
 import { selectSystemPrompt } from './system-prompts.js';
-import { selectPersona } from './personas.js';
+import { selectPersona, toggleScenePersona } from './personas.js';
 import { selectCharacter } from './characters.js';
 import { summarizerConfigured } from './summaries.js';
 
@@ -24,7 +24,7 @@ const COMMANDS = [
     { name: '/auto-summary', description: 'Turn auto summaries on or off: /auto-summary [on|off]', run: setAutoSummary },
     { name: '/prompt', description: 'Switch prompt preset: /prompt <name> [version]', run: switchPromptPreset },
     { name: '/api',    description: 'Switch API preset: /api <name>', run: switchApiPreset },
-    { name: '/persona', description: 'Switch persona: /persona <name>', run: switchPersona },
+    { name: '/persona', description: 'Switch persona: /persona <name>, or +<name> / -<name> for who else is in the chat', run: switchPersona },
     { name: '/char',   description: 'Switch character: /char <name>', run: switchCharacter },
     { name: '/settings', description: 'Open settings: /settings [page]', run: openSettingsPage },
 ];
@@ -93,7 +93,10 @@ function presetSuggestions(value) {
     const key = m?.[1].toLowerCase();
     const source = NAME_SOURCES[key];
     if (!source) return null;
-    const partial = m[2].trim().toLowerCase();
+    // "/persona +Ne" and "-Ne" are offered the names too, keeping the sign.
+    const typed = m[2].trim();
+    const sign = key === '/persona' && /^[+-]/.test(typed) ? typed[0] : '';
+    const partial = typed.slice(sign.length).toLowerCase();
     // Labels qualify a repeated name with its version, and a label is itself a
     // valid query — so each edition gets its own row that selects that edition.
     const named = source.list().filter(p => typeof p?.name === 'string');
@@ -101,9 +104,9 @@ function presetSuggestions(value) {
         .filter(label => label.toLowerCase().startsWith(partial))
         .slice(0, 8)
         .map(label => ({
-            name: `${key} ${label}`,
-            description: source.description,
-            args: label,
+            name: `${key} ${sign}${label}`,
+            description: { '+': 'Bring into this chat', '-': 'Take out of this chat' }[sign] || source.description,
+            args: sign + label,
             run: source.run,
         }));
 }
@@ -333,13 +336,22 @@ async function switchApiPreset(args) {
 }
 
 async function switchPersona(args) {
-    const { preset, error, candidates } = matchPresetByName(state.personas, args);
+    // "+Nell" brings a persona into the chat beside you, "-Nell" takes them out.
+    const sign = /^\s*([+-])/.exec(args || '')?.[1];
+    const { preset, error, candidates } = matchPresetByName(state.personas, sign ? args.trim().slice(1) : args);
     if (!preset) {
         if (candidates.length === 0) return showToast('No personas yet — create one from the persona menu');
         if (error === 'missing') {
             return showToast(`Current persona: ${state.activePersona?.name || 'none'}. Available: ${candidateNames(candidates)}`);
         }
         return showToast(`No persona matches "${String(args).trim()}". Available: ${candidateNames(candidates)}`);
+    }
+    if (sign) {
+        if (!state.activeChat) return showToast('Open a chat first');
+        if (preset.id === state.activePersona?.id) return showToast(`${preset.name} is speaking, so is in this chat already`);
+        const inChat = (state.activeChat.scene_persona_ids || []).includes(preset.id);
+        if (inChat !== (sign === '+')) toggleScenePersona(preset);
+        return showToast(`${preset.name} ${sign === '+' ? 'is in' : 'left'} this chat`, 'success');
     }
     selectPersona(preset);
     showToast(`Persona: ${preset.name}`, 'success');

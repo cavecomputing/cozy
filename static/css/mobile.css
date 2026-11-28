@@ -288,6 +288,21 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
     inset: 0 0 0 -16px;
 }
 
+/* A bigger ring, 4px in from the row's end as the ⋯ tiles are, and a hit
+   area grown to the full 44px over the space around it. */
+.persona-scene-tick {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    margin-inline: 10px 6px;
+}
+
+.persona-scene-tick::after {
+    content: '';
+    position: absolute;
+    inset: -9px;
+}
+
 #user-profile-container {
     margin: calc(-1 * var(--card-overlap)) 0.6rem 0.6rem;
 }

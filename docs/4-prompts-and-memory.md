@@ -7,10 +7,12 @@ Each time you send a message, Cozy sends the AI these parts, in this order:
 
 1. Your **System** text, from **Settings → Prompt**.
 2. The character: its description and personality, then its example messages.
-3. Your persona's description.
+3. Your persona's description. With more than one persona in the chat, each
+   one's description under its name.
 4. The lorebook entries this chat brought up, then the character's scenario.
 5. The chat's Author's Note, then its Auto Summary.
-6. The chat messages, oldest first.
+6. The chat messages, oldest first. With more than one persona in the chat,
+   each of your messages starts with the name of the persona who sent it.
 7. Your **Post-History** text, from **Settings → Prompt**.
 
 Cozy wraps each part in a labeled tag, so the AI can tell the parts apart. A
@@ -99,7 +101,7 @@ A placeholder is a short code that Cozy replaces before the text is sent.
 | You write | Cozy sends |
 |---|---|
 | `{{char}}` | The character's name. |
-| `{{user}}` | Your persona's name. |
+| `{{user}}` | Your persona's name. In a persona's own description, that persona's name. |
 | `{{time}}` | The current time on your device. |
 | `{{date}}` | The current date on your device. |
 | `{{random:a,b,c}}` | One of the options, picked again each time. |

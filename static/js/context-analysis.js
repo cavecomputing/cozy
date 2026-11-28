@@ -39,6 +39,9 @@ const SYSTEM_LAYOUT = [
             'mesExamples')),
     tag('user', 'note="{{user}}, the character the user plays."',
         'persona'),
+    // In its place when the user plays more than one persona in the chat.
+    tag('user', 'note="The characters the user plays. Each of the user\'s messages starts with the name of the one speaking."',
+        'scene'),
     tag('world_info', 'note="Facts about the setting. True unless the story changes them."',
         'lorebook',
         'scenario'),
@@ -59,6 +62,7 @@ const SOURCE_BY_VALUE = {
     personality: 'character_card',
     mesExamples: 'character_card',
     persona: 'persona',
+    scene: 'persona',
     lorebook: 'lorebook',
     scenario: 'character_card',
     authorNote: 'author_note',
@@ -191,6 +195,7 @@ function resolveNames(text, names) {
 /** The text for each slot of the layout, '' for one with nothing to say. */
 function layoutValues(inputs, lorebookText, names) {
     const { character, persona } = inputs;
+    const playsSeveral = inputs.scene.length > 1;
     // Cards, personas and lorebooks write the two names as {{char}} and
     // {{user}}, and some write {{time}} or a {{random}} pick.
     const filled = text => resolveTemplateVariables(text, names);
@@ -202,7 +207,13 @@ function layoutValues(inputs, lorebookText, names) {
         description: filled(character.description),
         personality: filled(character.personality),
         mesExamples: filled(character.mes_example),
-        persona: filled(persona.description),
+        persona: playsSeveral ? '' : filled(persona.description),
+        // Each persona's own name stands for {{user}} in its description.
+        scene: playsSeveral ? inputs.scene.map(member => [
+            `<persona name="${member.name}">`,
+            resolveTemplateVariables(member.description, { ...names, user: member.name }),
+            '</persona>',
+        ].filter(Boolean).join('\n')).join('\n\n') : '',
         lorebook: filled(lorebookText),
         scenario: filled(character.scenario),
         authorNote: filled(inputs.authorNote),
@@ -227,9 +238,12 @@ function assembleMessages(selectedMessages, inputs, resolvedLore) {
         // a greeting copied from a card reads the same to the model as to you.
         const content = resolveNames(parseThinkingContent(message.text || '').response, names);
         if (!content) continue;
+        // With several personas, your messages say which of them is speaking.
+        const speaker = inputs.scene.length > 1 && message.role === 'user'
+            ? `${message.personaName || names.user}: ` : '';
         messages.push(trackedMessage(
             message.role === 'user' ? 'user' : 'assistant',
-            [{ source: message._contextSource || 'message_history', text: content }],
+            [{ source: message._contextSource || 'message_history', text: speaker + content }],
         ));
     }
 

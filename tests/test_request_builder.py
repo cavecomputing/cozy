@@ -100,6 +100,61 @@ def test_chat_payload_lays_the_prompt_out_around_the_two_boxes():
     run_node_module(code)
 
 
+def test_several_personas_in_a_chat_each_get_their_own_tag_and_name_their_messages():
+    """With others in the chat beside the speaker, <user> holds every one of
+    them by name in the persona menu's order, each description reading its own
+    name for {{user}}, and each of your messages opens with who sent it. With
+    nobody else, or only a persona since deleted, nothing changes."""
+    code = BASE_NODE_SETUP + r"""
+        state.personas = [
+            { id: 1, name: 'Morgan', description: 'A curious user.' },
+            { id: 2, name: 'Sam', description: '{{user}} carries the bags for {{char}}.' },
+            { id: 3, name: 'Nell', description: '' },
+        ];
+        state.activePersona = state.personas[0];
+        state.activeCharacter = { name: 'Mira' };
+        usePrompt('');
+        state.messages = [
+            { id: 1, role: 'character', text: 'Hello, {{user}}.' },
+            { id: 2, role: 'user', text: 'Hi.', persona: { name: 'Sam' } },
+            { id: 3, role: 'character', text: 'Welcome.' },
+            { id: 4, role: 'user', text: 'Thanks.' },
+        ];
+
+        state.activeChat = { scene_persona_ids: [99] };
+        const alone = analyzeContext({ draftText: 'Morning.' });
+        assert.equal(alone.messages[0].content, [
+            '<user note="Morgan, the character the user plays.">',
+            'A curious user.',
+            '</user>',
+        ].join('\n'));
+        assert.equal(alone.messages.at(-1).content, 'Thanks.\n\nMorning.');
+
+        state.activeChat.scene_persona_ids.push(3, 2);
+        const several = analyzeContext({ draftText: 'Morning.' });
+        assert.notEqual(several, alone);
+        assert.equal(several.messages[0].content, [
+            '<user note="The characters the user plays. Each of the user\'s messages starts with the name of the one speaking.">',
+            '<persona name="Morgan">',
+            'A curious user.',
+            '</persona>',
+            '',
+            '<persona name="Sam">',
+            'Sam carries the bags for Mira.',
+            '</persona>',
+            '',
+            '<persona name="Nell">',
+            '</persona>',
+            '</user>',
+        ].join('\n'));
+        assert.deepEqual(several.messages.slice(1).map(m => m.content), [
+            '[Start]', 'Hello, Morgan.', 'Sam: Hi.', 'Welcome.', 'Morgan: Thanks.\n\nMorgan: Morning.',
+        ]);
+        assert.deepEqual(several.segments.map(s => s.id).slice(0, 1), ['persona']);
+    """
+    run_node_module(code)
+
+
 def test_prompt_editor_draft_syncs_active_prompt_before_persistence():
     """The token meter should see prompt edits without waiting for autosave."""
     code = r"""
