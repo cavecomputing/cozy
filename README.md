@@ -101,7 +101,7 @@ The server must provide an OpenAI-style streaming `/chat/completions` endpoint, 
 Anthropic's Claude API, which Cozy detects from the address.
 Model listing and advanced sampler support vary by server so verify the settings beforehand.
 
-Don't forget to also change the default persona: click **User** at the bottom of the sidebar, then the pencil beside it.
+Don't forget to also change the default persona: click **User** at the bottom of the sidebar, then the **⋯** beside it and **Edit**.
 Otherwise the AI is going to assume your name is literally "User".
 
 ## Updating

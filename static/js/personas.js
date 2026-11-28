@@ -1,6 +1,6 @@
 import { state, el, icons } from './state.js';
 import { API } from './api.js';
-import { showToast, savePrefs, applyAvatar, AVATAR } from './utils.js';
+import { showToast, savePrefs, applyAvatar, AVATAR, MOBILE_SHELL_QUERY } from './utils.js';
 import { confirmDialog } from './confirm.js';
 import { updateContextViews } from './context-meter.js';
 import { rerenderMessageText } from './messages.js';
@@ -48,48 +48,22 @@ export function renderPersonaList() {
 
         opt.append(avatar, info);
 
-        // Action buttons container (pushed to right)
+        // Editing and deleting are in the row's ⋯ menu, as on the chat rows.
         const actions = document.createElement('div');
         actions.className = 'persona-actions';
-
-        // Edit button — available for all personas
-        const edit = document.createElement('button');
-        edit.className = 'persona-edit-btn icon-btn';
-        edit.title = 'Edit persona';
-        edit.innerHTML = icons.EDIT;
-        edit.addEventListener('click', e => {
+        const more = document.createElement('button');
+        more.className = 'icon-btn persona-menu-btn';
+        more.title = 'More actions';
+        more.setAttribute('aria-label', 'More actions');
+        more.setAttribute('aria-haspopup', 'menu');
+        more.setAttribute('aria-expanded', 'false');
+        more.innerHTML = icons.MORE;
+        more.addEventListener('click', e => {
             e.stopPropagation();
-            showPersonaForm(p);
+            // A click with no detail came from Enter or Space, not a pointer.
+            togglePersonaMenu(more, p, e.detail === 0);
         });
-        actions.appendChild(edit);
-
-        // Delete button — not for default persona
-        if (!p.is_default) {
-            const del = document.createElement('button');
-            del.className = 'persona-delete-btn icon-btn';
-            del.title = 'Delete persona';
-            del.innerHTML = icons.TRASH;
-            del.addEventListener('click', async e => {
-                e.stopPropagation();
-                if (!(await confirmDialog({ title: `Delete persona "${p.name}"?` }))) return;
-                try {
-                    await API.deletePersona(p.id);
-                    state.personas = state.personas.filter(x => x.id !== p.id);
-                    if (state.activePersona?.id === p.id) {
-                        state.activePersona = state.personas.find(x => x.is_default) || state.personas[0];
-                        updateUserProfile();
-                        rerenderMessageText();
-                        savePrefs();
-                    }
-                    renderPersonaList();
-                } catch (err) {
-                    console.error(err);
-                    showToast('Failed to delete persona: ' + err.message);
-                }
-            });
-            // Before the pencil, so every row's pencil shares the right-hand column.
-            actions.prepend(del);
-        }
+        actions.appendChild(more);
         opt.appendChild(actions);
 
         opt.addEventListener('click', () => selectPersona(p));
@@ -97,6 +71,77 @@ export function renderPersonaList() {
         el.personaList.appendChild(opt);
     });
     seatPersonaForm();
+}
+
+/** Delete persona `p` once confirmed, speaking as the default if it was speaking. */
+export async function deletePersona(p) {
+    if (!(await confirmDialog({ title: `Delete persona "${p.name}"?` }))) return;
+    try {
+        await API.deletePersona(p.id);
+        state.personas = state.personas.filter(x => x.id !== p.id);
+        if (state.activePersona?.id === p.id) {
+            state.activePersona = state.personas.find(x => x.is_default) || state.personas[0];
+            updateUserProfile();
+            rerenderMessageText();
+            savePrefs();
+        }
+        renderPersonaList();
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to delete persona: ' + err.message);
+    }
+}
+
+/** Close the persona rows' menu. Returns true when it was open. */
+export function closePersonaMenu() {
+    const menu = el.personaRowMenu;
+    if (menu.hidden) return false;
+    menu.hidden = true;
+    const trigger = el.personaList.querySelector('.persona-menu-btn[aria-expanded="true"]');
+    trigger?.setAttribute('aria-expanded', 'false');
+    // As closeCharMenu(): a pointer's ⋯ lets go of focus, or it keeps showing.
+    if (!menu.dataset.keyboard && document.activeElement === trigger) trigger.blur();
+    return true;
+}
+
+/** Open the menu for persona `p` from its ⋯, or close it when it is that
+ *  row's menu already showing. Works as toggleCharMenu() does, in the
+ *  sidebar's coordinates, since the menu is its child. */
+function togglePersonaMenu(trigger, p, fromKeyboard) {
+    const menu = el.personaRowMenu;
+    const sameRow = !menu.hidden && menu.dataset.personaId === String(p.id);
+    closePersonaMenu();
+    if (sameRow) return;
+
+    // The default persona can't be deleted.
+    menu.querySelectorAll('[data-row-delete]').forEach(li => { li.hidden = !!p.is_default; });
+    menu.dataset.personaId = p.id;
+    menu.dataset.keyboard = fromKeyboard ? '1' : '';
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    (fromKeyboard ? menu.querySelector('button') : trigger).focus({ preventScroll: true });
+
+    const box = el.sidebar.getBoundingClientRect();
+    const at = trigger.getBoundingClientRect();
+    const height = menu.offsetHeight;
+    if (window.matchMedia(MOBILE_SHELL_QUERY).matches) {
+        // The drawer clips anything past its edge, so the menu drops under the
+        // ⋯ with right edges aligned, or sits above it when there's no room.
+        const fitsBelow = at.bottom + 4 + height <= box.bottom;
+        menu.style.top = `${(fitsBelow ? at.bottom + 4 : at.top - 4 - height) - box.top}px`;
+        menu.style.left = 'auto';
+        menu.style.right = `${box.right - at.right}px`;
+        menu.style.transformOrigin = fitsBelow ? 'top right' : 'bottom right';
+    } else {
+        // Out past the Switch Persona menu's right edge, level with the row,
+        // and no lower than that menu's foot.
+        const dropup = el.personaDropup.getBoundingClientRect();
+        const row = trigger.closest('.persona-option').getBoundingClientRect();
+        menu.style.top = `${Math.min(row.top, dropup.bottom - height) - box.top}px`;
+        menu.style.left = `${dropup.right + 6 - box.left}px`;
+        menu.style.right = 'auto';
+        menu.style.transformOrigin = 'top left';
+    }
 }
 
 export function selectPersona(p) {

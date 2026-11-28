@@ -1240,9 +1240,10 @@ input[type="checkbox"]:checked::after {
 
 /* While a row's menu is open the row keeps its hover look and its ⋯ stays
    pressed, so the menu still reads as that row's with the pointer on it. The
-   chat rows' ⋯ menu works the same way. */
+   chat and persona rows' ⋯ menus work the same way. */
 .char-item:not(.active):has(.char-menu-btn[aria-expanded="true"]),
-.chat-item:not(.active):has(.chat-menu-btn[aria-expanded="true"]) {
+.chat-item:not(.active):has(.chat-menu-btn[aria-expanded="true"]),
+.persona-option:not(.active):has(.persona-menu-btn[aria-expanded="true"]) {
     background-color: var(--surface-quiet);
     color: var(--fg);
 }
@@ -1250,14 +1251,16 @@ input[type="checkbox"]:checked::after {
 /* The row's own hover fill is the shared hover colour, so the ⋯ hovers and
    presses a step darker to show against it. */
 .char-item-actions .char-menu-btn[aria-expanded="true"],
-.chat-item-actions .chat-menu-btn[aria-expanded="true"] {
+.chat-item-actions .chat-menu-btn[aria-expanded="true"],
+.persona-actions .persona-menu-btn[aria-expanded="true"] {
     background-color: color-mix(in srgb, var(--text-color) 12%, transparent);
     color: var(--text-color);
 }
 
 @media (hover: hover) {
     .char-item-actions .char-menu-btn:hover,
-    .chat-item-actions .chat-menu-btn:hover {
+    .chat-item-actions .chat-menu-btn:hover,
+    .persona-actions .persona-menu-btn:hover {
         background-color: color-mix(in srgb, var(--text-color) 12%, transparent);
         color: var(--text-color);
     }
@@ -1933,17 +1936,15 @@ input[type="checkbox"]:checked::after {
     gap: 0.15rem;
 }
 
-.persona-edit-btn,
-.persona-delete-btn {
+/* The ⋯, shown on hover and while its menu is open, as on the chat rows. */
+.persona-menu-btn {
     opacity: 0;
     transition: opacity var(--motion-base);
-    padding: 2px;
 }
 
-.persona-option:hover .persona-edit-btn,
-.persona-option:hover .persona-delete-btn,
-.persona-option:focus-within .persona-edit-btn,
-.persona-option:focus-within .persona-delete-btn {
+.persona-option:hover .persona-menu-btn,
+.persona-option:focus-within .persona-menu-btn,
+.persona-menu-btn[aria-expanded="true"] {
     opacity: 1;
 }
 
@@ -3203,12 +3204,14 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
 }
 
 .chat-item-actions .icon-btn,
-.char-item-actions .icon-btn {
+.char-item-actions .icon-btn,
+.persona-actions .icon-btn {
     padding: 3px;
     border-radius: var(--radius-control);
 }
 
-.chat-item-actions .icon-btn {
+.chat-item-actions .icon-btn,
+.persona-actions .icon-btn {
     color: var(--text-secondary);
 }
 
@@ -6230,8 +6233,7 @@ body:has(#send-btn.stop-mode) #chat-scroll > .message-container:last-child .msg-
         pointer-events: auto;
     }
 
-    .persona-edit-btn,
-    .persona-delete-btn {
+    .persona-menu-btn {
         opacity: 1;
     }
 }

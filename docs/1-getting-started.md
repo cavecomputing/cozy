@@ -250,7 +250,7 @@ A fresh install has one persona, named **User**. If you leave it, the AI
 thinks your name is "User".
 
 1. Click **User** at the bottom of the sidebar. A list of your personas opens.
-2. Point at **User** in the list and click the pencil next to it.
+2. Click the **⋯** next to **User** in the list, then **Edit**.
 3. Type your name in **Name**.
 4. In **Description**, describe yourself, or the character you play. This is
    the part the AI reads.

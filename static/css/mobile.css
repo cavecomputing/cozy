@@ -270,11 +270,6 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
     padding-right: var(--space-1);
 }
 
-/* Room for the pencil's hit area between it and the bin. */
-.persona-actions {
-    gap: 16px;
-}
-
 .char-item-actions .icon-btn,
 .chat-item-actions .icon-btn,
 .persona-actions .icon-btn {

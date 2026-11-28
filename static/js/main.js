@@ -13,7 +13,7 @@ import { loadCharacters, selectCharacter, deleteCharacter, renderCharList, toggl
 import { selectChat, createNewChat, deleteChat, startChatRename, importChat, handleChatImportFile, renderChats, refreshOpenChat, refreshChats, switchBranch, toggleChatMenu, closeChatMenu } from './chats.js';
 import { startEditing, finishEditing, handleSwipeAction, drawnMessages, drawOlderMessages, drawOlderNearTop, shownText, updateTopButtons } from './messages.js';
 import { Modal } from './modal.js';
-import { loadPersonas, showPersonaForm, closePersonaForm } from './personas.js';
+import { loadPersonas, showPersonaForm, closePersonaForm, closePersonaMenu, deletePersona } from './personas.js';
 import { handleSend } from './send.js';
 import {
     loadLLMSettings, saveLLMSettings, queueLLMSettingsSave, queueMainApiKeySave,
@@ -647,6 +647,7 @@ function closePersonaDropup() {
     el.personaDropup.classList.remove('show');
     el.personaDropup.setAttribute('aria-hidden', 'true');
     closePersonaForm();
+    closePersonaMenu();
 }
 
 function bindSidebarHandlers() {
@@ -1738,10 +1739,28 @@ function bindPersonaHandlers() {
         }
     });
     document.addEventListener('click', e => {
-        if (!el.personaDropup.contains(e.target) && e.target !== el.userProfile) {
+        if (!e.target.closest('#persona-dropup, #persona-row-menu') && e.target !== el.userProfile) {
             closePersonaDropup();
         }
     });
+
+    // Row menu — acts on the persona it was opened from. As the chat rows':
+    // a click anywhere else closes it (capture phase, since the ⋯ stops its
+    // clicks), and so does scrolling the rows it sits by.
+    el.personaRowMenu.addEventListener('click', e => {
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+        const persona = state.personas.find(p => p.id === Number(el.personaRowMenu.dataset.personaId));
+        closePersonaMenu();
+        if (!persona) return;
+        if (action === 'edit') showPersonaForm(persona);
+        else deletePersona(persona);
+    });
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#persona-row-menu, .persona-menu-btn')) closePersonaMenu();
+    }, true);
+    el.personaList.addEventListener('scroll', closePersonaMenu, { passive: true });
+    bindRowMenuKeys(el.sidebar, el.personaRowMenu, '.persona-menu-btn', closePersonaMenu);
 
     el.personaCreateBtn?.addEventListener('click', e => {
         e.stopPropagation();
